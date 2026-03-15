@@ -1,21 +1,16 @@
 packages:
-  "framer-motion": "For smooth page transitions and card stagger animations"
+  "framer-motion": "For page transitions, responsive animations, and layout transitions"
+  "lucide-react": "For UI icons like play, pause, user, music notes, and admin controls"
+  "@hookform/resolvers": "Zod validation for admin forms"
+  "react-hook-form": "For robust admin form state management"
 
 images:
   - path: "artifacts/alan-ribeiro-catalog/public/images/hero-bg.png"
-    description: "Dark subtle abstract background with a soft glowing gold light leak in the center, minimal, sleek, perfect for a dark mode hero section"
+    description: "Dark, moody music studio background with subtle gold and yellow lighting, blurred focus, premium cinematic feel"
     aspect_ratio: "16:9"
-  - path: "artifacts/alan-ribeiro-catalog/public/images/cover-nahora.png"
-    description: "Cinematic dramatic album cover, abstract warm glowing lights on pitch black background, high quality, highly detailed"
-    aspect_ratio: "1:1"
-  - path: "artifacts/alan-ribeiro-catalog/public/images/cover-umabraco.png"
-    description: "Emotional abstract album cover art, deep blues and rich gold accents, fluid shapes, high quality, elegant"
-    aspect_ratio: "1:1"
-  - path: "artifacts/alan-ribeiro-catalog/public/images/cover-outra.png"
-    description: "Modern sleek album cover, geometric gold lines on pitch black background, minimalist, high quality, premium feel"
+  - path: "artifacts/alan-ribeiro-catalog/public/images/default-cover.png"
+    description: "A dark minimal vinyl record cover placeholder with subtle gold accents, abstract geometric shapes"
     aspect_ratio: "1:1"
 
 notes:
-  - "App is a frontend-only catalog, all data is hardcoded"
-  - "Using a custom dark theme with gold accents as requested"
-  - "Framer motion is used for high-end feel"
+  - Expects @workspace/api-client-react to be available in the monorepo for API hooks.

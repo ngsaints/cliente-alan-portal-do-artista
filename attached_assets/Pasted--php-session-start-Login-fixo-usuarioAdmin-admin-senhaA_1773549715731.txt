@@ -1,0 +1,176 @@
+<?php
+session_start();
+
+// Login fixo
+$usuarioAdmin = "admin";
+$senhaAdmin = "1234";
+
+// Checa login
+if(isset($_POST['login'])){
+    if($_POST['usuario'] === $usuarioAdmin && $_POST['senha'] === $senhaAdmin){
+        $_SESSION['logado'] = true;
+    } else {
+        $erro = "Usuário ou senha incorretos!";
+    }
+}
+
+// Logout
+if(isset($_GET['logout'])){
+    session_destroy();
+    header("Location: index.php");
+    exit;
+}
+
+// Carrega músicas
+$dataFile = 'data.json';
+if(!file_exists($dataFile)){
+    file_put_contents($dataFile, json_encode([]));
+}
+$musicas = json_decode(file_get_contents($dataFile), true);
+
+// Upload de música
+if(isset($_POST['add_musica']) && isset($_SESSION['logado'])){
+    $titulo = $_POST['titulo'];
+    $descricao = $_POST['descricao'];
+    $genero = $_POST['genero'];
+
+    // Upload capa
+    $capa = "";
+    if(isset($_FILES['capa']) && $_FILES['capa']['error'] == 0){
+        $ext = pathinfo($_FILES['capa']['name'], PATHINFO_EXTENSION);
+        $capa = "capas/".time()."_capa.".$ext;
+        move_uploaded_file($_FILES['capa']['tmp_name'], $capa);
+    }
+
+    // Upload MP3
+    $mp3 = "";
+    if(isset($_FILES['mp3']) && $_FILES['mp3']['error'] == 0){
+        $ext = pathinfo($_FILES['mp3']['name'], PATHINFO_EXTENSION);
+        $mp3 = "musicas/".time()."_audio.".$ext;
+        move_uploaded_file($_FILES['mp3']['tmp_name'], $mp3);
+    }
+
+    $musicas[] = [
+        "titulo"=>$titulo,
+        "descricao"=>$descricao,
+        "genero"=>$genero,
+        "capa"=>$capa,
+        "mp3"=>$mp3
+    ];
+    file_put_contents($dataFile, json_encode($musicas));
+    header("Location: index.php");
+    exit;
+}
+?>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo de Músicas - Alan Ribeiro</title>
+<style>
+body { font-family: Arial, sans-serif; background:#121212; color:#fff; margin:0; padding:0;}
+header { background:#1f1f1f; padding:20px; text-align:center; }
+header h1 { margin:0; color:#f5c518;}
+main { padding:20px; display:flex; flex-wrap:wrap; gap:20px; justify-content:center; }
+.card { background:#1e1e1e; border-radius:10px; padding:15px; width:300px; box-shadow:0 0 10px #000; text-align:center; }
+.card img { width:100%; border-radius:10px; }
+.card h2 { margin:10px 0 5px 0; font-size:20px; color:#f5c518; }
+.card p { font-size:14px; color:#ccc; }
+.card button { display:inline-block; margin-top:10px; padding:8px 15px; background:#f5c518; color:#000; border:none; border-radius:5px; font-weight:bold; cursor:pointer; }
+
+#filtroGenero { margin:15px; padding:8px; border-radius:5px; }
+
+#player { width:100%; margin-top:10px; }
+form input, form select { margin:5px 0; width:100%; padding:8px; border-radius:5px; border:none; }
+form button { padding:10px; margin-top:10px; background:#f5c518; color:#000; border:none; border-radius:5px; cursor:pointer; font-weight:bold; }
+.error { color:red; margin:10px 0; }
+</style>
+</head>
+<body>
+
+<header>
+<h1>Catálogo de Músicas - Alan Ribeiro</h1>
+<?php if(isset($_SESSION['logado'])): ?>
+    <a href="?logout=1" style="color:#f5c518;">Logout</a>
+<?php endif; ?>
+</header>
+
+<?php if(!isset($_SESSION['logado'])): ?>
+<!-- Tela de login -->
+<main style="flex-direction:column; align-items:center;">
+<h2>Login Admin</h2>
+<?php if(isset($erro)) echo "<p class='error'>$erro</p>"; ?>
+<form method="POST">
+<input type="text" name="usuario" placeholder="Usuário" required>
+<input type="password" name="senha" placeholder="Senha" required>
+<button type="submit" name="login">Entrar</button>
+</form>
+</main>
+<?php else: ?>
+<!-- Painel admin -->
+<main style="flex-direction:column; align-items:center; gap:30px;">
+<h2>Adicionar Música</h2>
+<form method="POST" enctype="multipart/form-data">
+<input type="text" name="titulo" placeholder="Título da música" required>
+<input type="text" name="descricao" placeholder="Descrição" required>
+<select name="genero" required>
+    <option value="">Selecione o gênero</option>
+    <option value="sertanejo">Sertanejo</option>
+    <option value="pop">Pop</option>
+    <option value="rock">Rock</option>
+</select>
+<input type="file" name="capa" accept="image/*" required>
+<input type="file" name="mp3" accept="audio/*" required>
+<button type="submit" name="add_musica">Adicionar Música</button>
+</form>
+</main>
+<?php endif; ?>
+
+<!-- Catálogo público -->
+<main id="catalogo">
+<select id="filtroGenero">
+<option value="todos">Todos os gêneros</option>
+<option value="sertanejo">Sertanejo</option>
+<option value="pop">Pop</option>
+<option value="rock">Rock</option>
+</select>
+
+<?php foreach($musicas as $m): ?>
+<div class="card" data-genero="<?= $m['genero'] ?>">
+<img src="<?= $m['capa'] ?>" alt="<?= $m['titulo'] ?>">
+<h2><?= $m['titulo'] ?></h2>
+<p><?= $m['descricao'] ?></p>
+<button onclick="tocar('<?= $m['mp3'] ?>')">Tocar Música</button>
+</div>
+<?php endforeach; ?>
+
+<audio id="player" controls style="display:block"></audio>
+</main>
+
+<script>
+const player = document.getElementById('player');
+const filtro = document.getElementById('filtroGenero');
+const cards = document.querySelectorAll('.card');
+
+function tocar(caminho){
+    player.src = caminho;
+    player.play();
+}
+
+// Filtro por gênero
+filtro.addEventListener('change', ()=>{
+    const genero = filtro.value;
+    cards.forEach(c=>{
+        if(genero==='todos' || c.dataset.genero===genero){
+            c.style.display='block';
+        } else {
+            c.style.display='none';
+        }
+    });
+});
+</script>
+
+</body>
+</html>

@@ -14,3 +14,65 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary Admin login
+ */
+export const LoginBody = zod.object({
+  usuario: zod.string(),
+  senha: zod.string(),
+});
+
+export const LoginResponse = zod.object({
+  logado: zod.boolean(),
+});
+
+/**
+ * @summary Admin logout
+ */
+export const LogoutResponse = zod.object({
+  logado: zod.boolean(),
+});
+
+/**
+ * @summary Get auth status
+ */
+export const GetAuthStatusResponse = zod.object({
+  logado: zod.boolean(),
+});
+
+/**
+ * @summary List all songs
+ */
+export const ListSongsQueryParams = zod.object({
+  genre: zod.coerce.string().optional(),
+});
+
+export const ListSongsResponseItem = zod.object({
+  id: zod.number(),
+  titulo: zod.string(),
+  descricao: zod.string(),
+  genero: zod.string(),
+  capaUrl: zod.string().nullish(),
+  mp3Url: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+export const ListSongsResponse = zod.array(ListSongsResponseItem);
+
+/**
+ * @summary Add a new song (admin only)
+ */
+export const CreateSongBody = zod.object({
+  titulo: zod.string(),
+  descricao: zod.string(),
+  genero: zod.string(),
+  capa: zod.instanceof(File).optional(),
+  mp3: zod.instanceof(File).optional(),
+});
+
+/**
+ * @summary Delete a song (admin only)
+ */
+export const DeleteSongParams = zod.object({
+  id: zod.coerce.number(),
+});

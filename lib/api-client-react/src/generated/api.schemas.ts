@@ -8,3 +8,40 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface LoginBody {
+  usuario: string;
+  senha: string;
+}
+
+export interface AuthStatus {
+  logado: boolean;
+}
+
+export interface Song {
+  id: number;
+  titulo: string;
+  descricao: string;
+  genero: string;
+  /** @nullable */
+  capaUrl?: string | null;
+  /** @nullable */
+  mp3Url?: string | null;
+  createdAt: string;
+}
+
+export interface ErrorResponse {
+  error: string;
+}
+
+export type ListSongsParams = {
+  genre?: string;
+};
+
+export type CreateSongBody = {
+  titulo: string;
+  descricao: string;
+  genero: string;
+  capa?: Blob;
+  mp3?: Blob;
+};

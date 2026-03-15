@@ -1,6 +1,7 @@
-import { Play, Music } from "lucide-react";
+import { Play, Pause, Music } from "lucide-react";
 import { motion } from "framer-motion";
-import { type Song } from "@/data/songs";
+import { type Song } from "@workspace/api-client-react";
+import { usePlayer } from "@/contexts/PlayerContext";
 
 interface MusicCardProps {
   song: Song;
@@ -8,76 +9,53 @@ interface MusicCardProps {
 }
 
 export function MusicCard({ song, index }: MusicCardProps) {
-  const imageUrl = `${import.meta.env.BASE_URL}images/${song.image}`;
+  const { currentSong, isPlaying, playSong } = usePlayer();
+  const isThisPlaying = currentSong?.id === song.id && isPlaying;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ 
-        duration: 0.5, 
-        delay: index * 0.15,
-        ease: "easeOut"
-      }}
-      className="group relative flex flex-col bg-card rounded-2xl overflow-hidden border border-border/50 shadow-lg hover:shadow-primary/10 hover:border-primary/30 transition-all duration-500 hover:-translate-y-2"
+      transition={{ delay: index * 0.1, duration: 0.4 }}
+      className="group relative flex flex-col bg-card border border-border/40 rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.8)] hover:-translate-y-1"
     >
-      {/* Image Container with Glow Effect */}
-      <div className="relative aspect-square overflow-hidden bg-muted">
-        {/* Glow behind image on hover */}
-        <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500 z-0" />
-        
-        <img 
-          src={imageUrl} 
-          alt={`Capa da música ${song.title}`}
-          className="w-full h-full object-cover relative z-10 transition-transform duration-700 group-hover:scale-110"
-          onError={(e) => {
-            // Fallback if image fails to load
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
-            target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
-          }}
+      <div className="relative aspect-square overflow-hidden bg-black/50">
+        <img
+          src={song.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
+          alt={song.titulo}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
+          <button
+            onClick={() => playSong(song)}
+            className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
+          >
+            {isThisPlaying ? (
+              <Pause className="w-8 h-8 fill-current" />
+            ) : (
+              <Play className="w-8 h-8 fill-current ml-1" />
+            )}
+          </button>
+        </div>
         
-        {/* Overlay gradient for text readability if we placed text over image */}
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent z-20" />
-        
-        {/* Subtle icon overlay */}
-        <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="bg-primary/90 text-primary-foreground p-4 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-xl shadow-black/50">
-            <Play className="w-8 h-8 ml-1" />
-          </div>
+        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
+          <Music className="w-3 h-3 text-primary" />
+          <span className="text-xs font-medium text-white/90">{song.genero}</span>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-6 flex flex-col flex-grow relative z-30">
-        <div className="flex items-center gap-2 mb-3 text-primary">
-          <Music className="w-4 h-4" />
-          <span className="text-xs font-bold uppercase tracking-wider">Novo Lançamento</span>
-        </div>
-        
-        <h3 className="text-2xl font-display font-bold text-foreground mb-3 group-hover:text-primary transition-colors duration-300">
-          {song.title}
-        </h3>
-        
-        <p className="text-muted-foreground text-sm leading-relaxed mb-8 flex-grow">
-          {song.description}
+      <div className="p-5 flex-1 flex flex-col">
+        <h3 className="text-xl font-bold text-primary mb-2 line-clamp-1">{song.titulo}</h3>
+        <p className="text-sm text-muted-foreground line-clamp-2 flex-1 mb-4">
+          {song.descricao}
         </p>
         
-        {/* Button */}
-        <a 
-          href={song.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="relative overflow-hidden w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold text-primary-foreground bg-primary shadow-[0_0_20px_rgba(245,197,24,0.15)] hover:shadow-[0_0_25px_rgba(245,197,24,0.3)] transition-all duration-300 hover:scale-[1.02] active:scale-95"
+        <button
+          onClick={() => playSong(song)}
+          className="w-full py-2.5 rounded-xl font-semibold bg-secondary/30 text-primary border border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all duration-300 active:scale-[0.98]"
         >
-          <span className="relative z-10 flex items-center gap-2">
-            Ouça Agora
-            <Play className="w-4 h-4" fill="currentColor" />
-          </span>
-          {/* Button inner shine effect */}
-          <div className="absolute inset-0 -translate-x-full bg-white/20 group-hover:animate-[shimmer_1.5s_infinite] skew-x-12" />
-        </a>
+          {isThisPlaying ? "Pausar" : "Tocar Música"}
+        </button>
       </div>
     </motion.div>
   );
