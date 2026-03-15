@@ -11,6 +11,7 @@ export interface Song {
   titulo: string;
   descricao: string;
   genero: string;
+  isVip: boolean;
   /** @nullable */
   capaUrl?: string | null;
   /** @nullable */

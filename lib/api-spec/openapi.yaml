@@ -90,6 +90,11 @@ paths:
           required: false
           schema:
             type: string
+        - name: vip
+          in: query
+          required: false
+          schema:
+            type: boolean
       responses:
         "200":
           description: List of songs
@@ -117,6 +122,8 @@ paths:
                 descricao:
                   type: string
                 genero:
+                  type: string
+                isVip:
                   type: string
                 capa:
                   type: string
@@ -193,7 +200,7 @@ components:
 
     Song:
       type: object
-      required: [id, titulo, descricao, genero, createdAt]
+      required: [id, titulo, descricao, genero, isVip, createdAt]
       properties:
         id:
           type: integer
@@ -203,6 +210,8 @@ components:
           type: string
         genero:
           type: string
+        isVip:
+          type: boolean
         capaUrl:
           type: ["string", "null"]
         mp3Url:

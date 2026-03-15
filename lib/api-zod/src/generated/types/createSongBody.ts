@@ -10,6 +10,7 @@ export type CreateSongBody = {
   titulo: string;
   descricao: string;
   genero: string;
+  isVip?: string;
   capa?: Blob;
   mp3?: Blob;
 };

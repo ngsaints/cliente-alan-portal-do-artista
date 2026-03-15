@@ -23,6 +23,7 @@ export interface Song {
   titulo: string;
   descricao: string;
   genero: string;
+  isVip: boolean;
   /** @nullable */
   capaUrl?: string | null;
   /** @nullable */
@@ -36,12 +37,14 @@ export interface ErrorResponse {
 
 export type ListSongsParams = {
   genre?: string;
+  vip?: boolean;
 };
 
 export type CreateSongBody = {
   titulo: string;
   descricao: string;
   genero: string;
+  isVip?: string;
   capa?: Blob;
   mp3?: Blob;
 };

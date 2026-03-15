@@ -35,9 +35,17 @@ const upload = multer({ storage });
 const router: IRouter = Router();
 
 router.get("/songs", async (req, res): Promise<void> => {
-  const { genre } = req.query;
+  const { genre, vip } = req.query;
 
   let rows = await db.select().from(songsTable).orderBy(songsTable.createdAt);
+
+  if (vip === "true") {
+    rows = rows.filter((s) => s.isVip === true);
+  } else if (vip === "false" || vip === undefined) {
+    if (vip === "false") {
+      rows = rows.filter((s) => s.isVip === false);
+    }
+  }
 
   if (genre && genre !== "todos") {
     rows = rows.filter((s) => s.genero === genre);
@@ -48,9 +56,10 @@ router.get("/songs", async (req, res): Promise<void> => {
     titulo: s.titulo,
     descricao: s.descricao,
     genero: s.genero,
+    isVip: s.isVip,
     capaUrl: s.capaPath ? `/api/uploads/${s.capaPath}` : null,
     mp3Url: s.mp3Path ? `/api/uploads/${s.mp3Path}` : null,
-    createdAt: s.createdAt.toISOString(),
+    createdAt: s.createdAt,
   }));
 
   res.json(ListSongsResponse.parse(songs));
@@ -68,7 +77,7 @@ router.post(
       return;
     }
 
-    const { titulo, descricao, genero } = req.body;
+    const { titulo, descricao, genero, isVip } = req.body;
 
     if (!titulo || !descricao || !genero) {
       res.status(400).json({ error: "Campos obrigatórios faltando" });
@@ -88,10 +97,11 @@ router.post(
 
     const capaPath = `covers/${capaFile.filename}`;
     const mp3Path = `audio/${mp3File.filename}`;
+    const vipFlag = isVip === "true" || isVip === "1";
 
     const [song] = await db
       .insert(songsTable)
-      .values({ titulo, descricao, genero, capaPath, mp3Path })
+      .values({ titulo, descricao, genero, capaPath, mp3Path, isVip: vipFlag })
       .returning();
 
     res.status(201).json({
@@ -99,9 +109,10 @@ router.post(
       titulo: song.titulo,
       descricao: song.descricao,
       genero: song.genero,
+      isVip: song.isVip,
       capaUrl: song.capaPath ? `/api/uploads/${song.capaPath}` : null,
       mp3Url: song.mp3Path ? `/api/uploads/${song.mp3Path}` : null,
-      createdAt: song.createdAt.toISOString(),
+      createdAt: song.createdAt,
     });
   }
 );

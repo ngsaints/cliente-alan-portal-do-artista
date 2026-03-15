@@ -228,6 +228,7 @@ function AddSongForm() {
 
   const [capaFile, setCapaFile] = useState<File | null>(null);
   const [mp3File, setMp3File] = useState<File | null>(null);
+  const [isVip, setIsVip] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -237,6 +238,7 @@ function AddSongForm() {
       titulo: formData.get("titulo") as string,
       descricao: formData.get("descricao") as string,
       genero: formData.get("genero") as string,
+      isVip: isVip ? "true" : "false",
       capa: capaFile || undefined,
       mp3: mp3File || undefined,
     };
@@ -247,6 +249,7 @@ function AddSongForm() {
         formRef.current?.reset();
         setCapaFile(null);
         setMp3File(null);
+        setIsVip(false);
         queryClient.invalidateQueries({ queryKey: getListSongsQueryKey() });
       },
       onError: (err) => {
@@ -299,6 +302,31 @@ function AddSongForm() {
             className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm resize-none"
             placeholder="Uma breve história sobre a música..."
           />
+        </div>
+
+        {/* VIP Toggle */}
+        <div
+          onClick={() => setIsVip(!isVip)}
+          className={`flex items-center justify-between px-4 py-3 rounded-xl border cursor-pointer select-none transition-colors ${
+            isVip
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-input text-muted-foreground hover:border-primary/40"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Composição VIP (inédita)</span>
+          </div>
+          <div
+            className={`w-10 h-5 rounded-full transition-colors relative ${
+              isVip ? "bg-primary" : "bg-border"
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                isVip ? "translate-x-5" : "translate-x-0.5"
+              }`}
+            />
+          </div>
         </div>
 
         <div className="space-y-4 pt-2">

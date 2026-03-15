@@ -46,6 +46,7 @@ export const GetAuthStatusResponse = zod.object({
  */
 export const ListSongsQueryParams = zod.object({
   genre: zod.coerce.string().optional(),
+  vip: zod.coerce.boolean().optional(),
 });
 
 export const ListSongsResponseItem = zod.object({
@@ -53,6 +54,7 @@ export const ListSongsResponseItem = zod.object({
   titulo: zod.string(),
   descricao: zod.string(),
   genero: zod.string(),
+  isVip: zod.boolean(),
   capaUrl: zod.string().nullish(),
   mp3Url: zod.string().nullish(),
   createdAt: zod.date(),
@@ -66,6 +68,7 @@ export const CreateSongBody = zod.object({
   titulo: zod.string(),
   descricao: zod.string(),
   genero: zod.string(),
+  isVip: zod.string().optional(),
   capa: zod.instanceof(File).optional(),
   mp3: zod.instanceof(File).optional(),
 });

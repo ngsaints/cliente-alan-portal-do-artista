@@ -460,6 +460,9 @@ export const createSong = async (
   formData.append(`titulo`, createSongBody.titulo);
   formData.append(`descricao`, createSongBody.descricao);
   formData.append(`genero`, createSongBody.genero);
+  if (createSongBody.isVip !== undefined) {
+    formData.append(`isVip`, createSongBody.isVip);
+  }
   if (createSongBody.capa !== undefined) {
     formData.append(`capa`, createSongBody.capa);
   }

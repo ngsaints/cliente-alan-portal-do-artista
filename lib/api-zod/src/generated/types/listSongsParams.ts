@@ -8,4 +8,5 @@
 
 export type ListSongsParams = {
   genre?: string;
+  vip?: boolean;
 };
