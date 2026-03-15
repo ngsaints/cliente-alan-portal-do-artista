@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo de Músicas - Alan Ribeiro</title>
+<style>
+  body { font-family: Arial, sans-serif; background-color: #121212; color: #fff; margin:0; padding:0; }
+  header { background-color: #1f1f1f; padding: 20px; text-align: center; }
+  header h1 { margin:0; font-size:28px; color:#f5c518; }
+  main { padding:20px; display:flex; flex-wrap:wrap; gap:20px; justify-content:center; }
+  .card { background-color:#1e1e1e; border-radius:10px; padding:15px; width:300px; box-shadow:0 0 10px #000; text-align:center; transition: transform 0.2s; }
+  .card:hover { transform: scale(1.05); }
+  .card img { width:100%; border-radius:10px; }
+  .card h2 { margin:10px 0 5px 0; font-size:20px; color:#f5c518; }
+  .card p { font-size:14px; color:#ccc; }
+  .card a { display:inline-block; margin-top:10px; padding:8px 15px; background-color:#f5c518; color:#000; text-decoration:none; border-radius:5px; font-weight:bold; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Catálogo de Músicas - Alan Ribeiro</h1>
+</header>
+
+<main id="catalogo"></main>
+
+<script>
+  // Array de músicas
+  const musicas = [
+    {
+      "titulo": "Na Hora",
+      "descricao": "A espera acabou! Alan Ribeiro lança agora 'Na Hora', uma música que vai te fazer sentir cada emoção do primeiro acorde até o último refrão.",
+      "imagem": "https://via.placeholder.com/300x200?text=Na+Hora",
+      "link": "https://youtube.com/@alanribeirooficial?si=BX65PC2ZmsNTyY3P"
+    },
+    {
+      "titulo": "Um Abraço",
+      "descricao": "Segundo Turma do STF dos Fãs mantém Alan Ribeiro com 'Um Abraço', uma das composições mais emocionantes e viciantes do cenário musical atual.",
+      "imagem": "https://via.placeholder.com/300x200?text=Um+Abraço",
+      "link": "https://youtube.com/@alanribeirooficial?si=BX65PC2ZmsNTyY3P"
+    },
+    {
+      "titulo": "Outra Música",
+      "descricao": "Exemplo de terceira música para o catálogo, apenas para mostrar como adicionar mais itens.",
+      "imagem": "https://via.placeholder.com/300x200?text=Outra+Musica",
+      "link": "#"
+    }
+  ];
+
+  const catalogo = document.getElementById('catalogo');
+
+  // Criar cards dinamicamente
+  musicas.forEach(musica => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <img src="${musica.imagem}" alt="${musica.titulo}">
+      <h2>${musica.titulo}</h2>
+      <p>${musica.descricao}</p>
+      <a href="${musica.link}" target="_blank">Ouça Agora</a>
+    `;
+    catalogo.appendChild(card);
+  });
+</script>
+
+</body>
+</html>

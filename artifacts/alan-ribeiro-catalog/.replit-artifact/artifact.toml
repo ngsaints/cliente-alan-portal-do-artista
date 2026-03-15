@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Catálogo de Músicas - Alan Ribeiro"
+version = "1.0.0"
+id = "artifacts/alan-ribeiro-catalog"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 21893
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/alan-ribeiro-catalog run dev"
+
+[services.env]
+PORT = "21893"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/alan-ribeiro-catalog", "run", "build"]
+publicDir = "artifacts/alan-ribeiro-catalog/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
