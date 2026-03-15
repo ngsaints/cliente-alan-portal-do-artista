@@ -76,12 +76,18 @@ router.post(
     }
 
     const files = req.files as Record<string, Express.Multer.File[]>;
-    const capaPath = files?.["capa"]?.[0]
-      ? `covers/${files["capa"][0].filename}`
-      : null;
-    const mp3Path = files?.["mp3"]?.[0]
-      ? `audio/${files["mp3"][0].filename}`
-      : null;
+    const capaFile = files?.["capa"]?.[0];
+    const mp3File = files?.["mp3"]?.[0];
+
+    if (!capaFile || !mp3File) {
+      if (capaFile) fs.unlink(capaFile.path, () => {});
+      if (mp3File) fs.unlink(mp3File.path, () => {});
+      res.status(400).json({ error: "Capa e arquivo MP3 são obrigatórios" });
+      return;
+    }
+
+    const capaPath = `covers/${capaFile.filename}`;
+    const mp3Path = `audio/${mp3File.filename}`;
 
     const [song] = await db
       .insert(songsTable)
