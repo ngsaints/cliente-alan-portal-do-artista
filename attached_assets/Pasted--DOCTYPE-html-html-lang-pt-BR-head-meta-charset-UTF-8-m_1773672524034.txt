@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Portal do Artista</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#111;
+color:white;
+margin:0;
+padding:0;
+}
+
+header{
+background:black;
+padding:20px;
+text-align:center;
+}
+
+.container{
+padding:20px;
+max-width:900px;
+margin:auto;
+}
+
+button{
+padding:10px 15px;
+border:none;
+border-radius:5px;
+cursor:pointer;
+margin:5px;
+}
+
+.btn{
+background:#ff6600;
+color:white;
+}
+
+.song{
+border-bottom:1px solid #444;
+padding:15px 0;
+}
+
+audio{
+width:100%;
+margin-top:10px;
+}
+
+#interestModal{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.8);
+}
+
+.modalBox{
+background:white;
+color:black;
+padding:20px;
+max-width:400px;
+margin:80px auto;
+border-radius:10px;
+}
+
+input,select,textarea{
+width:100%;
+padding:8px;
+margin-top:5px;
+margin-bottom:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<h1 id="artistName">Portal do Artista</h1>
+
+<button class="btn" onclick="registerArtist()">Cadastrar Artista</button>
+
+<button class="btn" onclick="showVip()">Área VIP</button>
+
+</header>
+
+<div class="container">
+
+<h2>Músicas</h2>
+
+<div id="songsList"></div>
+
+<h2>Planos</h2>
+
+<button onclick="choosePlan('Gratis',2,0)">Plano grátis (2 músicas)</button>
+
+<button onclick="choosePlan('Basico',20,20)">20 músicas R$20</button>
+
+<button onclick="choosePlan('Pro',100,50)">100 músicas R$50</button>
+
+<button onclick="choosePlan('Premium',200,100)">200 músicas R$100</button>
+
+<br><br>
+
+<button class="btn" onclick="openInterestModal()">Tenho Interesse no Artista</button>
+
+</div>
+
+<audio id="player" controls></audio>
+
+<!-- MODAL INTERESSE -->
+
+<div id="interestModal">
+
+<div class="modalBox">
+
+<h3>Contato com artista</h3>
+
+<label>Música</label>
+
+<input id="musicInterest">
+
+<label>Tipo de interesse</label>
+
+<select id="interestType">
+
+<option>Fazer proposta</option>
+<option>Contratar show</option>
+<option>Comprar música</option>
+<option>Parceria</option>
+
+</select>
+
+<label>Mensagem</label>
+
+<textarea id="interestMessage"></textarea>
+
+<button onclick="sendInterest()">Enviar</button>
+
+<button onclick="closeInterest()">Cancelar</button>
+
+</div>
+
+</div>
+
+<script>
+
+let songs=[
+
+{title:"Minha Música 1",src:"music1.mp3"},
+{title:"Minha Música 2",src:"music2.mp3"},
+{title:"Minha Música 3",src:"music3.mp3"}
+
+]
+
+let currentIndex=0
+
+const player=document.getElementById("player")
+
+const songsList=document.getElementById("songsList")
+
+function renderSongs(){
+
+songsList.innerHTML=""
+
+songs.forEach((s,i)=>{
+
+let div=document.createElement("div")
+
+div.className="song"
+
+div.innerHTML=`
+
+<strong>${s.title}</strong>
+
+<br>
+
+<button onclick="playSong(${i})">▶️ Ouvir</button>
+
+<button onclick="openInterestModal('${s.title}')">💼 Interesse nesta música</button>
+
+`
+
+songsList.appendChild(div)
+
+})
+
+}
+
+function playSong(i){
+
+currentIndex=i
+
+player.src=songs[i].src
+
+player.play()
+
+}
+
+player.addEventListener("ended",function(){
+
+currentIndex++
+
+if(currentIndex>=songs.length){
+
+currentIndex=0
+
+}
+
+player.src=songs[currentIndex].src
+
+player.play()
+
+})
+
+renderSongs()
+
+function registerArtist(){
+
+let nome=prompt("Nome do artista")
+
+if(nome){
+
+document.getElementById("artistName").innerText=nome
+
+localStorage.setItem("artistName",nome)
+
+alert("Artista cadastrado!")
+
+}
+
+}
+
+if(localStorage.getItem("artistName")){
+
+document.getElementById("artistName").innerText=localStorage.getItem("artistName")
+
+}
+
+function choosePlan(name,max,price){
+
+alert("Plano escolhido: "+name+"\nLimite de músicas: "+max+"\nPreço: R$"+price)
+
+}
+
+let vipPassword=localStorage.getItem("vipPassword")||"0000"
+
+function showVip(){
+
+let senha=prompt("Digite a senha VIP")
+
+if(senha==vipPassword){
+
+let nova=prompt("Deseja trocar senha? Digite nova ou cancelar")
+
+if(nova){
+
+vipPassword=nova
+
+localStorage.setItem("vipPassword",nova)
+
+alert("Senha atualizada")
+
+}
+
+alert("Acesso VIP liberado")
+
+}
+
+else{
+
+alert("Senha incorreta")
+
+}
+
+}
+
+function openInterestModal(song=""){
+
+document.getElementById("interestModal").style.display="block"
+
+document.getElementById("musicInterest").value=song
+
+}
+
+function closeInterest(){
+
+document.getElementById("interestModal").style.display="none"
+
+}
+
+const whatsapp="5521999999999"
+
+function sendInterest(){
+
+let musica=document.getElementById("musicInterest").value
+
+let tipo=document.getElementById("interestType").value
+
+let msg=document.getElementById("interestMessage").value
+
+let texto=`Olá tenho interesse.\n\nMusica: ${musica}\nTipo: ${tipo}\nMensagem: ${msg}`
+
+let url=`https://wa.me/${whatsapp}?text=${encodeURIComponent(texto)}`
+
+window.open(url)
+
+}
+
+</script>
+
+</body>
+
+</html>
