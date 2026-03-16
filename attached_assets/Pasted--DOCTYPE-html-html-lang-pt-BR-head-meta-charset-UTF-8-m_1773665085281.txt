@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal do Artista - Admin Persistente</title>
+<style>
+body { font-family: Arial, sans-serif; margin:0; padding:0; background-color:#f5f5f5; }
+.header { background-color:#222; color:#fff; padding:20px; display:flex; justify-content:space-between; align-items:center; }
+.header h1 { margin:0; font-size:24px; }
+.btn { padding:10px 15px; border:none; border-radius:5px; cursor:pointer; background-color:#222; color:#fff; margin-left:10px; transition:0.3s; }
+.btn:hover { background-color:#555; }
+.container { padding:20px; }
+h2 { margin-top:40px; }
+table { width:100%; border-collapse: collapse; margin-top:10px; }
+th, td { padding:12px; text-align:left; border-bottom:1px solid #ccc; }
+.edit-btn { background-color:#007bff; color:#fff; padding:5px 10px; border-radius:4px; cursor:pointer; }
+.edit-btn:hover { background-color:#0056b3; }
+.custom-input { display:flex; flex-direction:column; margin-bottom:15px; }
+.custom-input label { margin-bottom:5px; font-weight:bold; }
+.custom-input input, .custom-input select { padding:8px; border-radius:4px; border:1px solid #ccc; }
+#bannerPreview { margin-top:10px; max-width:100%; height:auto; border:1px solid #ccc; }
+#vipSection input { padding:8px; width:200px; font-size:16px; }
+#vipSection button { padding:8px 12px; font-size:16px; cursor:pointer; }
+.message { margin-top:10px; font-weight:bold; color:red; }
+.plan { border:1px solid #ccc; padding:15px; margin:10px 0; border-radius:8px; }
+.plan h3 { margin:0 0 10px 0; }
+.plan button { margin-top:10px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Portal do Artista - Admin Persistente</h1>
+<div>
+<button class="btn" id="registerBtn">Se Cadastrar</button>
+<button class="btn" id="logoutBtn">Sair</button>
+</div>
+</div>
+
+<div class="container">
+
+<h2>Músicas Enviadas</h2>
+<table id="songsTable">
+<thead>
+<tr><th>Título</th><th>Gênero</th><th>Ações</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<h2>Personalização da Página Principal</h2>
+<div class="custom-input">
+<label for="artistNameInput">Nome do Artista:</label>
+<input type="text" id="artistNameInput" placeholder="Digite o nome do artista">
+</div>
+<div class="custom-input">
+<label for="bannerInput">Banner do Artista:</label>
+<input type="file" id="bannerInput" accept="image/*">
+<img id="bannerPreview" src="" alt="Preview do Banner">
+</div>
+<div class="custom-input">
+<label for="fontSelect">Fonte do Site:</label>
+<select id="fontSelect">
+<option value="Arial, sans-serif">Arial</option>
+<option value="'Times New Roman', serif">Times New Roman</option>
+<option value="'Courier New', monospace">Courier New</option>
+</select>
+</div>
+<div class="custom-input">
+<label for="colorInput">Cor de Fundo do Site:</label>
+<input type="color" id="colorInput" value="#ffffff">
+</div>
+<button class="btn" id="saveCustomBtn">Salvar Personalização</button>
+
+<h2>Planos de Assinatura</h2>
+<div class="plan">
+<h3>Grátis</h3>
+<p>2 músicas grátis</p>
+<button class="btn" onclick="choosePlan('Grátis',2,0)">Escolher plano</button>
+</div>
+<div class="plan">
+<h3>Básico</h3>
+<p>20 músicas - R$ 20</p>
+<button class="btn" onclick="choosePlan('Básico',20,20)">Escolher plano</button>
+</div>
+<div class="plan">
+<h3>Intermediário</h3>
+<p>100 músicas - R$ 50</p>
+<button class="btn" onclick="choosePlan('Intermediário',100,50)">Escolher plano</button>
+</div>
+<div class="plan">
+<h3>Avançado</h3>
+<p>200 músicas - R$ 100</p>
+<button class="btn" onclick="choosePlan('Avançado',200,100)">Escolher plano</button>
+</div>
+
+<h2 id="vipSection">Área VIP</h2>
+<p>Digite a senha para acessar a Área VIP:</p>
+<input type="password" id="vipPassword" placeholder="Senha">
+<button onclick="checkVipPassword()">Entrar</button>
+<div class="message" id="vipMessage"></div>
+<div class="custom-input">
+<label for="vipNewPassword">Alterar senha VIP:</label>
+<input type="password" id="vipNewPassword" placeholder="Nova senha">
+<button class="btn" onclick="changeVipPassword()">Atualizar senha</button>
+</div>
+
+<h2>Músicas do Artista</h2>
+<ul id="songsList"></ul>
+<audio id="audioPlayer" controls></audio>
+
+</div>
+
+<script>
+// ====== Simulação de banco usando localStorage ======
+let artistas = JSON.parse(localStorage.getItem("artistas")) || [];
+let personalizacao = JSON.parse(localStorage.getItem("personalizacao")) || {};
+let vipPassword = localStorage.getItem("vipPassword") || "0000";
+let currentIndex = -1;
+
+// ====== Funções de Artistas e Planos ======
+function saveArtistas() { localStorage.setItem("artistas", JSON.stringify(artistas)); }
+function addArtista(name,email,plan="Grátis",maxSongs=2){ 
+artistas.push({name,email,plan,maxSongs,songs:[],vipPassword:"0000"}); 
+saveArtistas(); 
+alert(`Cadastro de ${name} realizado! Usuário liberado automaticamente no plano ${plan}.`);
+renderSongsTable();
+}
+
+// Botão cadastro
+document.getElementById("registerBtn").addEventListener("click",()=>{
+const name=prompt("Nome do artista:");
+const email=prompt("E-mail do artista:");
+if(name && email) addArtista(name,email);
+});
+
+// ====== Renderização da tabela de músicas ======
+const songsTableBody=document.getElementById("songsTable").querySelector("tbody");
+function renderSongsTable(){
+songsTableBody.innerHTML="";
+artistas.forEach((a,i)=>{
+a.songs.forEach((s,j)=>{
+const tr=document.createElement("tr");
+tr.innerHTML=`<td>${s.title}</td><td>${s.genre}</td>
+<td><button class="edit-btn" onclick="editSong(${i},${j})">Editar</button></td>`;
+songsTableBody.appendChild(tr);
+});
+});
+}
+function editSong(artistaIndex,songIndex){
+const song=artistas[artistaIndex].songs[songIndex];
+const newTitle=prompt("Editar título da música:",song.title);
+if(newTitle){ 
+artistas[artistaIndex].songs[songIndex].title=newTitle; 
+saveArtistas();
+renderSongsTable(); 
+}
+}
+
+// ====== Personalização ======
+const bannerInput=document.getElementById("bannerInput");
+const bannerPreview=document.getElementById("bannerPreview");
+const artistNameInput=document.getElementById("artistNameInput");
+const fontSelect=document.getElementById("fontSelect");
+const colorInput=document.getElementById("colorInput");
+
+// Carregar personalização
+if(personalizacao.name) artistNameInput.value=personalizacao.name;
+if(personalizacao.font) document.body.style.fontFamily=personalizacao.font;
+if(personalizacao.bgColor) document.body.style.backgroundColor=personalizacao.bgColor;
+if(personalizacao.banner) bannerPreview.src=personalizacao.banner;
+
+bannerInput.addEventListener("change",(e)=>{
+const file=e.target.files[0];
+if(file){
+const reader=new FileReader();
+reader.onload=function(event){ bannerPreview.src=event.target.result; }
+reader.readAsDataURL(file);
+}
+});
+document.getElementById("saveCustomBtn").addEventListener("click",()=>{
+personalizacao={};
+personalizacao.name=artistNameInput.value;
+personalizacao.font=fontSelect.value;
+personalizacao.bgColor=colorInput.value;
+if(bannerPreview.src) personalizacao.banner=bannerPreview.src;
+localStorage.setItem("personalizacao",JSON.stringify(personalizacao));
+document.body.style.fontFamily=personalizacao.font;
+document.body.style.backgroundColor=personalizacao.bgColor;
+alert("Personalização salva com sucesso!");
+});
+
+// ====== Área VIP ======
+function checkVipPassword(){
+const input=document.getElementById("vipPassword").value;
+const vipMessage=document.getElementById("vipMessage");
+if(input===vipPassword){
+vipMessage.style.color="green";
+vipMessage.textContent="Acesso permitido! Bem-vindo à Área VIP.";
+}else{
+vipMessage.style.color="red";
+vipMessage.textContent="Senha incorreta. Tente novamente.";
+}
+}
+function changeVipPassword(){
+const newPass=document.getElementById("vipNewPassword").value;
+if(newPass){
+vipPassword=newPass;
+localStorage.setItem("vipPassword",vipPassword);
+alert("Senha VIP alterada com sucesso!");
+document.getElementById("vipNewPassword").value="";
+}else alert("Digite uma nova senha para atualizar.");
+}
+
+// ====== Player com autoplay ======
+const audioPlayer=document.getElementById("audioPlayer");
+const songsListElem=document.getElementById("songsList");
+function renderSongsPlayer(){
+songsListElem.innerHTML="";
+artistas.forEach((a)=>{
+a.songs.forEach((s)=>{
+const li=document.createElement("li");
+li.dataset.src=s.src||"musica1.mp3";
+li.textContent=s.title;
+li.addEventListener("click",()=>playSongByLi(li));
+songsListElem.appendChild(li);
+});
+});
+}
+function playSongByLi(li){
+currentIndex=Array.from(songsListElem.children).indexOf(li);
+audioPlayer.src=li.dataset.src;
+audioPlayer.play();
+}
+audioPlayer.addEventListener("ended",()=>{
+currentIndex++;
+if(currentIndex>=songsListElem.children.length) currentIndex=0;
+audioPlayer.src=songsListElem.children[currentIndex].dataset.src;
+audioPlayer.play();
+});
+renderSongsPlayer();
+
+// ====== Escolher plano ======
+function choosePlan(name,maxSongs,price){
+alert(`Plano "${name}" escolhido. Limite de ${maxSongs} músicas. Preço: R$ ${price}.\nIntegração de pagamento futura.`);
+}
+</script>
+
+</body>
+</html>
