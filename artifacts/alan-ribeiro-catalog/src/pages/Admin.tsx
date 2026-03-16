@@ -238,6 +238,11 @@ function AddSongForm() {
       titulo: formData.get("titulo") as string,
       descricao: formData.get("descricao") as string,
       genero: formData.get("genero") as string,
+      subgenero: (formData.get("subgenero") as string) || undefined,
+      compositor: (formData.get("compositor") as string) || undefined,
+      status: (formData.get("status") as string) || "Disponível",
+      precoX: (formData.get("precoX") as string) || undefined,
+      precoY: (formData.get("precoY") as string) || undefined,
       isVip: isVip ? "true" : "false",
       capa: capaFile || undefined,
       mp3: mp3File || undefined,
@@ -292,6 +297,60 @@ function AddSongForm() {
             <option value="MPB">MPB</option>
             <option value="Acústico">Acústico</option>
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1">Subgênero <span className="text-muted-foreground font-normal">(opcional)</span></label>
+          <input
+            name="subgenero"
+            className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm"
+            placeholder="Ex: Romântico, Vaneira, Dançante"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1">Compositor <span className="text-muted-foreground font-normal">(opcional)</span></label>
+          <input
+            name="compositor"
+            className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm"
+            placeholder="Ex: Alan Ribeiro"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1">Status</label>
+          <select
+            name="status"
+            className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm appearance-none"
+          >
+            <option value="Disponível">Disponível</option>
+            <option value="Reservado">Reservado</option>
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Valor X · Livre</label>
+            <input
+              name="precoX"
+              type="number"
+              step="0.01"
+              min="0"
+              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm"
+              placeholder="R$ 0,00"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Valor Y · Exclusivo</label>
+            <input
+              name="precoY"
+              type="number"
+              step="0.01"
+              min="0"
+              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm"
+              placeholder="R$ 0,00"
+            />
+          </div>
         </div>
 
         <div>

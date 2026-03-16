@@ -123,6 +123,16 @@ paths:
                   type: string
                 genero:
                   type: string
+                subgenero:
+                  type: string
+                compositor:
+                  type: string
+                status:
+                  type: string
+                precoX:
+                  type: string
+                precoY:
+                  type: string
                 isVip:
                   type: string
                 capa:
@@ -200,7 +210,7 @@ components:
 
     Song:
       type: object
-      required: [id, titulo, descricao, genero, isVip, createdAt]
+      required: [id, titulo, descricao, genero, status, isVip, createdAt]
       properties:
         id:
           type: integer
@@ -210,6 +220,16 @@ components:
           type: string
         genero:
           type: string
+        subgenero:
+          type: ["string", "null"]
+        compositor:
+          type: ["string", "null"]
+        status:
+          type: string
+        precoX:
+          type: ["string", "null"]
+        precoY:
+          type: ["string", "null"]
         isVip:
           type: boolean
         capaUrl:

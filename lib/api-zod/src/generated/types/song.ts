@@ -11,6 +11,15 @@ export interface Song {
   titulo: string;
   descricao: string;
   genero: string;
+  /** @nullable */
+  subgenero?: string | null;
+  /** @nullable */
+  compositor?: string | null;
+  status: string;
+  /** @nullable */
+  precoX?: string | null;
+  /** @nullable */
+  precoY?: string | null;
   isVip: boolean;
   /** @nullable */
   capaUrl?: string | null;

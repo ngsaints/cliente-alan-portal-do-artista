@@ -23,6 +23,15 @@ export interface Song {
   titulo: string;
   descricao: string;
   genero: string;
+  /** @nullable */
+  subgenero?: string | null;
+  /** @nullable */
+  compositor?: string | null;
+  status: string;
+  /** @nullable */
+  precoX?: string | null;
+  /** @nullable */
+  precoY?: string | null;
   isVip: boolean;
   /** @nullable */
   capaUrl?: string | null;
@@ -44,6 +53,11 @@ export type CreateSongBody = {
   titulo: string;
   descricao: string;
   genero: string;
+  subgenero?: string;
+  compositor?: string;
+  status?: string;
+  precoX?: string;
+  precoY?: string;
   isVip?: string;
   capa?: Blob;
   mp3?: Blob;

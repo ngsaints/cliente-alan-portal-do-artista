@@ -10,6 +10,11 @@ export type CreateSongBody = {
   titulo: string;
   descricao: string;
   genero: string;
+  subgenero?: string;
+  compositor?: string;
+  status?: string;
+  precoX?: string;
+  precoY?: string;
   isVip?: string;
   capa?: Blob;
   mp3?: Blob;

@@ -34,6 +34,24 @@ const upload = multer({ storage });
 
 const router: IRouter = Router();
 
+function mapSong(s: typeof songsTable.$inferSelect) {
+  return {
+    id: s.id,
+    titulo: s.titulo,
+    descricao: s.descricao,
+    genero: s.genero,
+    subgenero: s.subgenero ?? null,
+    compositor: s.compositor ?? null,
+    status: s.status,
+    precoX: s.precoX ?? null,
+    precoY: s.precoY ?? null,
+    isVip: s.isVip,
+    capaUrl: s.capaPath ? `/api/uploads/${s.capaPath}` : null,
+    mp3Url: s.mp3Path ? `/api/uploads/${s.mp3Path}` : null,
+    createdAt: s.createdAt,
+  };
+}
+
 router.get("/songs", async (req, res): Promise<void> => {
   const { genre, vip } = req.query;
 
@@ -41,28 +59,15 @@ router.get("/songs", async (req, res): Promise<void> => {
 
   if (vip === "true") {
     rows = rows.filter((s) => s.isVip === true);
-  } else if (vip === "false" || vip === undefined) {
-    if (vip === "false") {
-      rows = rows.filter((s) => s.isVip === false);
-    }
+  } else if (vip === "false") {
+    rows = rows.filter((s) => s.isVip === false);
   }
 
   if (genre && genre !== "todos") {
     rows = rows.filter((s) => s.genero === genre);
   }
 
-  const songs = rows.map((s) => ({
-    id: s.id,
-    titulo: s.titulo,
-    descricao: s.descricao,
-    genero: s.genero,
-    isVip: s.isVip,
-    capaUrl: s.capaPath ? `/api/uploads/${s.capaPath}` : null,
-    mp3Url: s.mp3Path ? `/api/uploads/${s.mp3Path}` : null,
-    createdAt: s.createdAt,
-  }));
-
-  res.json(ListSongsResponse.parse(songs));
+  res.json(ListSongsResponse.parse(rows.map(mapSong)));
 });
 
 router.post(
@@ -77,7 +82,7 @@ router.post(
       return;
     }
 
-    const { titulo, descricao, genero, isVip } = req.body;
+    const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip } = req.body;
 
     if (!titulo || !descricao || !genero) {
       res.status(400).json({ error: "Campos obrigatórios faltando" });
@@ -101,19 +106,22 @@ router.post(
 
     const [song] = await db
       .insert(songsTable)
-      .values({ titulo, descricao, genero, capaPath, mp3Path, isVip: vipFlag })
+      .values({
+        titulo,
+        descricao,
+        genero,
+        subgenero: subgenero || null,
+        compositor: compositor || null,
+        status: status || "Disponível",
+        precoX: precoX || null,
+        precoY: precoY || null,
+        capaPath,
+        mp3Path,
+        isVip: vipFlag,
+      })
       .returning();
 
-    res.status(201).json({
-      id: song.id,
-      titulo: song.titulo,
-      descricao: song.descricao,
-      genero: song.genero,
-      isVip: song.isVip,
-      capaUrl: song.capaPath ? `/api/uploads/${song.capaPath}` : null,
-      mp3Url: song.mp3Path ? `/api/uploads/${song.mp3Path}` : null,
-      createdAt: song.createdAt,
-    });
+    res.status(201).json(mapSong(song));
   }
 );
 

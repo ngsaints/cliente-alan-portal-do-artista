@@ -460,6 +460,21 @@ export const createSong = async (
   formData.append(`titulo`, createSongBody.titulo);
   formData.append(`descricao`, createSongBody.descricao);
   formData.append(`genero`, createSongBody.genero);
+  if (createSongBody.subgenero !== undefined) {
+    formData.append(`subgenero`, createSongBody.subgenero);
+  }
+  if (createSongBody.compositor !== undefined) {
+    formData.append(`compositor`, createSongBody.compositor);
+  }
+  if (createSongBody.status !== undefined) {
+    formData.append(`status`, createSongBody.status);
+  }
+  if (createSongBody.precoX !== undefined) {
+    formData.append(`precoX`, createSongBody.precoX);
+  }
+  if (createSongBody.precoY !== undefined) {
+    formData.append(`precoY`, createSongBody.precoY);
+  }
   if (createSongBody.isVip !== undefined) {
     formData.append(`isVip`, createSongBody.isVip);
   }
