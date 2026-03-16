@@ -6,7 +6,7 @@ import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { Disc3 } from "lucide-react";
 
-const GENRES = ["Todos os gêneros", "Sertanejo", "Pop", "Rock", "MPB", "Acústico"];
+const GENRES = ["Todos os gêneros", "Sertanejo", "Piseiro", "Pop", "Rock", "MPB", "Acústico"];
 
 export default function Home() {
   const [selectedGenre, setSelectedGenre] = useState(GENRES[0]);

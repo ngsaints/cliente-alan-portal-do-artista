@@ -286,6 +286,7 @@ function AddSongForm() {
             className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm appearance-none"
           >
             <option value="Sertanejo">Sertanejo</option>
+            <option value="Piseiro">Piseiro</option>
             <option value="Pop">Pop</option>
             <option value="Rock">Rock</option>
             <option value="MPB">MPB</option>
