@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ArtistSettings,
   AuthStatus,
   CreateSongBody,
   ErrorResponse,
@@ -24,6 +25,10 @@ import type {
   ListSongsParams,
   LoginBody,
   Song,
+  UpdateSettingsBody,
+  UpdateSongBody,
+  VipLoginBody,
+  VipStatus,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -36,7 +41,6 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const getHealthCheckUrl = () => {
@@ -560,6 +564,93 @@ export const useCreateSong = <
 };
 
 /**
+ * @summary Update a song's details (admin only)
+ */
+export const getUpdateSongUrl = (id: number) => {
+  return `/api/songs/${id}`;
+};
+
+export const updateSong = async (
+  id: number,
+  updateSongBody: UpdateSongBody,
+  options?: RequestInit,
+): Promise<Song> => {
+  return customFetch<Song>(getUpdateSongUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSongBody),
+  });
+};
+
+export const getUpdateSongMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSong>>,
+    TError,
+    { id: number; data: BodyType<UpdateSongBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSong>>,
+  TError,
+  { id: number; data: BodyType<UpdateSongBody> },
+  TContext
+> => {
+  const mutationKey = ["updateSong"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSong>>,
+    { id: number; data: BodyType<UpdateSongBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateSong(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSongMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSong>>
+>;
+export type UpdateSongMutationBody = BodyType<UpdateSongBody>;
+export type UpdateSongMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a song's details (admin only)
+ */
+export const useUpdateSong = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSong>>,
+    TError,
+    { id: number; data: BodyType<UpdateSongBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSong>>,
+  TError,
+  { id: number; data: BodyType<UpdateSongBody> },
+  TContext
+> => {
+  return useMutation(getUpdateSongMutationOptions(options));
+};
+
+/**
  * @summary Delete a song (admin only)
  */
 export const getDeleteSongUrl = (id: number) => {
@@ -642,3 +733,335 @@ export const useDeleteSong = <
 > => {
   return useMutation(getDeleteSongMutationOptions(options));
 };
+
+/**
+ * @summary Get artist settings (public)
+ */
+export const getGetSettingsUrl = () => {
+  return `/api/settings`;
+};
+
+export const getSettings = async (
+  options?: RequestInit,
+): Promise<ArtistSettings> => {
+  return customFetch<ArtistSettings>(getGetSettingsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSettingsQueryKey = () => {
+  return [`/api/settings`] as const;
+};
+
+export const getGetSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSettingsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSettings>>> = ({
+    signal,
+  }) => getSettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSettings>>
+>;
+export type GetSettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get artist settings (public)
+ */
+
+export function useGetSettings<
+  TData = Awaited<ReturnType<typeof getSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update artist settings (admin only)
+ */
+export const getUpdateSettingsUrl = () => {
+  return `/api/settings`;
+};
+
+export const updateSettings = async (
+  updateSettingsBody: UpdateSettingsBody,
+  options?: RequestInit,
+): Promise<ArtistSettings> => {
+  const formData = new FormData();
+  if (updateSettingsBody.artistName !== undefined) {
+    formData.append(`artistName`, updateSettingsBody.artistName);
+  }
+  if (updateSettingsBody.vipPassword !== undefined) {
+    formData.append(`vipPassword`, updateSettingsBody.vipPassword);
+  }
+  if (updateSettingsBody.photo !== undefined) {
+    formData.append(`photo`, updateSettingsBody.photo);
+  }
+
+  return customFetch<ArtistSettings>(getUpdateSettingsUrl(), {
+    ...options,
+    method: "PUT",
+    body: formData,
+  });
+};
+
+export const getUpdateSettingsMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSettings>>,
+    TError,
+    { data: BodyType<UpdateSettingsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSettings>>,
+  TError,
+  { data: BodyType<UpdateSettingsBody> },
+  TContext
+> => {
+  const mutationKey = ["updateSettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSettings>>,
+    { data: BodyType<UpdateSettingsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateSettings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSettings>>
+>;
+export type UpdateSettingsMutationBody = BodyType<UpdateSettingsBody>;
+export type UpdateSettingsMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update artist settings (admin only)
+ */
+export const useUpdateSettings = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSettings>>,
+    TError,
+    { data: BodyType<UpdateSettingsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSettings>>,
+  TError,
+  { data: BodyType<UpdateSettingsBody> },
+  TContext
+> => {
+  return useMutation(getUpdateSettingsMutationOptions(options));
+};
+
+/**
+ * @summary VIP area login
+ */
+export const getVipLoginUrl = () => {
+  return `/api/vip/login`;
+};
+
+export const vipLogin = async (
+  vipLoginBody: VipLoginBody,
+  options?: RequestInit,
+): Promise<VipStatus> => {
+  return customFetch<VipStatus>(getVipLoginUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(vipLoginBody),
+  });
+};
+
+export const getVipLoginMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof vipLogin>>,
+    TError,
+    { data: BodyType<VipLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof vipLogin>>,
+  TError,
+  { data: BodyType<VipLoginBody> },
+  TContext
+> => {
+  const mutationKey = ["vipLogin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof vipLogin>>,
+    { data: BodyType<VipLoginBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return vipLogin(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VipLoginMutationResult = NonNullable<
+  Awaited<ReturnType<typeof vipLogin>>
+>;
+export type VipLoginMutationBody = BodyType<VipLoginBody>;
+export type VipLoginMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary VIP area login
+ */
+export const useVipLogin = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof vipLogin>>,
+    TError,
+    { data: BodyType<VipLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof vipLogin>>,
+  TError,
+  { data: BodyType<VipLoginBody> },
+  TContext
+> => {
+  return useMutation(getVipLoginMutationOptions(options));
+};
+
+/**
+ * @summary Get VIP session status
+ */
+export const getGetVipStatusUrl = () => {
+  return `/api/vip/status`;
+};
+
+export const getVipStatus = async (
+  options?: RequestInit,
+): Promise<VipStatus> => {
+  return customFetch<VipStatus>(getGetVipStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetVipStatusQueryKey = () => {
+  return [`/api/vip/status`] as const;
+};
+
+export const getGetVipStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getVipStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getVipStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetVipStatusQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getVipStatus>>> = ({
+    signal,
+  }) => getVipStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getVipStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetVipStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getVipStatus>>
+>;
+export type GetVipStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get VIP session status
+ */
+
+export function useGetVipStatus<
+  TData = Awaited<ReturnType<typeof getVipStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getVipStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetVipStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

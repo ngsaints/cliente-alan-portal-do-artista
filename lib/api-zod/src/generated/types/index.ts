@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./artistSettings";
 export * from "./authStatus";
 export * from "./createSongBody";
 export * from "./errorResponse";
@@ -13,3 +14,7 @@ export * from "./healthStatus";
 export * from "./listSongsParams";
 export * from "./loginBody";
 export * from "./song";
+export * from "./updateSettingsBody";
+export * from "./updateSongBody";
+export * from "./vipLoginBody";
+export * from "./vipStatus";

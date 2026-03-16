@@ -8,7 +8,6 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -84,8 +83,83 @@ export const CreateSongBody = zod.object({
 });
 
 /**
+ * @summary Update a song's details (admin only)
+ */
+export const UpdateSongParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateSongBody = zod.object({
+  titulo: zod.string().optional(),
+  descricao: zod.string().optional(),
+  genero: zod.string().optional(),
+  subgenero: zod.string().nullish(),
+  compositor: zod.string().nullish(),
+  status: zod.string().optional(),
+  precoX: zod.string().nullish(),
+  precoY: zod.string().nullish(),
+  isVip: zod.boolean().optional(),
+});
+
+export const UpdateSongResponse = zod.object({
+  id: zod.number(),
+  titulo: zod.string(),
+  descricao: zod.string(),
+  genero: zod.string(),
+  subgenero: zod.string().nullish(),
+  compositor: zod.string().nullish(),
+  status: zod.string(),
+  precoX: zod.string().nullish(),
+  precoY: zod.string().nullish(),
+  isVip: zod.boolean(),
+  capaUrl: zod.string().nullish(),
+  mp3Url: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+
+/**
  * @summary Delete a song (admin only)
  */
 export const DeleteSongParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get artist settings (public)
+ */
+export const GetSettingsResponse = zod.object({
+  artistName: zod.string(),
+  artistPhotoUrl: zod.string().nullish(),
+});
+
+/**
+ * @summary Update artist settings (admin only)
+ */
+export const UpdateSettingsBody = zod.object({
+  artistName: zod.string().optional(),
+  vipPassword: zod.string().optional(),
+  photo: zod.instanceof(File).optional(),
+});
+
+export const UpdateSettingsResponse = zod.object({
+  artistName: zod.string(),
+  artistPhotoUrl: zod.string().nullish(),
+});
+
+/**
+ * @summary VIP area login
+ */
+export const VipLoginBody = zod.object({
+  senha: zod.string(),
+});
+
+export const VipLoginResponse = zod.object({
+  vipLogado: zod.boolean(),
+});
+
+/**
+ * @summary Get VIP session status
+ */
+export const GetVipStatusResponse = zod.object({
+  vipLogado: zod.boolean(),
 });

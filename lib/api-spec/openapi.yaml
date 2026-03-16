@@ -13,13 +13,16 @@ tags:
     description: Authentication
   - name: songs
     description: Song catalog
+  - name: settings
+    description: Artist settings
+  - name: vip
+    description: VIP area
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -156,6 +159,42 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /songs/{id}:
+    patch:
+      operationId: updateSong
+      tags: [songs]
+      summary: Update a song's details (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSongBody"
+      responses:
+        "200":
+          description: Updated song
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
     delete:
       operationId: deleteSong
       tags: [songs]
@@ -182,6 +221,89 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get artist settings (public)
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistSettings"
+
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update artist settings (admin only)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                artistName:
+                  type: string
+                vipPassword:
+                  type: string
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistSettings"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /vip/login:
+    post:
+      operationId: vipLogin
+      tags: [vip]
+      summary: VIP area login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VipLoginBody"
+      responses:
+        "200":
+          description: VIP access granted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VipStatus"
+        "401":
+          description: Wrong password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /vip/status:
+    get:
+      operationId: getVipStatus
+      tags: [vip]
+      summary: Get VIP session status
+      responses:
+        "200":
+          description: VIP status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VipStatus"
+
 components:
   schemas:
     HealthStatus:
@@ -206,6 +328,51 @@ components:
       required: [logado]
       properties:
         logado:
+          type: boolean
+
+    VipLoginBody:
+      type: object
+      required: [senha]
+      properties:
+        senha:
+          type: string
+
+    VipStatus:
+      type: object
+      required: [vipLogado]
+      properties:
+        vipLogado:
+          type: boolean
+
+    ArtistSettings:
+      type: object
+      required: [artistName]
+      properties:
+        artistName:
+          type: string
+        artistPhotoUrl:
+          type: ["string", "null"]
+
+    UpdateSongBody:
+      type: object
+      properties:
+        titulo:
+          type: string
+        descricao:
+          type: string
+        genero:
+          type: string
+        subgenero:
+          type: ["string", "null"]
+        compositor:
+          type: ["string", "null"]
+        status:
+          type: string
+        precoX:
+          type: ["string", "null"]
+        precoY:
+          type: ["string", "null"]
+        isVip:
           type: boolean
 
     Song:

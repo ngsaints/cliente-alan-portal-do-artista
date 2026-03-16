@@ -18,6 +18,36 @@ export interface AuthStatus {
   logado: boolean;
 }
 
+export interface VipLoginBody {
+  senha: string;
+}
+
+export interface VipStatus {
+  vipLogado: boolean;
+}
+
+export interface ArtistSettings {
+  artistName: string;
+  /** @nullable */
+  artistPhotoUrl?: string | null;
+}
+
+export interface UpdateSongBody {
+  titulo?: string;
+  descricao?: string;
+  genero?: string;
+  /** @nullable */
+  subgenero?: string | null;
+  /** @nullable */
+  compositor?: string | null;
+  status?: string;
+  /** @nullable */
+  precoX?: string | null;
+  /** @nullable */
+  precoY?: string | null;
+  isVip?: boolean;
+}
+
 export interface Song {
   id: number;
   titulo: string;
@@ -61,4 +91,10 @@ export type CreateSongBody = {
   isVip?: string;
   capa?: Blob;
   mp3?: Blob;
+};
+
+export type UpdateSettingsBody = {
+  artistName?: string;
+  vipPassword?: string;
+  photo?: Blob;
 };
