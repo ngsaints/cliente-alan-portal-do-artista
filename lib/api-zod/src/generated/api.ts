@@ -61,6 +61,12 @@ export const ListSongsResponseItem = zod.object({
   isVip: zod.boolean(),
   capaUrl: zod.string().nullish(),
   mp3Url: zod.string().nullish(),
+  tipoMidia: zod.string().optional(),
+  youtubeUrl: zod.string().nullish(),
+  vipCode: zod.string().nullish(),
+  artistaId: zod.string().nullish(),
+  likes: zod.string().optional(),
+  plays: zod.string().optional(),
   createdAt: zod.date(),
 });
 export const ListSongsResponse = zod.array(ListSongsResponseItem);
@@ -78,6 +84,10 @@ export const CreateSongBody = zod.object({
   precoX: zod.string().optional(),
   precoY: zod.string().optional(),
   isVip: zod.string().optional(),
+  tipoMidia: zod.string().optional(),
+  youtubeUrl: zod.string().optional(),
+  vipCode: zod.string().optional(),
+  artistaId: zod.string().optional(),
   capa: zod.instanceof(File).optional(),
   mp3: zod.instanceof(File).optional(),
 });
@@ -99,6 +109,9 @@ export const UpdateSongBody = zod.object({
   precoX: zod.string().nullish(),
   precoY: zod.string().nullish(),
   isVip: zod.boolean().optional(),
+  tipoMidia: zod.string().optional(),
+  youtubeUrl: zod.string().nullish(),
+  vipCode: zod.string().nullish(),
 });
 
 export const UpdateSongResponse = zod.object({
@@ -114,6 +127,12 @@ export const UpdateSongResponse = zod.object({
   isVip: zod.boolean(),
   capaUrl: zod.string().nullish(),
   mp3Url: zod.string().nullish(),
+  tipoMidia: zod.string().optional(),
+  youtubeUrl: zod.string().nullish(),
+  vipCode: zod.string().nullish(),
+  artistaId: zod.string().nullish(),
+  likes: zod.string().optional(),
+  plays: zod.string().optional(),
   createdAt: zod.date(),
 });
 

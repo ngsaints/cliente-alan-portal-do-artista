@@ -45,7 +45,7 @@ export function AudioPlayer() {
             </div>
             <div className="min-w-0">
               <h4 className="text-primary font-bold truncate">{currentSong.titulo}</h4>
-              <p className="text-muted-foreground text-xs truncate">Alan Ribeiro</p>
+              <p className="text-muted-foreground text-xs truncate">{currentSong.compositor || "Artista"}</p>
             </div>
           </div>
 

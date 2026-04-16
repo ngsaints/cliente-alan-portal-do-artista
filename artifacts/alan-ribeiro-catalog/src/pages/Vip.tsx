@@ -4,26 +4,40 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Star, Lock, ArrowLeft, Music } from "lucide-react";
 import { useListSongs } from "@workspace/api-client-react";
 
-const VIP_PASSWORD = "alanvip";
-
 export default function Vip() {
   const [senha, setSenha] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   const { data: songs, isLoading } = useListSongs(
     { vip: true },
     { query: { enabled: unlocked } }
   );
 
-  const verificar = (e: React.FormEvent) => {
+  const verificar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (senha === VIP_PASSWORD) {
-      setUnlocked(true);
-      setError(false);
-    } else {
+    if (!senha.trim()) return;
+    setVerifying(true);
+    setError(false);
+    try {
+      const res = await fetch("/api/vip-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senha }),
+      });
+      if (res.ok) {
+        setUnlocked(true);
+        setError(false);
+      } else {
+        setError(true);
+        setSenha("");
+      }
+    } catch {
       setError(true);
       setSenha("");
+    } finally {
+      setVerifying(false);
     }
   };
 

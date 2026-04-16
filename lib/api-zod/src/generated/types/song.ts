@@ -25,5 +25,14 @@ export interface Song {
   capaUrl?: string | null;
   /** @nullable */
   mp3Url?: string | null;
+  tipoMidia?: string;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  vipCode?: string | null;
+  /** @nullable */
+  artistaId?: string | null;
+  likes?: string;
+  plays?: string;
   createdAt: Date;
 }

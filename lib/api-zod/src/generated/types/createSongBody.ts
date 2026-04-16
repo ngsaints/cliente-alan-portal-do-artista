@@ -16,6 +16,10 @@ export type CreateSongBody = {
   precoX?: string;
   precoY?: string;
   isVip?: string;
+  tipoMidia?: string;
+  youtubeUrl?: string;
+  vipCode?: string;
+  artistaId?: string;
   capa?: Blob;
   mp3?: Blob;
 };

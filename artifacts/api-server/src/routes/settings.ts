@@ -1,26 +1,20 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
-import fs from "fs";
 import { db, settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+import path from "path";
+import fs from "fs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = path.resolve(__dirname, "..", "..", "uploads");
-const photosDir = path.join(uploadsDir, "photos");
-fs.mkdirSync(photosDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, photosDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `artist_photo${ext}`);
-  },
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
-const upload = multer({ storage });
 
 const router: IRouter = Router();
+
+// Check if R2 is enabled
+const useR2 = !!(process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY);
 
 async function getSetting(key: string): Promise<string | null> {
   const [row] = await db.select().from(settingsTable).where(eq(settingsTable.key, key));
@@ -36,11 +30,29 @@ async function setSetting(key: string, value: string | null): Promise<void> {
 
 router.get("/settings", async (_req, res): Promise<void> => {
   const artistName = (await getSetting("artist_name")) ?? "Alan Ribeiro";
-  const artistPhotoPath = await getSetting("artist_photo_path");
+  const artistPhotoUrl = await getSetting("artist_photo_url");
   res.json({
     artistName,
-    artistPhotoUrl: artistPhotoPath ? `/api/uploads/${artistPhotoPath}` : null,
+    artistPhotoUrl: artistPhotoUrl || null,
   });
+});
+
+router.post("/vip-verify", async (req, res): Promise<void> => {
+  const { senha } = req.body;
+  if (!senha) {
+    res.status(400).json({ error: "Senha é obrigatória" });
+    return;
+  }
+  const vipPassword = await getSetting("vip_password");
+  if (!vipPassword) {
+    res.status(403).json({ error: "Área VIP não configurada" });
+    return;
+  }
+  if (senha === vipPassword) {
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ error: "Senha incorreta" });
+  }
 });
 
 router.put(
@@ -58,15 +70,35 @@ router.put(
     if (vipPassword) await setSetting("vip_password", vipPassword);
 
     if (req.file) {
-      const photoPath = `photos/${req.file.filename}`;
-      await setSetting("artist_photo_path", photoPath);
+      try {
+        let photoUrl: string;
+
+        if (r2Enabled) {
+          const photoKey = generateR2Key("photos", req.file.originalname);
+          photoUrl = await uploadToR2(req.file.buffer, photoKey, req.file.mimetype);
+        } else {
+          const dir = path.join(process.cwd(), "uploads/photos");
+          fs.mkdirSync(dir, { recursive: true });
+          const filename = `${Date.now()}_${req.file.originalname}`;
+          fs.writeFileSync(path.join(dir, filename), req.file.buffer);
+          photoUrl = `/api/uploads/photos/${filename}`;
+        }
+        await setSetting("artist_photo_url", photoUrl);
+      } catch (error) {
+        console.error("Error uploading photo:", error);
+        res.status(500).json({
+          error: "Erro no upload da foto",
+          details: error instanceof Error ? error.message : "Unknown error"
+        });
+        return;
+      }
     }
 
     const updatedName = (await getSetting("artist_name")) ?? "Alan Ribeiro";
-    const updatedPhotoPath = await getSetting("artist_photo_path");
+    const updatedPhotoUrl = await getSetting("artist_photo_url");
     res.json({
       artistName: updatedName,
-      artistPhotoUrl: updatedPhotoPath ? `/api/uploads/${updatedPhotoPath}` : null,
+      artistPhotoUrl: updatedPhotoUrl || null,
     });
   }
 );

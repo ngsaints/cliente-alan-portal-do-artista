@@ -138,6 +138,14 @@ paths:
                   type: string
                 isVip:
                   type: string
+                tipoMidia:
+                  type: string
+                youtubeUrl:
+                  type: string
+                vipCode:
+                  type: string
+                artistaId:
+                  type: string
                 capa:
                   type: string
                   format: binary
@@ -374,6 +382,12 @@ components:
           type: ["string", "null"]
         isVip:
           type: boolean
+        tipoMidia:
+          type: string
+        youtubeUrl:
+          type: ["string", "null"]
+        vipCode:
+          type: ["string", "null"]
 
     Song:
       type: object
@@ -403,6 +417,18 @@ components:
           type: ["string", "null"]
         mp3Url:
           type: ["string", "null"]
+        tipoMidia:
+          type: string
+        youtubeUrl:
+          type: ["string", "null"]
+        vipCode:
+          type: ["string", "null"]
+        artistaId:
+          type: ["string", "null"]
+        likes:
+          type: string
+        plays:
+          type: string
         createdAt:
           type: string
           format: date-time

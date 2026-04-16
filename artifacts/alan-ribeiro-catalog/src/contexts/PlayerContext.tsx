@@ -30,6 +30,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     } else {
       setCurrentSong(song);
       setIsPlaying(true);
+      // Register play
+      fetch(`/api/songs/${song.id}/play`, { method: 'POST' }).catch(() => {});
     }
   };
 

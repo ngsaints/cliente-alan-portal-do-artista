@@ -1,38 +1,30 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
-import fs from "fs";
 import { db, songsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { ListSongsResponse, DeleteSongParams } from "@workspace/api-zod";
+import { uploadToR2, deleteFromR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+import path from "path";
+import fs from "fs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const uploadsDir = path.resolve(__dirname, "..", "..", "uploads");
-const coversDir = path.join(uploadsDir, "covers");
-const audioDir = path.join(uploadsDir, "audio");
-
-fs.mkdirSync(coversDir, { recursive: true });
-fs.mkdirSync(audioDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    if (file.fieldname === "capa") {
-      cb(null, coversDir);
-    } else {
-      cb(null, audioDir);
-    }
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}_${file.fieldname}${ext}`);
+// Multer: always use memoryStorage so file.buffer is available for both R2 and local disk writes
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
   },
 });
 
-const upload = multer({ storage });
-
 const router: IRouter = Router();
+
+/** Salva buffer em disco e retorna a URL local (/api/uploads/…) */
+function saveLocal(buffer: Buffer, folder: string, originalname: string): string {
+  const dir = path.join(process.cwd(), "uploads", folder);
+  fs.mkdirSync(dir, { recursive: true });
+  const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}_${originalname}`;
+  fs.writeFileSync(path.join(dir, filename), buffer);
+  return `/api/uploads/${folder}/${filename}`;
+}
 
 function mapSong(s: typeof songsTable.$inferSelect) {
   return {
@@ -45,9 +37,15 @@ function mapSong(s: typeof songsTable.$inferSelect) {
     status: s.status,
     precoX: s.precoX ?? null,
     precoY: s.precoY ?? null,
+    capaUrl: s.capaPath || null,
+    mp3Url: s.mp3Path || null,
+    youtubeUrl: s.youtubeUrl ?? null,
+    tipoMidia: s.tipoMidia ?? "audio",
     isVip: s.isVip,
-    capaUrl: s.capaPath ? `/api/uploads/${s.capaPath}` : null,
-    mp3Url: s.mp3Path ? `/api/uploads/${s.mp3Path}` : null,
+    vipCode: s.vipCode ?? null,
+    artistaId: s.artistaId ?? null,
+    likes: s.likes ?? "0",
+    plays: s.plays ?? "0",
     createdAt: s.createdAt,
   };
 }
@@ -82,46 +80,162 @@ router.post(
       return;
     }
 
-    const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip } = req.body;
+    const { 
+      titulo, descricao, genero, subgenero, compositor, status, 
+      precoX, precoY, isVip, youtubeUrl, tipoMidia, vipCode 
+    } = req.body;
 
     if (!titulo || !descricao || !genero) {
       res.status(400).json({ error: "Campos obrigatórios faltando" });
       return;
     }
 
+    const tipo = tipoMidia || "audio";
     const files = req.files as Record<string, Express.Multer.File[]>;
     const capaFile = files?.["capa"]?.[0];
     const mp3File = files?.["mp3"]?.[0];
 
-    if (!capaFile || !mp3File) {
-      if (capaFile) fs.unlink(capaFile.path, () => {});
-      if (mp3File) fs.unlink(mp3File.path, () => {});
-      res.status(400).json({ error: "Capa e arquivo MP3 são obrigatórios" });
+    // Validação: áudio precisa de MP3, vídeo precisa de YouTube
+    if (tipo === "audio" && !mp3File) {
+      res.status(400).json({ error: "Para áudio, arquivo MP3 é obrigatório" });
+      return;
+    }
+    if (tipo === "video" && !youtubeUrl) {
+      res.status(400).json({ error: "Para vídeo, link do YouTube é obrigatório" });
       return;
     }
 
-    const capaPath = `covers/${capaFile.filename}`;
-    const mp3Path = `audio/${mp3File.filename}`;
-    const vipFlag = isVip === "true" || isVip === "1";
+    let capaPath: string | null = null;
+    let mp3Path: string | null = null;
 
-    const [song] = await db
-      .insert(songsTable)
-      .values({
-        titulo,
-        descricao,
-        genero,
-        subgenero: subgenero || null,
-        compositor: compositor || null,
-        status: status || "Disponível",
-        precoX: precoX || null,
-        precoY: precoY || null,
-        capaPath,
-        mp3Path,
-        isVip: vipFlag,
-      })
-      .returning();
+    // Upload da capa (opcional para vídeo com YouTube)
+    if (capaFile) {
+      try {
+        if (r2Enabled) {
+          const capaKey = generateR2Key("covers", capaFile.originalname);
+          capaPath = await uploadToR2(capaFile.buffer, capaKey, capaFile.mimetype);
+        } else {
+          capaPath = saveLocal(capaFile.buffer, "covers", capaFile.originalname);
+        }
+      } catch (error) {
+        console.error("Error uploading cover:", error);
+        res.status(500).json({ error: "Erro no upload da capa" });
+        return;
+      }
+    }
 
-    res.status(201).json(mapSong(song));
+    // Upload do MP3 (apenas para tipo áudio)
+    if (tipo === "audio" && mp3File) {
+      try {
+        if (r2Enabled) {
+          const mp3Key = generateR2Key("audio", mp3File.originalname);
+          mp3Path = await uploadToR2(mp3File.buffer, mp3Key, mp3File.mimetype);
+        } else {
+          mp3Path = saveLocal(mp3File.buffer, "audio", mp3File.originalname);
+        }
+      } catch (error) {
+        console.error("Error uploading audio:", error);
+        res.status(500).json({ error: "Erro no upload do áudio" });
+        return;
+      }
+    }
+
+    try {
+      const vipFlag = isVip === "true" || isVip === "1";
+
+      const [song] = await db
+        .insert(songsTable)
+        .values({
+          titulo,
+          descricao,
+          genero,
+          subgenero: subgenero || null,
+          compositor: compositor || null,
+          status: status || "Disponível",
+          precoX: precoX || null,
+          precoY: precoY || null,
+          capaPath,
+          mp3Path,
+          youtubeUrl: youtubeUrl || null,
+          tipoMidia: tipo,
+          isVip: vipFlag,
+          vipCode: vipFlag ? (vipCode || null) : null,
+        })
+        .returning();
+
+      res.status(201).json(mapSong(song));
+    } catch (error) {
+      console.error("Error creating song:", error);
+      res.status(500).json({ 
+        error: "Erro ao salvar música",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+);
+
+// PUT /songs/:id - Update song (accepts multipart/form-data with optional capa)
+router.put(
+  "/songs/:id",
+  upload.single("capa"),
+  async (req, res): Promise<void> => {
+    if (!req.session.logado) {
+      res.status(401).json({ error: "Não autorizado" });
+      return;
+    }
+
+    const { id } = req.params;
+    const { titulo, descricao, genero, subgenero, compositor, status,
+            tipoMidia, youtubeUrl, isVip, vipCode } = req.body;
+
+    try {
+      // Se uma nova capa foi enviada, faz o upload
+      let capaPath: string | undefined = undefined;
+      if (req.file) {
+        try {
+          if (r2Enabled) {
+            const key = generateR2Key("covers", req.file.originalname);
+            capaPath = await uploadToR2(req.file.buffer, key, req.file.mimetype);
+          } else {
+            capaPath = saveLocal(req.file.buffer, "covers", req.file.originalname);
+          }
+        } catch (err) {
+          console.error("Error uploading cover:", err);
+          res.status(500).json({ error: "Erro no upload da capa" });
+          return;
+        }
+      }
+
+      const vipFlag = isVip === "true" || isVip === true;
+
+      const [updated] = await db
+        .update(songsTable)
+        .set({
+          ...(titulo      ? { titulo }                                : {}),
+          ...(descricao   ? { descricao }                            : {}),
+          ...(genero      ? { genero }                               : {}),
+          subgenero:    subgenero  !== undefined ? (subgenero  || null) : undefined,
+          compositor:   compositor !== undefined ? (compositor || null) : undefined,
+          ...(status      ? { status }                               : {}),
+          ...(tipoMidia   ? { tipoMidia }                            : {}),
+          youtubeUrl:   youtubeUrl !== undefined ? (youtubeUrl || null) : undefined,
+          isVip:        isVip      !== undefined ? vipFlag           : undefined,
+          vipCode:      vipCode    !== undefined ? (vipCode    || null) : undefined,
+          ...(capaPath    ? { capaPath }                             : {}),
+        })
+        .where(eq(songsTable.id, parseInt(id)))
+        .returning();
+
+      if (!updated) {
+        res.status(404).json({ error: "Música não encontrada" });
+        return;
+      }
+
+      res.json(mapSong(updated));
+    } catch (error) {
+      console.error("Error updating song:", error);
+      res.status(500).json({ error: "Erro ao atualizar música" });
+    }
   }
 );
 
@@ -147,16 +261,70 @@ router.delete("/songs/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  if (deleted.capaPath) {
-    const fullPath = path.join(uploadsDir, deleted.capaPath);
-    fs.unlink(fullPath, () => {});
-  }
-  if (deleted.mp3Path) {
-    const fullPath = path.join(uploadsDir, deleted.mp3Path);
-    fs.unlink(fullPath, () => {});
+  // Delete files from R2 if using R2 storage
+  if (r2Enabled) {
+    if (deleted.capaPath && deleted.capaPath.startsWith("http")) {
+      // Extract key from URL
+      const key = deleted.capaPath.split("/").slice(-2).join("/");
+      deleteFromR2(key).catch(err => console.error("Error deleting cover:", err));
+    }
+    if (deleted.mp3Path && deleted.mp3Path.startsWith("http")) {
+      const key = deleted.mp3Path.split("/").slice(-2).join("/");
+      deleteFromR2(key).catch(err => console.error("Error deleting audio:", err));
+    }
+  } else {
+    // Delete local files
+    if (deleted.capaPath) {
+      const localPath = path.join(process.cwd(), deleted.capaPath.replace("/api/", ""));
+      fs.unlink(localPath, (err) => { if (err) console.error("Error deleting cover:", err); });
+    }
+    if (deleted.mp3Path) {
+      const localPath = path.join(process.cwd(), deleted.mp3Path.replace("/api/", ""));
+      fs.unlink(localPath, (err) => { if (err) console.error("Error deleting audio:", err); });
+    }
   }
 
   res.sendStatus(204);
+});
+
+// POST /songs/:id/like - Like a song
+router.post("/songs/:id/like", async (req, res): Promise<void> => {
+  try {
+    const { id } = req.params;
+    
+    const [updated] = await db
+      .update(songsTable)
+      .set({
+        likes: sql`${songsTable.likes} + 1`,
+      })
+      .where(eq(songsTable.id, parseInt(id)))
+      .returning();
+
+    res.json({ likes: updated.likes });
+  } catch (error) {
+    console.error("Error liking song:", error);
+    res.status(500).json({ error: "Erro ao curtir música" });
+  }
+});
+
+// POST /songs/:id/play - Register a play
+router.post("/songs/:id/play", async (req, res): Promise<void> => {
+  try {
+    const { id } = req.params;
+    
+    const [updated] = await db
+      .update(songsTable)
+      .set({
+        plays: sql`${songsTable.plays} + 1`,
+      })
+      .where(eq(songsTable.id, parseInt(id)))
+      .returning();
+
+    res.json({ plays: updated.plays });
+  } catch (error) {
+    console.error("Error registering play:", error);
+    res.status(500).json({ error: "Erro ao registrar reprodução" });
+  }
 });
 
 export default router;

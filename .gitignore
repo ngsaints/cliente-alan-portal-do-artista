@@ -1,5 +1,3 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
 # compiled output
 dist
 tmp
@@ -47,3 +45,23 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+.replit
+.replitignore
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Uploads directory (local storage)
+artifacts/api-server/uploads/
+
+# Logs
+nohup.out
+*.log
+
+# Cookies / session dumps
+cookies.txt
+
+# Reference files (not part of the project)
+estrutura da interface ref/

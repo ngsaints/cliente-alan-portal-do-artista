@@ -20,4 +20,9 @@ export interface UpdateSongBody {
   /** @nullable */
   precoY?: string | null;
   isVip?: boolean;
+  tipoMidia?: string;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  vipCode?: string | null;
 }

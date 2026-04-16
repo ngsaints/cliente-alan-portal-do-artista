@@ -46,6 +46,11 @@ export interface UpdateSongBody {
   /** @nullable */
   precoY?: string | null;
   isVip?: boolean;
+  tipoMidia?: string;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  vipCode?: string | null;
 }
 
 export interface Song {
@@ -67,6 +72,15 @@ export interface Song {
   capaUrl?: string | null;
   /** @nullable */
   mp3Url?: string | null;
+  tipoMidia?: string;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  vipCode?: string | null;
+  /** @nullable */
+  artistaId?: string | null;
+  likes?: string;
+  plays?: string;
   createdAt: string;
 }
 
@@ -89,6 +103,10 @@ export type CreateSongBody = {
   precoX?: string;
   precoY?: string;
   isVip?: string;
+  tipoMidia?: string;
+  youtubeUrl?: string;
+  vipCode?: string;
+  artistaId?: string;
   capa?: Blob;
   mp3?: Blob;
 };

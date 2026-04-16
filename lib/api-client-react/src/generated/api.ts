@@ -482,6 +482,18 @@ export const createSong = async (
   if (createSongBody.isVip !== undefined) {
     formData.append(`isVip`, createSongBody.isVip);
   }
+  if (createSongBody.tipoMidia !== undefined) {
+    formData.append(`tipoMidia`, createSongBody.tipoMidia);
+  }
+  if (createSongBody.youtubeUrl !== undefined) {
+    formData.append(`youtubeUrl`, createSongBody.youtubeUrl);
+  }
+  if (createSongBody.vipCode !== undefined) {
+    formData.append(`vipCode`, createSongBody.vipCode);
+  }
+  if (createSongBody.artistaId !== undefined) {
+    formData.append(`artistaId`, createSongBody.artistaId);
+  }
   if (createSongBody.capa !== undefined) {
     formData.append(`capa`, createSongBody.capa);
   }

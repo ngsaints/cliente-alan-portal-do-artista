@@ -1,11 +1,8 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import session from "express-session";
-import path from "path";
-import { fileURLToPath } from "url";
 import router from "./routes";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import path from "path";
 
 const app: Express = express();
 
@@ -22,8 +19,8 @@ app.use(
   })
 );
 
-const uploadsDir = path.resolve(__dirname, "..", "uploads");
-app.use("/api/uploads", express.static(uploadsDir));
+// Serve local uploads
+app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use("/api", router);
 
