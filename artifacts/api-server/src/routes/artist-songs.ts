@@ -30,8 +30,11 @@ router.get("/artist/:artistId/songs", async (req, res): Promise<void> => {
     const { artistId } = req.params;
     const { genre, vip } = req.query;
 
-    // For now, all songs are visible. In future, filter by artist
-    let rows = await db.select().from(songsTable).orderBy(songsTable.createdAt);
+    let rows = await db
+      .select()
+      .from(songsTable)
+      .where(eq(songsTable.artistaId, artistId))
+      .orderBy(songsTable.createdAt);
 
     if (vip === "true") {
       rows = rows.filter((s) => s.isVip === true);
