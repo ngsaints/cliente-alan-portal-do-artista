@@ -1,5 +1,5 @@
 import { useParams } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { MusicCard } from "@/components/MusicCard";
@@ -11,10 +11,8 @@ import { PlansModal } from "@/components/PlansModal";
 import { NotificationBell, type Interest } from "@/components/NotificationBell";
 import { InterestModal } from "@/components/InterestModal";
 import { useGenres } from "@/hooks/useGenres";
+import { useSEO } from "@/hooks/useSEO";
 
-
-
-// Demo artist data
 const DEMO_ARTIST = {
   id: 1,
   name: "Alan Ribeiro",
@@ -40,8 +38,37 @@ export default function Demo() {
   const [copied, setCopied] = useState(false);
   const [interestModalOpen, setInterestModalOpen] = useState(false);
   const [selectedSongTitle, setSelectedSongTitle] = useState<string>("");
+  const [demoSettings, setDemoSettings] = useState<Record<string, string>>({});
 
-  // Mock interests for demo
+  useSEO({
+    title: "Demonstração - Portal do Artista",
+    description: "Veja como funciona o perfil de artista no Portal do Artista. Descubra todos os recursos disponíveis para sua carreira musical.",
+    ogUrl: "https://portaldoartista.com/demo",
+    canonical: "https://portaldoartista.com/demo",
+  });
+
+  useEffect(() => {
+    fetch("/api/demo-settings")
+      .then(r => r.json())
+      .then(data => setDemoSettings(data))
+      .catch(() => {});
+  }, []);
+
+  const artist = {
+    ...DEMO_ARTIST,
+    ...(demoSettings.demo_name ? { name: demoSettings.demo_name } : {}),
+    ...(demoSettings.demo_profissao ? { profissao: demoSettings.demo_profissao } : {}),
+    ...(demoSettings.demo_cidade ? { cidade: demoSettings.demo_cidade } : {}),
+    ...(demoSettings.demo_contato ? { contato: demoSettings.demo_contato } : {}),
+    ...(demoSettings.demo_email ? { email: demoSettings.demo_email } : {}),
+    ...(demoSettings.demo_instagram ? { instagram: demoSettings.demo_instagram } : {}),
+    ...(demoSettings.demo_tiktok ? { tiktok: demoSettings.demo_tiktok } : {}),
+    ...(demoSettings.demo_spotify ? { spotify: demoSettings.demo_spotify } : {}),
+    ...(demoSettings.demo_cor ? { cor: demoSettings.demo_cor } : {}),
+    ...(demoSettings.demo_banner_url ? { bannerUrl: demoSettings.demo_banner_url } : {}),
+    ...(demoSettings.demo_capa_url ? { capaUrl: demoSettings.demo_capa_url } : {}),
+  };
+
   const [interests, setInterests] = useState<Interest[]>([
     {
       id: 1,
@@ -56,8 +83,6 @@ export default function Demo() {
       createdAt: new Date().toISOString(),
     },
   ]);
-
-  const artist = DEMO_ARTIST;
 
   const { data: songs, isLoading } = useListSongs({
     genre: selectedGenre || undefined,
@@ -135,7 +160,7 @@ export default function Demo() {
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: artist.bannerUrl
-              ? `url(${artist.bannerUrl})`
+              ? `url("${artist.bannerUrl}")`
               : "none",
             backgroundColor: artist.cor || "#1a1a2e",
           }}

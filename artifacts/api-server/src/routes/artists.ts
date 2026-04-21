@@ -5,9 +5,29 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
+import sharp from "sharp";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 
 const router: IRouter = Router();
+
+async function convertToJpg(buffer: Buffer): Promise<Buffer> {
+  return sharp(buffer)
+    .jpeg({ quality: 80, mozjpeg: true })
+    .toBuffer();
+}
+
+async function saveImage(buffer: Buffer, folder: string, originalName: string): Promise<string> {
+  const jpgBuffer = await convertToJpg(buffer);
+  if (r2Enabled) {
+    const key = generateR2Key(folder, originalName.replace(/\.\w+$/, ".jpg"));
+    return uploadToR2(jpgBuffer, key, "image/jpeg");
+  }
+  const dir = path.join(process.cwd(), `uploads/${folder}`);
+  fs.mkdirSync(dir, { recursive: true });
+  const filename = `${Date.now()}_${originalName.replace(/\.\w+$/, ".jpg")}`;
+  fs.writeFileSync(path.join(dir, filename), jpgBuffer);
+  return `/api/uploads/${folder}/${filename}`;
+}
 
 // Helper function to generate slug from name
 function generateSlug(name: string): string {
@@ -92,29 +112,11 @@ router.post(
       let bannerUrl: string | null = null;
 
       if (capaFile) {
-        if (r2Enabled) {
-          const key = generateR2Key("photos", capaFile.originalname);
-          capaUrl = await uploadToR2(capaFile.buffer, key, capaFile.mimetype);
-        } else {
-          const dir = path.join(process.cwd(), "uploads/photos");
-          fs.mkdirSync(dir, { recursive: true });
-          const filename = `${Date.now()}_${capaFile.originalname}`;
-          fs.writeFileSync(path.join(dir, filename), capaFile.buffer);
-          capaUrl = `/api/uploads/photos/${filename}`;
-        }
+        capaUrl = await saveImage(capaFile.buffer, "photos", capaFile.originalname);
       }
 
       if (bannerFile) {
-        if (r2Enabled) {
-          const key = generateR2Key("banners", bannerFile.originalname);
-          bannerUrl = await uploadToR2(bannerFile.buffer, key, bannerFile.mimetype);
-        } else {
-          const dir = path.join(process.cwd(), "uploads/banners");
-          fs.mkdirSync(dir, { recursive: true });
-          const filename = `${Date.now()}_${bannerFile.originalname}`;
-          fs.writeFileSync(path.join(dir, filename), bannerFile.buffer);
-          bannerUrl = `/api/uploads/banners/${filename}`;
-        }
+        bannerUrl = await saveImage(bannerFile.buffer, "banners", bannerFile.originalname);
       }
 
       // Create artist with unique slug
@@ -256,6 +258,7 @@ router.get("/artists/status", async (req, res): Promise<void> => {
         plano: artist.plano,
         limiteMusicas: artist.limiteMusicas,
         musicaCount: artist.musicaCount,
+        vipSenha: artist.vipSenha,
       },
     });
   } catch (error) {
@@ -278,7 +281,7 @@ router.put(
     }
 
     try {
-      const { name, profissao, cidade, instagram, tiktok, spotify, contato, fonte, cor, layout, player } = req.body;
+      const { name, profissao, cidade, instagram, tiktok, spotify, contato, fonte, cor, layout, player, vipSenha } = req.body;
 
       const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, req.session.artistId));
       if (artists.length === 0) {
@@ -295,29 +298,11 @@ router.put(
       const bannerFile = files?.["bannerFile"]?.[0];
 
       if (capaFile) {
-        if (r2Enabled) {
-          const key = generateR2Key("photos", capaFile.originalname);
-          capaUrl = await uploadToR2(capaFile.buffer, key, capaFile.mimetype);
-        } else {
-          const dir = path.join(process.cwd(), "uploads/photos");
-          fs.mkdirSync(dir, { recursive: true });
-          const filename = `${Date.now()}_${capaFile.originalname}`;
-          fs.writeFileSync(path.join(dir, filename), capaFile.buffer);
-          capaUrl = `/api/uploads/photos/${filename}`;
-        }
+        capaUrl = await saveImage(capaFile.buffer, "photos", capaFile.originalname);
       }
 
       if (bannerFile) {
-        if (r2Enabled) {
-          const key = generateR2Key("banners", bannerFile.originalname);
-          bannerUrl = await uploadToR2(bannerFile.buffer, key, bannerFile.mimetype);
-        } else {
-          const dir = path.join(process.cwd(), "uploads/banners");
-          fs.mkdirSync(dir, { recursive: true });
-          const filename = `${Date.now()}_${bannerFile.originalname}`;
-          fs.writeFileSync(path.join(dir, filename), bannerFile.buffer);
-          bannerUrl = `/api/uploads/banners/${filename}`;
-        }
+        bannerUrl = await saveImage(bannerFile.buffer, "banners", bannerFile.originalname);
       }
 
       const [updated] = await db
@@ -334,6 +319,7 @@ router.put(
           cor: cor ?? current.cor,
           layout: layout ?? current.layout,
           player: player ?? current.player,
+          vipSenha: vipSenha !== undefined ? vipSenha : current.vipSenha,
           capaUrl,
           bannerUrl,
           updatedAt: new Date(),
@@ -384,14 +370,19 @@ router.post("/artists/vip-verify/:artistId", async (req, res): Promise<void> => 
       return;
     }
 
-    // Check if any of the artist's VIP songs have this code
+    const artist = artists[0];
+
+    if (artist.vipSenha && artist.vipSenha === code) {
+      res.json({ valid: true, message: "Código válido" });
+      return;
+    }
+
     const { songsTable } = await import("@workspace/db");
     const vipSongs = await db
       .select()
       .from(songsTable)
       .where(eq(songsTable.artistaId, artistId));
 
-    // Check if code matches any VIP song's code
     const hasAccess = vipSongs.some(song => song.isVip && song.vipCode === code);
 
     if (hasAccess) {

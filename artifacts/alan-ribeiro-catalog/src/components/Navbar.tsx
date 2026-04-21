@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Music, ShieldAlert, Star, Users, Zap, UserPlus, LogIn, LayoutDashboard, Menu, X } from "lucide-react";
+import { Music, ShieldAlert, Users, Zap, LogIn, LayoutDashboard, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
@@ -28,22 +28,12 @@ export function Navbar() {
     : { href: "/artista/login",    icon: LogIn,           label: "Login Artista" };
 
   const otherLinks = [
-    ...(!artistLoggedIn ? [{ href: "/cadastro", icon: UserPlus, label: "Sou Artista" }] : []),
     { href: "/artistas", icon: Users,       label: "Artistas" },
     { href: "/demo",     icon: Zap,         label: "Demo" },
     { href: "/admin",    icon: ShieldAlert, label: "Admin" },
   ];
 
   const allLinks = [artistLink, ...otherLinks];
-
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => { document.body.style.overflow = ""; };
-  }, [open]);
 
   return (
     <>
@@ -70,24 +60,28 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
-            <Link
-              href="/vip"
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors"
-            >
-              <Star className="w-4 h-4" />
-              Área VIP
-            </Link>
+            {!artistLoggedIn && (
+              <Link
+                href="/artista/login?tab=cadastro"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+              >
+                <Zap className="w-4 h-4" />
+                Comece Grátis
+              </Link>
+            )}
           </div>
 
-          {/* Mobile: VIP + hamburger */}
+          {/* Mobile: Comece Grátis + hamburger */}
           <div className="flex sm:hidden items-center gap-2">
-            <Link
-              href="/vip"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-black bg-primary hover:bg-primary/90 transition-colors"
-            >
-              <Star className="w-3.5 h-3.5" />
-              VIP
-            </Link>
+            {!artistLoggedIn && (
+              <Link
+                href="/artista/login?tab=cadastro"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-black bg-primary hover:bg-primary/90 transition-colors"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Grátis
+              </Link>
+            )}
             <button
               onClick={() => setOpen(!open)}
               className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
@@ -143,14 +137,16 @@ export function Navbar() {
               </div>
 
               <div className="p-4 border-t border-border/50">
-                <Link
-                  href="/vip"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors"
-                >
-                  <Star className="w-4 h-4" />
-                  Área VIP
-                </Link>
+                {!artistLoggedIn && (
+                  <Link
+                    href="/artista/login?tab=cadastro"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Comece Grátis
+                  </Link>
+                )}
               </div>
             </motion.div>
           </>

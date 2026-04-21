@@ -4,6 +4,7 @@ import { db, songsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { ListSongsResponse, DeleteSongParams } from "@workspace/api-zod";
 import { uploadToR2, deleteFromR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 
@@ -17,12 +18,13 @@ const upload = multer({
 
 const router: IRouter = Router();
 
-/** Salva buffer em disco e retorna a URL local (/api/uploads/…) */
-function saveLocal(buffer: Buffer, folder: string, originalname: string): string {
+/** Salva buffer em disco (convertido para JPG) e retorna a URL local (/api/uploads/…) */
+async function saveLocal(buffer: Buffer, folder: string, originalname: string): Promise<string> {
+  const jpgBuffer = await sharp(buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
   const dir = path.join(process.cwd(), "uploads", folder);
   fs.mkdirSync(dir, { recursive: true });
-  const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}_${originalname}`;
-  fs.writeFileSync(path.join(dir, filename), buffer);
+  const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}_${originalname.replace(/\.\w+$/, ".jpg")}`;
+  fs.writeFileSync(path.join(dir, filename), jpgBuffer);
   return `/api/uploads/${folder}/${filename}`;
 }
 
@@ -115,7 +117,7 @@ router.post(
           const capaKey = generateR2Key("covers", capaFile.originalname);
           capaPath = await uploadToR2(capaFile.buffer, capaKey, capaFile.mimetype);
         } else {
-          capaPath = saveLocal(capaFile.buffer, "covers", capaFile.originalname);
+          capaPath = await saveLocal(capaFile.buffer, "covers", capaFile.originalname);
         }
       } catch (error) {
         console.error("Error uploading cover:", error);
@@ -197,7 +199,7 @@ router.put(
             const key = generateR2Key("covers", req.file.originalname);
             capaPath = await uploadToR2(req.file.buffer, key, req.file.mimetype);
           } else {
-            capaPath = saveLocal(req.file.buffer, "covers", req.file.originalname);
+            capaPath = await saveLocal(req.file.buffer, "covers", req.file.originalname);
           }
         } catch (err) {
           console.error("Error uploading cover:", err);

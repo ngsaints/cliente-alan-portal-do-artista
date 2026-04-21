@@ -12,6 +12,7 @@ import { useGenres } from "@/hooks/useGenres";
 import { PlansModal } from "@/components/PlansModal";
 import { NotificationBell, type Interest } from "@/components/NotificationBell";
 import { InterestModal } from "@/components/InterestModal";
+import { useSEO } from "@/hooks/useSEO";
 
 
 
@@ -58,6 +59,14 @@ export default function ArtistProfile() {
   }, [artistId]);
 
   const [interests, setInterests] = useState<any[]>([]);
+
+  useSEO({
+    title: `${artistData?.name || 'Artista'} - Portal do Artista`,
+    description: artistData?.profissao ? `${artistData.name} - ${artistData.profissao}. ${artistData.cidade ? 'De ' + artistData.cidade + '.' : ''} Ouça suas músicas no Portal do Artista.` : "Perfil de artista no Portal do Artista",
+    ogImage: artistData?.capaUrl || undefined,
+    ogUrl: `https://portaldoartista.com/a/${artistData?.slug || artistId}`,
+    canonical: `https://portaldoartista.com/a/${artistData?.slug || artistId}`,
+  });
 
   const { data: songs, isLoading } = useListSongs({
     genre: selectedGenre || undefined,
@@ -133,7 +142,7 @@ export default function ArtistProfile() {
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: artist.bannerUrl
-              ? `url(${artist.bannerUrl})`
+              ? `url("${artist.bannerUrl}")`
               : "none",
             backgroundColor: artist.cor || "#1a1a2e",
           }}

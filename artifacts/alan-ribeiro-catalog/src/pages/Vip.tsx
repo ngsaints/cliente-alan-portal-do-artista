@@ -3,12 +3,20 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Lock, ArrowLeft, Music } from "lucide-react";
 import { useListSongs } from "@workspace/api-client-react";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function Vip() {
   const [senha, setSenha] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState(false);
   const [verifying, setVerifying] = useState(false);
+
+  useSEO({
+    title: "Área VIP - Portal do Artista",
+    description: "Acesse conteúdos exclusivos na Área VIP do Portal do Artista. Músicas e conteúdos especiais para fãs.",
+    ogUrl: "https://portaldoartista.com/vip",
+    canonical: "https://portaldoartista.com/vip",
+  });
 
   const { data: songs, isLoading } = useListSongs(
     { vip: true },

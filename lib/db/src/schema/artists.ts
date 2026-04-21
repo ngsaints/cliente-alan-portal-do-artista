@@ -25,6 +25,7 @@ export const artistsTable = pgTable("artists", {
   cor: text("cor").default("#ffffff"),
   layout: text("layout"), // gradiente/background
   player: text("player").default("Padrão"),
+  vipSenha: text("vip_senha").default(""),
   
   // Plano
   plano: text("plano").notNull().default("free"), // free, basico, intermediario, pro, premium

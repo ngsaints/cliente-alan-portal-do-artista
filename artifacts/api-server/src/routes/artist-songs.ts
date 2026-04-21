@@ -3,6 +3,7 @@ import multer from "multer";
 import { db, songsTable, artistsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { uploadToR2, deleteFromR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 
@@ -102,18 +103,20 @@ router.post(
       let mp3Path: string;
 
       if (r2Enabled) {
-        const capaKey = generateR2Key("covers", capaFile.originalname);
+        const capaKey = generateR2Key("covers", capaFile.originalname.replace(/\.\w+$/, ".jpg"));
         const mp3Key = generateR2Key("audio", mp3File.originalname);
-        capaPath = await uploadToR2(capaFile.buffer, capaKey, capaFile.mimetype);
+        const capaJpg = await sharp(capaFile.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+        capaPath = await uploadToR2(capaJpg, capaKey, "image/jpeg");
         mp3Path = await uploadToR2(mp3File.buffer, mp3Key, mp3File.mimetype);
       } else {
         const coversDir = path.join(process.cwd(), "uploads/covers");
         const audioDir = path.join(process.cwd(), "uploads/audio");
         fs.mkdirSync(coversDir, { recursive: true });
         fs.mkdirSync(audioDir, { recursive: true });
-        const capaName = `${Date.now()}_${capaFile.originalname}`;
+        const capaJpg = await sharp(capaFile.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+        const capaName = `${Date.now()}_${capaFile.originalname.replace(/\.\w+$/, ".jpg")}`;
         const mp3Name = `${Date.now()}_${mp3File.originalname}`;
-        fs.writeFileSync(path.join(coversDir, capaName), capaFile.buffer);
+        fs.writeFileSync(path.join(coversDir, capaName), capaJpg);
         fs.writeFileSync(path.join(audioDir, mp3Name), mp3File.buffer);
         capaPath = `/api/uploads/covers/${capaName}`;
         mp3Path = `/api/uploads/audio/${mp3Name}`;

@@ -37,6 +37,7 @@ interface ArtistProfile {
   plano: string;
   limiteMusicas: string;
   musicaCount: string;
+  vipSenha: string;
 }
 
 const PLANS = [
@@ -74,7 +75,7 @@ const PLAYERS = [
   { value: "Waveform", label: "Waveform" },
 ];
 
-type TabId = "dashboard" | "songs" | "profile" | "personalizacao" | "plano" | "interesses";
+type TabId = "dashboard" | "songs" | "profile" | "plano" | "interesses" | "vip";
 
 export default function ArtistDashboard() {
   const [location, setLocation] = useLocation();
@@ -121,13 +122,15 @@ export default function ArtistDashboard() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingCustom, setSavingCustom] = useState(false);
   const [deletingSongId, setDeletingSongId] = useState<number | null>(null);
+  const [vipSenha, setVipSenha] = useState("");
+  const [savingVipSenha, setSavingVipSenha] = useState(false);
 
   const tabs: { id: TabId; label: string; icon: any }[] = [
     { id: "dashboard",      label: "Dashboard",       icon: BarChart3      },
     { id: "songs",          label: "Minhas Músicas",   icon: Music          },
     { id: "profile",        label: "Meu Perfil",       icon: User           },
-    { id: "personalizacao", label: "Personalização",   icon: Palette        },
-    { id: "plano",          label: "Meu Plano",        icon: Crown          },
+    { id: "vip",            label: "Área VIP",         icon: Crown          },
+    { id: "plano",          label: "Meu Plano",        icon: CreditCard     },
     { id: "interesses",     label: "Interesses",       icon: MessageSquare  },
   ];
 
@@ -172,6 +175,7 @@ export default function ArtistDashboard() {
         layout: a.layout || "padrao",
         player: a.player || "Padrão",
       });
+      setVipSenha(a.vipSenha || "");
     } catch (err) {
       setError("Erro ao carregar dados");
     } finally {
@@ -259,6 +263,30 @@ export default function ArtistDashboard() {
       }
     } catch (err) {
       alert("Erro ao processar pagamento");
+    }
+  };
+
+  const handleSaveVipSenha = async () => {
+    setSavingVipSenha(true);
+    try {
+      const formData = new FormData();
+      formData.append("vipSenha", vipSenha);
+      const res = await fetch("/api/artists/profile", {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      });
+      if (res.ok) {
+        showSaveSuccess();
+        loadData();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Erro ao salvar senha VIP");
+      }
+    } catch (err) {
+      alert("Erro ao salvar senha VIP");
+    } finally {
+      setSavingVipSenha(false);
     }
   };
 
@@ -367,6 +395,15 @@ export default function ArtistDashboard() {
                   Meu Perfil
                 </a>
               )}
+              {activeTab !== "dashboard" && (
+                <button
+                  onClick={() => setActiveTab("dashboard")}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-muted-foreground border border-border hover:border-primary/50 hover:text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Dashboard
+                </button>
+              )}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
@@ -404,65 +441,25 @@ export default function ArtistDashboard() {
             {/* Dashboard */}
             {activeTab === "dashboard" && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-card border border-border/40 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Music className="w-5 h-5 text-primary" />
-                      <span className="text-sm text-muted-foreground">Total de Músicas</span>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground">{stats.totalSongs}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Limite: {artist?.limiteMusicas}</p>
-                  </div>
-                  <div className="bg-card border border-border/40 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <TrendingUp className="w-5 h-5 text-green-500" />
-                      <span className="text-sm text-muted-foreground">Total de Plays</span>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground">{stats.totalPlays}</p>
-                  </div>
-                  <div className="bg-card border border-border/40 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Heart className="w-5 h-5 text-red-500" />
-                      <span className="text-sm text-muted-foreground">Total de Likes</span>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground">{stats.totalLikes}</p>
-                  </div>
-                  <div className="bg-card border border-border/40 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Crown className="w-5 h-5 text-yellow-500" />
-                      <span className="text-sm text-muted-foreground">Conteúdo VIP</span>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground">{stats.vipContent}</p>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="bg-card border border-border/40 rounded-xl p-6">
-                  <h3 className="text-lg font-bold text-foreground mb-4">Ações Rápidas</h3>
-                  <div className="flex flex-wrap gap-3">
-                    <button onClick={() => setActiveTab("songs")} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors">
-                      <Upload className="w-4 h-4" /> Adicionar Música
-                    </button>
-                    <button onClick={() => setActiveTab("profile")} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors">
-                      <User className="w-4 h-4" /> Editar Perfil
-                    </button>
-                    <button onClick={() => setActiveTab("personalizacao")} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors">
-                      <Palette className="w-4 h-4" /> Personalizar
-                    </button>
-                    {artist?.slug && (
-                      <a href={`/a/${artist.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors">
-                        <ExternalLink className="w-4 h-4" /> Ver Meu Perfil
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                {/* Recent Songs */}
+                {/* Gestão de Músicas */}
                 <div className="bg-card border border-border/40 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-foreground">Músicas Recentes</h3>
-                    <button onClick={() => setActiveTab("songs")} className="text-sm text-primary hover:underline">Ver todas</button>
+                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      <Music className="w-5 h-5 text-primary" />
+                      Gestão de Músicas
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">{songs.length}/{artist?.limiteMusicas}</span>
+                      <button
+                        onClick={() => setActiveTab("songs")}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Adicionar Música
+                      </button>
+                    </div>
                   </div>
+
                   {songs.length === 0 ? (
                     <div className="text-center py-8">
                       <Music className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
@@ -470,26 +467,105 @@ export default function ArtistDashboard() {
                       <button onClick={() => setActiveTab("songs")} className="mt-2 text-sm text-primary hover:underline">Adicionar primeira música</button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {songs.slice(0, 5).map((song) => (
-                        <div key={song.id} className="flex items-center gap-4 p-3 bg-background/50 rounded-lg">
-                          <img src={song.capaUrl || "/images/default-cover.png"} alt={song.titulo} className="w-12 h-12 rounded-lg object-cover" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {songs.slice(0, 6).map((song) => (
+                        <div key={song.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-xl border border-border/30 hover:border-primary/30 transition-colors">
+                          <img src={song.capaUrl || "/images/default-cover.png"} alt={song.titulo} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-foreground truncate">{song.titulo}</h4>
-                            <p className="text-sm text-muted-foreground">{song.genero}</p>
+                            <h4 className="font-medium text-foreground truncate text-sm">{song.titulo}</h4>
+                            <p className="text-xs text-muted-foreground">{song.genero}</p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-0.5"><Heart className="w-3 h-3" />{Number(song.likes) || 0}</span>
+                              <span className="flex items-center gap-0.5"><TrendingUp className="w-3 h-3" />{Number(song.plays) || 0}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{Number(song.likes) || 0}</span>
-                            <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" />{Number(song.plays) || 0}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            {song.isVip && <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400">VIP</span>}
-                            {song.tipoMidia === "video" && <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400">Vídeo</span>}
+                          <div className="flex flex-col gap-1">
+                            {song.isVip && <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-500/20 text-yellow-400">VIP</span>}
+                            {song.tipoMidia === "video" && <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400">Vídeo</span>}
                           </div>
                         </div>
                       ))}
+                      {songs.length > 6 && (
+                        <button
+                          onClick={() => setActiveTab("songs")}
+                          className="flex items-center justify-center gap-2 p-4 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-muted-foreground hover:text-primary"
+                        >
+                          Ver todas ({songs.length})
+                        </button>
+                      )}
                     </div>
                   )}
+                </div>
+
+                {/* Gestão de Perfil */}
+                <div className="bg-card border border-border/40 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      <User className="w-5 h-5 text-primary" />
+                      Gestão de Perfil
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab("profile")}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
+                    >
+                      <Palette className="w-4 h-4" />
+                      Editar Perfil
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {artist?.capaUrl ? (
+                      <img src={artist.capaUrl} alt={artist.name} className="w-16 h-16 rounded-full object-cover border-2 border-primary/30" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/30">
+                        <User className="w-8 h-8 text-primary/50" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-foreground truncate">{artist?.name}</h4>
+                      <p className="text-sm text-muted-foreground">{artist?.profissao} {artist?.cidade ? `· ${artist.cidade}` : ""}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                        {artist?.instagram && <span>@{artist.instagram}</span>}
+                        {artist?.plano && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{artist.plano}</span>}
+                      </div>
+                    </div>
+                    {artist?.bannerUrl && (
+                      <img src={artist.bannerUrl} alt="Banner" className="w-28 h-12 rounded-lg object-cover border border-border hidden sm:block" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Métricas */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-card border border-border/40 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Music className="w-4 h-4 text-primary" />
+                      <span className="text-xs text-muted-foreground">Músicas</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">{stats.totalSongs}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Limite: {artist?.limiteMusicas}</p>
+                  </div>
+                  <div className="bg-card border border-border/40 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-4 h-4 text-green-500" />
+                      <span className="text-xs text-muted-foreground">Plays</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">{stats.totalPlays}</p>
+                  </div>
+                  <div className="bg-card border border-border/40 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Heart className="w-4 h-4 text-red-500" />
+                      <span className="text-xs text-muted-foreground">Likes</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">{stats.totalLikes}</p>
+                  </div>
+                  <div className="bg-card border border-border/40 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Crown className="w-4 h-4 text-yellow-500" />
+                      <span className="text-xs text-muted-foreground">VIP</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">{stats.vipContent}</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -765,98 +841,170 @@ export default function ArtistDashboard() {
                     Salvar Perfil
                   </button>
                 </div>
+
+                {/* Personalização */}
+                <div className="bg-card border border-border/40 rounded-xl p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                    <Palette className="w-5 h-5 text-primary" />
+                    Personalização
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                        <Type className="w-4 h-4" /> Fonte
+                      </label>
+                      <select
+                        value={editCustom.fonte}
+                        onChange={(e) => setEditCustom({ ...editCustom, fonte: e.target.value })}
+                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                      >
+                        {FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                      </select>
+                      <p className="text-xs text-muted-foreground mt-1" style={{ fontFamily: editCustom.fonte }}>Preview: {editCustom.fonte}</p>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                        <Palette className="w-4 h-4" /> Cor do Perfil
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={editCustom.cor}
+                          onChange={(e) => setEditCustom({ ...editCustom, cor: e.target.value })}
+                          className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
+                        />
+                        <input
+                          type="text"
+                          value={editCustom.cor}
+                          onChange={(e) => setEditCustom({ ...editCustom, cor: e.target.value })}
+                          className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                        <Image className="w-4 h-4" /> Layout
+                      </label>
+                      <select
+                        value={editCustom.layout}
+                        onChange={(e) => setEditCustom({ ...editCustom, layout: e.target.value })}
+                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                      >
+                        {LAYOUTS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                        <Music className="w-4 h-4" /> Tipo de Player
+                      </label>
+                      <select
+                        value={editCustom.player}
+                        onChange={(e) => setEditCustom({ ...editCustom, player: e.target.value })}
+                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                      >
+                        {PLAYERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="border border-border/30 rounded-xl p-4 bg-background/30">
+                    <p className="text-xs text-muted-foreground mb-2">Preview do perfil</p>
+                    <div
+                      className="rounded-xl p-6 transition-all"
+                      style={{
+                        fontFamily: editCustom.fonte,
+                        color: editCustom.cor,
+                        background: editCustom.layout === "escuro" ? "#1a1a2e" : editCustom.layout === "gradiente" ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : editCustom.layout === "minimalista" ? "#fafafa" : "#ffffff",
+                      }}
+                    >
+                      <p className="text-lg font-bold" style={{ color: editCustom.cor }}>{artist?.name || "Nome do Artista"}</p>
+                      <p className="text-sm opacity-80" style={{ color: editCustom.cor }}>{artist?.profissao || "Cantor"} · {artist?.cidade || "Cidade"}</p>
+                      <p className="text-xs opacity-60 mt-2" style={{ color: editCustom.cor }}>Player: {editCustom.player}</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSaveCustom}
+                    disabled={savingCustom}
+                    className="flex items-center gap-2 px-6 py-2 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {savingCustom ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Salvar Personalização
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* Personalização */}
-            {activeTab === "personalizacao" && (
-              <div className="bg-card border border-border/40 rounded-xl p-6 space-y-6">
-                <h3 className="text-lg font-bold text-foreground">Personalização do Perfil</h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                      <Type className="w-4 h-4" /> Fonte
-                    </label>
-                    <select
-                      value={editCustom.fonte}
-                      onChange={(e) => setEditCustom({ ...editCustom, fonte: e.target.value })}
-                      className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
-                    >
-                      {FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                    </select>
-                    <p className="text-xs text-muted-foreground mt-1" style={{ fontFamily: editCustom.fonte }}>Preview: {editCustom.fonte}</p>
-                  </div>
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                      <Palette className="w-4 h-4" /> Cor do Perfil
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={editCustom.cor}
-                        onChange={(e) => setEditCustom({ ...editCustom, cor: e.target.value })}
-                        className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
-                      />
+            {/* Personalização (merged into profile) - kept for logic */}
+            {activeTab === "personalizacao" && null}
+
+            {/* VIP */}
+            {activeTab === "vip" && (
+              <div className="space-y-6">
+                <div className="bg-card border border-border/40 rounded-xl p-6">
+                  <h3 className="text-lg font-bold text-foreground flex items-center gap-2 mb-4">
+                    <Crown className="w-5 h-5 text-yellow-500" />
+                    Senha de Acesso VIP
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Defina uma senha para que seus fãs acessem conteúdo exclusivo no seu perfil.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1">
                       <input
                         type="text"
-                        value={editCustom.cor}
-                        onChange={(e) => setEditCustom({ ...editCustom, cor: e.target.value })}
-                        className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                        value={vipSenha}
+                        onChange={(e) => setVipSenha(e.target.value)}
+                        placeholder="Ex: fã2024"
+                        className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-foreground"
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                      <Image className="w-4 h-4" /> Layout
-                    </label>
-                    <select
-                      value={editCustom.layout}
-                      onChange={(e) => setEditCustom({ ...editCustom, layout: e.target.value })}
-                      className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                    <button
+                      onClick={handleSaveVipSenha}
+                      disabled={savingVipSenha}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
-                      {LAYOUTS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                    </select>
+                      {savingVipSenha ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      Salvar
+                    </button>
                   </div>
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                      <Music className="w-4 h-4" /> Tipo de Player
-                    </label>
-                    <select
-                      value={editCustom.player}
-                      onChange={(e) => setEditCustom({ ...editCustom, player: e.target.value })}
-                      className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
-                    >
-                      {PLAYERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                    </select>
-                  </div>
+                  {vipSenha && (
+                    <p className="text-xs text-green-400 mt-2 flex items-center gap-1">
+                      <CheckCheck className="w-3 h-3" /> Senha ativa — fãs precisam digitá-la para acessar conteúdo VIP
+                    </p>
+                  )}
                 </div>
 
-                {/* Preview */}
-                <div className="border border-border/30 rounded-xl p-4 bg-background/30">
-                  <p className="text-xs text-muted-foreground mb-2">Preview do perfil</p>
-                  <div
-                    className="rounded-xl p-6 transition-all"
-                    style={{
-                      fontFamily: editCustom.fonte,
-                      color: editCustom.cor,
-                      background: editCustom.layout === "escuro" ? "#1a1a2e" : editCustom.layout === "gradiente" ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : editCustom.layout === "minimalista" ? "#fafafa" : "#ffffff",
-                    }}
-                  >
-                    <p className="text-lg font-bold" style={{ color: editCustom.cor }}>{artist?.name || "Nome do Artista"}</p>
-                    <p className="text-sm opacity-80" style={{ color: editCustom.cor }}>{artist?.profissao || "Cantor"} · {artist?.cidade || "Cidade"}</p>
-                    <p className="text-xs opacity-60 mt-2" style={{ color: editCustom.cor }}>Player: {editCustom.player}</p>
+                <div className="bg-card border border-border/40 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      <Music className="w-5 h-5 text-primary" />
+                      Músicas VIP
+                    </h3>
+                    <span className="text-sm text-muted-foreground">{songs.filter(s => s.isVip).length} música{songs.filter(s => s.isVip).length !== 1 ? "s" : ""}</span>
                   </div>
-                </div>
 
-                <button
-                  onClick={handleSaveCustom}
-                  disabled={savingCustom}
-                  className="flex items-center gap-2 px-6 py-2 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
-                >
-                  {savingCustom ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Salvar Personalização
-                </button>
+                  {songs.filter(s => s.isVip).length === 0 ? (
+                    <div className="text-center py-8">
+                      <Crown className="w-10 h-10 text-yellow-500/30 mx-auto mb-3" />
+                      <p className="text-muted-foreground text-sm">Nenhuma música VIP</p>
+                      <button onClick={() => setActiveTab("songs")} className="mt-2 text-sm text-primary hover:underline">Marcar música como VIP</button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {songs.filter(s => s.isVip).map((song) => (
+                        <div key={song.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-xl border border-yellow-500/10">
+                          <img src={song.capaUrl || "/images/default-cover.png"} alt={song.titulo} className="w-10 h-10 rounded-lg object-cover" />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-foreground truncate text-sm">{song.titulo}</h4>
+                            <p className="text-xs text-muted-foreground">{song.genero}</p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-500/20 text-yellow-400">VIP</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

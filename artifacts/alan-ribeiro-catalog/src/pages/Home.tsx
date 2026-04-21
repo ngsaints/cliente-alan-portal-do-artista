@@ -10,10 +10,18 @@ import { InterestModal } from "@/components/InterestModal";
 import { Disc3, TrendingUp, Star, Sparkles, Search } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useGenres } from "@/hooks/useGenres";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function Home() {
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const { genres } = useGenres();
+  useSEO({
+    title: "Portal do Artista - Catálogo de Músicas",
+    description: "Descubra artistas e músicas no Portal do Artista. Escute, curta e conecte-se com talentos da música brasileira.",
+    keywords: "música, catálogo, artistas, músicas brasileiras, portal do artista",
+    ogUrl: "https://portaldoartista.com",
+    canonical: "https://portaldoartista.com",
+  });
   const [interestModalOpen, setInterestModalOpen] = useState(false);
   const [selectedSong, setSelectedSong] = useState<{ id: number; titulo: string; artistaId?: number | null } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");

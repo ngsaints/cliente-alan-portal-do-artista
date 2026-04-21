@@ -5,11 +5,17 @@ import { Star, Lock, ArrowLeft, Music, Youtube } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useListSongs } from "@workspace/api-client-react";
 import { Navbar } from "@/components/Navbar";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function ArtistVip() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { playSong, currentSong, isPlaying } = usePlayer();
+
+  useSEO({
+    title: "Conteúdo VIP - Portal do Artista",
+    description: "Conteúdo exclusivo VIP do artista no Portal do Artista.",
+  });
   
   const [senha, setSenha] = useState("");
   const [unlocked, setUnlocked] = useState(false);

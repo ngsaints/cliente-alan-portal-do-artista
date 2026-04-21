@@ -85,7 +85,7 @@ interface Setting {
 }
 
 type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings";
-type SettingsCategory = "mercadopago" | "r2" | "portal";
+type SettingsCategory = "mercadopago" | "r2" | "portal" | "demo";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
@@ -1521,6 +1521,7 @@ function SettingsTab() {
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>("mercadopago");
 
   const categories: { id: SettingsCategory; label: string; icon: React.ElementType; color: string }[] = [
+    { id: "demo", label: "Página Demo", icon: Eye, color: "text-yellow-400" },
     { id: "mercadopago", label: "MercadoPago", icon: CreditCard, color: "text-emerald-400" },
     { id: "r2", label: "Cloudflare R2", icon: Cloud, color: "text-sky-400" },
     { id: "portal", label: "Portal", icon: Globe, color: "text-purple-400" },

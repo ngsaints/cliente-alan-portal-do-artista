@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import { db, settingsTable } from "@workspace/db";
+import { db, settingsTable, appSettingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import path from "path";
@@ -35,6 +35,24 @@ router.get("/settings", async (_req, res): Promise<void> => {
     artistName,
     artistPhotoUrl: artistPhotoUrl || null,
   });
+});
+
+router.get("/demo-settings", async (_req, res): Promise<void> => {
+  try {
+    const rows = await db
+      .select({ key: appSettingsTable.key, value: appSettingsTable.value })
+      .from(appSettingsTable)
+      .where(eq(appSettingsTable.category, "demo"));
+
+    const settings: Record<string, string> = {};
+    for (const row of rows) {
+      if (row.value) settings[row.key] = row.value;
+    }
+    res.json(settings);
+  } catch (error) {
+    console.error("Error fetching demo settings:", error);
+    res.json({});
+  }
 });
 
 router.post("/vip-verify", async (req, res): Promise<void> => {

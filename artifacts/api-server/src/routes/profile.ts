@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, artistsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+import sharp from "sharp";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -47,14 +48,16 @@ router.put("/artists/:id/profile", upload.single("capa"), async (req, res): Prom
     // Upload cover if provided
     if (req.file) {
       try {
+        const jpgBuffer = await sharp(req.file.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+        const jpgName = req.file.originalname.replace(/\.\w+$/, ".jpg");
         if (r2Enabled) {
-          const photoKey = generateR2Key("covers", req.file.originalname);
-          capaUrl = await uploadToR2(req.file.buffer, photoKey, req.file.mimetype);
+          const photoKey = generateR2Key("covers", jpgName);
+          capaUrl = await uploadToR2(jpgBuffer, photoKey, "image/jpeg");
         } else {
           const dir = path.join(process.cwd(), "uploads/covers");
           fs.mkdirSync(dir, { recursive: true });
-          const filename = `${Date.now()}_${req.file.originalname}`;
-          fs.writeFileSync(path.join(dir, filename), req.file.buffer);
+          const filename = `${Date.now()}_${jpgName}`;
+          fs.writeFileSync(path.join(dir, filename), jpgBuffer);
           capaUrl = `/api/uploads/covers/${filename}`;
         }
       } catch (error) {

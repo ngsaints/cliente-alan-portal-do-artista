@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { Music, MapPin, Instagram, Users, Star, ExternalLink, Loader2 } from "lucide-react";
 import { useGenres } from "@/hooks/useGenres";
+import { useSEO } from "@/hooks/useSEO";
 
 interface ArtistCard {
   id: number;
@@ -25,6 +26,14 @@ export default function Artists() {
   const { genres } = useGenres();
   const GENEROS = ["Todos", ...genres];
   const [filterCidade, setFilterCidade] = useState("Todas");
+
+  useSEO({
+    title: "Artistas - Portal do Artista",
+    description: "Conheça os artistas do Portal do Artista. Cantores, compositores e bandas independentes de todo o Brasil.",
+    keywords: "artistas, cantores, compositores, bandas, música independente",
+    ogUrl: "https://portaldoartista.com/artistas",
+    canonical: "https://portaldoartista.com/artistas",
+  });
 
   useEffect(() => {
     fetch("/api/artists/public")
