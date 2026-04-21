@@ -73,7 +73,7 @@ export default function ArtistProfile() {
     genre: selectedGenre || undefined,
   });
 
-  const artistSongs = (songs || []).filter((s) => !s.isVip && (s as any).artistaId == numericArtistId);
+  const artistSongs = (songs || []).filter((s) => !s.isVip && !s.isPrivate && (s as any).artistaId == numericArtistId);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);

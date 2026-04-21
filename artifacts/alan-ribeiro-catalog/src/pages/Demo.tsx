@@ -88,7 +88,7 @@ export default function Demo() {
     genre: selectedGenre || undefined,
   });
 
-  const artistSongs = (songs || []).filter((s) => !s.isVip);
+  const artistSongs = (songs || []).filter((s) => !s.isVip && !s.isPrivate);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -365,15 +365,7 @@ export default function Demo() {
         {!isLoading && artistSongs.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {artistSongs.map((song, index) => (
-              <div key={song.id} className="relative">
-                <MusicCard song={song} index={index} />
-                <button
-                  onClick={() => handleOpenInterest(song.titulo)}
-                  className="absolute bottom-3 right-3 z-10 px-3 py-1.5 rounded-lg bg-primary/90 text-primary-foreground text-xs font-bold hover:bg-primary transition-colors shadow-lg"
-                >
-                  Tenho Interesse
-                </button>
-              </div>
+              <MusicCard key={song.id} song={song} index={index} />
             ))}
           </div>
         )}

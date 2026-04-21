@@ -174,7 +174,7 @@
 - Se marcado: campos Valor X (Uso Livre) e Valor Y (Uso Exclusivo)
 
 ### Hero da Home
-- Headline foca em "artistas independentes"
+- Headline foca em "cantores e compositores"
 - CTAs duplos: "Criar Meu Portal" + "Ver Catálogo"
 - Search abaixo dos CTAs
 

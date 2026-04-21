@@ -16,6 +16,7 @@ import { CTACarouselBanner } from "@/components/CTACarouselBanner";
 export default function Home() {
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const { genres } = useGenres();
+  const [heroSettings, setHeroSettings] = useState<{ title: string | null; subtitle: string | null; cta: string | null }>({ title: null, subtitle: null, cta: null });
   useSEO({
     title: "Portal do Artista - Catálogo de Músicas",
     description: "Descubra artistas e músicas no Portal do Artista. Escute, curta e conecte-se com talentos da música brasileira.",
@@ -23,6 +24,17 @@ export default function Home() {
     ogUrl: "https://portaldoartista.com",
     canonical: "https://portaldoartista.com",
   });
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.heroTitle || data.heroSubtitle || data.heroCTA) {
+          setHeroSettings({ title: data.heroTitle, subtitle: data.heroSubtitle, cta: data.heroCTA });
+        }
+      })
+      .catch(console.error);
+  }, []);
   const [interestModalOpen, setInterestModalOpen] = useState(false);
   const [selectedSong, setSelectedSong] = useState<{ id: number; titulo: string; artistaId?: number | null } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,7 +68,7 @@ export default function Home() {
 
   const [interests, setInterests] = useState<Interest[]>([]);
 
-  const filteredSongs = (songs || []).filter((s) => !(s as any).isVip);
+  const filteredSongs = (songs || []).filter((s) => !(s as any).isVip && !(s as any).isPrivate);
   const highlights = filteredSongs.filter((s) => (s as any).destaque).slice(0, 5);
   const trends = filteredSongs.slice(-3).reverse();
   const allSongs = filteredSongs;
@@ -95,14 +107,14 @@ export default function Home() {
             </div>
 
             <h1 className="text-4xl md:text-6xl font-extrabold text-foreground mb-4 leading-tight">
-              A plataforma completa para{" "}
+              {heroSettings.title || "A plataforma completa para"}{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-yellow-200">
-                artistas independentes
+                {heroSettings.subtitle || "cantores e compositores"}
               </span>
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-              Cadastre suas músicas, monte seu portfólio musical e seja encontrado por contratantes e fãs em todo o Brasil.
+              {heroSettings.cta || "Cadastre suas músicas, monte seu portfólio musical e seja encontrado por contratantes e fãs em todo o Brasil."}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">

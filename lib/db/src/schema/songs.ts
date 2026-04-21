@@ -19,6 +19,7 @@ export const songsTable = pgTable("songs", {
   tipoMidia: text("tipo_midia").notNull().default("audio"), // 'audio' ou 'video'
   isVip: boolean("is_vip").notNull().default(false),
   vipCode: text("vip_code"), // código de acesso para conteúdo VIP
+  isPrivate: boolean("is_private").notNull().default(false), // música privada (só o artista vê)
   destaque: boolean("destaque").notNull().default(false), // appears on home highlights
   likes: numeric("likes").notNull().default("0"), // contador de curtidas
   plays: numeric("plays").notNull().default("0"), // contador de reproduções

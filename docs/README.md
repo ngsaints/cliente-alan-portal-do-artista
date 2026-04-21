@@ -1,12 +1,12 @@
 # Portal do Artista — Documentação
 
-> Plataforma de descoberta e divulgação musical para artistas independentes.
+> Plataforma de descoberta e divulgação musical para cantores e compositores.
 
 ---
 
 ## Visao Geral
 
-O **Portal do Artista** e uma plataforma web que conecta artistas independentes a ouvintes, contratantes e fas. A plataforma funciona como um catalogo musical onde:
+O **Portal do Artista** e uma plataforma web que conecta cantores e compositores a ouvintes, contratantes e fas. A plataforma funciona como um catalogo musical onde:
 
 - **Ouvintes** descobrem musicas, exploram artistas e ouvem faixas diretamente na plataforma
 - **Artistas** criam perfis personalizados com musicas, fotos, banners e links sociais

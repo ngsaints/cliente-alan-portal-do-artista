@@ -88,7 +88,7 @@ router.post(
         return;
       }
 
-      const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip } = req.body;
+      const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip, isPrivate } = req.body;
 
       if (!titulo || !descricao || !genero) {
         res.status(400).json({ error: "Campos obrigatórios faltando" });
@@ -105,7 +105,7 @@ router.post(
       const artist = artists[0];
       if (parseInt(artist.musicaCount) >= parseInt(artist.limiteMusicas)) {
         res.status(403).json({ 
-          error: "Limite de músicas atingido para este plano",
+          error: "Você atingiu o limite do seu Plano, mude para o plano básico e leve seu catálogo pra outro nível",
           limite: artist.limiteMusicas,
           atual: artist.musicaCount,
         });
@@ -145,6 +145,7 @@ router.post(
       }
 
       const vipFlag = isVip === "true" || isVip === "1";
+      const privateFlag = isPrivate === "true" || isPrivate === "1";
 
       const [song] = await db
         .insert(songsTable)
@@ -161,6 +162,7 @@ router.post(
           capaPath,
           mp3Path,
           isVip: vipFlag,
+          isPrivate: privateFlag,
         })
         .returning();
 
@@ -183,6 +185,7 @@ router.post(
         precoX: song.precoX,
         precoY: song.precoY,
         isVip: song.isVip,
+        isPrivate: song.isPrivate,
         capaUrl: song.capaPath || null,
         mp3Url: song.mp3Path || null,
         createdAt: song.createdAt,
@@ -216,7 +219,7 @@ router.put(
       return;
     }
 
-    const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip, tipoMidia, youtubeUrl, vipCode } = req.body;
+    const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip, tipoMidia, youtubeUrl, vipCode, isPrivate } = req.body;
 
     try {
       const files = req.files as Record<string, Express.Multer.File[]>;
@@ -239,6 +242,7 @@ router.put(
       }
 
       const vipFlag = isVip === "true" || isVip === true;
+      const privateFlag = isPrivate === "true" || isPrivate === true;
 
       const [updated] = await db
         .update(songsTable)
@@ -255,6 +259,7 @@ router.put(
           youtubeUrl:   youtubeUrl !== undefined ? (youtubeUrl || null) : undefined,
           isVip:        isVip      !== undefined ? vipFlag           : undefined,
           vipCode:      vipCode    !== undefined ? (vipCode    || null) : undefined,
+          isPrivate:    isPrivate  !== undefined ? privateFlag        : undefined,
           ...(capaPath    ? { capaPath }                             : {}),
         })
         .where(eq(songsTable.id, parseInt(songId)))
@@ -276,6 +281,7 @@ router.put(
         precoX: updated.precoX,
         precoY: updated.precoY,
         isVip: updated.isVip,
+        isPrivate: updated.isPrivate,
         capaUrl: updated.capaPath || null,
         mp3Url: updated.mp3Path || null,
         createdAt: updated.createdAt,

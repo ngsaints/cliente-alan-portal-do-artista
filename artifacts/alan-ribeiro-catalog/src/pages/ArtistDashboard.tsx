@@ -96,8 +96,9 @@ export default function ArtistDashboard() {
   const [newSong, setNewSong] = useState({
     titulo: "", descricao: "", genero: "Sertanejo", subgenero: "",
     compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false",
-    isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "",
+    isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "", isPrivate: "false",
   });
+  const [musicTermsAccepted, setMusicTermsAccepted] = useState(false);
   const [capaFile, setCapaFile] = useState<File | null>(null);
   const [mp3File, setMp3File] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -349,9 +350,10 @@ export default function ArtistDashboard() {
       if (res.ok) {
         setShowAddForm(false);
         setEditingSong(null);
-        setNewSong({ titulo: "", descricao: "", genero: "Sertanejo", subgenero: "", compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false", isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "" });
+        setNewSong({ titulo: "", descricao: "", genero: "Sertanejo", subgenero: "", compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false", isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "", isPrivate: "false" });
         setCapaFile(null);
         setMp3File(null);
+        setMusicTermsAccepted(false);
         loadData();
       } else {
         const data = await res.json();
@@ -681,6 +683,11 @@ export default function ArtistDashboard() {
                         </div>
                       )}
 
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="isPrivate" checked={newSong.isPrivate === "true"} onChange={e => setNewSong({...newSong, isPrivate: e.target.checked ? "true" : "false"})} className="accent-primary" />
+                        <label htmlFor="isPrivate" className="text-sm text-muted-foreground">Música Privada</label>
+                      </div>
+
                       <div className="sm:col-span-2 border-t border-border/50 pt-4">
                         <label className="flex items-center gap-2 cursor-pointer mb-3">
                           <input type="checkbox" id="hasPrice" checked={newSong.hasPrice === "true"} onChange={e => setNewSong({...newSong, hasPrice: e.target.checked ? "true" : "false"})} className="accent-primary" />
@@ -709,9 +716,15 @@ export default function ArtistDashboard() {
                       <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground">
                         Cancelar
                       </button>
-                      <button type="submit" disabled={uploading} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/90 disabled:opacity-50">
+                      <button type="submit" disabled={uploading || !musicTermsAccepted} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/90 disabled:opacity-50">
                         {uploading ? "Enviando..." : "Adicionar"}
                       </button>
+                    </div>
+                    <div className="flex items-start gap-2 p-3 bg-muted/30 rounded-lg border border-border/50">
+                      <input type="checkbox" id="musicTerms" checked={musicTermsAccepted} onChange={e => setMusicTermsAccepted(e.target.checked)} className="accent-primary mt-0.5" />
+                      <label htmlFor="musicTerms" className="text-xs text-muted-foreground leading-relaxed">
+                        Ao subir esta música, você declara que possui todos os direitos autorais e autorizações necessários para exibir e reproduzir este conteúdo na plataforma. Você concorda que a música pode ser utilizada para fins de demonstração e promoção dentro do Portal do Artista.
+                      </label>
                     </div>
                   </form>
                 )}
@@ -737,6 +750,7 @@ export default function ArtistDashboard() {
                         </div>
                         <div className="flex items-center gap-2">
                           {song.isVip && <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400">VIP</span>}
+                          {song.isPrivate && <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-400">Privada</span>}
                           {song.tipoMidia === "video" && <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400">Vídeo</span>}
                           <button
                             onClick={() => { setEditingSong(song); setShowAddForm(true); }}

@@ -33,11 +33,17 @@ router.get("/settings", async (_req, res): Promise<void> => {
   const artistPhotoUrl = await getSetting("artist_photo_url");
   const artistsSectionTitle = await getSetting("artists_section_title");
   const artistsSectionSubtitle = await getSetting("artists_section_subtitle");
+  const heroTitle = await getSetting("hero_title");
+  const heroSubtitle = await getSetting("hero_subtitle");
+  const heroCTA = await getSetting("hero_cta");
   res.json({
     artistName,
     artistPhotoUrl: artistPhotoUrl || null,
     artistsSectionTitle: artistsSectionTitle || "Nossos Artistas",
-    artistsSectionSubtitle: artistsSectionSubtitle || "Descubra e acompanhe artistas independentes de todo o Brasil",
+    artistsSectionSubtitle: artistsSectionSubtitle || "Descubra e acompanhe cantores e compositores de todo o Brasil",
+    heroTitle: heroTitle || null,
+    heroSubtitle: heroSubtitle || null,
+    heroCTA: heroCTA || null,
   });
 });
 
@@ -86,12 +92,15 @@ router.put(
       return;
     }
 
-    const { artistName, vipPassword, artistsSectionTitle, artistsSectionSubtitle } = req.body;
+    const { artistName, vipPassword, artistsSectionTitle, artistsSectionSubtitle, heroTitle, heroSubtitle, heroCTA } = req.body;
 
     if (artistName) await setSetting("artist_name", artistName);
     if (vipPassword) await setSetting("vip_password", vipPassword);
     if (artistsSectionTitle) await setSetting("artists_section_title", artistsSectionTitle);
     if (artistsSectionSubtitle) await setSetting("artists_section_subtitle", artistsSectionSubtitle);
+    if (heroTitle) await setSetting("hero_title", heroTitle);
+    if (heroSubtitle) await setSetting("hero_subtitle", heroSubtitle);
+    if (heroCTA) await setSetting("hero_cta", heroCTA);
 
     if (req.file) {
       try {

@@ -44,7 +44,7 @@ export default function Artists() {
   const [cityPopoverOpen, setCityPopoverOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
   const [sectionTitle, setSectionTitle] = useState("Nossos Artistas");
-  const [sectionSubtitle, setSectionSubtitle] = useState("Descubra e acompanhe artistas independentes de todo o Brasil");
+  const [sectionSubtitle, setSectionSubtitle] = useState("Descubra e acompanhe cantores e compositores de todo o Brasil");
 
   useSEO({
     title: "Artistas - Portal do Artista",

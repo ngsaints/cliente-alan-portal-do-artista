@@ -4,5 +4,5 @@
 -- Insert default portal settings
 INSERT INTO settings (key, value) VALUES
   ('artists_section_title', 'Nossos Artistas'),
-  ('artists_section_subtitle', 'Descubra e acompanhe artistas independentes de todo o Brasil')
+  ('artists_section_subtitle', 'Descubra e acompanhe cantores e compositores de todo o Brasil')
 ON CONFLICT (key) DO NOTHING;
