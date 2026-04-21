@@ -335,7 +335,7 @@ export default function ArtistDashboard() {
     if (mp3File) formData.append("mp3", mp3File);
 
     try {
-      const res = await fetch("/api/songs", {
+      const res = await fetch(`/api/artist/${artist?.id}/songs`, {
         method: "POST",
         credentials: "include",
         body: formData,

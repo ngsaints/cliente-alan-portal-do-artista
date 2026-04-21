@@ -14,6 +14,14 @@ const upload = multer({
 
 const router: IRouter = Router();
 
+declare module "express-session" {
+  interface SessionData {
+    artistId?: number;
+    artistEmail?: string;
+    artistName?: string;
+  }
+}
+
 const useR2 = !!(process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY);
 
 // Get songs for a specific artist
@@ -65,7 +73,18 @@ router.post(
   ]),
   async (req, res): Promise<void> => {
     try {
+      const sessionArtistId = req.session.artistId;
+      if (!sessionArtistId) {
+        res.status(401).json({ error: "Não autorizado" });
+        return;
+      }
+
       const { artistId } = req.params;
+      if (sessionArtistId !== parseInt(artistId)) {
+        res.status(403).json({ error: "Você só pode adicionar músicas no seu próprio perfil" });
+        return;
+      }
+
       const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip } = req.body;
 
       if (!titulo || !descricao || !genero) {
