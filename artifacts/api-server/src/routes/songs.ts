@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import { db, songsTable } from "@workspace/db";
+import { db, songsTable, songLikesTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { ListSongsResponse, DeleteSongParams } from "@workspace/api-zod";
 import { uploadToR2, deleteFromR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
@@ -289,11 +289,31 @@ router.delete("/songs/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-// POST /songs/:id/like - Like a song
+// POST /songs/:id/like - Like a song (1 per IP per song)
 router.post("/songs/:id/like", async (req, res): Promise<void> => {
   try {
     const { id } = req.params;
-    
+    const ip = (req.headers["x-forwarded-for"] as string || req.socket.remoteAddress || "unknown").split(",")[0].trim();
+
+    const existing = await db
+      .select()
+      .from(songLikesTable)
+      .where(eq(songLikesTable.songId, id))
+      .where(eq(songLikesTable.ipAddress, ip))
+      .limit(1);
+
+    if (existing.length > 0) {
+      res.status(409).json({ error: "Você já curtiu esta música", likes: "0" });
+      return;
+    }
+
+    try {
+      await db.insert(songLikesTable).values({ songId: id, ipAddress: ip });
+    } catch {
+      res.status(409).json({ error: "Você já curtiu esta música", likes: "0" });
+      return;
+    }
+
     const [updated] = await db
       .update(songsTable)
       .set({

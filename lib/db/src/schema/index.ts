@@ -8,3 +8,4 @@ export * from "./genres";
 export * from "./passwordResets";
 export * from "./ctaBanners";
 export * from "./cities";
+export * from "./songLikes";

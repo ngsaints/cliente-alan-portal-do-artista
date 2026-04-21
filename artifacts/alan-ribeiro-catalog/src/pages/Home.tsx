@@ -66,15 +66,18 @@ export default function Home() {
     setInterestModalOpen(true);
   };
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const song = (e as CustomEvent).detail.song;
+      handleOpenInterest({ id: song.id, titulo: song.titulo, artistaId: song.artistaId });
+    };
+    document.addEventListener("openInterest", handler);
+    return () => document.removeEventListener("openInterest", handler);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/80 pb-32">
       <Navbar />
-
-      <NotificationBell
-        interests={interests}
-        onMarkRead={() => {}}
-        onDelete={(id) => setInterests((prev) => prev.filter((i) => i.id !== id))}
-      />
 
       {/* Hero */}
       <section className="pt-20 pb-0 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -234,12 +237,6 @@ export default function Home() {
               {trends.map((song, index) => (
                 <div key={`trend-${song.id}`} className="relative">
                   <MusicCard song={song} index={index} />
-                  <button
-                    onClick={() => handleOpenInterest({ id: song.id, titulo: song.titulo, artistaId: (song as any).artistaId })}
-                    className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-lg bg-primary/90 text-primary-foreground text-xs font-bold hover:bg-primary transition-colors shadow-lg"
-                  >
-                    Tenho Interesse
-                  </button>
                 </div>
               ))}
             </div>
@@ -286,15 +283,7 @@ export default function Home() {
           {!isLoading && !error && allSongs.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {allSongs.map((song, index) => (
-                <div key={`all-${song.id}`} className="relative">
-                  <MusicCard song={song} index={index} />
-                  <button
-                    onClick={() => handleOpenInterest({ id: song.id, titulo: song.titulo, artistaId: (song as any).artistaId })}
-                    className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-lg bg-primary/90 text-primary-foreground text-xs font-bold hover:bg-primary transition-colors shadow-lg"
-                  >
-                    Tenho Interesse
-                  </button>
-                </div>
+                <MusicCard key={`all-${song.id}`} song={song} index={index} />
               ))}
             </div>
           )}

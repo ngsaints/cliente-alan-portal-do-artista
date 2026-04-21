@@ -191,24 +191,35 @@ export function MusicCard({ song, index }: MusicCardProps) {
 
       {/* ── Corpo do card ─────────────────────────────────────── */}
       <div className="p-5 flex-1 flex flex-col">
-        <h3 className="text-xl font-bold text-primary mb-1 line-clamp-1">{song.titulo}</h3>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h3 className="text-xl font-bold text-primary line-clamp-1 flex-1">{song.titulo}</h3>
+          <button
+            onClick={() => {
+              const event = new CustomEvent("openInterest", { detail: { song }, bubbles: true });
+              document.dispatchEvent(event);
+            }}
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-primary/80 text-primary-foreground text-xs font-bold hover:bg-primary transition-colors"
+          >
+            Tenho Interesse
+          </button>
+        </div>
         {song.compositor && (
           <p className="text-xs text-muted-foreground mb-2">Compositor: {song.compositor}</p>
         )}
         <p className="text-sm text-muted-foreground line-clamp-2 flex-1 mb-4">{song.descricao}</p>
 
         {(precoX || precoY) ? (
-          <div className="flex gap-3 mb-4 text-xs">
+          <div className="flex flex-col sm:flex-row gap-2 mb-4 text-xs">
             {precoX && (
               <div className="flex-1 bg-secondary/20 border border-border/50 rounded-xl px-3 py-2 text-center">
                 <div className="text-muted-foreground mb-0.5">Valor X · Livre</div>
-                <div className="text-primary font-bold">{precoX}</div>
+                <div className="text-primary font-bold text-sm">{precoX}</div>
               </div>
             )}
             {precoY && (
               <div className="flex-1 bg-secondary/20 border border-border/50 rounded-xl px-3 py-2 text-center">
                 <div className="text-muted-foreground mb-0.5">Valor Y · Exclusivo</div>
-                <div className="text-primary font-bold">{precoY}</div>
+                <div className="text-primary font-bold text-sm">{precoY}</div>
               </div>
             )}
           </div>

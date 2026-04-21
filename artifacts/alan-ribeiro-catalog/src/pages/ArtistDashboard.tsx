@@ -8,6 +8,7 @@ import {
   ExternalLink, Heart, Pencil
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useGenres } from "@/hooks/useGenres";
 
 interface ArtistStats {
@@ -419,6 +420,12 @@ export default function ArtistDashboard() {
               </button>
             </div>
           </div>
+
+          <NotificationBell
+            interests={[]}
+            onMarkRead={() => {}}
+            onDelete={() => {}}
+          />
 
           {/* Tabs */}
           <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
