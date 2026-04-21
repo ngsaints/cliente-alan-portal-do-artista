@@ -197,7 +197,7 @@ export function MusicCard({ song, index }: MusicCardProps) {
         )}
         <p className="text-sm text-muted-foreground line-clamp-2 flex-1 mb-4">{song.descricao}</p>
 
-        {(precoX || precoY) && (
+        {(precoX || precoY) ? (
           <div className="flex gap-3 mb-4 text-xs">
             {precoX && (
               <div className="flex-1 bg-secondary/20 border border-border/50 rounded-xl px-3 py-2 text-center">
@@ -212,7 +212,13 @@ export function MusicCard({ song, index }: MusicCardProps) {
               </div>
             )}
           </div>
-        )}
+        ) : song.compositor ? (
+          <div className="mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 text-xs font-bold">
+              A combinar
+            </span>
+          </div>
+        ) : null}
 
         {/* ── Botão de ação ── */}
         {isVideo ? (

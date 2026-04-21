@@ -93,7 +93,7 @@ export default function ArtistDashboard() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSong, setNewSong] = useState({
     titulo: "", descricao: "", genero: "Sertanejo", subgenero: "",
-    compositor: "", status: "Disponível", precoX: "", precoY: "",
+    compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false",
     isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "",
   });
   const [capaFile, setCapaFile] = useState<File | null>(null);
@@ -342,7 +342,7 @@ export default function ArtistDashboard() {
       });
       if (res.ok) {
         setShowAddForm(false);
-        setNewSong({ titulo: "", descricao: "", genero: "Sertanejo", subgenero: "", compositor: "", status: "Disponível", precoX: "", precoY: "", isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "" });
+        setNewSong({ titulo: "", descricao: "", genero: "Sertanejo", subgenero: "", compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false", isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "" });
         setCapaFile(null);
         setMp3File(null);
         loadData();
@@ -659,6 +659,30 @@ export default function ArtistDashboard() {
                             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground" />
                         </div>
                       )}
+
+                      <div className="sm:col-span-2 border-t border-border/50 pt-4">
+                        <label className="flex items-center gap-2 cursor-pointer mb-3">
+                          <input type="checkbox" id="hasPrice" checked={newSong.hasPrice === "true"} onChange={e => setNewSong({...newSong, hasPrice: e.target.checked ? "true" : "false"})} className="accent-primary" />
+                          <span className="text-sm font-medium text-foreground">Definir valor para esta música (compositores)</span>
+                        </label>
+                        {newSong.hasPrice === "true" && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">Valor X (Uso Livre)</label>
+                              <input value={newSong.precoX} onChange={e => setNewSong({...newSong, precoX: e.target.value})} placeholder="Ex: 50,00"
+                                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">Valor Y (Uso Exclusivo)</label>
+                              <input value={newSong.precoY} onChange={e => setNewSong({...newSong, precoY: e.target.value})} placeholder="Ex: 500,00"
+                                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground" />
+                            </div>
+                          </div>
+                        )}
+                        {newSong.hasPrice === "false" && (
+                          <p className="text-xs text-muted-foreground">Música será marcada como "A combinar" no perfil público.</p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex gap-2 justify-end">
                       <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground">
