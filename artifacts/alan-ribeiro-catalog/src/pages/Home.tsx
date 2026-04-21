@@ -236,7 +236,7 @@ export default function Home() {
                   <MusicCard song={song} index={index} />
                   <button
                     onClick={() => handleOpenInterest({ id: song.id, titulo: song.titulo, artistaId: (song as any).artistaId })}
-                    className="absolute bottom-3 right-3 z-10 px-3 py-1.5 rounded-lg bg-primary/90 text-primary-foreground text-xs font-bold hover:bg-primary transition-colors shadow-lg"
+                    className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-lg bg-primary/90 text-primary-foreground text-xs font-bold hover:bg-primary transition-colors shadow-lg"
                   >
                     Tenho Interesse
                   </button>
@@ -290,7 +290,7 @@ export default function Home() {
                   <MusicCard song={song} index={index} />
                   <button
                     onClick={() => handleOpenInterest({ id: song.id, titulo: song.titulo, artistaId: (song as any).artistaId })}
-                    className="absolute bottom-3 right-3 z-10 px-3 py-1.5 rounded-lg bg-primary/90 text-primary-foreground text-xs font-bold hover:bg-primary transition-colors shadow-lg"
+                    className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-lg bg-primary/90 text-primary-foreground text-xs font-bold hover:bg-primary transition-colors shadow-lg"
                   >
                     Tenho Interesse
                   </button>

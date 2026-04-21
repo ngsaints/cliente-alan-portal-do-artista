@@ -61,11 +61,11 @@ Portal-do-Artista/
 │   │       └── lib/            # Utils (cn helper)
 │   └── api-server/             # Backend Express 5 + TypeScript
 │       └── src/
-│           ├── routes/         # auth, songs, artists, admin, settings, interests, profile, artist-songs, auth-password
+│           ├── routes/         # auth, songs, artists, admin, settings, interests, profile, artist-songs, auth-password, banners, cities
 │           └── lib/            # R2 storage helper
 ├── lib/
 │   ├── db/                     # Drizzle ORM + schema do banco
-│   │   └── src/schema/         # songs, artists, plans, interests, settings, passwordResets
+│   │   └── src/schema/         # songs, artists, plans, interests, settings, passwordResets, ctaBanners, cities
 │   ├── api-spec/               # OpenAPI spec + Orval config
 │   ├── api-client-react/       # Hooks React Query gerados
 │   └── api-zod/                # Zod schemas gerados
@@ -150,9 +150,18 @@ Variaveis opcionais (Cloudflare R2):
 | Method | Path | Descricao |
 |--------|------|-----------|
 | `GET` | `/api/songs` | Listar musicas |
-| `POST` | `/api/songs` | Adicionar musica |
-| `PATCH` | `/api/songs/:id` | Editar musica |
-| `DELETE` | `/api/songs/:id` | Deletar musica |
+| `POST` | `/api/songs` | Adicionar musica (admin) |
+| `PUT` | `/api/songs/:id` | Editar musica (admin) |
+| `DELETE` | `/api/songs/:id` | Deletar musica (admin) |
+| `POST` | `/api/songs/:id/like` | Curtir musica |
+| `POST` | `/api/songs/:id/play` | Registrar play |
+
+### Musicas — Artista (via sessao)
+| Method | Path | Descricao |
+|--------|------|-----------|
+| `POST` | `/api/artist/:id/songs` | Upload musica (artista) |
+| `PUT` | `/api/artist/:id/songs/:songId` | Editar musica (artista) |
+| `DELETE` | `/api/artist/:id/songs/:songId` | Deletar musica (artista) |
 
 ### Interesses
 | Method | Path | Descricao |
@@ -170,6 +179,16 @@ Variaveis opcionais (Cloudflare R2):
 | `GET` | `/api/settings` | Configuracoes globais |
 | `PUT` | `/api/settings` | Atualizar settings (admin) |
 | `GET` | `/api/plans` | Listar planos |
+| `GET` | `/api/cities` | Listar cidades ativas (filtro) |
+| `GET` | `/api/admin/cities` | Listar todas cidades (admin) |
+| `POST` | `/api/admin/cities` | Criar cidade (admin) |
+| `PUT` | `/api/admin/cities/:id` | Atualizar cidade (admin) |
+| `DELETE` | `/api/admin/cities/:id` | Deletar cidade (admin) |
+| `GET` | `/api/banners` | Listar banners ativos |
+| `GET` | `/api/admin/banners` | Listar todos banners (admin) |
+| `POST` | `/api/admin/banners` | Criar banner (admin) |
+| `PUT` | `/api/admin/banners/:id` | Atualizar banner (admin) |
+| `DELETE` | `/api/admin/banners/:id` | Deletar banner (admin) |
 
 ---
 
