@@ -20,10 +20,10 @@ CREATE TABLE IF NOT EXISTS cta_banners (
 -- Insert default banners
 INSERT INTO cta_banners (texto, cor_fundo, cor_texto, botao_texto, botao_link, ordem)
 VALUES
-  ('Crie seu portal de artista em minutos', '#1a1a2e', '#ffffff', 'Criar Meu Portal', '/artista/cadastro', 1),
-  ('Monte e compartilhe seu catálogo musical', '#2d1b4e', '#ffffff', 'Começar Grátis', '/artista/cadastro', 2),
-  ('Sua plataforma musical personalizada', '#1a2e1a', '#ffffff', 'Saiba Mais', '/artista/cadastro', 3),
-  ('Seu site artístico, do seu jeito', '#2e1a1a', '#ffffff', 'Criar Perfil', '/artista/cadastro', 4)
+  ('Crie seu portal de artista em minutos', '#1a1a2e', '#ffffff', 'Criar Meu Portal', '/artista/login?tab=cadastro', 1),
+  ('Monte e compartilhe seu catálogo musical', '#2d1b4e', '#ffffff', 'Começar Grátis', '/artista/login?tab=cadastro', 2),
+  ('Sua plataforma musical personalizada', '#1a2e1a', '#ffffff', 'Saiba Mais', '/artista/login?tab=cadastro', 3),
+  ('Seu site artístico, do seu jeito', '#2e1a1a', '#ffffff', 'Criar Perfil', '/artista/login?tab=cadastro', 4)
 ON CONFLICT DO NOTHING;
 
 -- Index for performance

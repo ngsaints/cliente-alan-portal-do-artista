@@ -3,13 +3,27 @@ import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Navbar } from "@/components/Navbar";
 import { AudioPlayer } from "@/components/AudioPlayer";
-import { Music, MapPin, Instagram, Users, Star, ExternalLink, Loader2 } from "lucide-react";
+import { Music, MapPin, Instagram, Users, Star, ExternalLink, Loader2, Search, X } from "lucide-react";
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 
 interface ArtistCard {
   id: number;
   name: string;
+  slug?: string;
   profissao: string;
   cidade: string;
   genero: string;
@@ -26,6 +40,9 @@ export default function Artists() {
   const { genres } = useGenres();
   const GENEROS = ["Todos", ...genres];
   const [filterCidade, setFilterCidade] = useState("Todas");
+  const [allCities, setAllCities] = useState<string[]>([]);
+  const [cityPopoverOpen, setCityPopoverOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState("");
   const [sectionTitle, setSectionTitle] = useState("Nossos Artistas");
   const [sectionSubtitle, setSectionSubtitle] = useState("Descubra e acompanhe artistas independentes de todo o Brasil");
 
@@ -48,6 +65,18 @@ export default function Artists() {
   }, []);
 
   useEffect(() => {
+    fetch("/api/cities")
+      .then(r => r.json())
+      .then(data => {
+        const nomes = data.map((c: { nome: string; estado: string | null }) =>
+          c.estado ? `${c.nome}, ${c.estado}` : c.nome
+        );
+        setAllCities(["Todas", ...nomes]);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     fetch("/api/settings")
       .then(r => r.json())
       .then(data => {
@@ -59,11 +88,11 @@ export default function Artists() {
 
   const filteredArtists = artists.filter((a) => {
     if (filterGenero !== "Todos" && a.genero !== filterGenero) return false;
-    if (filterCidade !== "Todas" && !a.cidade?.includes(filterCidade)) return false;
+    if (filterCidade !== "Todas" && a.cidade?.toLowerCase() !== filterCidade.toLowerCase()) return false;
     return true;
   });
 
-  const cidades = ["Todas", ...new Set(artists.map((a) => a.cidade?.split(",")[0].trim()).filter(Boolean))];
+  const cidades = allCities;
 
   const sortedArtists = [...filteredArtists].sort((a, b) => {
     const planoOrder: Record<string, number> = { premium: 5, pro: 4, intermediario: 3, basico: 2, free: 1 };
@@ -105,13 +134,63 @@ export default function Artists() {
           >
             {GENEROS.map(g => <option key={g} value={g}>{g === "Todos" ? "Todos os Gêneros" : g}</option>)}
           </select>
-          <select
-            value={filterCidade}
-            onChange={(e) => setFilterCidade(e.target.value)}
-            className="bg-card border border-border rounded-lg px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-          >
-            {cidades.map(c => <option key={c} value={c}>{c === "Todas" ? "Todas as Cidades" : c}</option>)}
-          </select>
+          <Popover open={cityPopoverOpen} onOpenChange={setCityPopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className="bg-card border border-border rounded-lg px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center gap-2 min-w-[180px] justify-between"
+              >
+                <span className="truncate">
+                  {filterCidade === "Todas" ? "Todas as Cidades" : filterCidade}
+                </span>
+                <MapPin className="w-4 h-4 shrink-0" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start">
+              <Command>
+                <CommandInput
+                  placeholder="Buscar cidade..."
+                  value={citySearch}
+                  onValueChange={setCitySearch}
+                />
+                <CommandList>
+                  <CommandEmpty>Nenhuma cidade encontrada.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      key="todas"
+                      value="Todas"
+                      onSelect={() => {
+                        setFilterCidade("Todas");
+                        setCitySearch("");
+                        setCityPopoverOpen(false);
+                      }}
+                      className="flex items-center justify-between"
+                    >
+                      <span>Todas as Cidades</span>
+                      {filterCidade === "Todas" && <span className="text-primary">✓</span>}
+                    </CommandItem>
+                    {cidades
+                      .filter(c => c !== "Todas")
+                      .filter(c => c.toLowerCase().includes(citySearch.toLowerCase()))
+                      .map(c => (
+                        <CommandItem
+                          key={c}
+                          value={c}
+                          onSelect={() => {
+                            setFilterCidade(c);
+                            setCitySearch("");
+                            setCityPopoverOpen(false);
+                          }}
+                          className="flex items-center justify-between"
+                        >
+                          <span>{c}</span>
+                          {filterCidade === c && <span className="text-primary">✓</span>}
+                        </CommandItem>
+                      ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       </section>
 

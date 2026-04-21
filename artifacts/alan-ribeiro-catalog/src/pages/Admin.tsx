@@ -17,10 +17,11 @@ import {
   CheckCircle2, BarChart3, Users, Crown, Settings, MessageSquare,
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
-  Layout,
+  Layout, MapPin,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
+import { useCities } from "@/hooks/useCities";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ interface Setting {
   updatedAt: string;
 }
 
-type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners";
+type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities";
 type SettingsCategory = "mercadopago" | "r2" | "portal" | "demo";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -214,6 +215,7 @@ function AdminDashboard() {
     { id: "interests", label: "Interesses",     icon: MessageSquare  },
     { id: "settings", label: "Configurações", icon: Settings },
     { id: "banners", label: "Banners", icon: Layout },
+    { id: "cities", label: "Cidades", icon: MapPin },
   ];
 
   return (
@@ -271,6 +273,7 @@ function AdminDashboard() {
           {activeTab === "interests" && <InterestsTab />}
           {activeTab === "settings" && <SettingsTab />}
           {activeTab === "banners" && <BannersTab />}
+          {activeTab === "cities" && <CitiesTab />}
         </motion.div>
       </div>
     </div>
@@ -1826,7 +1829,7 @@ function BannerModal({ banner, onClose, onSaved }: { banner: CtaBanner | null; o
     corFundo: banner?.corFundo || "#1a1a2e",
     corTexto: banner?.corTexto || "#ffffff",
     botaoTexto: banner?.botaoTexto || "",
-    botaoLink: banner?.botaoLink || "/artista/cadastro",
+    botaoLink: banner?.botaoLink || "/artista/login?tab=cadastro",
     ordem: banner?.ordem || 0,
     ativo: banner?.ativo ?? true,
     intervaloSegundos: banner?.intervaloSegundos || 4,
@@ -1956,7 +1959,7 @@ function BannerModal({ banner, onClose, onSaved }: { banner: CtaBanner | null; o
               <input
                 value={form.botaoLink}
                 onChange={(e) => setForm({ ...form, botaoLink: e.target.value })}
-                placeholder="/artista/cadastro"
+                placeholder="/artista/login?tab=cadastro"
                 className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
@@ -2017,6 +2020,210 @@ function BannerModal({ banner, onClose, onSaved }: { banner: CtaBanner | null; o
           </button>
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+// ─── Tab 9: Cities ─────────────────────────────────────────────────────────────
+
+function CitiesTab() {
+  const { cities: cachedCities, invalidate } = useCities();
+
+  interface CityRow { id: number; nome: string; estado: string | null; ativo: boolean; ordem: number; }
+  const [rows, setRows]       = useState<CityRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
+  const [newEstado, setNewEstado] = useState("");
+  const [adding, setAdding]   = useState(false);
+  const [editId, setEditId]   = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEstado, setEditEstado] = useState("");
+  const { toast } = useToast();
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/admin/cities", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setRows(Array.isArray(d) ? d : []))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    setAdding(true);
+    const res = await fetch("/api/admin/cities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ nome: newName.trim(), estado: newEstado.trim() || null }),
+    });
+    setAdding(false);
+    if (res.ok) {
+      setNewName(""); setNewEstado(""); invalidate(); load();
+      toast({ title: "Cidade adicionada" });
+    } else {
+      const d = await res.json();
+      toast({ title: d.error || "Erro ao adicionar", variant: "destructive" });
+    }
+  };
+
+  const handleToggle = async (row: CityRow) => {
+    await fetch(`/api/admin/cities/${row.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ ativo: !row.ativo }),
+    });
+    invalidate(); load();
+  };
+
+  const handleSave = async (id: number) => {
+    if (!editName.trim()) return;
+    const res = await fetch(`/api/admin/cities/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ nome: editName.trim(), estado: editEstado.trim() || null }),
+    });
+    if (res.ok) {
+      setEditId(null); invalidate(); load();
+      toast({ title: "Cidade atualizada" });
+    } else {
+      const d = await res.json();
+      toast({ title: d.error || "Erro ao atualizar", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: number, nome: string) => {
+    if (!confirm(`Remover a cidade "${nome}"?`)) return;
+    const res = await fetch(`/api/admin/cities/${id}`, { method: "DELETE", credentials: "include" });
+    if (res.ok) {
+      invalidate(); load();
+      toast({ title: "Cidade removida" });
+    } else {
+      toast({ title: "Erro ao remover", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h2 className="text-2xl font-display font-bold text-foreground">Cidades</h2>
+        <p className="text-sm text-muted-foreground">Gerencie as cidades disponíveis no cadastro e filtros de artistas</p>
+      </div>
+
+      <form onSubmit={handleAdd} className="flex flex-wrap gap-2">
+        <input
+          value={newName}
+          onChange={e => setNewName(e.target.value)}
+          placeholder="Nome da cidade... (ex: São Paulo)"
+          className="flex-1 min-w-[200px] px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+        />
+        <input
+          value={newEstado}
+          onChange={e => setNewEstado(e.target.value)}
+          placeholder="UF (ex: SP)"
+          maxLength={2}
+          className="w-16 px-3 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary transition-all text-center uppercase"
+        />
+        <button
+          type="submit"
+          disabled={adding || !newName.trim()}
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
+        >
+          {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+          Adicionar
+        </button>
+      </form>
+
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+      ) : (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          {rows.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">Nenhuma cidade cadastrada.</div>
+          ) : (
+            <div className="divide-y divide-border/40 max-h-[400px] overflow-y-auto">
+              {rows.map(row => (
+                <div key={row.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors group">
+                  <GripVertical className="w-4 h-4 text-border shrink-0" />
+
+                  {editId === row.id ? (
+                    <>
+                      <input
+                        autoFocus
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleSave(row.id); if (e.key === "Escape") setEditId(null); }}
+                        className="flex-1 bg-input border border-primary rounded-lg px-3 py-1 text-sm text-foreground focus:outline-none"
+                      />
+                      <input
+                        value={editEstado}
+                        onChange={e => setEditEstado(e.target.value)}
+                        maxLength={2}
+                        placeholder="UF"
+                        className="w-16 bg-input border border-primary rounded-lg px-2 py-1 text-sm text-foreground focus:outline-none text-center uppercase"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <span className={`flex-1 text-sm font-medium ${row.ativo ? "text-foreground" : "text-muted-foreground line-through"}`}>
+                        {row.nome}
+                      </span>
+                      {row.estado && (
+                        <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full">
+                          {row.estado}
+                        </span>
+                      )}
+                    </>
+                  )}
+
+                  <button
+                    onClick={() => handleToggle(row)}
+                    className={`px-2 py-0.5 rounded-full text-xs font-bold transition-colors ${
+                      row.ativo
+                        ? "bg-green-500/15 text-green-400 hover:bg-red-500/15 hover:text-red-400"
+                        : "bg-red-500/15 text-red-400 hover:bg-green-500/15 hover:text-green-400"
+                    }`}
+                    title={row.ativo ? "Clique para desativar" : "Clique para ativar"}
+                  >
+                    {row.ativo ? "Ativo" : "Inativo"}
+                  </button>
+
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {editId === row.id ? (
+                      <>
+                        <button onClick={() => handleSave(row.id)} className="p-1.5 text-green-400 hover:bg-green-400/10 rounded-lg transition-colors">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setEditId(null)} className="p-1.5 text-muted-foreground hover:bg-white/5 rounded-lg transition-colors">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => { setEditId(row.id); setEditName(row.nome); setEditEstado(row.estado || ""); }} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(row.id, row.nome)} className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Cidades inativas ficam ocultas nos filtros e formulários.
+      </p>
     </div>
   );
 }

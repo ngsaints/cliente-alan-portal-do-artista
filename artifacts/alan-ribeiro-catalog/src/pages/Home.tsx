@@ -7,7 +7,7 @@ import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { NotificationBell, type Interest } from "@/components/NotificationBell";
 import { InterestModal } from "@/components/InterestModal";
-import { Disc3, TrendingUp, Star, Sparkles, Search } from "lucide-react";
+import { Disc3, TrendingUp, Star, Sparkles, Search, Music } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
@@ -76,32 +76,50 @@ export default function Home() {
         onDelete={(id) => setInterests((prev) => prev.filter((i) => i.id !== id))}
       />
 
-      <section className="pt-24 pb-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-[400px] bg-gradient-to-b from-primary/5 via-primary/3 to-transparent pointer-events-none" />
+      {/* Hero */}
+      <section className="pt-20 pb-0 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto text-center relative z-10">
+        <div className="max-w-5xl mx-auto text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-6">
-              <Sparkles className="w-4 h-4" />
-              Portal do Artista
+              <Disc3 className="w-4 h-4" />
+              Catálogo Musical
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-extrabold text-foreground mb-4">
-              Descubra{" "}
+            <h1 className="text-4xl md:text-6xl font-extrabold text-foreground mb-4 leading-tight">
+              A plataforma completa para{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-yellow-200">
-                Músicas
+                artistas independentes
               </span>
             </h1>
 
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Explore o catálogo de artistas independentes
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
+              Cadastre suas músicas, monte seu portfólio musical e seja encontrado por contratantes e fãs em todo o Brasil.
             </p>
 
-            <div className="max-w-md mx-auto mt-8 relative">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+              <Link
+                href="/artista/login?tab=cadastro"
+                className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+              >
+                <Star className="w-5 h-5" />
+                Criar Meu Portal
+              </Link>
+              <Link
+                href="#catalogo"
+                className="flex items-center gap-2 px-8 py-3 rounded-full bg-card/80 border border-border text-foreground font-bold text-base hover:bg-card hover:border-primary/50 transition-all"
+              >
+                <Music className="w-5 h-5" />
+                Ver Catálogo
+              </Link>
+            </div>
+
+            <div className="max-w-md mx-auto relative">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
@@ -140,23 +158,14 @@ export default function Home() {
                 </div>
               )}
             </div>
-
-            <div className="flex items-center justify-center gap-4 mt-6">
-              <Link
-                href="/vip"
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-yellow-500 text-black hover:bg-yellow-400 transition-colors"
-              >
-                <Star className="w-4 h-4" />
-                Área VIP
-              </Link>
-            </div>
           </motion.div>
         </div>
       </section>
 
       <CTACarouselBanner />
 
-      <section className="px-4 sm:px-6 lg:px-8 mb-8">
+      {/* Genre filter */}
+      <section id="catalogo" className="px-4 sm:px-6 lg:px-8 mb-8 mt-8">
         <div className="max-w-3xl mx-auto">
           <div className="flex flex-wrap items-center justify-center gap-2">
             {genres.map((genre) => (

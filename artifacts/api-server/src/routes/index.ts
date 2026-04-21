@@ -13,6 +13,7 @@ import paymentsRouter from "./payments";
 import genresRouter from "./genres";
 import authPasswordRouter from "./auth-password";
 import bannersRouter from "./banners";
+import citiesRouter from "./cities";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(paymentsRouter);
 router.use(genresRouter);
 router.use(authPasswordRouter);
 router.use(bannersRouter);
+router.use(citiesRouter);
 
 export default router;
