@@ -17,6 +17,7 @@ import {
   CheckCircle2, BarChart3, Users, Crown, Settings, MessageSquare,
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
+  Layout,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -84,7 +85,7 @@ interface Setting {
   updatedAt: string;
 }
 
-type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings";
+type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners";
 type SettingsCategory = "mercadopago" | "r2" | "portal" | "demo";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -212,6 +213,7 @@ function AdminDashboard() {
     { id: "genres",    label: "Gêneros",        icon: Tag            },
     { id: "interests", label: "Interesses",     icon: MessageSquare  },
     { id: "settings", label: "Configurações", icon: Settings },
+    { id: "banners", label: "Banners", icon: Layout },
   ];
 
   return (
@@ -268,6 +270,7 @@ function AdminDashboard() {
           {activeTab === "genres"    && <GenresTab />}
           {activeTab === "interests" && <InterestsTab />}
           {activeTab === "settings" && <SettingsTab />}
+          {activeTab === "banners" && <BannersTab />}
         </motion.div>
       </div>
     </div>
@@ -1654,6 +1657,366 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
           {saving ? "Salvando..." : "Salvar Configurações"}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── Tab 8: Banners ───────────────────────────────────────────────────────────
+
+interface CtaBanner {
+  id: number;
+  texto: string;
+  corFundo: string;
+  corTexto: string;
+  botaoTexto: string | null;
+  botaoLink: string | null;
+  imagemFundoUrl: string | null;
+  ordem: number;
+  ativo: boolean;
+  intervaloSegundos: number;
+}
+
+function BannersTab() {
+  const [banners, setBanners] = useState<CtaBanner[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<CtaBanner | null>(null);
+  const { toast } = useToast();
+
+  const loadBanners = () => {
+    setLoading(true);
+    fetch("/api/admin/banners", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => setBanners(Array.isArray(d) ? d : []))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadBanners(); }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Deletar este banner?")) return;
+    const res = await fetch(`/api/admin/banners/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (res.ok) {
+      toast({ title: "Banner deletado" });
+      loadBanners();
+    } else {
+      toast({ title: "Erro ao deletar", variant: "destructive" });
+    }
+  };
+
+  const handleToggleAtivo = async (banner: CtaBanner) => {
+    const res = await fetch(`/api/admin/banners/${banner.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ ...banner, ativo: !banner.ativo }),
+    });
+    if (res.ok) {
+      loadBanners();
+    } else {
+      toast({ title: "Erro ao atualizar", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-display font-bold text-foreground">Banners CTA</h2>
+          <p className="text-sm text-muted-foreground">Gerencie os banners de chamada para ação</p>
+        </div>
+        <button
+          onClick={() => { setEditingBanner(null); setShowModal(true); }}
+          className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm shadow-[0_0_16px_rgba(245,197,24,0.25)]"
+        >
+          <Plus className="w-4 h-4" />
+          Novo Banner
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      ) : banners.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground bg-card border border-dashed border-border rounded-2xl">
+          <Layout className="w-12 h-12 mx-auto mb-4 opacity-30" />
+          <p>Nenhum banner criado ainda.</p>
+          <p className="text-sm mt-1">Clique em "Novo Banner" para criar.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {banners.map((banner) => (
+            <div
+              key={banner.id}
+              className="relative rounded-2xl overflow-hidden border border-border bg-card"
+              style={{ minHeight: "180px" }}
+            >
+              <div
+                className="p-6 flex flex-col justify-center items-center text-center"
+                style={{
+                  background: banner.imagemFundoUrl ? `url(${banner.imagemFundoUrl}) center/cover` : banner.corFundo,
+                  minHeight: "180px",
+                }}
+              >
+                <div className="absolute inset-0 bg-black/30" />
+                <p className="relative z-10 text-lg font-bold" style={{ color: banner.corTexto }}>
+                  {banner.texto}
+                </p>
+                {banner.botaoTexto && (
+                  <span
+                    className="relative z-10 mt-3 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-bold"
+                  >
+                    {banner.botaoTexto}
+                  </span>
+                )}
+              </div>
+
+              <div className="p-4 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    Ordem: {banner.ordem} • {banner.intervaloSegundos}s
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${banner.ativo ? "bg-green-500/20 text-green-400" : "bg-zinc-500/20 text-zinc-400"}`}>
+                    {banner.ativo ? "Ativo" : "Inativo"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => { setEditingBanner(banner); setShowModal(true); }}
+                    className="flex-1 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 inline mr-1" />
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleToggleAtivo(banner)}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${banner.ativo ? "text-orange-400 hover:bg-orange-400/10" : "text-green-400 hover:bg-green-400/10"}`}
+                  >
+                    {banner.ativo ? "Desativar" : "Ativar"}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(banner.id)}
+                    className="py-1.5 px-2 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showModal && (
+        <BannerModal
+          banner={editingBanner}
+          onClose={() => setShowModal(false)}
+          onSaved={() => { setShowModal(false); loadBanners(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function BannerModal({ banner, onClose, onSaved }: { banner: CtaBanner | null; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    texto: banner?.texto || "",
+    corFundo: banner?.corFundo || "#1a1a2e",
+    corTexto: banner?.corTexto || "#ffffff",
+    botaoTexto: banner?.botaoTexto || "",
+    botaoLink: banner?.botaoLink || "/artista/cadastro",
+    ordem: banner?.ordem || 0,
+    ativo: banner?.ativo ?? true,
+    intervaloSegundos: banner?.intervaloSegundos || 4,
+  });
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    const url = banner ? `/api/admin/banners/${banner.id}` : "/api/admin/banners";
+    const method = banner ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(form),
+    });
+
+    setSaving(false);
+
+    if (res.ok) {
+      toast({ title: banner ? "Banner atualizado!" : "Banner criado!" });
+      onSaved();
+    } else {
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative w-full max-w-lg bg-card border border-border rounded-3xl shadow-2xl z-10 overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-base font-bold text-foreground">
+            {banner ? "Editar Banner" : "Novo Banner"}
+          </h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div
+            className="rounded-xl p-6 text-center"
+            style={{
+              background: form.corFundo,
+              minHeight: "100px",
+            }}
+          >
+            <p className="text-lg font-bold" style={{ color: form.corTexto }}>
+              {form.texto || "Texto do banner"}
+            </p>
+            {form.botaoTexto && (
+              <span className="inline-block mt-2 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                {form.botaoTexto}
+              </span>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Texto do Banner *</label>
+            <input
+              value={form.texto}
+              onChange={(e) => setForm({ ...form, texto: e.target.value })}
+              required
+              placeholder="Ex: Crie seu portal de artista em minutos"
+              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Cor de Fundo</label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={form.corFundo}
+                  onChange={(e) => setForm({ ...form, corFundo: e.target.value })}
+                  className="w-10 h-10 rounded-lg border border-border cursor-pointer"
+                />
+                <input
+                  value={form.corFundo}
+                  onChange={(e) => setForm({ ...form, corFundo: e.target.value })}
+                  placeholder="#1a1a2e"
+                  className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Cor do Texto</label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={form.corTexto}
+                  onChange={(e) => setForm({ ...form, corTexto: e.target.value })}
+                  className="w-10 h-10 rounded-lg border border-border cursor-pointer"
+                />
+                <input
+                  value={form.corTexto}
+                  onChange={(e) => setForm({ ...form, corTexto: e.target.value })}
+                  placeholder="#ffffff"
+                  className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Texto do Botão</label>
+              <input
+                value={form.botaoTexto}
+                onChange={(e) => setForm({ ...form, botaoTexto: e.target.value })}
+                placeholder="Criar Meu Portal"
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Link do Botão</label>
+              <input
+                value={form.botaoLink}
+                onChange={(e) => setForm({ ...form, botaoLink: e.target.value })}
+                placeholder="/artista/cadastro"
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Ordem</label>
+              <input
+                type="number"
+                value={form.ordem}
+                onChange={(e) => setForm({ ...form, ordem: parseInt(e.target.value) || 0 })}
+                min="0"
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Intervalo (s)</label>
+              <input
+                type="number"
+                value={form.intervaloSegundos}
+                onChange={(e) => setForm({ ...form, intervaloSegundos: parseInt(e.target.value) || 4 })}
+                min="1"
+                max="10"
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, ativo: !form.ativo })}
+                className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  form.ativo ? "bg-green-500/20 text-green-400" : "bg-zinc-500/20 text-zinc-400"
+                }`}
+              >
+                {form.ativo ? "Ativo" : "Inativo"}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-xl hover:bg-white/5 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? "Salvando..." : "Salvar"}
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }

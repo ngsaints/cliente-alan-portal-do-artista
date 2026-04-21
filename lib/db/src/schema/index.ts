@@ -6,3 +6,4 @@ export * from "./interests";
 export * from "./appSettings";
 export * from "./genres";
 export * from "./passwordResets";
+export * from "./ctaBanners";

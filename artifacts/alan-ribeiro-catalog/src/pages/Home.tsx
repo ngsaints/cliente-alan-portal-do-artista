@@ -11,6 +11,7 @@ import { Disc3, TrendingUp, Star, Sparkles, Search } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
+import { CTACarouselBanner } from "@/components/CTACarouselBanner";
 
 export default function Home() {
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
@@ -152,6 +153,8 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      <CTACarouselBanner />
 
       <section className="px-4 sm:px-6 lg:px-8 mb-8">
         <div className="max-w-3xl mx-auto">

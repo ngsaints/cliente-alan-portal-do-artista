@@ -26,6 +26,8 @@ export default function Artists() {
   const { genres } = useGenres();
   const GENEROS = ["Todos", ...genres];
   const [filterCidade, setFilterCidade] = useState("Todas");
+  const [sectionTitle, setSectionTitle] = useState("Nossos Artistas");
+  const [sectionSubtitle, setSectionSubtitle] = useState("Descubra e acompanhe artistas independentes de todo o Brasil");
 
   useSEO({
     title: "Artistas - Portal do Artista",
@@ -43,6 +45,16 @@ export default function Artists() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => {
+        if (data.artistsSectionTitle) setSectionTitle(data.artistsSectionTitle);
+        if (data.artistsSectionSubtitle) setSectionSubtitle(data.artistsSectionSubtitle);
+      })
+      .catch(() => {});
   }, []);
 
   const filteredArtists = artists.filter((a) => {
@@ -74,13 +86,10 @@ export default function Artists() {
               Portal do Artista
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold text-foreground mb-4">
-              Nossos{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-yellow-200">
-                Artistas
-              </span>
+              {sectionTitle}
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Descubra e acompanhe artistas independentes de todo o Brasil
+              {sectionSubtitle}
             </p>
           </motion.div>
         </div>

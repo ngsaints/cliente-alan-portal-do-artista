@@ -12,6 +12,7 @@ import adminRouter from "./admin";
 import paymentsRouter from "./payments";
 import genresRouter from "./genres";
 import authPasswordRouter from "./auth-password";
+import bannersRouter from "./banners";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(adminRouter);
 router.use(paymentsRouter);
 router.use(genresRouter);
 router.use(authPasswordRouter);
+router.use(bannersRouter);
 
 export default router;

@@ -31,9 +31,13 @@ async function setSetting(key: string, value: string | null): Promise<void> {
 router.get("/settings", async (_req, res): Promise<void> => {
   const artistName = (await getSetting("artist_name")) ?? "Alan Ribeiro";
   const artistPhotoUrl = await getSetting("artist_photo_url");
+  const artistsSectionTitle = await getSetting("artists_section_title");
+  const artistsSectionSubtitle = await getSetting("artists_section_subtitle");
   res.json({
     artistName,
     artistPhotoUrl: artistPhotoUrl || null,
+    artistsSectionTitle: artistsSectionTitle || "Nossos Artistas",
+    artistsSectionSubtitle: artistsSectionSubtitle || "Descubra e acompanhe artistas independentes de todo o Brasil",
   });
 });
 
@@ -82,10 +86,12 @@ router.put(
       return;
     }
 
-    const { artistName, vipPassword } = req.body;
+    const { artistName, vipPassword, artistsSectionTitle, artistsSectionSubtitle } = req.body;
 
     if (artistName) await setSetting("artist_name", artistName);
     if (vipPassword) await setSetting("vip_password", vipPassword);
+    if (artistsSectionTitle) await setSetting("artists_section_title", artistsSectionTitle);
+    if (artistsSectionSubtitle) await setSetting("artists_section_subtitle", artistsSectionSubtitle);
 
     if (req.file) {
       try {
