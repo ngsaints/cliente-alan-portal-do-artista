@@ -5,7 +5,7 @@ import {
   User, Music, BarChart3, Settings, Upload, Eye, EyeOff, 
   TrendingUp, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
-  ExternalLink, Heart
+  ExternalLink, Heart, Pencil
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useGenres } from "@/hooks/useGenres";
@@ -91,6 +91,7 @@ export default function ArtistDashboard() {
   const { genres } = useGenres();
 
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingSong, setEditingSong] = useState<any | null>(null);
   const [newSong, setNewSong] = useState({
     titulo: "", descricao: "", genero: "Sertanejo", subgenero: "",
     compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false",
@@ -335,23 +336,28 @@ export default function ArtistDashboard() {
     if (mp3File) formData.append("mp3", mp3File);
 
     try {
-      const res = await fetch(`/api/artist/${artist?.id}/songs`, {
-        method: "POST",
+      const isEditing = !!editingSong;
+      const url = isEditing
+        ? `/api/artist/${artist?.id}/songs/${editingSong.id}`
+        : `/api/artist/${artist?.id}/songs`;
+      const res = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
         credentials: "include",
         body: formData,
       });
       if (res.ok) {
         setShowAddForm(false);
+        setEditingSong(null);
         setNewSong({ titulo: "", descricao: "", genero: "Sertanejo", subgenero: "", compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false", isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "" });
         setCapaFile(null);
         setMp3File(null);
         loadData();
       } else {
         const data = await res.json();
-        alert(data.error || "Erro ao adicionar música");
+        alert(data.error || (isEditing ? "Erro ao editar música" : "Erro ao adicionar música"));
       }
     } catch (err) {
-      alert("Erro ao adicionar música");
+      alert("Erro ao processar música");
     } finally {
       setUploading(false);
     }
@@ -576,7 +582,15 @@ export default function ArtistDashboard() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-foreground">Minhas Músicas ({songs.length}/{artist?.limiteMusicas})</h3>
                   <button 
-                    onClick={() => setShowAddForm(!showAddForm)}
+                    onClick={() => {
+                      setEditingSong(null);
+                      setNewSong({
+                        titulo: "", descricao: "", genero: "Sertanejo", subgenero: "",
+                        compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false",
+                        isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "",
+                      });
+                      setShowAddForm(true);
+                    }}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
                   >
                     <Upload className="w-4 h-4" />
@@ -584,12 +598,12 @@ export default function ArtistDashboard() {
                   </button>
                 </div>
 
-                {/* Add Song Form */}
+                {/* Add/Edit Song Form */}
                 {showAddForm && (
                   <form onSubmit={handleAddSong} className="bg-card border border-border/40 rounded-xl p-6 space-y-4">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold text-foreground">Nova Música</h4>
-                      <button type="button" onClick={() => setShowAddForm(false)} className="text-muted-foreground hover:text-foreground">
+                      <h4 className="font-bold text-foreground">{editingSong ? "Editar Música" : "Nova Música"}</h4>
+                      <button type="button" onClick={() => { setShowAddForm(false); setEditingSong(null); }} className="text-muted-foreground hover:text-foreground">
                         <X className="w-5 h-5" />
                       </button>
                     </div>
@@ -717,6 +731,13 @@ export default function ArtistDashboard() {
                         <div className="flex items-center gap-2">
                           {song.isVip && <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400">VIP</span>}
                           {song.tipoMidia === "video" && <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400">Vídeo</span>}
+                          <button
+                            onClick={() => { setEditingSong(song); setShowAddForm(true); }}
+                            className="p-2 rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-primary hover:bg-primary/10 transition-all"
+                            title="Editar música"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => handleDeleteSong(song.id)}
                             disabled={deletingSongId === song.id}

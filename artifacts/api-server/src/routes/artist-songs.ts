@@ -194,6 +194,96 @@ router.post(
   }
 );
 
+// PUT /artist/:artistId/songs/:songId - Update song
+router.put(
+  "/artist/:artistId/songs/:songId",
+  upload.fields([
+    { name: "capa", maxCount: 1 },
+  ]),
+  async (req, res): Promise<void> => {
+    const sessionArtistId = req.session.artistId;
+    if (!sessionArtistId) {
+      res.status(401).json({ error: "Não autorizado" });
+      return;
+    }
+
+    const { artistId, songId } = req.params;
+    if (sessionArtistId !== parseInt(artistId)) {
+      res.status(403).json({ error: "Você só pode editar músicas do seu próprio perfil" });
+      return;
+    }
+
+    const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip, tipoMidia, youtubeUrl, vipCode } = req.body;
+
+    try {
+      const files = req.files as Record<string, Express.Multer.File[]>;
+      const capaFile = files?.["capa"]?.[0];
+
+      let capaPath: string | undefined;
+      if (capaFile) {
+        if (r2Enabled) {
+          const key = generateR2Key("covers", capaFile.originalname.replace(/\.\w+$/, ".jpg"));
+          const capaJpg = await sharp(capaFile.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+          capaPath = await uploadToR2(capaJpg, key, "image/jpeg");
+        } else {
+          const coversDir = path.join(process.cwd(), "uploads/covers");
+          fs.mkdirSync(coversDir, { recursive: true });
+          const capaJpg = await sharp(capaFile.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+          const capaName = `${Date.now()}_${capaFile.originalname.replace(/\.\w+$/, ".jpg")}`;
+          fs.writeFileSync(path.join(coversDir, capaName), capaJpg);
+          capaPath = `/api/uploads/covers/${capaName}`;
+        }
+      }
+
+      const vipFlag = isVip === "true" || isVip === true;
+
+      const [updated] = await db
+        .update(songsTable)
+        .set({
+          ...(titulo      ? { titulo }                                : {}),
+          ...(descricao   ? { descricao }                            : {}),
+          ...(genero      ? { genero }                               : {}),
+          subgenero:    subgenero  !== undefined ? (subgenero  || null) : undefined,
+          compositor:   compositor !== undefined ? (compositor || null) : undefined,
+          ...(status      ? { status }                               : {}),
+          ...(precoX      ? { precoX }                               : {}),
+          ...(precoY      ? { precoY }                               : {}),
+          ...(tipoMidia   ? { tipoMidia }                            : {}),
+          youtubeUrl:   youtubeUrl !== undefined ? (youtubeUrl || null) : undefined,
+          isVip:        isVip      !== undefined ? vipFlag           : undefined,
+          vipCode:      vipCode    !== undefined ? (vipCode    || null) : undefined,
+          ...(capaPath    ? { capaPath }                             : {}),
+        })
+        .where(eq(songsTable.id, parseInt(songId)))
+        .returning();
+
+      if (!updated) {
+        res.status(404).json({ error: "Música não encontrada" });
+        return;
+      }
+
+      res.json({
+        id: updated.id,
+        titulo: updated.titulo,
+        descricao: updated.descricao,
+        genero: updated.genero,
+        subgenero: updated.subgenero,
+        compositor: updated.compositor,
+        status: updated.status,
+        precoX: updated.precoX,
+        precoY: updated.precoY,
+        isVip: updated.isVip,
+        capaUrl: updated.capaPath || null,
+        mp3Url: updated.mp3Path || null,
+        createdAt: updated.createdAt,
+      });
+    } catch (error) {
+      console.error("Error updating song:", error);
+      res.status(500).json({ error: "Erro ao atualizar música" });
+    }
+  }
+);
+
 // Delete song
 router.delete("/artist/:artistId/songs/:songId", async (req, res): Promise<void> => {
   try {

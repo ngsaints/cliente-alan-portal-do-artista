@@ -44,6 +44,7 @@ export default function ArtistProfile() {
   const [selectedSong, setSelectedSong] = useState<{ id: number; titulo: string } | null>(null);
   const [artistData, setArtistData] = useState<any>(null);
   const [loadingArtist, setLoadingArtist] = useState(true);
+  const numericArtistId = artistData?.id;
 
   // Fetch artist data from API (supports ID or slug)
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function ArtistProfile() {
     genre: selectedGenre || undefined,
   });
 
-  const artistSongs = (songs || []).filter((s) => !s.isVip && (s as any).artistaId == artistId);
+  const artistSongs = (songs || []).filter((s) => !s.isVip && (s as any).artistaId == numericArtistId);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
