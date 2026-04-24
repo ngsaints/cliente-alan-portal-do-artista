@@ -5,6 +5,10 @@ import { eq } from "drizzle-orm";
 declare module "express-session" {
   interface SessionData {
     logado: boolean;
+    artistId?: number;
+    artistEmail?: string;
+    artistName?: string;
+    vipLogado?: boolean;
   }
 }
 

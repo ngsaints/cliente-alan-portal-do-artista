@@ -133,7 +133,7 @@ router.post(
           const mp3Key = generateR2Key("audio", mp3File.originalname);
           mp3Path = await uploadToR2(mp3File.buffer, mp3Key, mp3File.mimetype);
         } else {
-          mp3Path = saveLocal(mp3File.buffer, "audio", mp3File.originalname);
+          mp3Path = await saveLocal(mp3File.buffer, "audio", mp3File.originalname);
         }
       } catch (error) {
         console.error("Error uploading audio:", error);

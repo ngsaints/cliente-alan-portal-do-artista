@@ -6,7 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { useListSongs } from "@workspace/api-client-react";
-import { Music, MapPin, Instagram, Mic2, ExternalLink, Disc3, Zap, CheckCircle, Phone, Mail, Globe, Star } from "lucide-react";
+import { Music, MapPin, Instagram, Mic2, ExternalLink, Disc3, Zap, CheckCircle, Phone, Mail, Globe, Star, ListMusic, Play, Image } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useGenres } from "@/hooks/useGenres";
 import { PlansModal } from "@/components/PlansModal";
@@ -65,8 +65,8 @@ export default function ArtistProfile() {
     title: `${artistData?.name || 'Artista'} - Portal do Artista`,
     description: artistData?.profissao ? `${artistData.name} - ${artistData.profissao}. ${artistData.cidade ? 'De ' + artistData.cidade + '.' : ''} Ouça suas músicas no Portal do Artista.` : "Perfil de artista no Portal do Artista",
     ogImage: artistData?.capaUrl || undefined,
-    ogUrl: `https://portaldoartista.com/a/${artistData?.slug || artistId}`,
-    canonical: `https://portaldoartista.com/a/${artistData?.slug || artistId}`,
+    ogUrl: `https://portaldoartista.com/${artistData?.slug || artistId}`,
+    canonical: `https://portaldoartista.com/${artistData?.slug || artistId}`,
   });
 
   const { data: songs, isLoading } = useListSongs({
@@ -74,6 +74,51 @@ export default function ArtistProfile() {
   });
 
   const artistSongs = (songs || []).filter((s) => !s.isVip && !s.isPrivate && (s as any).artistaId == numericArtistId);
+
+  // Playlists
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+
+  useEffect(() => {
+    if (numericArtistId) {
+      setLoadingPlaylists(true);
+      fetch(`/api/playlists/public/${numericArtistId}`)
+        .then(r => r.json())
+        .then(data => {
+          setPlaylists(Array.isArray(data) ? data : []);
+        })
+        .catch(() => setPlaylists([]))
+        .finally(() => setLoadingPlaylists(false));
+    }
+  }, [numericArtistId]);
+
+  // Gallery
+  const [gallery, setGallery] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (numericArtistId) {
+      fetch(`/api/galleries/${numericArtistId}?limit=6`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.photos && data.photos.length > 0) {
+            setGallery(data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [numericArtistId]);
+
+  const handlePlayPlaylist = (playlistSongs: any[], clickedPlaylistIdx?: number) => {
+    if (playlistSongs.length > 0) {
+      // Pass all playlists for auto-play feature
+      const allPlaylists = playlists.map((p, idx) => ({
+        id: p.id,
+        nome: p.nome,
+        songs: p.songs,
+      }));
+      playSong(playlistSongs[0], playlistSongs, allPlaylists, clickedPlaylistIdx);
+    }
+  };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -355,6 +400,119 @@ export default function ArtistProfile() {
               <MusicCard key={song.id} song={song} index={index} />
             ))}
           </div>
+        )}
+
+        {/* Playlists */}
+        {playlists.length > 0 && (
+          <section className="mt-16">
+            <div className="flex items-center gap-2 mb-6">
+              <ListMusic className="w-5 h-5 text-primary" />
+              <h2 className="text-2xl font-bold text-foreground">
+                Playlists ({playlists.length})
+              </h2>
+            </div>
+
+            <div className="space-y-6">
+              {playlists.map((playlist, playlistIdx) => (
+                <div
+                  key={playlist.id}
+                  className="bg-card border border-border/40 rounded-xl overflow-hidden"
+                >
+                  <div className="p-4 border-b border-border/40">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <ListMusic className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-foreground">{playlist.nome}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {playlist.songs?.length || 0} músicas
+                            {playlist.descricao && ` • ${playlist.descricao}`}
+                          </p>
+                        </div>
+                      </div>
+                      {playlist.songs?.length > 0 && (
+                        <button
+                          onClick={() => handlePlayPlaylist(playlist.songs, playlistIdx)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+                        >
+                          <Play className="w-4 h-4" />
+                          Tocar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {playlist.songs?.length > 0 && (
+                    <div className="max-h-80 overflow-y-auto">
+                      {playlist.songs.map((song: any, index: number) => (
+                        <button
+                          key={song.id}
+                          onClick={() => playSong(song, playlist.songs)}
+                          className="w-full flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors text-left"
+                        >
+                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <img
+                            src={song.capaUrl || "/images/default-cover.png"}
+                            alt={song.titulo}
+                            className="w-12 h-12 rounded object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{song.titulo}</p>
+                            <p className="text-xs text-muted-foreground truncate">{song.genero}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {song.plays || 0} plays
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {(!playlist.songs || playlist.songs.length === 0) && (
+                    <div className="p-8 text-center text-muted-foreground text-sm">
+                      Nenhuma música nesta playlist
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Gallery */}
+        {gallery && gallery.photos && gallery.photos.length > 0 && (
+          <section className="mt-16">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Image className="w-5 h-5 text-primary" />
+                <h2 className="text-2xl font-bold text-foreground">Galeria</h2>
+              </div>
+              <Link
+                href={`/${slug}/galeria`}
+                className="px-4 py-2 rounded-lg bg-card border border-border/40 text-foreground text-sm font-medium hover:bg-muted/50 transition-colors"
+              >
+                Ver mais
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+              {gallery.photos.slice(0, 6).map((photo: any) => (
+                <Link
+                  key={photo.id}
+                  href={`/${slug}/galeria`}
+                  className="aspect-square rounded-xl overflow-hidden bg-muted hover:ring-2 hover:ring-primary transition-all"
+                >
+                  <img
+                    src={photo.fotoUrl}
+                    alt={photo.legenda || ""}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                  />
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
       </main>
 

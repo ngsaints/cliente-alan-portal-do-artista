@@ -58,6 +58,7 @@ export function InterestModal({ isOpen, onClose, songId, artistaId, songTitle }:
       }
 
       setDone(true);
+      document.dispatchEvent(new CustomEvent("interestSubmitted"));
       setTimeout(handleClose, 2500);
     } catch (err: any) {
       setError(err.message || "Erro ao enviar. Tente novamente.");

@@ -5,11 +5,12 @@ import {
   User, Music, BarChart3, Settings, Upload, Eye, EyeOff, 
   TrendingUp, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
-  ExternalLink, Heart, Pencil
+  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useGenres } from "@/hooks/useGenres";
+import { usePlayer } from "@/contexts/PlayerContext";
 
 interface ArtistStats {
   totalSongs: number;
@@ -60,23 +61,64 @@ const FONTS = [
   { value: "Playfair Display", label: "Playfair Display" },
   { value: "Oswald", label: "Oswald" },
   { value: "Raleway", label: "Raleway" },
+  { value: "Merriweather", label: "Merriweather" },
+  { value: "Ubuntu", label: "Ubuntu" },
+  { value: "Nunito", label: "Nunito" },
+  { value: "Quicksand", label: "Quicksand" },
+  { value: "Archivo", label: "Archivo" },
+  { value: "Bebas Neue", label: "Bebas Neue" },
+  { value: "Cinzel", label: "Cinzel" },
+  { value: "Cormorant Garamond", label: "Cormorant Garamond" },
+  { value: "Dancing Script", label: "Dancing Script" },
+  { value: "Fira Sans", label: "Fira Sans" },
+  { value: "Josefin Sans", label: "Josefin Sans" },
+  { value: "Libre Baskerville", label: "Libre Baskerville" },
+  { value: "Lora", label: "Lora" },
+  { value: "Pacifico", label: "Pacifico" },
+  { value: "Rouge Script", label: "Rouge Script" },
+  { value: "Satisfy", label: "Satisfy" },
+  { value: "Spectral", label: "Spectral" },
+  { value: "Tangerine", label: "Tangerine" },
+  { value: "Vollkorn", label: "Vollkorn" },
+  { value: "Zilla Slab", label: "Zilla Slab" },
+  { value: "Abril Fatface", label: "Abril Fatface" },
 ];
 
-const LAYOUTS = [
-  { value: "padrao", label: "Padrão" },
-  { value: "gradiente", label: "Gradiente" },
-  { value: "minimalista", label: "Minimalista" },
-  { value: "escuro", label: "Escuro" },
+const BACKGROUNDS = [
+  { value: "padrao", label: "Padrão", preview: "#ffffff" },
+  { value: "gradiente-azul", label: "Gradiente Azul", preview: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" },
+  { value: "gradiente-verde", label: "Gradiente Verde", preview: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" },
+  { value: "gradiente-roxo", label: "Gradiente Roxo", preview: "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)" },
+  { value: "gradiente-sol", label: "Gradiente Sol", preview: "linear-gradient(135deg, #f5af19 0%, #f12711 100%)" },
+  { value: "gradiente-oceano", label: "Gradiente Oceano", preview: "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)" },
+  { value: "escuro", label: "Escuro", preview: "#1a1a2e" },
+  { value: "escuro-azul", label: "Escuro Azul", preview: "#0f0f23" },
+  { value: "preto", label: "Preto", preview: "#000000" },
+  { value: "branco", label: "Branco", preview: "#ffffff" },
+  { value: "bege", label: "Bege", preview: "#f5f0e1" },
+  { value: "cinza-claro", label: "Cinza Claro", preview: "#e5e5e5" },
+  { value: "azul-escuro", label: "Azul Escuro", preview: "#1e3a5f" },
+  { value: "verde-escuro", label: "Verde Escuro", preview: "#1a4d1a" },
+  { value: "roxo-escuro", label: "Roxo Escuro", preview: "#2d1b4e" },
 ];
 
 const PLAYERS = [
-  { value: "Padrão", label: "Padrão" },
-  { value: "Minimalista", label: "Minimalista" },
-  { value: "Lista", label: "Lista" },
-  { value: "Waveform", label: "Waveform" },
+  { value: "padrao", label: "Padrão", description: "Player clássico com controles básicos" },
+  { value: "minimalista", label: "Minimalista", description: "Design limpo e simplificado" },
+  { value: "lista", label: "Lista", description: "Player com lista de músicas" },
+  { value: "waveform", label: "Waveform", description: "Visualização de onda sonora" },
+  { value: "moderno", label: "Moderno", description: "Design moderno com animação" },
+  { value: "vintage", label: "Vintage", description: "Estilo retrô clássico" },
 ];
 
-type TabId = "dashboard" | "songs" | "profile" | "plano" | "interesses" | "vip";
+const COLORS = [
+  "#ffffff", "#000000", "#f5d76e", "#ff6b6b", "#4ecdc4", "#45b7d1",
+  "#96ceb4", "#ffeaa7", "#dfe6e9", "#6c5ce7", "#a29bfe", "#fd79a8",
+  "#e17055", "#00b894", "#0984e3", "#d63031", "#636e72", "#2d3436",
+  "#e84393", "#00cec9", "#fdcb6e", "#fab1a0", "#74b9ff", "#a855f7",
+];
+
+type TabId = "dashboard" | "songs" | "playlists" | "gallery" | "profile" | "plano" | "interesses" | "vip";
 
 export default function ArtistDashboard() {
   const [location, setLocation] = useLocation();
@@ -116,8 +158,8 @@ export default function ArtistDashboard() {
   const [editCustom, setEditCustom] = useState({
     fonte: "Arial",
     cor: "#ffffff",
-    layout: "padrao",
-    player: "Padrão",
+    background: "padrao",
+    player: "padrao",
   });
 
   const [profileCapaFile, setProfileCapaFile] = useState<File | null>(null);
@@ -128,9 +170,22 @@ export default function ArtistDashboard() {
   const [vipSenha, setVipSenha] = useState("");
   const [savingVipSenha, setSavingVipSenha] = useState(false);
 
+  // Playlists state
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<any | null>(null);
+  const [playlistSongs, setPlaylistSongs] = useState<any[]>([]);
+  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [newPlaylistDesc, setNewPlaylistDesc] = useState("");
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<any | null>(null);
+  const { autoPlayPlaylist, setAutoPlayPlaylist } = usePlayer();
+
   const tabs: { id: TabId; label: string; icon: any }[] = [
     { id: "dashboard",      label: "Dashboard",       icon: BarChart3      },
     { id: "songs",          label: "Minhas Músicas",   icon: Music          },
+    { id: "playlists",      label: "Playlists",        icon: ListMusic      },
+    { id: "gallery",        label: "Galeria",          icon: Image          },
     { id: "profile",        label: "Meu Perfil",       icon: User           },
     { id: "vip",            label: "Área VIP",         icon: Crown          },
     { id: "plano",          label: "Meu Plano",        icon: CreditCard     },
@@ -175,14 +230,123 @@ export default function ArtistDashboard() {
       setEditCustom({
         fonte: a.fonte || "Arial",
         cor: a.cor || "#ffffff",
-        layout: a.layout || "padrao",
-        player: a.player || "Padrão",
+        background: a.background || "padrao",
+        player: a.player || "padrao",
       });
       setVipSenha(a.vipSenha || "");
     } catch (err) {
       setError("Erro ao carregar dados");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Playlist functions
+  const loadPlaylists = async () => {
+    try {
+      const res = await fetch("/api/playlists", { credentials: "include" });
+      const data = await res.json();
+      setPlaylists(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error loading playlists:", err);
+    }
+  };
+
+  const loadPlaylistSongs = async (playlistId: number) => {
+    try {
+      const res = await fetch(`/api/playlists/${playlistId}/songs`, { credentials: "include" });
+      const data = await res.json();
+      setPlaylistSongs(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error loading playlist songs:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (artist?.id) {
+      loadPlaylists();
+    }
+  }, [artist?.id]);
+
+  useEffect(() => {
+    if (selectedPlaylist?.id) {
+      loadPlaylistSongs(selectedPlaylist.id);
+    }
+  }, [selectedPlaylist?.id]);
+
+  const handleCreatePlaylist = async () => {
+    if (!newPlaylistName.trim()) return;
+    try {
+      const res = await fetch("/api/playlists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ nome: newPlaylistName, descricao: newPlaylistDesc }),
+      });
+      if (res.ok) {
+        setNewPlaylistName("");
+        setNewPlaylistDesc("");
+        setShowCreatePlaylist(false);
+        loadPlaylists();
+      }
+    } catch (err) {
+      console.error("Error creating playlist:", err);
+    }
+  };
+
+  const handleDeletePlaylist = async (playlistId: number) => {
+    if (!confirm("Excluir esta playlist?")) return;
+    try {
+      const res = await fetch(`/api/playlists/${playlistId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        if (selectedPlaylist?.id === playlistId) setSelectedPlaylist(null);
+        loadPlaylists();
+      }
+    } catch (err) {
+      console.error("Error deleting playlist:", err);
+    }
+  };
+
+  const handleAddSongToPlaylist = async (playlistId: number) => {
+    if (!songToAddToPlaylist) return;
+    try {
+      const res = await fetch(`/api/playlists/${playlistId}/songs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ songId: songToAddToPlaylist.id }),
+      });
+      if (res.ok) {
+        setShowAddToPlaylist(false);
+        setSongToAddToPlaylist(null);
+        loadPlaylists();
+        if (selectedPlaylist?.id === playlistId) {
+          loadPlaylistSongs(playlistId);
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || "Erro ao adicionar música");
+      }
+    } catch (err) {
+      console.error("Error adding song to playlist:", err);
+    }
+  };
+
+  const handleRemoveSongFromPlaylist = async (playlistId: number, songId: number) => {
+    try {
+      const res = await fetch(`/api/playlists/${playlistId}/songs/${songId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        loadPlaylists();
+        loadPlaylistSongs(playlistId);
+      }
+    } catch (err) {
+      console.error("Error removing song from playlist:", err);
     }
   };
 
@@ -366,6 +530,38 @@ export default function ArtistDashboard() {
     }
   };
 
+  const [interests, setInterests] = useState<any[]>([]);
+  const [loadingInterests, setLoadingInterests] = useState(false);
+
+  const loadInterests = () => {
+    if (!artist?.id) return;
+    setLoadingInterests(true);
+    fetch(`/api/interests/artist/${artist.id}`, { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setInterests(Array.isArray(d) ? d : []))
+      .catch(() => setInterests([]))
+      .finally(() => setLoadingInterests(false));
+  };
+
+  useEffect(() => {
+    if (artist?.id) loadInterests();
+  }, [artist?.id]);
+
+  useEffect(() => {
+    const handler = () => loadInterests();
+    document.addEventListener("interestSubmitted", handler);
+    return () => document.removeEventListener("interestSubmitted", handler);
+  }, []);
+
+  const handleMarkRead = async (id: number) => {
+    await fetch(`/api/interests/${id}/read`, { method: "PATCH", credentials: "include" });
+  };
+
+  const handleDeleteInterest = async (id: number) => {
+    await fetch(`/api/interests/${id}`, { method: "DELETE", credentials: "include" });
+    setInterests(prev => prev.filter(i => i.id !== id));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -384,6 +580,80 @@ export default function ArtistDashboard() {
         </div>
       )}
 
+      {/* Add to Playlist Modal - fora das tabs */}
+      {showAddToPlaylist && songToAddToPlaylist && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card border border-border/40 rounded-xl p-6 w-full max-w-md space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-foreground">Adicionar à Playlist</h4>
+              <button onClick={() => { setShowAddToPlaylist(false); setSongToAddToPlaylist(null); }} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">Música: <span className="text-foreground font-medium">{songToAddToPlaylist.titulo}</span></p>
+            
+            {playlists.length > 0 ? (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {playlists.map((playlist) => (
+                  <button
+                    key={playlist.id}
+                    onClick={() => handleAddSongToPlaylist(playlist.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-left"
+                  >
+                    <ListMusic className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="font-medium text-foreground">{playlist.nome}</p>
+                      <p className="text-xs text-muted-foreground">{playlist.songCount || 0} músicas</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhuma playlist criada ainda.
+              </p>
+            )}
+            
+            <div className="border-t border-border/50 pt-4">
+              <p className="text-xs text-muted-foreground mb-2">Criar nova playlist:</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  placeholder="Nome da playlist"
+                  className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-foreground text-sm"
+                />
+                <button
+                  onClick={async () => {
+                    if (!newPlaylistName.trim()) return;
+                    try {
+                      const res = await fetch("/api/playlists", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ nome: newPlaylistName }),
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        setNewPlaylistName("");
+                        loadPlaylists();
+                        handleAddSongToPlaylist(data.id);
+                      }
+                    } catch (err) {
+                      console.error("Error:", err);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90"
+                >
+                  Criar e Adicionar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="pt-20 pb-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
@@ -395,7 +665,7 @@ export default function ArtistDashboard() {
             <div className="flex items-center gap-3">
               {artist?.slug && (
                 <a
-                  href={`/a/${artist.slug}`}
+                  href={`/${artist.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-primary border border-primary/30 hover:bg-primary/10 transition-colors text-sm font-medium"
@@ -424,9 +694,9 @@ export default function ArtistDashboard() {
           </div>
 
           <NotificationBell
-            interests={[]}
-            onMarkRead={() => {}}
-            onDelete={() => {}}
+            interests={interests}
+            onMarkRead={handleMarkRead}
+            onDelete={handleDeleteInterest}
           />
 
           {/* Tabs */}
@@ -549,6 +819,29 @@ export default function ArtistDashboard() {
                     )}
                   </div>
                 </div>
+
+                {/* Banner 30 dias grátis Premium */}
+                {artist?.plano !== "premium" && (
+                  <div className="bg-gradient-to-r from-yellow-500/20 via-yellow-500/10 to-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 mb-6">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                          <Crown className="w-6 h-6 text-yellow-500" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-foreground">Experimente o Premium por 30 dias grátis!</h4>
+                          <p className="text-sm text-muted-foreground">Desfrute de todas as vantagens do plano Premium com acesso completo e ilimitado.</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab("plano")}
+                        className="px-6 py-3 rounded-full bg-yellow-500 text-black font-bold text-sm hover:bg-yellow-400 transition-colors whitespace-nowrap"
+                      >
+                        Garantir meus 30 dias
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Métricas */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -753,8 +1046,34 @@ export default function ArtistDashboard() {
                           {song.isPrivate && <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-400">Privada</span>}
                           {song.tipoMidia === "video" && <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400">Vídeo</span>}
                           <button
-                            onClick={() => { setEditingSong(song); setShowAddForm(true); }}
-                            className="p-2 rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-primary hover:bg-primary/10 transition-all"
+                            onClick={() => { setSongToAddToPlaylist(song); setShowAddToPlaylist(true); }}
+                            className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            title="Adicionar à playlist"
+                          >
+                            <ListMusic className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingSong(song);
+                              setNewSong({
+                                titulo: song.titulo || "",
+                                descricao: song.descricao || "",
+                                genero: song.genero || "Sertanejo",
+                                subgenero: song.subgenero || "",
+                                compositor: song.compositor || "",
+                                status: song.status || "Disponível",
+                                precoX: song.precoX || "",
+                                precoY: song.precoY || "",
+                                hasPrice: song.precoX ? "true" : "false",
+                                isVip: song.isVip ? "true" : "false",
+                                tipoMidia: song.tipoMidia || "audio",
+                                youtubeUrl: song.youtubeUrl || "",
+                                vipCode: song.vipCode || "",
+                                isPrivate: song.isPrivate ? "true" : "false",
+                              });
+                              setShowAddForm(true);
+                            }}
+                            className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                             title="Editar música"
                           >
                             <Pencil className="w-4 h-4" />
@@ -762,7 +1081,7 @@ export default function ArtistDashboard() {
                           <button
                             onClick={() => handleDeleteSong(song.id)}
                             disabled={deletingSongId === song.id}
-                            className="p-2 rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all disabled:opacity-50"
+                            className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-50"
                             title="Excluir música"
                           >
                             {deletingSongId === song.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -773,6 +1092,164 @@ export default function ArtistDashboard() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Playlists */}
+            {activeTab === "playlists" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-foreground">Minhas Playlists</h3>
+                  <button
+                    onClick={() => setShowCreatePlaylist(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Nova Playlist
+                  </button>
+                </div>
+
+                {/* Create Playlist Modal */}
+                {showCreatePlaylist && (
+                  <div className="bg-card border border-border/40 rounded-xl p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-foreground">Criar Playlist</h4>
+                      <button onClick={() => setShowCreatePlaylist(false)} className="text-muted-foreground hover:text-foreground">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">Nome da Playlist</label>
+                      <input
+                        type="text"
+                        value={newPlaylistName}
+                        onChange={(e) => setNewPlaylistName(e.target.value)}
+                        placeholder="Ex: minhas favoritas"
+                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">Descrição (opcional)</label>
+                      <input
+                        type="text"
+                        value={newPlaylistDesc}
+                        onChange={(e) => setNewPlaylistDesc(e.target.value)}
+                        placeholder="Breve descrição"
+                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => setShowCreatePlaylist(false)} className="px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground">
+                        Cancelar
+                      </button>
+                      <button onClick={handleCreatePlaylist} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/90">
+                        Criar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Playlists Grid */}
+                {playlists.length === 0 ? (
+                  <div className="text-center py-12 bg-card border border-dashed border-border/40 rounded-xl">
+                    <ListMusic className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Nenhuma playlist criada</p>
+                    <p className="text-sm text-muted-foreground mt-1">Crie playlists para organizar suas músicas</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {playlists.map((playlist) => (
+                      <div
+                        key={playlist.id}
+                        className={`bg-card border rounded-xl p-4 cursor-pointer transition-all ${
+                          selectedPlaylist?.id === playlist.id ? "border-primary" : "border-border/40 hover:border-primary/50"
+                        }`}
+                        onClick={() => setSelectedPlaylist(selectedPlaylist?.id === playlist.id ? null : playlist)}
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <ListMusic className="w-6 h-6 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-foreground truncate">{playlist.nome}</h4>
+                            <p className="text-xs text-muted-foreground">{playlist.songCount || 0} músicas</p>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeletePlaylist(playlist.id); }}
+                            className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {playlist.descricao && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{playlist.descricao}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Auto-play toggle */}
+                <div className="flex items-center gap-3 p-4 bg-card border border-border/40 rounded-xl">
+                  <input
+                    type="checkbox"
+                    id="autoPlayPlaylist"
+                    checked={autoPlayPlaylist}
+                    onChange={(e) => setAutoPlayPlaylist(e.target.checked)}
+                    className="accent-primary w-4 h-4"
+                  />
+                  <label htmlFor="autoPlayPlaylist" className="text-sm text-foreground cursor-pointer">
+                    <span className="font-medium">Tocar playlists automaticamente</span>
+                    <span className="text-muted-foreground"> - Quando terminar uma playlist, toca a próxima automaticamente</span>
+                  </label>
+                </div>
+
+                {/* Selected Playlist Songs */}
+                {selectedPlaylist && (
+                  <div className="bg-card border border-border/40 rounded-xl p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold text-foreground">{selectedPlaylist.nome}</h4>
+                        <p className="text-sm text-muted-foreground">{playlistSongs.length} músicas</p>
+                      </div>
+                      <button onClick={() => setSelectedPlaylist(null)} className="text-muted-foreground hover:text-foreground">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {playlistSongs.length === 0 ? (
+                      <div className="text-center py-8 border border-dashed border-border/40 rounded-lg">
+                        <Music className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">Nenhuma música nesta playlist</p>
+                        <p className="text-xs text-muted-foreground mt-1">Adicione músicas pela aba "Minhas Músicas"</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {playlistSongs.map((song, index) => (
+                          <div key={`${song.id}-${index}`} className="flex items-center gap-3 p-3 bg-background/50 rounded-lg border border-border/30 group">
+                            <GripVertical className="w-4 h-4 text-muted-foreground opacity-50" />
+                            <img src={song.capaUrl || "/images/default-cover.png"} alt={song.titulo} className="w-10 h-10 rounded object-cover" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground truncate text-sm">{song.titulo}</p>
+                              <p className="text-xs text-muted-foreground">{song.genero}</p>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveSongFromPlaylist(selectedPlaylist.id, song.id)}
+                              className="p-2 rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Gallery */}
+            {activeTab === "gallery" && artist && (
+              <GalleryTab artistId={String(artist.id)} />
             )}
 
             {/* Profile */}
@@ -893,8 +1370,8 @@ export default function ArtistDashboard() {
                     <div className="flex items-center gap-2 p-3 bg-background/50 rounded-lg border border-border/30">
                       <Link2 className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">Seu link:</span>
-                      <a href={`/a/${artist.slug}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
-                        {window.location.origin}/a/{artist.slug}
+                      <a href={`/${artist.slug}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
+                        {window.location.origin}/{artist.slug}
                       </a>
                     </div>
                   )}
@@ -914,78 +1391,149 @@ export default function ArtistDashboard() {
                     <Palette className="w-5 h-5 text-primary" />
                     Personalização
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                        <Type className="w-4 h-4" /> Fonte
-                      </label>
-                      <select
-                        value={editCustom.fonte}
-                        onChange={(e) => setEditCustom({ ...editCustom, fonte: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
-                      >
-                        {FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                      </select>
-                      <p className="text-xs text-muted-foreground mt-1" style={{ fontFamily: editCustom.fonte }}>Preview: {editCustom.fonte}</p>
+
+                  {/* Font Selection */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                      <Type className="w-4 h-4" /> Fonte ({FONTS.length} opções)
+                    </label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-1">
+                      {FONTS.map(f => (
+                        <button
+                          key={f.value}
+                          onClick={() => setEditCustom({ ...editCustom, fonte: f.value })}
+                          className={`p-2 rounded-lg border text-center transition-all ${
+                            editCustom.fonte === f.value
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <span className="text-sm font-medium" style={{ fontFamily: f.value }}>{f.label}</span>
+                        </button>
+                      ))}
                     </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                        <Palette className="w-4 h-4" /> Cor do Perfil
-                      </label>
-                      <div className="flex items-center gap-3">
+                  </div>
+
+                  {/* Background Selection */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                      <Image className="w-4 h-4" /> Background ({BACKGROUNDS.length} opções)
+                    </label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                      {BACKGROUNDS.map(b => (
+                        <button
+                          key={b.value}
+                          onClick={() => setEditCustom({ ...editCustom, background: b.value })}
+                          className={`p-2 rounded-lg border text-center transition-all ${
+                            (editCustom as any).background === b.value
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <div
+                            className="w-full h-10 rounded-lg mb-1"
+                            style={{ background: b.preview }}
+                          />
+                          <span className="text-xs text-muted-foreground">{b.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Player Selection */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                      <Music className="w-4 h-4" /> Player ({PLAYERS.length} opções)
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {PLAYERS.map(p => (
+                        <button
+                          key={p.value}
+                          onClick={() => setEditCustom({ ...editCustom, player: p.value })}
+                          className={`p-3 rounded-lg border text-left transition-all ${
+                            editCustom.player === p.value
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <span className="text-sm font-medium text-foreground">{p.label}</span>
+                          <p className="text-xs text-muted-foreground mt-0.5">{p.description}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Color Selection */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                      <Palette className="w-4 h-4" /> Cor da Fonte ({COLORS.length} opções)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {COLORS.map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setEditCustom({ ...editCustom, cor: c })}
+                          className={`w-8 h-8 rounded-full border-2 transition-all ${
+                            editCustom.cor === c ? "border-primary scale-110" : "border-transparent hover:scale-105"
+                          }`}
+                          style={{ backgroundColor: c }}
+                          title={c}
+                        />
+                      ))}
+                      <div className="flex items-center gap-2 ml-2">
                         <input
                           type="color"
                           value={editCustom.cor}
                           onChange={(e) => setEditCustom({ ...editCustom, cor: e.target.value })}
-                          className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
+                          className="w-8 h-8 rounded-full cursor-pointer bg-transparent"
                         />
                         <input
                           type="text"
                           value={editCustom.cor}
                           onChange={(e) => setEditCustom({ ...editCustom, cor: e.target.value })}
-                          className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                          className="w-20 bg-background border border-border rounded-lg px-2 py-1 text-xs text-foreground"
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                        <Image className="w-4 h-4" /> Layout
-                      </label>
-                      <select
-                        value={editCustom.layout}
-                        onChange={(e) => setEditCustom({ ...editCustom, layout: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
-                      >
-                        {LAYOUTS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                        <Music className="w-4 h-4" /> Tipo de Player
-                      </label>
-                      <select
-                        value={editCustom.player}
-                        onChange={(e) => setEditCustom({ ...editCustom, player: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
-                      >
-                        {PLAYERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                      </select>
-                    </div>
                   </div>
 
+                  {/* Preview */}
                   <div className="border border-border/30 rounded-xl p-4 bg-background/30">
-                    <p className="text-xs text-muted-foreground mb-2">Preview do perfil</p>
+                    <p className="text-xs text-muted-foreground mb-3">Visualização prévia</p>
                     <div
                       className="rounded-xl p-6 transition-all"
                       style={{
                         fontFamily: editCustom.fonte,
                         color: editCustom.cor,
-                        background: editCustom.layout === "escuro" ? "#1a1a2e" : editCustom.layout === "gradiente" ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : editCustom.layout === "minimalista" ? "#fafafa" : "#ffffff",
+                        background: (editCustom as any).background === "escuro" ? "#1a1a2e" :
+                                   (editCustom as any).background === "escuro-azul" ? "#0f0f23" :
+                                   (editCustom as any).background === "preto" ? "#000000" :
+                                   (editCustom as any).background === "branco" ? "#ffffff" :
+                                   (editCustom as any).background === "bege" ? "#f5f0e1" :
+                                   (editCustom as any).background === "cinza-claro" ? "#e5e5e5" :
+                                   (editCustom as any).background === "azul-escuro" ? "#1e3a5f" :
+                                   (editCustom as any).background === "verde-escuro" ? "#1a4d1a" :
+                                   (editCustom as any).background === "roxo-escuro" ? "#2d1b4e" :
+                                   (editCustom as any).background === "gradiente-azul" ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" :
+                                   (editCustom as any).background === "gradiente-verde" ? "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" :
+                                   (editCustom as any).background === "gradiente-roxo" ? "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)" :
+                                   (editCustom as any).background === "gradiente-sol" ? "linear-gradient(135deg, #f5af19 0%, #f12711 100%)" :
+                                   (editCustom as any).background === "gradiente-oceano" ? "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)" :
+                                   "#ffffff",
                       }}
                     >
-                      <p className="text-lg font-bold" style={{ color: editCustom.cor }}>{artist?.name || "Nome do Artista"}</p>
+                      <p className="text-xl font-bold" style={{ color: editCustom.cor }}>{artist?.name || "Nome do Artista"}</p>
                       <p className="text-sm opacity-80" style={{ color: editCustom.cor }}>{artist?.profissao || "Cantor"} · {artist?.cidade || "Cidade"}</p>
-                      <p className="text-xs opacity-60 mt-2" style={{ color: editCustom.cor }}>Player: {editCustom.player}</p>
+                      <div className="mt-4 flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Music className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium" style={{ color: editCustom.cor }}>Música Exemplo</p>
+                          <p className="text-xs opacity-60" style={{ color: editCustom.cor }}>Gênero</p>
+                        </div>
+                      </div>
+                      <p className="text-xs mt-4 opacity-60" style={{ color: editCustom.cor }}>Player: {PLAYERS.find(p => p.value === editCustom.player)?.label || editCustom.player}</p>
                     </div>
                   </div>
 
@@ -1259,6 +1807,267 @@ function ArtistInteresses({ artistId }: { artistId: number }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Gallery Tab ─────────────────────────────────────────────────────────────
+
+function GalleryTab({ artistId }: { artistId: string }) {
+  const [gallery, setGallery] = useState<any | null>(null);
+  const [photos, setPhotos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newPhotoUrl, setNewPhotoUrl] = useState("");
+  const [newPhotoLegenda, setNewPhotoLegenda] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  const loadGallery = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/galleries/${artistId}`);
+      const data = await res.json();
+      if (data.id) {
+        setGallery(data);
+        setPhotos(data.photos || []);
+      }
+    } catch (err) {
+      console.error("Error loading gallery:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadGallery();
+  }, [artistId]);
+
+  const handleCreateGallery = async () => {
+    try {
+      const res = await fetch("/api/galleries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ artistaId: artistId, titulo: "Galeria de Fotos" }),
+      });
+      if (res.ok) {
+        loadGallery();
+      }
+    } catch (err) {
+      console.error("Error creating gallery:", err);
+    }
+  };
+
+  const handleAddPhoto = async () => {
+    if (!gallery) return;
+    if (!newPhotoUrl && !photoFile) return;
+    setSaving(true);
+    try {
+      if (photoFile) {
+        const formData = new FormData();
+        formData.append("foto", photoFile);
+        formData.append("legenda", newPhotoLegenda);
+        const res = await fetch(`/api/galleries/${gallery.id}/photos/upload`, {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+        if (res.ok) {
+          setNewPhotoUrl("");
+          setNewPhotoLegenda("");
+          setPhotoFile(null);
+          setPhotoPreview("");
+          setShowAdd(false);
+          loadGallery();
+        }
+      } else {
+        const res = await fetch(`/api/galleries/${gallery.id}/photos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ fotoUrl: newPhotoUrl, legenda: newPhotoLegenda }),
+        });
+        if (res.ok) {
+          setNewPhotoUrl("");
+          setNewPhotoLegenda("");
+          setShowAdd(false);
+          loadGallery();
+        }
+      }
+    } catch (err) {
+      console.error("Error adding photo:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemovePhoto = async (photoId: number) => {
+    if (!gallery || !confirm("Remover esta foto?")) return;
+    try {
+      const res = await fetch(`/api/galleries/${gallery.id}/photos/${photoId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        loadGallery();
+      }
+    } catch (err) {
+      console.error("Error removing photo:", err);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+      setNewPhotoUrl("");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Image className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-bold text-foreground">Galeria de Fotos</h3>
+        </div>
+        {gallery && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90"
+          >
+            <Plus className="w-4 h-4" />
+            Adicionar Foto
+          </button>
+        )}
+      </div>
+
+      {!gallery ? (
+        <div className="text-center py-12 bg-card border border-dashed border-border/40 rounded-xl">
+          <Image className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground mb-4">Você ainda não tem uma galeria de fotos.</p>
+          <button
+            onClick={handleCreateGallery}
+            className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90"
+          >
+            Criar Galeria
+          </button>
+        </div>
+      ) : photos.length === 0 ? (
+        <div className="text-center py-12 bg-card border border-dashed border-border/40 rounded-xl">
+          <Image className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground mb-4">Nenhuma foto na galeria ainda.</p>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90"
+          >
+            Adicionar Primeira Foto
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {photos.map((photo) => (
+            <div key={photo.id} className="relative group aspect-square rounded-xl overflow-hidden bg-muted">
+              <img
+                src={photo.fotoUrl}
+                alt={photo.legenda || ""}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button
+                  onClick={() => handleRemovePhoto(photo.id)}
+                  className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+              {photo.legenda && (
+                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                  <p className="text-white text-xs truncate">{photo.legenda}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card border border-border/40 rounded-xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-foreground">Adicionar Foto</h3>
+              <button onClick={() => { setShowAdd(false); setPhotoFile(null); setPhotoPreview(""); }} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {photoPreview && (
+              <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
+                <img src={photoPreview} alt="Preview" className="w-full h-full object-contain" />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">Upload de imagem</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground text-sm file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">ou</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">URL da imagem</label>
+              <input
+                value={newPhotoUrl}
+                onChange={(e) => { setNewPhotoUrl(e.target.value); setPhotoFile(null); setPhotoPreview(""); }}
+                disabled={!!photoFile}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground disabled:opacity-50"
+                placeholder="https://..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">Legenda (opcional)</label>
+              <input
+                value={newPhotoLegenda}
+                onChange={(e) => setNewPhotoLegenda(e.target.value)}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
+                placeholder="Descrição da foto"
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setShowAdd(false); setPhotoFile(null); setPhotoPreview(""); }} className="px-4 py-2 rounded-lg text-muted-foreground">Cancelar</button>
+              <button
+                onClick={handleAddPhoto}
+                disabled={saving || (!newPhotoUrl && !photoFile)}
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Adicionar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

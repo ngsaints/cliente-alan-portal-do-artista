@@ -7,7 +7,7 @@ import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { NotificationBell, type Interest } from "@/components/NotificationBell";
 import { InterestModal } from "@/components/InterestModal";
-import { Disc3, TrendingUp, Star, Sparkles, Search, Music } from "lucide-react";
+import { Disc3, TrendingUp, Star, Sparkles, Search, Music, Users, MapPin, Instagram, Mail, Phone } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
@@ -67,6 +67,16 @@ export default function Home() {
   }, [searchQuery]);
 
   const [interests, setInterests] = useState<Interest[]>([]);
+  const [artists, setArtists] = useState<any[]>([]);
+  const [loadingArtists, setLoadingArtists] = useState(false);
+
+  useEffect(() => {
+    setLoadingArtists(true);
+    fetch("/api/artists/public")
+      .then(r => r.json())
+      .then(data => { setArtists(data); setLoadingArtists(false); })
+      .catch(() => setLoadingArtists(false));
+  }, []);
 
   const filteredSongs = (songs || []).filter((s) => !(s as any).isVip && !(s as any).isPrivate);
   const highlights = filteredSongs.filter((s) => (s as any).destaque).slice(0, 5);
@@ -92,7 +102,7 @@ export default function Home() {
       <Navbar />
 
       {/* Hero */}
-      <section className="pt-20 pb-0 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <section className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent pointer-events-none" />
 
         <div className="max-w-5xl mx-auto text-center relative z-10">
@@ -117,7 +127,7 @@ export default function Home() {
               {heroSettings.cta || "Cadastre suas músicas, monte seu portfólio musical e seja encontrado por contratantes e fãs em todo o Brasil."}
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
               <Link
                 href="/artista/login?tab=cadastro"
                 className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:scale-105"
@@ -126,13 +136,17 @@ export default function Home() {
                 Criar Meu Portal
               </Link>
               <Link
-                href="#catalogo"
-                className="flex items-center gap-2 px-8 py-3 rounded-full bg-card/80 border border-border text-foreground font-bold text-base hover:bg-card hover:border-primary/50 transition-all"
+                href="/artistas"
+                className="flex items-center gap-2 px-8 py-3 rounded-full bg-gradient-to-r from-primary/80 to-yellow-500/80 text-primary-foreground font-bold text-base hover:scale-105 transition-all shadow-lg"
               >
-                <Music className="w-5 h-5" />
-                Ver Catálogo
+                <Users className="w-5 h-5" />
+                Contratar Artista
               </Link>
             </div>
+
+            <p className="text-sm text-muted-foreground mb-4">
+              Encontre seu artista e contrate seu show
+            </p>
 
             <div className="max-w-md mx-auto relative">
               <div className="relative">
@@ -150,7 +164,7 @@ export default function Home() {
                   {searchResults.map((artist) => (
                     <Link
                       key={artist.id}
-                      href={`/a/${artist.slug}`}
+                      href={`/${artist.slug}`}
                       className="flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors"
                       onClick={() => { setSearchQuery(""); setSearchResults([]); }}
                     >
@@ -252,6 +266,57 @@ export default function Home() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {artists.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-6">
+              <Users className="w-5 h-5 text-primary" />
+              <h2 className="text-2xl font-bold text-foreground">Artistas</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {artists.slice(0, 8).map((artist, index) => (
+                <motion.div
+                  key={artist.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Link
+                    href={artist.slug ? `/a/${artist.slug}` : `/artista/${artist.id}`}
+                    className="group block bg-card border border-border/40 rounded-2xl overflow-hidden hover:border-primary/50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.8)] hover:-translate-y-1 transition-all duration-300"
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-black/50">
+                      {artist.capaUrl ? (
+                        <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                          <Users className="w-16 h-16 text-primary/50" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-lg font-bold text-foreground truncate">{artist.name}</h3>
+                      <p className="text-sm text-muted-foreground">{artist.profissao}</p>
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        {artist.cidade && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{artist.cidade}</span>}
+                        {artist.contato && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{artist.contato}</span>}
+                      </div>
+                      {artist.email && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Mail className="w-3 h-3" />{artist.email}</p>}
+                      {artist.instagram && <p className="text-xs text-primary mt-1 flex items-center gap-1"><Instagram className="w-3 h-3" />@{artist.instagram}</p>}
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+            {artists.length > 8 && (
+              <div className="text-center mt-6">
+                <Link href="/artistas" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors">
+                  Ver Todos os Artistas ({artists.length})
+                </Link>
+              </div>
+            )}
           </section>
         )}
 

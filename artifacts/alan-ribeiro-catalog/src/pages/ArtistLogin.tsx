@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Eye, EyeOff, Loader2, User, MapPin, Link2, Image, Star, Check, X, Phone, Zap, ArrowLeft, Info } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Loader2, User, MapPin, Link2, Image, Star, Check, X, Phone, Zap, ArrowLeft, Info, Crown } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useGenres } from "@/hooks/useGenres";
 import { ImageCrop } from "@/components/ImageCrop";
@@ -51,6 +51,7 @@ const PLANS = [
     limiteMusicas: 100,
     personalizacaoPercent: 100,
     features: ["100 músicas", "100% personalização", "Máxima visibilidade"],
+    badge: "30 dias grátis",
   },
 ];
 
@@ -77,7 +78,7 @@ export default function ArtistLogin() {
   }, [search]);
 
   const [cadastroStep, setCadastroStep] = useState<CadastroStep>("planos");
-  const [selectedPlan, setSelectedPlan] = useState<string>("free");
+  const [selectedPlan, setSelectedPlan] = useState<string>("premium");
   const [cropingCapa, setCroppingCapa] = useState<File | null>(null);
   const [capaPreview, setCapaPreview] = useState<string>("");
   const [bannerPreview, setBannerPreview] = useState<string>("");
@@ -94,7 +95,7 @@ export default function ArtistLogin() {
     spotify: "",
     capaFile: null as File | null,
     bannerFile: null as File | null,
-    plano: "free",
+    plano: "premium",
   });
   const { genres } = useGenres();
 
@@ -197,10 +198,23 @@ export default function ArtistLogin() {
             <Zap className="w-5 h-5 text-primary" />
             <h3 className="text-xl font-bold text-foreground">Escolha seu Plano</h3>
           </div>
-          <div className="space-y-3">
+          
+          {/* Banner especial Premium */}
+          <div className="bg-gradient-to-r from-yellow-500/20 via-yellow-500/10 to-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-3">
+              <Crown className="w-8 h-8 text-yellow-500" />
+              <div>
+                <p className="font-bold text-foreground">30 dias grátis com Premium!</p>
+                <p className="text-xs text-muted-foreground">Experimente o plano máximo completo sem compromisso.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {PLANS.map((plan) => {
               const isSelected = selectedPlan === plan.id;
               const isFree = plan.id === "free";
+              const isPremium = plan.id === "premium";
               return (
                 <motion.div
                   key={plan.id}
@@ -220,6 +234,11 @@ export default function ArtistLogin() {
                         {isFree && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/20 text-green-400">
                             GRÁTIS
+                          </span>
+                        )}
+                        {isPremium && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-500/20 text-yellow-400">
+                            30 DIAS GRÁTIS
                           </span>
                         )}
                       </div>
@@ -562,7 +581,7 @@ export default function ArtistLogin() {
       <Navbar />
 
       <section className="pt-24 pb-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-2xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -50,7 +50,7 @@ export async function uploadToR2(
     CacheControl: "public, max-age=31536000", // 1 year cache
   });
 
-  await r2Client.send(command);
+  await r2Client!.send(command);
 
   // Return public URL
   return `${R2_PUBLIC_URL}/${key}`;
@@ -80,7 +80,7 @@ export async function deleteFromR2(key: string): Promise<void> {
     Key: cleanKey,
   });
 
-  await r2Client.send(command);
+  await r2Client!.send(command);
 }
 
 /**
@@ -94,7 +94,7 @@ export async function getSignedR2Url(key: string): Promise<string> {
     Key: key,
   });
 
-  return await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+  return await getSignedUrl(r2Client!, command, { expiresIn: 3600 });
 }
 
 /**

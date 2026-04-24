@@ -22,6 +22,8 @@ O **Portal do Artista** e uma plataforma web que conecta cantores e compositores
 - Player de audio persistente (play/pause/seek)
 - Filtros por genero musical e cidade/regiao
 - Pagina de destaque com tendencias
+- Catalogo de artistas na pagina inicial com cards (foto, nome, profissao, cidade, telefone, email)
+- Botao "Contratar Artista" direcionando para pagina de artistas
 
 ### Artista
 - Cadastro multi-step (dados basicos, localizacao, redes sociais, fotos, plano)
@@ -30,8 +32,15 @@ O **Portal do Artista** e uma plataforma web que conecta cantores e compositores
 - Perfil publico com banner, foto, musicas, contatos e links sociais
 - Slug personalizado (`/a/{slug}` ou `/artista/{id}`)
 - Recuperacao de senha por email
-- Personalizacao de perfil (cores, fonte, layout, player)
+- Personalizacao de perfil expandida:
+  - **30 opcoes de fontes** (Arial, Inter, Roboto, Poppins, Montserrat, Lato, Playfair Display, Oswald, Raleway, Merriweather, Ubuntu, Nunito, Quicksand, Archivo, Bebas Neue, Cinzel, Cormorant Garamond, Dancing Script, Fira Sans, Josefin Sans, Libre Baskerville, Lora, Pacifico, Rouge Script, Satisfy, Spectral, Tangerine, Vollkorn, Zilla Slab, Abril Fatface)
+  - **15 opcoes de backgrounds** (gradientes azul/verde/roxo/sol/oceano + solidos: escuro, escuro azul, preto, branco, bege, cinza claro, azul escuro, verde escuro, roxo escuro)
+  - **6 opcoes de player** (Padrao, Minimalista, Lista, Waveform, Moderno, Vintage)
+  - **24 opcoes de cores** para fontes + color picker custom
+  - Visualizacao previa em tempo real
 - Upload de capa e banner
+- Sistema de interesses (leads) com sino de notificacao em tempo real
+- Pagina Demo para visualizacao completa do perfil
 
 ### Contatos no Perfil Publico
 - **Telefone/WhatsApp** (`contato`) — exibido com icone Phone
@@ -44,6 +53,9 @@ O **Portal do Artista** e uma plataforma web que conecta cantores e compositores
 - Painel admin com login/senha
 - CRUD de musicas e uploads
 - Gerenciamento de interesses/leads
+- Gerenciamento de cidades
+- Gerenciamento de banners CTA
+- Visualizacao de metricas (plays, likes, musica count por artista)
 
 ---
 
@@ -169,8 +181,16 @@ Variaveis opcionais (Cloudflare R2):
 | `POST` | `/api/interests` | Enviar interesse |
 | `GET` | `/api/interests` | Listar interesses (admin) |
 | `GET` | `/api/interests/unread-count` | Contar nao lidos |
+| `GET` | `/api/interests/artist/:id` | Listar interesses do artista |
 | `PATCH` | `/api/interests/:id/read` | Marcar como lido |
 | `DELETE` | `/api/interests/:id` | Deletar interesse |
+
+### Pagamentos
+| Method | Path | Descricao |
+|--------|------|-----------|
+| `GET` | `/api/payments/plans` | Listar planos de precos |
+| `POST` | `/api/payments/create-preference` | Criar preferencia de pagamento MP |
+| `POST` | `/api/webhooks/mercadopago` | Webhook MercadoPago (IPN) |
 
 ### Outros
 | Method | Path | Descricao |
@@ -196,8 +216,8 @@ Variaveis opcionais (Cloudflare R2):
 
 | Rota | Descricao |
 |------|-----------|
-| `/` | Home — Portal de descoberta |
-| `/artistas` | Lista de artistas |
+| `/` | Home — Portal de descoberta com catalogo de artistas |
+| `/artistas` | Lista de artistas (TODOS ARTISTAS) |
 | `/a/:slug` | Perfil do artista (por slug) |
 | `/artista/:id` | Perfil do artista (por ID) |
 | `/artista/login` | Login do artista |
@@ -205,6 +225,7 @@ Variaveis opcionais (Cloudflare R2):
 | `/artista/dashboard` | Dashboard do artista (logado) |
 | `/artista/forgot-password` | Recuperar senha |
 | `/artista/reset-password` | Resetar senha |
+| `/demo` | Pagina Demo (visualizacao completa do perfil) |
 | `/admin` | Painel admin |
 | `/vip` | Area VIP |
 

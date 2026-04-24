@@ -17,7 +17,7 @@ import {
   CheckCircle2, BarChart3, Users, Crown, Settings, MessageSquare,
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
-  Layout, MapPin,
+  Layout, MapPin, ListMusic, Play, Image,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -86,7 +86,7 @@ interface Setting {
   updatedAt: string;
 }
 
-type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities";
+type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries";
 type SettingsCategory = "mercadopago" | "r2" | "portal" | "demo";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -216,6 +216,8 @@ function AdminDashboard() {
     { id: "settings", label: "Configurações", icon: Settings },
     { id: "banners", label: "Banners", icon: Layout },
     { id: "cities", label: "Cidades", icon: MapPin },
+    { id: "playlists", label: "Playlists", icon: ListMusic },
+    { id: "galleries", label: "Galeria", icon: Image },
   ];
 
   return (
@@ -274,6 +276,8 @@ function AdminDashboard() {
           {activeTab === "settings" && <SettingsTab />}
           {activeTab === "banners" && <BannersTab />}
           {activeTab === "cities" && <CitiesTab />}
+          {activeTab === "playlists" && <PlaylistsTab />}
+          {activeTab === "galleries" && <GalleriesTab />}
         </motion.div>
       </div>
     </div>
@@ -1776,7 +1780,7 @@ function BannersTab() {
                 )}
               </div>
 
-              <div className="p-4 border-t border-border">
+              <div className="p-4 border-t border-border relative z-10">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
                     Ordem: {banner.ordem} • {banner.intervaloSegundos}s
@@ -2224,6 +2228,606 @@ function CitiesTab() {
       <p className="text-xs text-muted-foreground">
         Cidades inativas ficam ocultas nos filtros e formulários.
       </p>
+    </div>
+  );
+}
+
+// ─── Playlists Tab ───────────────────────────────────────────────────────────
+
+function PlaylistsTab() {
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [artists, setArtists] = useState<any[]>([]);
+  const [songs, setSongs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showAddSong, setShowAddSong] = useState(false);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<any | null>(null);
+  const [selectedSongId, setSelectedSongId] = useState<string>("");
+  const [newPlaylist, setNewPlaylist] = useState({ artistaId: "", nome: "", descricao: "" });
+  const { toast } = useToast();
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [playlistsRes, artistsRes, songsRes] = await Promise.all([
+        fetch("/api/playlists/admin").then(r => r.json()),
+        fetch("/api/artists").then(r => r.json()),
+        fetch("/api/songs").then(r => r.json()),
+      ]);
+      setPlaylists(Array.isArray(playlistsRes) ? playlistsRes : []);
+      setArtists(Array.isArray(artistsRes) ? artistsRes : []);
+      setSongs(Array.isArray(songsRes) ? songsRes : []);
+    } catch (err) {
+      console.error("Error loading data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const handleCreate = async () => {
+    if (!newPlaylist.artistaId || !newPlaylist.nome) {
+      toast({ title: "Preencha artista e nome", variant: "destructive" });
+      return;
+    }
+    try {
+      const res = await fetch("/api/playlists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(newPlaylist),
+      });
+      if (res.ok) {
+        toast({ title: "Playlist criada!" });
+        setShowCreate(false);
+        setNewPlaylist({ artistaId: "", nome: "", descricao: "" });
+        loadData();
+      }
+    } catch (err) {
+      toast({ title: "Erro ao criar", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Excluir esta playlist?")) return;
+    try {
+      const res = await fetch(`/api/playlists/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        toast({ title: "Playlist excluída!" });
+        loadData();
+      }
+    } catch (err) {
+      toast({ title: "Erro ao excluir", variant: "destructive" });
+    }
+  };
+
+  const handleAddSong = async () => {
+    if (!selectedPlaylist || !selectedSongId) return;
+    try {
+      const res = await fetch(`/api/playlists/${selectedPlaylist.id}/songs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ songId: parseInt(selectedSongId) }),
+      });
+      if (res.ok) {
+        toast({ title: "Música adicionada!" });
+        setShowAddSong(false);
+        setSelectedSongId("");
+        loadData();
+      } else {
+        const data = await res.json();
+        toast({ title: data.error || "Erro", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro ao adicionar", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveSong = async (playlistId: number, songId: number) => {
+    try {
+      const res = await fetch(`/api/playlists/${playlistId}/songs/${songId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        toast({ title: "Música removida!" });
+        loadData();
+      }
+    } catch (err) {
+      toast({ title: "Erro ao remover", variant: "destructive" });
+    }
+  };
+
+  const loadPlaylistSongs = async (playlist: any) => {
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/songs`, { credentials: "include" });
+      const data = await res.json();
+      setSelectedPlaylist({ ...playlist, songs: Array.isArray(data) ? data : [] });
+    } catch (err) {
+      console.error("Error loading playlist songs:", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const artistSongs = (artistId: string) => songs.filter((s: any) => String(s.artistaId) === artistId);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-foreground">Playlists</h2>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90"
+        >
+          <Plus className="w-4 h-4" />
+          Nova Playlist
+        </button>
+      </div>
+
+      {showCreate && (
+        <div className="bg-card border border-border/40 rounded-xl p-6 space-y-4">
+          <h3 className="font-bold text-foreground">Criar Playlist</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">Artista</label>
+              <select
+                value={newPlaylist.artistaId}
+                onChange={e => setNewPlaylist({ ...newPlaylist, artistaId: e.target.value })}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
+              >
+                <option value="">Selecione...</option>
+                {artists.map((a: any) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">Nome</label>
+              <input
+                value={newPlaylist.nome}
+                onChange={e => setNewPlaylist({ ...newPlaylist, nome: e.target.value })}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
+                placeholder="Ex: Favoritas"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">Descrição</label>
+              <input
+                value={newPlaylist.descricao}
+                onChange={e => setNewPlaylist({ ...newPlaylist, descricao: e.target.value })}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
+                placeholder="Opcional"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-lg text-muted-foreground">Cancelar</button>
+            <button onClick={handleCreate} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold">Criar</button>
+          </div>
+        </div>
+      )}
+
+      {playlists.length === 0 ? (
+        <div className="text-center py-12 bg-card border border-dashed border-border/40 rounded-xl">
+          <ListMusic className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Nenhuma playlist criada</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {playlists.map((playlist: any) => (
+            <div key={playlist.id} className="bg-card border border-border/40 rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <ListMusic className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-foreground truncate">{playlist.nome}</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {artists.find((a: any) => String(a.id) === String(playlist.artistaId))?.name || "Artista"}
+                  </p>
+                </div>
+                <button onClick={() => handleDelete(playlist.id)} className="p-2 text-muted-foreground hover:text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              {playlist.descricao && (
+                <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{playlist.descricao}</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => loadPlaylistSongs(playlist)}
+                  className="flex-1 px-3 py-2 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80"
+                >
+                  Ver músicas
+                </button>
+                <button
+                  onClick={() => { setSelectedPlaylist(playlist); setShowAddSong(true); }}
+                  className="flex-1 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20"
+                >
+                  Adicionar música
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal ver/adicionar músicas */}
+      {selectedPlaylist && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card border border-border/40 rounded-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border/40">
+              <h3 className="font-bold text-foreground">{selectedPlaylist.nome}</h3>
+              <button onClick={() => setSelectedPlaylist(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {selectedPlaylist.songs?.length > 0 ? (
+                <div className="space-y-2">
+                  {selectedPlaylist.songs.map((song: any) => (
+                    <div key={song.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
+                      <img src={song.capaUrl || "/images/default-cover.png"} alt="" className="w-10 h-10 rounded object-cover" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground text-sm truncate">{song.titulo}</p>
+                        <p className="text-xs text-muted-foreground">{song.genero}</p>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveSong(selectedPlaylist.id, song.id)}
+                        className="p-2 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">Nenhuma música nesta playlist</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal adicionar música */}
+      {showAddSong && selectedPlaylist && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card border border-border/40 rounded-xl w-full max-w-md p-6 space-y-4">
+            <h3 className="font-bold text-foreground">Adicionar Música</h3>
+            <select
+              value={selectedSongId}
+              onChange={e => setSelectedSongId(e.target.value)}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
+            >
+              <option value="">Selecione uma música...</option>
+              {artistSongs(String(selectedPlaylist.artistaId)).map((s: any) => (
+                <option key={s.id} value={s.id}>{s.titulo} - {s.genero}</option>
+              ))}
+            </select>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setShowAddSong(false); setSelectedSongId(""); }} className="px-4 py-2 rounded-lg text-muted-foreground">Cancelar</button>
+              <button onClick={handleAddSong} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold">Adicionar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Galleries Tab ───────────────────────────────────────────────────────────
+
+function GalleriesTab() {
+  const [galleries, setGalleries] = useState<any[]>([]);
+  const [artists, setArtists] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showAddPhoto, setShowAddPhoto] = useState(false);
+  const [selectedGallery, setSelectedGallery] = useState<any | null>(null);
+  const [newGallery, setNewGallery] = useState({ artistaId: "", titulo: "Galeria de Fotos" });
+  const [newPhotoUrl, setNewPhotoUrl] = useState("");
+  const [newPhotoLegenda, setNewPhotoLegenda] = useState("");
+  const { toast } = useToast();
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [galleriesRes, artistsRes] = await Promise.all([
+        fetch("/api/galleries/admin").then(r => r.json()),
+        fetch("/api/artists").then(r => r.json()),
+      ]);
+      setGalleries(Array.isArray(galleriesRes) ? galleriesRes : []);
+      setArtists(Array.isArray(artistsRes) ? artistsRes : []);
+    } catch (err) {
+      console.error("Error loading data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const handleCreate = async () => {
+    if (!newGallery.artistaId) {
+      toast({ title: "Selecione um artista", variant: "destructive" });
+      return;
+    }
+    try {
+      const res = await fetch("/api/galleries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(newGallery),
+      });
+      if (res.ok) {
+        toast({ title: "Galeria criada!" });
+        setShowCreate(false);
+        setNewGallery({ artistaId: "", titulo: "Galeria de Fotos" });
+        loadData();
+      }
+    } catch (err) {
+      toast({ title: "Erro ao criar", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Excluir esta galeria?")) return;
+    try {
+      const res = await fetch(`/api/galleries/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        toast({ title: "Galeria excluída!" });
+        loadData();
+      }
+    } catch (err) {
+      toast({ title: "Erro ao excluir", variant: "destructive" });
+    }
+  };
+
+  const handleAddPhoto = async () => {
+    if (!selectedGallery || !newPhotoUrl) {
+      toast({ title: "URL da foto é obrigatória", variant: "destructive" });
+      return;
+    }
+    try {
+      const res = await fetch(`/api/galleries/${selectedGallery.id}/photos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ fotoUrl: newPhotoUrl, legenda: newPhotoLegenda }),
+      });
+      if (res.ok) {
+        toast({ title: "Foto adicionada!" });
+        setShowAddPhoto(false);
+        setNewPhotoUrl("");
+        setNewPhotoLegenda("");
+        loadGalleryPhotos(selectedGallery.id);
+      }
+    } catch (err) {
+      toast({ title: "Erro ao adicionar", variant: "destructive" });
+    }
+  };
+
+  const handleRemovePhoto = async (galleryId: number, photoId: number) => {
+    if (!confirm("Remover esta foto?")) return;
+    try {
+      const res = await fetch(`/api/galleries/${galleryId}/photos/${photoId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        toast({ title: "Foto removida!" });
+        loadGalleryPhotos(galleryId);
+      }
+    } catch (err) {
+      toast({ title: "Erro ao remover", variant: "destructive" });
+    }
+  };
+
+  const loadGalleryPhotos = async (galleryId: number) => {
+    try {
+      const res = await fetch(`/api/galleries/admin`);
+      const data = await res.json();
+      const gallery = data.find((g: any) => g.id === galleryId);
+      if (gallery) {
+        setSelectedGallery(gallery);
+      }
+    } catch (err) {
+      console.error("Error loading gallery photos:", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-foreground">Galerias</h2>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90"
+        >
+          <Plus className="w-4 h-4" />
+          Nova Galeria
+        </button>
+      </div>
+
+      {showCreate && (
+        <div className="bg-card border border-border/40 rounded-xl p-6 space-y-4">
+          <h3 className="font-bold text-foreground">Criar Galeria</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">Artista</label>
+              <select
+                value={newGallery.artistaId}
+                onChange={e => setNewGallery({ ...newGallery, artistaId: e.target.value })}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
+              >
+                <option value="">Selecione...</option>
+                {artists.map((a: any) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">Título</label>
+              <input
+                value={newGallery.titulo}
+                onChange={e => setNewGallery({ ...newGallery, titulo: e.target.value })}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
+                placeholder="Galeria de Fotos"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-lg text-muted-foreground">Cancelar</button>
+            <button onClick={handleCreate} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold">Criar</button>
+          </div>
+        </div>
+      )}
+
+      {galleries.length === 0 ? (
+        <div className="text-center py-12 bg-card border border-dashed border-border/40 rounded-xl">
+          <Image className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Nenhuma galeria criada</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {galleries.map((gallery: any) => (
+            <div key={gallery.id} className="bg-card border border-border/40 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Image className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-foreground">{gallery.titulo}</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {artists.find((a: any) => String(a.id) === String(gallery.artistaId))?.name || "Artista"}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => handleDelete(gallery.id)} className="p-2 text-muted-foreground hover:text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {gallery.photos?.map((photo: any) => (
+                  <div key={photo.id} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                    <img src={photo.fotoUrl} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+                {(!gallery.photos || gallery.photos.length < 3) && (
+                  <>
+                    {[...Array(3 - (gallery.photos?.length || 0))].map((_, i) => (
+                      <div key={`empty-${i}`} className="aspect-square rounded-lg bg-muted/50" />
+                    ))}
+                  </>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setSelectedGallery(gallery); setShowAddPhoto(true); }}
+                  className="flex-1 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20"
+                >
+                  Adicionar foto
+                </button>
+                <button
+                  onClick={() => setSelectedGallery(gallery)}
+                  className="flex-1 px-3 py-2 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80"
+                >
+                  Ver todas ({gallery.photoCount || 0})
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selectedGallery && !showAddPhoto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card border border-border/40 rounded-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border/40">
+              <h3 className="font-bold text-foreground">{selectedGallery.titulo}</h3>
+              <button onClick={() => setSelectedGallery(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {selectedGallery.photos?.length > 0 ? (
+                <div className="grid grid-cols-3 gap-4">
+                  {selectedGallery.photos.map((photo: any) => (
+                    <div key={photo.id} className="relative group">
+                      <img src={photo.fotoUrl} alt={photo.legenda || ""} className="w-full aspect-square object-cover rounded-lg" />
+                      <button
+                        onClick={() => handleRemovePhoto(selectedGallery.id, photo.id)}
+                        className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 hover:bg-red-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      {photo.legenda && <p className="text-xs text-muted-foreground mt-1">{photo.legenda}</p>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">Nenhuma foto nesta galeria</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddPhoto && selectedGallery && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card border border-border/40 rounded-xl w-full max-w-md p-6 space-y-4">
+            <h3 className="font-bold text-foreground">Adicionar Foto</h3>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">URL da imagem</label>
+              <input
+                value={newPhotoUrl}
+                onChange={e => setNewPhotoUrl(e.target.value)}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
+                placeholder="https://..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">Legenda (opcional)</label>
+              <input
+                value={newPhotoLegenda}
+                onChange={e => setNewPhotoLegenda(e.target.value)}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
+                placeholder="Descrição da foto"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setShowAddPhoto(false); setNewPhotoUrl(""); setNewPhotoLegenda(""); }} className="px-4 py-2 rounded-lg text-muted-foreground">Cancelar</button>
+              <button onClick={handleAddPhoto} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold">Adicionar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

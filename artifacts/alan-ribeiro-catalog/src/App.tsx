@@ -10,6 +10,7 @@ import Artists from "@/pages/Artists";
 import ArtistProfile from "@/pages/ArtistProfile";
 import ArtistVip from "@/pages/ArtistVip";
 import ArtistDashboard from "@/pages/ArtistDashboard";
+import ArtistGallery from "@/pages/ArtistGallery";
 import ArtistLogin from "@/pages/ArtistLogin";
 import ArtistForgotPassword from "@/pages/ArtistForgotPassword";
 import ArtistResetPassword from "@/pages/ArtistResetPassword";
@@ -37,7 +38,8 @@ function Router() {
       <Route path="/artista/reset/:token" component={ArtistResetPassword} />
       <Route path="/artista/dashboard" component={ArtistDashboard} />
       <Route path="/artistas" component={Artists} />
-      <Route path="/a/:slug" component={ArtistProfile} />
+      <Route path="/:slug" component={ArtistProfile} />
+      <Route path="/:slug/galeria" component={ArtistGallery} />
       <Route path="/artista/:id/vip" component={ArtistVip} />
       <Route path="/artista/:id" component={ArtistProfile} />
       <Route path="/demo" component={Demo} />

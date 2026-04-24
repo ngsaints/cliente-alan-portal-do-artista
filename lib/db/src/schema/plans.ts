@@ -8,7 +8,7 @@ export const plansTable = pgTable("plans", {
   label: text("label").notNull(), // Nome exibível
   preco: numeric("preco").notNull(),
   limiteMusicas: numeric("limite_musicas").notNull(),
-  personalizaoPercent: numeric("personalizacao_percent").notNull(),
+  personalizacaoPercent: numeric("personalizacao_percent").notNull(),
   descricao: text("descricao"),
   fraseEfeito: text("frase_efeito"),
   ativo: boolean("ativo").notNull().default(true),

@@ -43,7 +43,7 @@ export default function Artists() {
   const [allCities, setAllCities] = useState<string[]>([]);
   const [cityPopoverOpen, setCityPopoverOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
-  const [sectionTitle, setSectionTitle] = useState("Nossos Artistas");
+  const [sectionTitle, setSectionTitle] = useState("TODOS ARTISTAS");
   const [sectionSubtitle, setSectionSubtitle] = useState("Descubra e acompanhe cantores e compositores de todo o Brasil");
 
   useSEO({
@@ -214,7 +214,7 @@ export default function Artists() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Link href={artist.slug ? `/a/${artist.slug}` : `/artista/${artist.id}`}>
+                <Link href={artist.slug ? `/${artist.slug}` : `/artista/${artist.id}`}>
                   <div className="group bg-card border border-border/40 rounded-2xl overflow-hidden hover:border-primary/50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.8)] hover:-translate-y-1 transition-all duration-300 cursor-pointer h-full flex flex-col">
                     <div className="relative aspect-square overflow-hidden bg-black/50">
                       {artist.capaUrl ? (

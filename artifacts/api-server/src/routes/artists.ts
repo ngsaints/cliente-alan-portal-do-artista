@@ -100,7 +100,7 @@ router.post(
       const plans = await db.select().from(plansTable).where(eq(plansTable.nome, selectedPlano));
       if (plans.length > 0) {
         limiteMusicas = String(plans[0].limiteMusicas);
-        personalizacaoPercent = String(plans[0].personalizaoPercent);
+        personalizacaoPercent = String(plans[0].personalizacaoPercent);
       }
 
       // Handle file uploads
@@ -151,12 +151,19 @@ router.post(
       req.session.artistEmail = artist.email;
       req.session.artistName = artist.name;
 
-      res.status(201).json({
-        id: artist.id,
-        name: artist.name,
-        email: artist.email,
-        profissao: artist.profissao,
-        plano: artist.plano,
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+          res.status(500).json({ error: "Erro ao salvar sessão" });
+          return;
+        }
+        res.status(201).json({
+          id: artist.id,
+          name: artist.name,
+          email: artist.email,
+          profissao: artist.profissao,
+          plano: artist.plano,
+        });
       });
     } catch (error) {
       console.error("Error registering artist:", error);
@@ -196,12 +203,19 @@ router.post("/artists/login", async (req, res): Promise<void> => {
     req.session.artistEmail = artist.email;
     req.session.artistName = artist.name;
 
-    res.json({
-      id: artist.id,
-      name: artist.name,
-      email: artist.email,
-      profissao: artist.profissao,
-      plano: artist.plano,
+    req.session.save((err) => {
+      if (err) {
+        console.error("Error saving session:", err);
+        res.status(500).json({ error: "Erro ao salvar sessão" });
+        return;
+      }
+      res.json({
+        id: artist.id,
+        name: artist.name,
+        email: artist.email,
+        profissao: artist.profissao,
+        plano: artist.plano,
+      });
     });
   } catch (error) {
     console.error("Error logging in:", error);

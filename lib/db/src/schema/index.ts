@@ -9,3 +9,5 @@ export * from "./passwordResets";
 export * from "./ctaBanners";
 export * from "./cities";
 export * from "./songLikes";
+export * from "./playlists";
+export * from "./galleries";

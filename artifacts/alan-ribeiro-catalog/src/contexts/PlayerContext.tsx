@@ -1,16 +1,24 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from "react";
 import { type Song } from "@workspace/api-client-react";
 
+interface PlaylistInfo {
+  id: number;
+  nome: string;
+  songs: Song[];
+}
+
 interface PlayerContextType {
   currentSong: Song | null;
   isPlaying: boolean;
   progress: number;
   duration: number;
   volume: number;
-  playSong: (song: Song) => void;
+  playSong: (song: Song, playlist?: Song[], playlistsQueue?: PlaylistInfo[], currentPlaylistIdx?: number) => void;
   togglePlay: () => void;
   seek: (time: number) => void;
   setVolume: (vol: number) => void;
+  setAutoPlayPlaylist: (enabled: boolean) => void;
+  autoPlayPlaylist: boolean;
   audioRef: React.RefObject<HTMLAudioElement | null>;
 }
 
@@ -22,18 +30,86 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(1);
+  const [autoPlayPlaylist, setAutoPlayPlaylistState] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const playSong = (song: Song) => {
+  // Playlist state
+  const playlistRef = useRef<Song[]>([]);
+  const playlistIndexRef = useRef(0);
+  const playlistsQueueRef = useRef<PlaylistInfo[]>([]);
+  const currentPlaylistIdxRef = useRef(0);
+
+  const playSong = (song: Song, playlist?: Song[], playlistsQueue?: PlaylistInfo[], currentPlaylistIdx?: number) => {
     if (currentSong?.id === song.id) {
       togglePlay();
     } else {
+      // Store playlist info
+      if (playlist) {
+        playlistRef.current = playlist;
+        playlistIndexRef.current = playlist.findIndex(s => s.id === song.id);
+      }
+      if (playlistsQueue) {
+        playlistsQueueRef.current = playlistsQueue;
+        currentPlaylistIdxRef.current = currentPlaylistIdx ?? 0;
+      }
       setCurrentSong(song);
       setIsPlaying(true);
-      // Register play
       fetch(`/api/songs/${song.id}/play`, { method: 'POST' }).catch(() => {});
     }
   };
+
+  const playNextInPlaylist = () => {
+    // Try next song in current playlist
+    if (playlistRef.current.length > 0) {
+      const nextIndex = playlistIndexRef.current + 1;
+      if (nextIndex < playlistRef.current.length) {
+        const nextSong = playlistRef.current[nextIndex];
+        playlistIndexRef.current = nextIndex;
+        setCurrentSong(nextSong);
+        setIsPlaying(true);
+        fetch(`/api/songs/${nextSong.id}/play`, { method: 'POST' }).catch(() => {});
+        return;
+      }
+    }
+    
+    // Try next playlist
+    if (playlistsQueueRef.current.length > 0) {
+      const nextPlaylistIdx = currentPlaylistIdxRef.current + 1;
+      if (nextPlaylistIdx < playlistsQueueRef.current.length) {
+        const nextPlaylist = playlistsQueueRef.current[nextPlaylistIdx];
+        currentPlaylistIdxRef.current = nextPlaylistIdx;
+        if (nextPlaylist.songs.length > 0) {
+          playlistRef.current = nextPlaylist.songs;
+          playlistIndexRef.current = 0;
+          const nextSong = nextPlaylist.songs[0];
+          setCurrentSong(nextSong);
+          setIsPlaying(true);
+          fetch(`/api/songs/${nextSong.id}/play`, { method: 'POST' }).catch(() => {});
+          return;
+        }
+      }
+    }
+    
+    // No more songs/playlists
+    setIsPlaying(false);
+  };
+
+  const setAutoPlayPlaylist = (enabled: boolean) => {
+    setAutoPlayPlaylistStateState(enabled);
+  };
+
+  const setAutoPlayPlaylistStateState = (enabled: boolean) => {
+    setAutoPlayPlaylistState(enabled);
+    localStorage.setItem('autoPlayPlaylist', String(enabled));
+  };
+
+  // Load autoPlay setting from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('autoPlayPlaylist');
+    if (saved === 'true') {
+      setAutoPlayPlaylistState(true);
+    }
+  }, []);
 
   const togglePlay = () => {
     if (audioRef.current) {
@@ -66,7 +142,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
     const updateProgress = () => setProgress(audio.currentTime);
     const updateDuration = () => setDuration(audio.duration);
-    const handleEnded = () => setIsPlaying(false);
+    const handleEnded = () => {
+      if (autoPlayPlaylist) {
+        playNextInPlaylist();
+      } else {
+        setIsPlaying(false);
+      }
+    };
 
     audio.addEventListener("timeupdate", updateProgress);
     audio.addEventListener("loadedmetadata", updateDuration);
@@ -77,7 +159,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       audio.removeEventListener("loadedmetadata", updateDuration);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [currentSong]);
+  }, [currentSong, autoPlayPlaylist]);
 
   useEffect(() => {
     if (currentSong && isPlaying && audioRef.current) {
@@ -100,6 +182,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         togglePlay,
         seek,
         setVolume,
+        setAutoPlayPlaylist,
+        autoPlayPlaylist,
         audioRef,
       }}
     >

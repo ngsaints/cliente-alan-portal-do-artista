@@ -49,7 +49,7 @@ router.get("/interests/artist/:artistId", async (req, res): Promise<void> => {
 
     // Verifica autenticação: artista logado ou admin
     const isAdmin  = req.session.logado;
-    const isArtist = req.session.artistaId && String(req.session.artistaId) === artistId;
+    const isArtist = req.session.artistId && String(req.session.artistId) === artistId;
 
     if (!isAdmin && !isArtist) {
       res.status(401).json({ error: "Não autorizado" });
@@ -119,7 +119,7 @@ router.patch("/interests/:id/read", async (req, res): Promise<void> => {
 
     // Permite artista dono ou admin
     const isAdmin  = req.session.logado;
-    const isArtist = req.session.artistaId && req.session.artistaId === interest.artistaId;
+    const isArtist = req.session.artistId && req.session.artistId === interest.artistaId;
     if (!isAdmin && !isArtist) {
       res.status(401).json({ error: "Não autorizado" });
       return;
@@ -154,7 +154,7 @@ router.delete("/interests/:id", async (req, res): Promise<void> => {
 
     // Permite artista dono ou admin
     const isAdmin  = req.session.logado;
-    const isArtist = req.session.artistaId && req.session.artistaId === interest.artistaId;
+    const isArtist = req.session.artistId && req.session.artistId === interest.artistaId;
     if (!isAdmin && !isArtist) {
       res.status(401).json({ error: "Não autorizado" });
       return;

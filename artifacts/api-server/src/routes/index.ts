@@ -14,6 +14,8 @@ import genresRouter from "./genres";
 import authPasswordRouter from "./auth-password";
 import bannersRouter from "./banners";
 import citiesRouter from "./cities";
+import playlistsRouter from "./playlists";
+import galleriesRouter from "./galleries";
 
 const router: IRouter = Router();
 
@@ -32,5 +34,7 @@ router.use(genresRouter);
 router.use(authPasswordRouter);
 router.use(bannersRouter);
 router.use(citiesRouter);
+router.use(playlistsRouter);
+router.use(galleriesRouter);
 
 export default router;
