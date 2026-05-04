@@ -16,6 +16,7 @@ import bannersRouter from "./banners";
 import citiesRouter from "./cities";
 import playlistsRouter from "./playlists";
 import galleriesRouter from "./galleries";
+import sitemapRouter from "./sitemap";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(bannersRouter);
 router.use(citiesRouter);
 router.use(playlistsRouter);
 router.use(galleriesRouter);
+router.use(sitemapRouter);
 
 export default router;

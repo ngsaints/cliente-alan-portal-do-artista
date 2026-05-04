@@ -25,6 +25,8 @@ export const artistsTable = pgTable("artists", {
   cor: text("cor").default("#ffffff"),
   layout: text("layout"), // gradiente/background
   player: text("player").default("Padrão"),
+  playerGradient: text("player_gradient"), // gradiente do player ex: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+  playerCor: text("player_cor"), // cor sólida do player ex: "#667eea"
   vipSenha: text("vip_senha").default(""),
   
   // Plano

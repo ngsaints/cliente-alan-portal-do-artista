@@ -46,6 +46,21 @@ export default function ArtistProfile() {
   const [loadingArtist, setLoadingArtist] = useState(true);
   const numericArtistId = artistData?.id;
 
+  // Load custom font when artist has one
+  useEffect(() => {
+    if (artistData?.fonte && artistData.fonte !== "Arial") {
+      const fontName = artistData.fonte.replace(/\s+/g, "+");
+      const linkId = "custom-artist-font";
+      if (!document.getElementById(linkId)) {
+        const link = document.createElement("link");
+        link.id = linkId;
+        link.rel = "stylesheet";
+        link.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@400;500;600;700;800&display=swap`;
+        document.head.appendChild(link);
+      }
+    }
+  }, [artistData?.fonte]);
+
   // Fetch artist data from API (supports ID or slug)
   useEffect(() => {
     fetch(`/api/artists/${artistId}`)
@@ -126,6 +141,40 @@ export default function ArtistProfile() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const getBackgroundStyle = (layout: string | undefined): string => {
+    if (!layout || layout === "padrao") {
+      return "hsl(var(--background))";
+    }
+    const backgrounds: Record<string, string> = {
+      "gradiente-azul": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      "gradiente-verde": "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
+      "gradiente-roxo": "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)",
+      "gradiente-sol": "linear-gradient(135deg, #f5af19 0%, #f12711 100%)",
+      "gradiente-oceano": "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)",
+      "gradiente-rosa": "linear-gradient(135deg, #ff6a88 0%, #ff9a9e 100%)",
+      "gradiente-aurora": "linear-gradient(135deg, #00c6ff 0%, #0072ff 50%, #00c6ff 100%)",
+      "gradiente-tropical": "linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)",
+      "gradiente-pink": "linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)",
+      "escuro": "#1a1a2e",
+      "escuro-azul": "#0f0f23",
+      "preto": "#000000",
+      "branco": "#ffffff",
+      "bege": "#f5f0e1",
+      "cinza-claro": "#e5e5e5",
+      "azul-escuro": "#1e3a5f",
+      "verde-escuro": "#1a4d1a",
+      "roxo-escuro": "#2d1b4e",
+      "verde-azul": "#1a4d4d",
+      "lilas": "#4a1a6b",
+      "cinza-escuro": "#2d2d2d",
+      "azul-azul": "#1a3a5f",
+      "vermelho-escuro": "#5f1a1a",
+      "dourado": "#5f4a1a",
+      "turquesa": "#1a5f5f",
+    };
+    return backgrounds[layout] || "hsl(var(--background))";
+  };
+
   // Show loading or fallback if artist not found
   if (loadingArtist) {
     return (
@@ -144,7 +193,13 @@ export default function ArtistProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/80 pb-32">
+    <div 
+      className="min-h-screen pb-32"
+      style={{ 
+        fontFamily: artistData?.fonte || "inherit",
+        background: getBackgroundStyle(artistData?.layout)
+      }}
+    >
       <Navbar />
 
       {/* Notification Bell */}
@@ -214,7 +269,12 @@ export default function ArtistProfile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <h1 className="text-3xl md:text-5xl font-extrabold text-foreground mb-2">{artist.name}</h1>
+            <h1 
+              className="text-3xl md:text-5xl font-extrabold text-foreground mb-2"
+              style={{ fontFamily: artistData?.fonte ? `"${artistData.fonte}", var(--font-display)` : "var(--font-display)" }}
+            >
+              {artist.name}
+            </h1>
             <p className="text-lg text-muted-foreground mb-2">{artist.profissao}</p>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
@@ -534,7 +594,10 @@ export default function ArtistProfile() {
         }}
       />
 
-      <AudioPlayer />
+      <AudioPlayer 
+        playerGradient={artistData?.playerGradient} 
+        playerCor={artistData?.playerCor} 
+      />
     </div>
   );
 }

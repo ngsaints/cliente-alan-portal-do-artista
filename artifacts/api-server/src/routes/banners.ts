@@ -1,15 +1,8 @@
-import { Router, type ISession } from "express";
+import { Router } from "express";
 import { db, ctaBannersTable } from "@workspace/db";
 import { eq, asc, and } from "drizzle-orm";
 
 const router = Router();
-
-// Extend session type to include logado
-declare module "express-session" {
-  interface SessionData {
-    logado?: boolean;
-  }
-}
 
 // Get all active banners (public)
 router.get("/banners", async (_req, res): Promise<void> => {

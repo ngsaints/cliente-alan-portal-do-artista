@@ -7,6 +7,10 @@ import path from "path";
 import fs from "fs";
 import sharp from "sharp";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+import { Resend } from "resend";
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const PORTAL_URL = process.env.PORTAL_URL || "https://94.141.97.95";
 
 const router: IRouter = Router();
 
@@ -151,12 +155,45 @@ router.post(
       req.session.artistEmail = artist.email;
       req.session.artistName = artist.name;
 
-      req.session.save((err) => {
+      req.session.save(async (err) => {
         if (err) {
           console.error("Error saving session:", err);
           res.status(500).json({ error: "Erro ao salvar sessão" });
           return;
         }
+
+        // Send welcome email
+        if (resend) {
+          const profileUrl = `${PORTAL_URL}/a/${artist.slug}`;
+          try {
+            await resend.emails.send({
+              from: "Portal do Artista <onboarding@resend.dev>",
+              to: artist.email,
+              subject: `Bem-vindo ao Portal do Artista, ${artist.name}!`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #7c3aed;">🎤 Bem-vindo ao Portal do Artista!</h2>
+                  <p>Olá, <strong>${artist.name}</strong>!</p>
+                  <p>Sua conta foi criada com sucesso. Agora você pode:</p>
+                  <ul style="line-height: 1.8;">
+                    <li>Cadastrar suas músicas</li>
+                    <li>Personalizar seu perfil público</li>
+                    <li>Receber interesses de contratantes</li>
+                    <li>Gerenciar sua carreira musical</li>
+                  </ul>
+                  <a href="${profileUrl}" style="display: inline-block; background-color: #7c3aed; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 16px 0;">
+                    Ver Meu Perfil
+                  </a>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+                  <p style="color: #999; font-size: 12px;">Portal do Artista - Conectando cantores e compositores a ouvintes e contratantes</p>
+                </div>
+              `,
+            });
+          } catch (emailErr) {
+            console.error("Error sending welcome email:", emailErr);
+          }
+        }
+
         res.status(201).json({
           id: artist.id,
           name: artist.name,
@@ -295,7 +332,7 @@ router.put(
     }
 
     try {
-      const { name, profissao, cidade, instagram, tiktok, spotify, contato, fonte, cor, layout, player, vipSenha } = req.body;
+      const { name, profissao, cidade, instagram, tiktok, spotify, contato, fonte, cor, layout, player, vipSenha, playerGradient, playerCor } = req.body;
 
       const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, req.session.artistId));
       if (artists.length === 0) {
@@ -333,6 +370,8 @@ router.put(
           cor: cor ?? current.cor,
           layout: layout ?? current.layout,
           player: player ?? current.player,
+          playerGradient: playerGradient !== undefined ? playerGradient : current.playerGradient,
+          playerCor: playerCor !== undefined ? playerCor : current.playerCor,
           vipSenha: vipSenha !== undefined ? vipSenha : current.vipSenha,
           capaUrl,
           bannerUrl,
@@ -357,6 +396,8 @@ router.put(
         cor: updated.cor,
         layout: updated.layout,
         player: updated.player,
+        playerGradient: updated.playerGradient,
+        playerCor: updated.playerCor,
       });
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -502,6 +543,11 @@ router.get("/artists/:identifier", async (req, res): Promise<void> => {
       capaUrl: artist.capaUrl,
       bannerUrl: artist.bannerUrl,
       plano: artist.plano,
+      fonte: artist.fonte,
+      cor: artist.cor,
+      layout: artist.layout,
+      playerGradient: artist.playerGradient,
+      playerCor: artist.playerCor,
     });
   } catch (error) {
     console.error("Error fetching artist:", error);

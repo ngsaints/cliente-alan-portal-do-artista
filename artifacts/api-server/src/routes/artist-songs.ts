@@ -14,14 +14,6 @@ const upload = multer({
 
 const router: IRouter = Router();
 
-declare module "express-session" {
-  interface SessionData {
-    artistId?: number;
-    artistEmail?: string;
-    artistName?: string;
-  }
-}
-
 const useR2 = !!(process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY);
 
 // Get songs for a specific artist
@@ -82,7 +74,8 @@ router.post(
         return;
       }
 
-      const { artistId } = req.params;
+      const { artistId: rawArtistId } = req.params;
+      const artistId = String(rawArtistId);
       if (sessionArtistId !== parseInt(artistId)) {
         res.status(403).json({ error: "Você só pode adicionar músicas no seu próprio perfil" });
         return;
@@ -90,7 +83,7 @@ router.post(
 
       const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip, isPrivate } = req.body;
 
-      if (!titulo || !descricao || !genero) {
+      if (!titulo || !genero) {
         res.status(400).json({ error: "Campos obrigatórios faltando" });
         return;
       }
@@ -296,7 +289,17 @@ router.put(
 // Delete song
 router.delete("/artist/:artistId/songs/:songId", async (req, res): Promise<void> => {
   try {
-    const { songId } = req.params;
+    const sessionArtistId = req.session.artistId;
+    if (!sessionArtistId) {
+      res.status(401).json({ error: "Não autorizado" });
+      return;
+    }
+
+    const { artistId, songId } = req.params;
+    if (sessionArtistId !== parseInt(artistId)) {
+      res.status(403).json({ error: "Você só pode excluir músicas do seu próprio perfil" });
+      return;
+    }
 
     const [deleted] = await db
       .delete(songsTable)

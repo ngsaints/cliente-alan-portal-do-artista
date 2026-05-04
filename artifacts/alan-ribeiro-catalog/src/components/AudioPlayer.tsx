@@ -3,6 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 
+interface AudioPlayerProps {
+  playerGradient?: string;
+  playerCor?: string;
+}
+
 function formatTime(seconds: number) {
   if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
   const mins = Math.floor(seconds / 60);
@@ -10,7 +15,7 @@ function formatTime(seconds: number) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function AudioPlayer() {
+export function AudioPlayer({ playerGradient, playerCor }: AudioPlayerProps) {
   const { 
     currentSong, 
     isPlaying, 
@@ -21,6 +26,9 @@ export function AudioPlayer() {
     volume,
     setVolume
   } = usePlayer();
+
+  const buttonBg = playerGradient || playerCor || "bg-primary";
+  const buttonBgStyle = playerGradient ? { background: playerGradient } : undefined;
 
   if (!currentSong) return null;
 
@@ -53,7 +61,8 @@ export function AudioPlayer() {
           <div className="flex flex-col items-center gap-2 w-full md:w-1/3">
             <button
               onClick={togglePlay}
-              className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_0_15px_rgba(245,197,24,0.3)]"
+              style={buttonBgStyle}
+              className={`w-10 h-10 rounded-full ${buttonBg} text-primary-foreground flex items-center justify-center hover:scale-105 active:scale-95 transition-transform ${playerGradient ? "" : "shadow-[0_0_15px_rgba(245,197,24,0.3)]"}`}
             >
               {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-1" />}
             </button>
@@ -67,7 +76,14 @@ export function AudioPlayer() {
                 max={duration || 100}
                 value={progress}
                 onChange={(e) => seek(Number(e.target.value))}
-                className="flex-1 h-1.5 bg-input rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:rounded-full hover:[&::-webkit-slider-thumb]:scale-125 transition-all"
+                style={playerGradient ? { background: playerGradient } : undefined}
+                className="flex-1 h-1.5 bg-input rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full hover:[&::-webkit-slider-thumb]:scale-125 transition-all"
+                ref={(el) => {
+                  if (el) {
+                    el.style.setProperty("--thumb-bg", playerCor || (playerGradient ? "#fff" : "var(--primary)"));
+                    el.style.setProperty("--track-bg", playerGradient || "var(--primary)"); 
+                  }
+                }}
               />
               <span className="text-xs text-muted-foreground font-mono w-10">
                 {formatTime(duration)}

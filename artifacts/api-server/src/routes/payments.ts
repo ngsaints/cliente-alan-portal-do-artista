@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { createHmac } from "crypto";
-import { db, artistsTable, plansTable, appSettingsTable } from "@workspace/db";
+import { db, artistsTable, plansTable, appSettingsTable, subscriptionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
@@ -181,6 +181,7 @@ router.post("/webhooks/mercadopago", async (req, res): Promise<void> => {
         if (artistId && planId) {
           const [plan] = await db.select().from(plansTable).where(eq(plansTable.nome, planId));
           if (plan) {
+            // Update artist plan
             await db
               .update(artistsTable)
               .set({
@@ -192,7 +193,22 @@ router.post("/webhooks/mercadopago", async (req, res): Promise<void> => {
               })
               .where(eq(artistsTable.id, parseInt(artistId)));
 
-            console.log(`✅ Artista ${artistId} atualizado para plano ${planId}`);
+            // Create subscription record
+            const expiresAt = new Date();
+            expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+            await db.insert(subscriptionsTable).values({
+              artistId: artistId,
+              planNome: planId,
+              mpPaymentId: String(data.id),
+              mpPreferenceId: payment.preference_id ?? null,
+              status: "active",
+              amount: String(payment.transaction_amount ?? plan.preco),
+              startedAt: new Date(),
+              expiresAt: expiresAt,
+            });
+
+            console.log(`✅ Artista ${artistId} atualizado para plano ${planId} | Payment: ${data.id}`);
           }
         }
       }

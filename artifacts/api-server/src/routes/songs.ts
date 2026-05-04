@@ -87,7 +87,7 @@ router.post(
       precoX, precoY, isVip, youtubeUrl, tipoMidia, vipCode 
     } = req.body;
 
-    if (!titulo || !descricao || !genero) {
+    if (!titulo || !genero) {
       res.status(400).json({ error: "Campos obrigatórios faltando" });
       return;
     }

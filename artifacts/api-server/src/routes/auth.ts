@@ -2,16 +2,6 @@ import { Router, type IRouter } from "express";
 import { db, settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
-declare module "express-session" {
-  interface SessionData {
-    logado: boolean;
-    artistId?: number;
-    artistEmail?: string;
-    artistName?: string;
-    vipLogado?: boolean;
-  }
-}
-
 const router: IRouter = Router();
 
 router.post("/auth/login", async (req, res): Promise<void> => {

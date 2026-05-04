@@ -11,3 +11,4 @@ export * from "./cities";
 export * from "./songLikes";
 export * from "./playlists";
 export * from "./galleries";
+export * from "./subscriptions";

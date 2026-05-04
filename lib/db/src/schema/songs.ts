@@ -6,7 +6,7 @@ export const songsTable = pgTable("songs", {
   id: serial("id").primaryKey(),
   artistaId: text("artista_id"), // link to artist (null = catalog songs)
   titulo: text("titulo").notNull(),
-  descricao: text("descricao").notNull(),
+  descricao: text("descricao"),
   genero: text("genero").notNull(),
   subgenero: text("subgenero"),
   compositor: text("compositor"),
