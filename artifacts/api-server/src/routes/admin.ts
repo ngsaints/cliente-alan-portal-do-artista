@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, songsTable, artistsTable, interestsTable, plansTable, appSettingsTable } from "@workspace/db";
 import { eq, sql, count } from "drizzle-orm";
+import { FREE_PLAN } from "./payments";
 
 const router: IRouter = Router();
 
@@ -17,8 +18,8 @@ router.get("/admin/stats", async (_req, res): Promise<void> => {
     const [availSongs, vipSongs, freeArtists, paidArtists] = await Promise.all([
       db.select().from(songsTable).where(eq(songsTable.status, "Disponível")),
       db.select().from(songsTable).where(eq(songsTable.isVip, true)),
-      db.select().from(artistsTable).where(eq(artistsTable.plano, "free")),
-      db.select().from(artistsTable).where(sql`${artistsTable.plano} != 'free'`),
+      db.select().from(artistsTable).where(eq(artistsTable.plano, FREE_PLAN)),
+      db.select().from(artistsTable).where(sql`${artistsTable.plano} != ${FREE_PLAN}`),
     ]);
 
     res.json({
@@ -322,7 +323,13 @@ router.put("/admin/plans/:id", async (req, res): Promise<void> => {
 
   try {
     const { id } = req.params;
-    const { nome, label, preco, limiteMusicas, personalizacaoPercent, descricao, fraseEfeito, ativo } = req.body;
+    const { 
+      nome, label, preco, limiteMusicas, personalizacaoPercent, 
+      descricao, fraseEfeito, ativo,
+      canCustomizeFont, canCustomizeBackground, canCustomizeTextColor,
+      canCustomizePlayerStyle, canCustomizePlayerColor,
+      canUploadBanner, canUploadProfilePhoto
+    } = req.body;
 
     const updated = await db
       .update(plansTable)
@@ -335,6 +342,13 @@ router.put("/admin/plans/:id", async (req, res): Promise<void> => {
         descricao,
         fraseEfeito,
         ativo,
+        canCustomizeFont,
+        canCustomizeBackground,
+        canCustomizeTextColor,
+        canCustomizePlayerStyle,
+        canCustomizePlayerColor,
+        canUploadBanner,
+        canUploadProfilePhoto,
       })
       .where(eq(plansTable.id, parseInt(id)))
       .returning();
@@ -359,7 +373,13 @@ router.post("/admin/plans", async (req, res): Promise<void> => {
   }
 
   try {
-    const { nome, label, preco, limiteMusicas, personalizacaoPercent, descricao, fraseEfeito, ativo } = req.body;
+    const { 
+      nome, label, preco, limiteMusicas, personalizacaoPercent, 
+      descricao, fraseEfeito, ativo,
+      canCustomizeFont, canCustomizeBackground, canCustomizeTextColor,
+      canCustomizePlayerStyle, canCustomizePlayerColor,
+      canUploadBanner, canUploadProfilePhoto
+    } = req.body;
 
     const created = await db
       .insert(plansTable)
@@ -372,6 +392,13 @@ router.post("/admin/plans", async (req, res): Promise<void> => {
         descricao,
         fraseEfeito,
         ativo: ativo ?? true,
+        canCustomizeFont: canCustomizeFont ?? true,
+        canCustomizeBackground: canCustomizeBackground ?? true,
+        canCustomizeTextColor: canCustomizeTextColor ?? true,
+        canCustomizePlayerStyle: canCustomizePlayerStyle ?? true,
+        canCustomizePlayerColor: canCustomizePlayerColor ?? true,
+        canUploadBanner: canUploadBanner ?? false,
+        canUploadProfilePhoto: canUploadProfilePhoto ?? false,
       })
       .returning();
 

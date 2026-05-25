@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Eye, EyeOff, Loader2, User, MapPin, Link2, Image, Star, Check, X, Phone, Zap, ArrowLeft, Info, Crown } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Loader2, User, MapPin, Link2, Image, Star, Check, X, Phone, Zap, ArrowLeft, Info, Crown, AlertTriangle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useGenres } from "@/hooks/useGenres";
 import { ImageCrop } from "@/components/ImageCrop";
@@ -605,9 +605,17 @@ export default function ArtistLogin() {
                 <p className="text-sm text-muted-foreground text-center mb-6">Acesse sua conta para gerenciar suas músicas</p>
 
                 {error && (
-                  <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                    {error}
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-start gap-3"
+                  >
+                    <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">Email ou senha incorretos</p>
+                      <p className="text-xs text-red-400/70 mt-1">Verifique suas credenciais e tente novamente. Se esqueceu a senha, clique em "Esqueci minha senha" abaixo.</p>
+                    </div>
+                  </motion.div>
                 )}
 
                 <form onSubmit={handleLogin} className="space-y-4">

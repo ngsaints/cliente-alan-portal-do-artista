@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import { db, artistsTable } from "@workspace/db";
+import { db, artistsTable, plansTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import path from "path";
@@ -287,6 +287,10 @@ router.get("/artists/status", async (req, res): Promise<void> => {
     }
 
     const artist = artists[0];
+
+    const plans = await db.select().from(plansTable).where(eq(plansTable.nome, artist.plano));
+    const plan = plans[0];
+
     res.json({
       loggedIn: true,
       artist: {
@@ -306,10 +310,20 @@ router.get("/artists/status", async (req, res): Promise<void> => {
         cor: artist.cor,
         layout: artist.layout,
         player: artist.player,
+        playerGradient: artist.playerGradient,
+        playerCor: artist.playerCor,
         plano: artist.plano,
         limiteMusicas: artist.limiteMusicas,
         musicaCount: artist.musicaCount,
         vipSenha: artist.vipSenha,
+        personalizacaoPercent: plan?.personalizacaoPercent ?? "10",
+        canCustomizeFont: plan?.canCustomizeFont ?? true,
+        canCustomizeBackground: plan?.canCustomizeBackground ?? true,
+        canCustomizeTextColor: plan?.canCustomizeTextColor ?? true,
+        canCustomizePlayerStyle: plan?.canCustomizePlayerStyle ?? true,
+        canCustomizePlayerColor: plan?.canCustomizePlayerColor ?? true,
+        canUploadBanner: plan?.canUploadBanner ?? false,
+        canUploadProfilePhoto: plan?.canUploadProfilePhoto ?? false,
       },
     });
   } catch (error) {

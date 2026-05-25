@@ -1,65 +1,30 @@
 import { Router, type IRouter } from "express";
-import { createHmac } from "crypto";
-import { db, artistsTable, plansTable, appSettingsTable, subscriptionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, artistsTable, plansTable, subscriptionsTable, couponsTable } from "@workspace/db";
+import { eq, sql, and } from "drizzle-orm";
+import {
+  getAsaasCredentials,
+  findOrCreateCustomer,
+  createSubscription,
+  getSubscriptionPayments,
+  getPaymentById,
+} from "../lib/asaas-client.js";
 
 const router: IRouter = Router();
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Busca as credenciais MP + URL base do portal do banco */
-async function getMpCredentials(): Promise<{ accessToken: string; webhookSecret: string; portalUrl: string }> {
-  const rows = await db.select().from(appSettingsTable);
-
-  const map: Record<string, string> = {};
-  rows.forEach((r) => { if (r.value) map[r.key] = r.value; });
-
-  return {
-    accessToken:   map["mp_access_token"]   ?? "",
-    webhookSecret: map["mp_webhook_secret"] ?? "",
-    portalUrl:     (map["portal_url"] ?? "https://94.141.97.95").replace(/\/$/, ""),
-  };
-}
-
-/** Verifica assinatura do webhook MercadoPago (HMAC-SHA256) */
-function verifyWebhookSignature(
-  secret: string,
-  xSignature: string,
-  xRequestId: string,
-  dataId: string
-): boolean {
-  try {
-    // x-signature: "ts=<timestamp>,v1=<hash>"
-    const parts = Object.fromEntries(
-      xSignature.split(",").map((p) => p.split("=") as [string, string])
-    );
-    const ts = parts["ts"];
-    const v1 = parts["v1"];
-    if (!ts || !v1) return false;
-
-    // Template: id:<data.id>;request-id:<x-request-id>;ts:<ts>;
-    const template = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-    const expected = createHmac("sha256", secret).update(template).digest("hex");
-
-    return expected === v1;
-  } catch {
-    return false;
-  }
-}
-
-// ─── GET /payments/plans ──────────────────────────────────────────────────────
+const FREE_PLAN = "free";
+export { FREE_PLAN };
 
 router.get("/payments/plans", async (_req, res): Promise<void> => {
   try {
     const plans = await db.select().from(plansTable).where(eq(plansTable.ativo, true));
     res.json(plans.map((p) => ({
-      id:                   p.nome,
-      nome:                 p.label,
-      preco:                p.preco,
-      limiteMusicas:        p.limiteMusicas,
+      id: p.nome,
+      nome: p.label,
+      preco: p.preco,
+      limiteMusicas: p.limiteMusicas,
       personalizacaoPercent: p.personalizacaoPercent,
-      descricao:            p.descricao,
-      fraseEfeito:          p.fraseEfeito,
+      descricao: p.descricao,
+      fraseEfeito: p.fraseEfeito,
     })));
   } catch (error) {
     console.error("Error fetching plans:", error);
@@ -67,157 +32,280 @@ router.get("/payments/plans", async (_req, res): Promise<void> => {
   }
 });
 
-// ─── POST /payments/create-preference ────────────────────────────────────────
-
 router.post("/payments/create-preference", async (req, res): Promise<void> => {
   try {
-    const { planId, artistId } = req.body;
+    const { planId, artistId, couponCode } = req.body;
 
     if (!planId || !artistId) {
       res.status(400).json({ error: "Plano e artista são obrigatórios" });
       return;
     }
 
-    // Busca plano
+    if (planId === FREE_PLAN) {
+      res.status(400).json({ error: "Plano gratuito não requer pagamento" });
+      return;
+    }
+
     const [plan] = await db.select().from(plansTable).where(eq(plansTable.nome, planId));
     if (!plan) {
       res.status(404).json({ error: "Plano não encontrado" });
       return;
     }
 
-    // Busca credenciais
-    const { accessToken, portalUrl } = await getMpCredentials();
-    if (!accessToken) {
-      res.status(500).json({ error: "MercadoPago não configurado. Insira o Access Token no painel admin." });
+    const { apiKey, portalUrl } = await getAsaasCredentials();
+    if (!apiKey) {
+      res.status(500).json({ error: "Asaas não configurado. Insira a API Key no painel admin." });
       return;
     }
 
-    // Detecta sandbox pelo prefixo do token
-    const isSandbox = accessToken.startsWith("TEST-");
-    const mpBase = isSandbox
-      ? "https://api.sandbox.mercadopago.com"
-      : "https://api.mercadopago.com";
+    const [artist] = await db.select().from(artistsTable).where(eq(artistsTable.id, parseInt(artistId)));
+    if (!artist) {
+      res.status(404).json({ error: "Artista não encontrado" });
+      return;
+    }
 
-    const preference = {
-      items: [{
-        title:       `Plano ${plan.label} — Portal do Artista`,
-        description: plan.descricao ?? `Até ${plan.limiteMusicas} músicas`,
-        quantity:    1,
-        currency_id: "BRL",
-        unit_price:  Number(plan.preco),
-      }],
-      external_reference: `${artistId}-${planId}`,
-      notification_url:   `${portalUrl}/api/webhooks/mercadopago`,
-      back_urls: {
-        success: `${portalUrl}/artista/dashboard?pagamento=sucesso`,
-        failure: `${portalUrl}/artista/dashboard?pagamento=erro`,
-        pending: `${portalUrl}/artista/dashboard?pagamento=pendente`,
-      },
-      auto_return: "approved",
-    };
+    let finalPrice = Number(plan.preco);
+    let discountAmount = 0;
+    let appliedCoupon: { code: string; discountType: string; discountValue: string } | null = null;
 
-    const mpRes = await fetch(`${mpBase}/checkout/preferences`, {
-      method:  "POST",
-      headers: {
-        "Content-Type":  "application/json",
-        "Authorization": `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(preference),
+    if (couponCode) {
+      const [coupon] = await db.select().from(couponsTable).where(eq(couponsTable.code, couponCode.toUpperCase()));
+      if (coupon && coupon.isActive) {
+        const now = new Date();
+        const isValid = (!coupon.validFrom || new Date(coupon.validFrom) <= now) &&
+          (!coupon.validUntil || new Date(coupon.validUntil) >= now) &&
+          (!coupon.maxUses || parseInt(String(coupon.usedCount)) < parseInt(String(coupon.maxUses)));
+
+        if (isValid) {
+          const applicablePlans = coupon.applicablePlans;
+          const planApplicable = !applicablePlans || applicablePlans.length === 0 || applicablePlans.includes(planId);
+          if (planApplicable) {
+            finalPrice = Number(plan.preco);
+            if (coupon.discountType === "percentage") {
+              discountAmount = (finalPrice * parseFloat(String(coupon.discountValue))) / 100;
+              finalPrice = finalPrice - discountAmount;
+            } else {
+              discountAmount = parseFloat(String(coupon.discountValue));
+              finalPrice = Math.max(0, finalPrice - discountAmount);
+            }
+            appliedCoupon = {
+              code: coupon.code,
+              discountType: coupon.discountType,
+              discountValue: coupon.discountValue,
+            };
+          }
+        }
+      }
+    }
+
+    let customerId = artist.asaasCustomerId;
+    if (!customerId) {
+      const customer = await findOrCreateCustomer(
+        artist.name,
+        artist.email,
+        undefined,
+        artist.contato ?? undefined
+      );
+      customerId = customer.id;
+
+      await db
+        .update(artistsTable)
+        .set({ asaasCustomerId: customerId, updatedAt: new Date() })
+        .where(eq(artistsTable.id, parseInt(artistId)));
+    }
+
+    const callbackUrl = portalUrl
+      ? `${portalUrl}/artista/dashboard?pagamento=sucesso`
+      : undefined;
+
+    const subscription = await createSubscription({
+      customerId: customerId!,
+      value: finalPrice,
+      billingType: "UNDEFINED",
+      description: `Plano ${plan.label} — Portal do Artista`,
+      externalReference: `${artistId}-${planId}`,
+      callbackUrl,
     });
 
-    const data = await mpRes.json() as any;
+    const existingSubs = await db
+      .select()
+      .from(subscriptionsTable)
+      .where(and(
+        eq(subscriptionsTable.artistId, artistId),
+        eq(subscriptionsTable.planNome, planId),
+        eq(subscriptionsTable.status, "active")
+      ));
 
-    if (!mpRes.ok) {
-      console.error("MP Error:", data);
-      res.status(500).json({ error: data.message ?? "Erro no MercadoPago" });
-      return;
+    if (existingSubs.length === 0) {
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+      await db.insert(subscriptionsTable).values({
+        artistId: artistId,
+        planNome: planId,
+        asaasSubscriptionId: subscription.id,
+        status: "pending",
+        amount: String(finalPrice),
+        startedAt: new Date(),
+        expiresAt,
+        couponCode: appliedCoupon?.code ?? null,
+      });
     }
+
+    const payments = await getSubscriptionPayments(subscription.id);
+    const firstPayment = payments.data?.[0];
 
     res.json({
-      preferenceId: data.id,
-      initPoint:    isSandbox ? data.sandbox_init_point : data.init_point,
-      sandbox:      isSandbox,
+      subscriptionId: subscription.id,
+      invoiceUrl: firstPayment?.invoiceUrl ?? null,
+      paymentId: firstPayment?.id ?? null,
+      sandbox: (await getAsaasCredentials()).sandbox,
+      appliedCoupon,
+      originalPrice: Number(plan.preco).toFixed(2),
+      finalPrice: finalPrice.toFixed(2),
+      discountAmount: discountAmount.toFixed(2),
     });
-  } catch (error) {
-    console.error("Error creating payment preference:", error);
-    res.status(500).json({ error: "Erro ao criar preferência de pagamento" });
+  } catch (error: any) {
+    console.error("Error creating Asaas subscription:", error);
+    res.status(500).json({ error: error.message ?? "Erro ao criar assinatura" });
   }
 });
 
-// ─── POST /webhooks/mercadopago ───────────────────────────────────────────────
-
-router.post("/webhooks/mercadopago", async (req, res): Promise<void> => {
+router.post("/webhooks/asaas", async (req, res): Promise<void> => {
   try {
-    const xSignature  = (req.headers["x-signature"]  as string) ?? "";
-    const xRequestId  = (req.headers["x-request-id"] as string) ?? "";
-    const { type, data } = req.body;
+    const { webhookToken } = await getAsaasCredentials();
 
-    const { accessToken, webhookSecret } = await getMpCredentials();
-
-    // Verifica assinatura se a secret estiver configurada
-    if (webhookSecret && data?.id) {
-      const valid = verifyWebhookSignature(webhookSecret, xSignature, xRequestId, String(data.id));
-      if (!valid) {
-        console.warn("Webhook MP: assinatura inválida — ignorado");
-        res.status(401).json({ error: "Assinatura inválida" });
+    if (webhookToken) {
+      const token = req.headers["asaas-access-token"] as string ?? "";
+      if (token !== webhookToken) {
+        console.warn("Webhook Asaas: token inválido — ignorado");
+        res.status(401).json({ error: "Token inválido" });
         return;
       }
     }
 
-    if (type === "payment" && data?.id && accessToken) {
-      const isSandbox = accessToken.startsWith("TEST-");
-      const mpBase = isSandbox
-        ? "https://api.sandbox.mercadopago.com"
-        : "https://api.mercadopago.com";
+    const { event, payment, subscription } = req.body;
 
-      const payRes  = await fetch(`${mpBase}/v1/payments/${data.id}`, {
-        headers: { "Authorization": `Bearer ${accessToken}` },
-      });
-      const payment = await payRes.json() as any;
+    if (event === "PAYMENT_CONFIRMED" || event === "PAYMENT_RECEIVED") {
+      const paymentData = payment;
+      if (!paymentData?.id) {
+        res.json({ status: "ok", message: "No payment data" });
+        return;
+      }
 
-      if (payment.status === "approved") {
-        const [artistId, planId] = (payment.external_reference ?? "").split("-");
+      const existingSubs = await db
+        .select()
+        .from(subscriptionsTable)
+        .where(and(
+          eq(subscriptionsTable.asaasPaymentId, paymentData.id),
+          eq(subscriptionsTable.status, "active")
+        ));
 
-        if (artistId && planId) {
-          const [plan] = await db.select().from(plansTable).where(eq(plansTable.nome, planId));
-          if (plan) {
-            // Update artist plan
-            await db
-              .update(artistsTable)
-              .set({
-                plano:                planId,
-                planoAtivo:           true,
-                limiteMusicas:        String(plan.limiteMusicas),
-                personalizacaoPercent: String(plan.personalizacaoPercent),
-                updatedAt:            new Date(),
-              })
-              .where(eq(artistsTable.id, parseInt(artistId)));
+      if (existingSubs.length > 0) {
+        console.log(`Webhook Asaas: payment ${paymentData.id} já processado — idempotência OK`);
+        res.json({ status: "ok", message: "Already processed" });
+        return;
+      }
 
-            // Create subscription record
-            const expiresAt = new Date();
-            expiresAt.setMonth(expiresAt.getMonth() + 1);
+      const externalRef = paymentData.externalReference ?? "";
+      const [artistId, planId] = externalRef.split("-");
 
-            await db.insert(subscriptionsTable).values({
-              artistId: artistId,
-              planNome: planId,
-              mpPaymentId: String(data.id),
-              mpPreferenceId: payment.preference_id ?? null,
-              status: "active",
-              amount: String(payment.transaction_amount ?? plan.preco),
-              startedAt: new Date(),
-              expiresAt: expiresAt,
-            });
+      if (artistId && planId) {
+        const [plan] = await db.select().from(plansTable).where(eq(plansTable.nome, planId));
+        if (plan) {
+          await db
+            .update(artistsTable)
+            .set({
+              plano: planId,
+              planoAtivo: true,
+              limiteMusicas: String(plan.limiteMusicas),
+              personalizacaoPercent: String(plan.personalizacaoPercent),
+              updatedAt: new Date(),
+            })
+            .where(eq(artistsTable.id, parseInt(artistId)));
 
-            console.log(`✅ Artista ${artistId} atualizado para plano ${planId} | Payment: ${data.id}`);
-          }
+          const expiresAt = new Date();
+          expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+          await db.insert(subscriptionsTable).values({
+            artistId: artistId,
+            planNome: planId,
+            asaasSubscriptionId: paymentData.subscription ?? null,
+            asaasPaymentId: paymentData.id,
+            status: "active",
+            amount: String(paymentData.value ?? plan.preco),
+            billingType: paymentData.billingType ?? null,
+            startedAt: new Date(),
+            expiresAt,
+          });
+
+          console.log(`✅ Artista ${artistId} atualizado para plano ${planId} | Payment: ${paymentData.id}`);
         }
       }
+    } else if (event === "SUBSCRIPTION_CREATED" || event === "SUBSCRIPTION_UPDATED") {
+      console.log(`Webhook Asaas: ${event} para subscription ${subscription?.id}`);
+    } else if (event === "PAYMENT_OVERDUE") {
+      console.log(`Webhook Asaas: payment overdue ${payment?.id}`);
     }
 
     res.json({ status: "ok" });
   } catch (error) {
     console.error("Webhook error:", error);
     res.status(500).json({ error: "Erro no processamento do webhook" });
+  }
+});
+
+router.get("/payments/subscription/:artistId", async (req, res): Promise<void> => {
+  try {
+    const { artistId } = req.params;
+    const subscriptions = await db
+      .select()
+      .from(subscriptionsTable)
+      .where(eq(subscriptionsTable.artistId, artistId))
+      .orderBy(sql`${subscriptionsTable.createdAt} DESC`);
+
+    const active = subscriptions.find(s => s.status === "active" && (!s.expiresAt || new Date(s.expiresAt) > new Date()));
+    const expired = active && new Date(active.expiresAt!) < new Date();
+
+    if (expired) {
+      await db
+        .update(subscriptionsTable)
+        .set({ status: "expired" })
+        .where(eq(subscriptionsTable.id, active.id));
+
+      await db
+        .update(artistsTable)
+        .set({
+          plano: FREE_PLAN,
+          planoAtivo: false,
+          updatedAt: new Date(),
+        })
+        .where(eq(artistsTable.id, parseInt(artistId)));
+
+      const [updated] = await db.select().from(artistsTable).where(eq(artistsTable.id, parseInt(artistId)));
+      if (updated) {
+        const [freePlan] = await db.select().from(plansTable).where(eq(plansTable.nome, FREE_PLAN));
+        if (freePlan) {
+          await db
+            .update(artistsTable)
+            .set({
+              limiteMusicas: String(freePlan.limiteMusicas),
+              personalizacaoPercent: String(freePlan.personalizacaoPercent),
+            })
+            .where(eq(artistsTable.id, parseInt(artistId)));
+        }
+      }
+
+      console.log(`⏰ Assinatura expirada para artista ${artistId} — plano revertido para ${FREE_PLAN}`);
+    }
+
+    res.json({
+      subscriptions,
+      activeSubscription: active ? { ...active, expired: false } : null,
+    });
+  } catch (error) {
+    console.error("Error fetching subscription:", error);
+    res.status(500).json({ error: "Erro ao buscar assinatura" });
   }
 });
 

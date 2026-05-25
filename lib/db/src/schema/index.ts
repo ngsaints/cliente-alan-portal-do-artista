@@ -12,3 +12,4 @@ export * from "./songLikes";
 export * from "./playlists";
 export * from "./galleries";
 export * from "./subscriptions";
+export * from "./coupons";

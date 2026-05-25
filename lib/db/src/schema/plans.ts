@@ -13,6 +13,14 @@ export const plansTable = pgTable("plans", {
   fraseEfeito: text("frase_efeito"),
   ativo: boolean("ativo").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  // Permission flags for personalization features
+  canCustomizeFont: boolean("can_customize_font").notNull().default(true),
+  canCustomizeBackground: boolean("can_customize_background").notNull().default(true),
+  canCustomizeTextColor: boolean("can_customize_text_color").notNull().default(true),
+  canCustomizePlayerStyle: boolean("can_customize_player_style").notNull().default(true),
+  canCustomizePlayerColor: boolean("can_customize_player_color").notNull().default(true),
+  canUploadBanner: boolean("can_upload_banner").notNull().default(false),
+  canUploadProfilePhoto: boolean("can_upload_profile_photo").notNull().default(false),
 });
 
 export const insertPlanSchema = createInsertSchema(plansTable).omit({ 
@@ -20,5 +28,16 @@ export const insertPlanSchema = createInsertSchema(plansTable).omit({
   createdAt: true 
 });
 
-export type InsertPlan = z.infer<typeof insertPlanSchema>;
 export type Plan = typeof plansTable.$inferSelect;
+export type InsertPlan = z.infer<typeof insertPlanSchema>;
+
+// Permission flags type for personalization features
+export interface PlanPermissions {
+  canCustomizeFont: boolean;
+  canCustomizeBackground: boolean;
+  canCustomizeTextColor: boolean;
+  canCustomizePlayerStyle: boolean;
+  canCustomizePlayerColor: boolean;
+  canUploadBanner: boolean;
+  canUploadProfilePhoto: boolean;
+}

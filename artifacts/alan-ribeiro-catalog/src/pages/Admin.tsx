@@ -17,11 +17,12 @@ import {
   CheckCircle2, BarChart3, Users, Crown, Settings, MessageSquare,
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
-  Layout, MapPin, ListMusic, Play, Image,
+  Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
 import { useCities } from "@/hooks/useCities";
+import { Switch } from "@/components/ui/switch";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,13 @@ interface Plan {
   descricao: string;
   fraseEfeito: string;
   ativo: boolean;
+  canCustomizeFont: boolean;
+  canCustomizeBackground: boolean;
+  canCustomizeTextColor: boolean;
+  canCustomizePlayerStyle: boolean;
+  canCustomizePlayerColor: boolean;
+  canUploadBanner: boolean;
+  canUploadProfilePhoto: boolean;
 }
 
 interface Interest {
@@ -86,8 +94,24 @@ interface Setting {
   updatedAt: string;
 }
 
-type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries";
-type SettingsCategory = "mercadopago" | "r2" | "portal" | "demo";
+interface Coupon {
+  id: number;
+  code: string;
+  discountType: string;
+  discountValue: string;
+  minAmount: string | null;
+  maxUses: string | null;
+  usedCount: string;
+  validFrom: string;
+  validUntil: string | null;
+  isActive: boolean;
+  applicablePlans: string[] | null;
+  description: string | null;
+  createdAt: string;
+}
+
+type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons";
+type SettingsCategory = "asaas" | "r2" | "portal" | "demo";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
@@ -218,6 +242,7 @@ function AdminDashboard() {
     { id: "cities", label: "Cidades", icon: MapPin },
     { id: "playlists", label: "Playlists", icon: ListMusic },
     { id: "galleries", label: "Galeria", icon: Image },
+    { id: "coupons", label: "Cupons", icon: Ticket },
   ];
 
   return (
@@ -278,6 +303,7 @@ function AdminDashboard() {
           {activeTab === "cities" && <CitiesTab />}
           {activeTab === "playlists" && <PlaylistsTab />}
           {activeTab === "galleries" && <GalleriesTab />}
+          {activeTab === "coupons" && <CouponsTab />}
         </motion.div>
       </div>
     </div>
@@ -348,7 +374,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: MainTab) => void }) {
             { label: "Gerenciar Artistas", tab: "artists" as MainTab, icon: Users, color: "text-blue-400" },
             { label: "Ver Interesses", tab: "interests" as MainTab, icon: MessageSquare, color: "text-orange-400" },
             { label: "Editar Planos", tab: "plans" as MainTab, icon: Crown, color: "text-yellow-400" },
-            { label: "Config. MercadoPago", tab: "settings" as MainTab, icon: CreditCard, color: "text-emerald-400" },
+            { label: "Config. Asaas", tab: "settings" as MainTab, icon: CreditCard, color: "text-emerald-400" },
             { label: "Config. Storage R2", tab: "settings" as MainTab, icon: Cloud, color: "text-sky-400" },
           ].map((item) => (
             <button
@@ -1097,6 +1123,14 @@ function PlansTab() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState<Partial<Plan>>({});
+  const [showCreate, setShowCreate] = useState(false);
+  const [createData, setCreateData] = useState<Partial<Plan>>({
+    nome: "", label: "", preco: "", limiteMusicas: "", personalizacaoPercent: "",
+    descricao: "", fraseEfeito: "", ativo: true,
+    canCustomizeFont: true, canCustomizeBackground: true, canCustomizeTextColor: true,
+    canCustomizePlayerStyle: true, canCustomizePlayerColor: true,
+    canUploadBanner: false, canUploadProfilePhoto: false,
+  });
   const { toast } = useToast();
 
   const load = () => {
@@ -1130,6 +1164,57 @@ function PlansTab() {
     }
   };
 
+  const handleCreate = async () => {
+    if (!createData.nome || !createData.label) {
+      toast({ title: "Nome e Label são obrigatórios", variant: "destructive" });
+      return;
+    }
+    const res = await fetch("/api/admin/plans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(createData),
+    });
+    if (res.ok) {
+      toast({ title: "Plano criado" });
+      setShowCreate(false);
+      setCreateData({
+        nome: "", label: "", preco: "", limiteMusicas: "", personalizacaoPercent: "",
+        descricao: "", fraseEfeito: "", ativo: true,
+        canCustomizeFont: true, canCustomizeBackground: true, canCustomizeTextColor: true,
+        canCustomizePlayerStyle: true, canCustomizePlayerColor: true,
+        canUploadBanner: false, canUploadProfilePhoto: false,
+      });
+      load();
+    } else {
+      const d = await res.json();
+      toast({ title: d.error || "Erro ao criar plano", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: number, nome: string) => {
+    if (!confirm(`Excluir plano "${nome}"?`)) return;
+    const res = await fetch(`/api/admin/plans/${id}`, { method: "DELETE", credentials: "include" });
+    if (res.ok) {
+      toast({ title: "Plano excluído" });
+      load();
+    } else {
+      toast({ title: "Erro ao excluir plano", variant: "destructive" });
+    }
+  };
+
+  const PermissionCheckbox = ({ label, field, data, onChange }: { label: string; field: keyof Plan; data: Partial<Plan>; onChange: (v: Partial<Plan>) => void }) => (
+    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+      <input
+        type="checkbox"
+        checked={data[field] as boolean ?? false}
+        onChange={(e) => onChange({ ...data, [field]: e.target.checked })}
+        className="accent-primary w-4 h-4"
+      />
+      {label}
+    </label>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1137,10 +1222,71 @@ function PlansTab() {
           <h2 className="text-2xl font-display font-bold text-foreground">Planos</h2>
           <p className="text-sm text-muted-foreground">Gerencie os planos disponíveis para artistas</p>
         </div>
-        <button onClick={load} className="p-2 text-muted-foreground hover:text-primary transition-colors">
-          <RefreshCw className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={load} className="p-2 text-muted-foreground hover:text-primary transition-colors">
+            <RefreshCw className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setShowCreate(!showCreate)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-bold text-sm rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Novo Plano
+          </button>
+        </div>
       </div>
+
+      {/* Create Form */}
+      {showCreate && (
+        <div className="bg-card border border-border/50 rounded-2xl p-6 space-y-4">
+          <h3 className="font-bold text-foreground">Criar Novo Plano</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Nome (ID único)</label>
+              <input value={createData.nome || ""} onChange={e => setCreateData({ ...createData, nome: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="ex: starter" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Label (exibição)</label>
+              <input value={createData.label || ""} onChange={e => setCreateData({ ...createData, label: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="Starter" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Preço (R$)</label>
+              <input value={createData.preco || ""} onChange={e => setCreateData({ ...createData, preco: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="29.90" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Limite músicas</label>
+              <input value={createData.limiteMusicas || ""} onChange={e => setCreateData({ ...createData, limiteMusicas: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="50" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Personalização (%)</label>
+              <input value={createData.personalizacaoPercent || ""} onChange={e => setCreateData({ ...createData, personalizacaoPercent: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="50" />
+            </div>
+            <div className="lg:col-span-2">
+              <label className="text-xs text-muted-foreground block mb-1">Frase de efeito</label>
+              <input value={createData.fraseEfeito || ""} onChange={e => setCreateData({ ...createData, fraseEfeito: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="Texto motivacional" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-2">Permissões de Personalização</label>
+            <div className="flex flex-wrap gap-4">
+              <PermissionCheckbox label="Fonte" field="canCustomizeFont" data={createData} onChange={setCreateData} />
+              <PermissionCheckbox label="Cor de Fundo" field="canCustomizeBackground" data={createData} onChange={setCreateData} />
+              <PermissionCheckbox label="Cor do Texto" field="canCustomizeTextColor" data={createData} onChange={setCreateData} />
+              <PermissionCheckbox label="Estilo do Player" field="canCustomizePlayerStyle" data={createData} onChange={setCreateData} />
+              <PermissionCheckbox label="Cor do Player" field="canCustomizePlayerColor" data={createData} onChange={setCreateData} />
+              <PermissionCheckbox label="Upload Banner" field="canUploadBanner" data={createData} onChange={setCreateData} />
+              <PermissionCheckbox label="Upload Foto Perfil" field="canUploadProfilePhoto" data={createData} onChange={setCreateData} />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleCreate} className="px-6 py-2 bg-primary text-primary-foreground font-bold text-sm rounded-lg hover:bg-primary/90">
+              Criar Plano
+            </button>
+            <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg border border-border">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
@@ -1150,45 +1296,39 @@ function PlansTab() {
             <div key={plan.id} className={`bg-card border rounded-2xl p-5 ${editingId === plan.id ? "border-primary" : "border-border/50"}`}>
               {editingId === plan.id ? (
                 <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground">Label</label>
-                    <input
-                      value={editData.label || ""}
-                      onChange={e => setEditData({ ...editData, label: e.target.value })}
-                      className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Preço (R$)</label>
-                    <input
-                      value={editData.preco || ""}
-                      onChange={e => setEditData({ ...editData, preco: e.target.value })}
-                      className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Limite de músicas</label>
-                    <input
-                      value={editData.limiteMusicas || ""}
-                      onChange={e => setEditData({ ...editData, limiteMusicas: e.target.value })}
-                      className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Personalização (%)</label>
-                    <input
-                      value={editData.personalizacaoPercent || ""}
-                      onChange={e => setEditData({ ...editData, personalizacaoPercent: e.target.value })}
-                      className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm"
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Label</label>
+                      <input value={editData.label || ""} onChange={e => setEditData({ ...editData, label: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Preço (R$)</label>
+                      <input value={editData.preco || ""} onChange={e => setEditData({ ...editData, preco: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Limite músicas</label>
+                      <input value={editData.limiteMusicas || ""} onChange={e => setEditData({ ...editData, limiteMusicas: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Personalização (%)</label>
+                      <input value={editData.personalizacaoPercent || ""} onChange={e => setEditData({ ...editData, personalizacaoPercent: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" />
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground">Frase de Efeito</label>
-                    <input
-                      value={editData.fraseEfeito || ""}
-                      onChange={e => setEditData({ ...editData, fraseEfeito: e.target.value })}
-                      className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm"
-                    />
+                    <input value={editData.fraseEfeito || ""} onChange={e => setEditData({ ...editData, fraseEfeito: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-2 block">Permissões de Personalização</label>
+                    <div className="flex flex-wrap gap-3">
+                      <PermissionCheckbox label="Fonte" field="canCustomizeFont" data={editData} onChange={setEditData} />
+                      <PermissionCheckbox label="Fundo" field="canCustomizeBackground" data={editData} onChange={setEditData} />
+                      <PermissionCheckbox label="Cor Texto" field="canCustomizeTextColor" data={editData} onChange={setEditData} />
+                      <PermissionCheckbox label="Player" field="canCustomizePlayerStyle" data={editData} onChange={setEditData} />
+                      <PermissionCheckbox label="Cor Player" field="canCustomizePlayerColor" data={editData} onChange={setEditData} />
+                      <PermissionCheckbox label="Banner" field="canUploadBanner" data={editData} onChange={setEditData} />
+                      <PermissionCheckbox label="Foto" field="canUploadProfilePhoto" data={editData} onChange={setEditData} />
+                    </div>
                   </div>
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => handleSave(plan.id)} className="flex-1 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-lg hover:bg-primary/90">
@@ -1214,15 +1354,25 @@ function PlansTab() {
                     {plan.preco === "0" ? "Grátis" : `R$ ${plan.preco}`}
                     {plan.preco !== "0" && <span className="text-sm text-muted-foreground font-normal">/mês</span>}
                   </p>
-                  <p className="text-sm text-muted-foreground mb-1">Até {plan.limiteMusicas} músicas</p>
-                  <p className="text-sm text-muted-foreground mb-3">{plan.personalizacaoPercent}% personalização</p>
+                  <p className="text-sm text-muted-foreground mb-1">Até {plan.limiteMusicas} músicas · {plan.personalizacaoPercent}% personalização</p>
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {plan.canCustomizeFont && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Fonte</span>}
+                    {plan.canCustomizeBackground && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Fundo</span>}
+                    {plan.canCustomizeTextColor && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Cor Texto</span>}
+                    {plan.canCustomizePlayerStyle && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Player</span>}
+                    {plan.canCustomizePlayerColor && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Cor Player</span>}
+                    {plan.canUploadBanner && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">Banner</span>}
+                    {plan.canUploadProfilePhoto && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">Foto</span>}
+                  </div>
                   {plan.fraseEfeito && <p className="text-xs italic text-muted-foreground border-t border-border pt-3 mb-3">{plan.fraseEfeito}</p>}
-                  <button
-                    onClick={() => startEdit(plan)}
-                    className="w-full py-2 text-sm font-medium rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" /> Editar
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => startEdit(plan)} className="flex-1 py-2 text-sm font-medium rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors flex items-center justify-center gap-2">
+                      <Edit2 className="w-3.5 h-3.5" /> Editar
+                    </button>
+                    <button onClick={() => handleDelete(plan.id, plan.nome)} className="px-3 py-2 text-sm text-muted-foreground hover:text-destructive rounded-lg border border-border hover:border-destructive/40 transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -1528,11 +1678,11 @@ function InterestsTab() {
 // ─── Tab 6: Configurações ─────────────────────────────────────────────────────
 
 function SettingsTab() {
-  const [activeCategory, setActiveCategory] = useState<SettingsCategory>("mercadopago");
+  const [activeCategory, setActiveCategory] = useState<SettingsCategory>("asaas");
 
   const categories: { id: SettingsCategory; label: string; icon: React.ElementType; color: string }[] = [
     { id: "demo", label: "Página Demo", icon: Eye, color: "text-yellow-400" },
-    { id: "mercadopago", label: "MercadoPago", icon: CreditCard, color: "text-emerald-400" },
+    { id: "asaas", label: "Asaas", icon: CreditCard, color: "text-emerald-400" },
     { id: "r2", label: "Cloudflare R2", icon: Cloud, color: "text-sky-400" },
     { id: "portal", label: "Portal", icon: Globe, color: "text-purple-400" },
   ];
@@ -1621,48 +1771,109 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
   }
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-      {settings.map((s) => (
-        <div key={s.key}>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-sm font-medium text-foreground">{s.key}</label>
-            {s.isSecret && (
-              <span className="text-xs text-muted-foreground bg-background/80 px-2 py-0.5 rounded-full border border-border">
-                Secreto
-              </span>
-            )}
+    <div className="space-y-6">
+      {category === "asaas" && (
+        <div className="bg-gradient-to-r from-emerald-900/30 to-emerald-800/10 border border-emerald-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2 text-emerald-400">
+            <HelpCircle className="w-5 h-5" />
+            <h3 className="font-bold text-lg">Como Configurar o Asaas</h3>
           </div>
-          {s.description && <p className="text-xs text-muted-foreground mb-2">{s.description}</p>}
-          <div className="relative">
-            <input
-              type={s.isSecret && !revealed[s.key] ? "password" : "text"}
-              value={values[s.key] ?? ""}
-              onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
-              placeholder={s.isSecret ? "••••••••" : `Valor de ${s.key}`}
-              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm pr-10"
-            />
-            {s.isSecret && (
-              <button
-                type="button"
-                onClick={() => setRevealed({ ...revealed, [s.key]: !revealed[s.key] })}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {revealed[s.key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            )}
+          <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+            <li>Acesse <a href="https://www.asaas.com/config/integrations" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline inline-flex items-center gap-1">Asaas Integrações <ExternalLink className="w-3 h-3" /></a> e copie sua <strong className="text-foreground">API Key</strong></li>
+            <li>Cole a API Key no campo <code className="bg-black/30 px-1 py-0.5 rounded">asaas_api_key</code></li>
+            <li>Marque <code className="bg-black/30 px-1 py-0.5 rounded">asaas_sandbox</code> como <strong className="text-foreground">true</strong> para testes ou <strong className="text-foreground">false</strong> para produção</li>
+            <li>Configure um <strong className="text-foreground">Webhook</strong> no painel Asaas apontando para: <code className="bg-black/30 px-1 py-0.5 rounded">https://SEU_DOMINIO/api/webhooks/asaas</code></li>
+            <li>Defina um token secreto no webhook e cole no campo <code className="bg-black/30 px-1 py-0.5 rounded">asaas_webhook_token</code></li>
+          </ol>
+          <div className="flex items-center gap-2 pt-2 border-t border-emerald-500/20">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span className="text-sm text-emerald-300">Após salvar, artistas poderão assinar planos via PIX, cartão ou boleto</span>
           </div>
         </div>
-      ))}
+      )}
+      {category === "r2" && (
+        <div className="bg-gradient-to-r from-sky-900/30 to-sky-800/10 border border-sky-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2 text-sky-400">
+            <HelpCircle className="w-5 h-5" />
+            <h3 className="font-bold text-lg">Como Configurar o Cloudflare R2</h3>
+          </div>
+          <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+            <li>Acesse <a href="https://dash.cloudflare.com/r2" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline inline-flex items-center gap-1">Cloudflare R2 <ExternalLink className="w-3 h-3" /></a></li>
+            <li>Crie um bucket (ex: <code className="bg-black/30 px-1 py-0.5 rounded">portal-do-artista</code>) e configure como público</li>
+            <li>Gerar API Token em <strong className="text-foreground">Manage R2 API Tokens</strong> com permissão de Leitura e Escrita</li>
+            <li>Cole <strong className="text-foreground">Account ID</strong>, <strong className="text-foreground">Access Key ID</strong> e <strong className="text-foreground">Secret Access Key</strong> nos campos correspondentes</li>
+            <li>Informe o nome do bucket e a <strong className="text-foreground">URL pública</strong> do bucket (ex: <code className="bg-black/30 px-1 py-0.5 rounded">https://seu-bucket.r2.dev</code>)</li>
+          </ol>
+        </div>
+      )}
+      {category === "portal" && (
+        <div className="bg-gradient-to-r from-purple-900/30 to-purple-800/10 border border-purple-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2 text-purple-400">
+            <HelpCircle className="w-5 h-5" />
+            <h3 className="font-bold text-lg">Configurações Gerais do Portal</h3>
+          </div>
+          <ul className="text-sm text-muted-foreground space-y-2">
+            <li><code className="bg-black/30 px-1 py-0.5 rounded">portal_name</code> — Nome exibido no site</li>
+            <li><code className="bg-black/30 px-1 py-0.5 rounded">portal_url</code> — URL canônica (ex: https://portaldoartista.com)</li>
+            <li><code className="bg-black/30 px-1 py-0.5 rounded">portal_email</code> — Email de contato principal</li>
+          </ul>
+        </div>
+      )}
+      <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+        {settings.map((s) => (
+          <div key={s.key}>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm font-medium text-foreground">{s.key}</label>
+              {s.isSecret && (
+                <span className="text-xs text-muted-foreground bg-background/80 px-2 py-0.5 rounded-full border border-border">
+                  Secreto
+                </span>
+              )}
+            </div>
+            {s.description && <p className="text-xs text-muted-foreground mb-2">{s.description}</p>}
+            {s.key === "asaas_sandbox" ? (
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={values[s.key] === "true"}
+                  onCheckedChange={(checked) => setValues({ ...values, [s.key]: checked ? "true" : "false" })}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {values[s.key] === "true" ? "Sandbox (testes)" : "Produção"}
+                </span>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type={s.isSecret && !revealed[s.key] ? "password" : "text"}
+                  value={values[s.key] ?? ""}
+                  onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+                  placeholder={s.isSecret ? "••••••••" : `Valor de ${s.key}`}
+                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm pr-10"
+                />
+                {s.isSecret && (
+                  <button
+                    type="button"
+                    onClick={() => setRevealed({ ...revealed, [s.key]: !revealed[s.key] })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {revealed[s.key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
 
-      <div className="pt-2 border-t border-border/50">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {saving ? "Salvando..." : "Salvar Configurações"}
-        </button>
+        <div className="pt-2 border-t border-border/50">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? "Salvando..." : "Salvar Configurações"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2828,6 +3039,392 @@ function GalleriesTab() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Tab 11: Cupons ───────────────────────────────────────────────────────────
+
+function CouponsTab() {
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const { toast } = useToast();
+
+  const loadCoupons = () => {
+    setLoading(true);
+    fetch("/api/coupons", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => setCoupons(Array.isArray(d) ? d : []))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadCoupons(); }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Deletar este cupom?")) return;
+    const res = await fetch(`/api/coupons/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (res.ok) {
+      toast({ title: "Cupom deletado" });
+      loadCoupons();
+    } else {
+      toast({ title: "Erro ao deletar", variant: "destructive" });
+    }
+  };
+
+  const handleToggleAtivo = async (coupon: Coupon) => {
+    const res = await fetch(`/api/coupons/${coupon.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ isActive: !coupon.isActive }),
+    });
+    if (res.ok) {
+      loadCoupons();
+    } else {
+      toast({ title: "Erro ao atualizar", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-display font-bold text-foreground">Cupons de Desconto</h2>
+          <p className="text-sm text-muted-foreground">Gerencie códigos de desconto para planos</p>
+        </div>
+        <button
+          onClick={() => { setEditingCoupon(null); setShowModal(true); }}
+          className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Novo Cupom
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      ) : coupons.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground bg-card border border-dashed border-border rounded-2xl">
+          <Ticket className="w-12 h-12 mx-auto mb-4 opacity-30" />
+          <p>Nenhum cupom criado ainda.</p>
+          <p className="text-sm mt-1">Clique em "Novo Cupom" para criar.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {coupons.map((coupon) => {
+            const isExpired = coupon.validUntil && new Date(coupon.validUntil) < new Date();
+            const isExhausted = coupon.maxUses && parseInt(coupon.usedCount) >= parseInt(coupon.maxUses);
+            return (
+              <div
+                key={coupon.id}
+                className={`bg-card border rounded-2xl p-5 ${!coupon.isActive || isExpired || isExhausted ? "opacity-60" : "border-border"}`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-primary/20 p-2 rounded-lg">
+                      <Ticket className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground font-mono">{coupon.code}</h3>
+                      <p className="text-xs text-muted-foreground">{coupon.description || "Sem descrição"}</p>
+                    </div>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    !coupon.isActive ? "bg-zinc-500/20 text-zinc-400" :
+                    isExpired ? "bg-red-500/20 text-red-400" :
+                    isExhausted ? "bg-orange-500/20 text-orange-400" :
+                    "bg-green-500/20 text-green-400"
+                  }`}>
+                    {!coupon.isActive ? "Inativo" : isExpired ? "Expirado" : isExhausted ? "Esgotado" : "Ativo"}
+                  </span>
+                </div>
+
+                <div className="mb-3">
+                  <p className="text-2xl font-bold text-primary">
+                    {coupon.discountType === "percentage"
+                      ? `${coupon.discountValue}%`
+                      : `R$ ${coupon.discountValue}`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {coupon.discountType === "percentage" ? "desconto" : "de desconto fixo"}
+                  </p>
+                </div>
+
+                <div className="space-y-1 text-xs text-muted-foreground mb-4">
+                  {coupon.minAmount && parseFloat(coupon.minAmount) > 0 && (
+                    <p>Valor mínimo: R$ {parseFloat(coupon.minAmount).toFixed(2)}</p>
+                  )}
+                  <p>Usos: {coupon.usedCount}{coupon.maxUses ? `/${coupon.maxUses}` : ""}</p>
+                  {coupon.validUntil && (
+                    <p>Validade: {new Date(coupon.validUntil).toLocaleDateString("pt-BR")}</p>
+                  )}
+                  {coupon.applicablePlans && coupon.applicablePlans.length > 0 && (
+                    <p>Planos: {coupon.applicablePlans.join(", ")}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setEditingCoupon(coupon); setShowModal(true); }}
+                    className="flex-1 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 inline mr-1" />
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleToggleAtivo(coupon)}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                      coupon.isActive
+                        ? "text-orange-400 hover:bg-orange-400/10"
+                        : "text-green-400 hover:bg-green-400/10"
+                    }`}
+                  >
+                    {coupon.isActive ? "Desativar" : "Ativar"}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(coupon.id)}
+                    className="py-1.5 px-2 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showModal && (
+        <CouponModal
+          coupon={editingCoupon}
+          onClose={() => setShowModal(false)}
+          onSaved={() => { setShowModal(false); loadCoupons(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CouponModal({ coupon, onClose, onSaved }: { coupon: Coupon | null; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    code: coupon?.code || "",
+    discountType: coupon?.discountType || "percentage",
+    discountValue: coupon?.discountValue || "",
+    minAmount: coupon?.minAmount || "",
+    maxUses: coupon?.maxUses || "",
+    validFrom: coupon?.validFrom ? new Date(coupon.validFrom).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+    validUntil: coupon?.validUntil ? new Date(coupon.validUntil).toISOString().split("T")[0] : "",
+    isActive: coupon?.isActive ?? true,
+    applicablePlans: coupon?.applicablePlans?.join(", ") || "",
+    description: coupon?.description || "",
+  });
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.code || !form.discountValue) {
+      toast({ title: "Código e valor do desconto são obrigatórios", variant: "destructive" });
+      return;
+    }
+
+    setSaving(true);
+
+    const applicablePlans = form.applicablePlans
+      ? form.applicablePlans.split(",").map(p => p.trim()).filter(Boolean)
+      : [];
+
+    const payload = {
+      code: form.code.toUpperCase(),
+      discountType: form.discountType,
+      discountValue: form.discountValue,
+      minAmount: form.minAmount || null,
+      maxUses: form.maxUses || null,
+      validFrom: new Date(form.validFrom),
+      validUntil: form.validUntil ? new Date(form.validUntil) : null,
+      isActive: form.isActive,
+      applicablePlans: applicablePlans.length > 0 ? applicablePlans : null,
+      description: form.description || null,
+    };
+
+    const url = coupon ? `/api/coupons/${coupon.id}` : "/api/coupons";
+    const method = coupon ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    setSaving(false);
+
+    if (res.ok) {
+      toast({ title: coupon ? "Cupom atualizado!" : "Cupom criado!" });
+      onSaved();
+    } else {
+      const data = await res.json();
+      toast({ title: data.error || "Erro ao salvar", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative w-full max-w-lg bg-card border border-border rounded-3xl shadow-2xl z-10 overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-base font-bold text-foreground">
+            {coupon ? "Editar Cupom" : "Novo Cupom"}
+          </h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Código *</label>
+              <input
+                value={form.code}
+                onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                placeholder="EXEMPLO10"
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tipo de Desconto</label>
+              <select
+                value={form.discountType}
+                onChange={(e) => setForm({ ...form, discountType: e.target.value })}
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+              >
+                <option value="percentage">Porcentagem (%)</option>
+                <option value="fixed">Valor Fixo (R$)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Valor do Desconto {form.discountType === "percentage" ? "(%)" : "(R$)"}
+              </label>
+              <input
+                type="number"
+                value={form.discountValue}
+                onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
+                placeholder={form.discountType === "percentage" ? "10" : "19.90"}
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Valor Mínimo (R$)</label>
+              <input
+                type="number"
+                value={form.minAmount}
+                onChange={(e) => setForm({ ...form, minAmount: e.target.value })}
+                placeholder="0"
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Data de Início</label>
+              <input
+                type="date"
+                value={form.validFrom}
+                onChange={(e) => setForm({ ...form, validFrom: e.target.value })}
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Data de Validade</label>
+              <input
+                type="date"
+                value={form.validUntil}
+                onChange={(e) => setForm({ ...form, validUntil: e.target.value })}
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Limite de Usos (opcional)</label>
+            <input
+              type="number"
+              value={form.maxUses}
+              onChange={(e) => setForm({ ...form, maxUses: e.target.value })}
+              placeholder="Ilimitado"
+              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Planos Aplicáveis (separados por vírgula)</label>
+            <input
+              value={form.applicablePlans}
+              onChange={(e) => setForm({ ...form, applicablePlans: e.target.value })}
+              placeholder="basico, intermediario, pro, premium (vazio = todos)"
+              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Descrição</label>
+            <input
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Cupom de desconto especial"
+              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div
+            onClick={() => setForm({ ...form, isActive: !form.isActive })}
+            className={`flex items-center justify-between px-4 py-3 rounded-xl border cursor-pointer select-none transition-colors ${
+              form.isActive ? "border-primary bg-primary/10 text-primary" : "border-border bg-input text-muted-foreground"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Percent className="w-4 h-4" />
+              <span className="text-sm font-medium">Cupom Ativo</span>
+            </div>
+            <div className={`w-10 h-5 rounded-full transition-colors relative ${form.isActive ? "bg-primary" : "bg-border"}`}>
+              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.isActive ? "translate-x-5" : "translate-x-0.5"}`} />
+            </div>
+          </div>
+        </form>
+
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-xl hover:bg-white/5 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? "Salvando..." : "Salvar"}
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }

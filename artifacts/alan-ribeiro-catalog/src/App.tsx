@@ -38,12 +38,12 @@ function Router() {
       <Route path="/artista/reset/:token" component={ArtistResetPassword} />
       <Route path="/artista/dashboard" component={ArtistDashboard} />
       <Route path="/artistas" component={Artists} />
+      <Route path="/admin" component={Admin} />
       <Route path="/:slug" component={ArtistProfile} />
       <Route path="/:slug/galeria" component={ArtistGallery} />
       <Route path="/artista/:id/vip" component={ArtistVip} />
       <Route path="/artista/:id" component={ArtistProfile} />
       <Route path="/demo" component={Demo} />
-      <Route path="/admin" component={Admin} />
       <Route path="/vip" component={Vip} />
       <Route component={NotFound} />
     </Switch>

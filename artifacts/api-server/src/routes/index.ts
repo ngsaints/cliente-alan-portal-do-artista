@@ -17,6 +17,7 @@ import citiesRouter from "./cities";
 import playlistsRouter from "./playlists";
 import galleriesRouter from "./galleries";
 import sitemapRouter from "./sitemap";
+import couponsRouter from "./coupons";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(citiesRouter);
 router.use(playlistsRouter);
 router.use(galleriesRouter);
 router.use(sitemapRouter);
+router.use(couponsRouter);
 
 export default router;

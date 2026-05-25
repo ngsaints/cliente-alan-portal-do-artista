@@ -6,13 +6,15 @@ export const subscriptionsTable = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
   artistId: numeric("artist_id").notNull(),
   planNome: text("plan_nome").notNull(),
-  mpPaymentId: text("mp_payment_id"),
-  mpPreferenceId: text("mp_preference_id"),
+  asaasSubscriptionId: text("asaas_subscription_id"),
+  asaasPaymentId: text("asaas_payment_id"),
   status: text("status").notNull().default("pending"),
   amount: numeric("amount").notNull(),
+  billingType: text("billing_type"), // UNDEFINED, BOLETO, CREDIT_CARD, PIX
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  couponCode: text("coupon_code"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

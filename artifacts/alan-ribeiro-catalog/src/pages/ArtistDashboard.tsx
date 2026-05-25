@@ -5,8 +5,16 @@ import {
   User, Music, BarChart3, Settings, Upload, Eye, EyeOff, 
   TrendingUp, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
-  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image
+  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock
 } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Navbar } from "@/components/Navbar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useGenres } from "@/hooks/useGenres";
@@ -40,6 +48,11 @@ interface ArtistProfile {
   limiteMusicas: string;
   musicaCount: string;
   vipSenha: string;
+  canCustomizeFont: boolean;
+  canCustomizeBackground: boolean;
+  canCustomizeTextColor: boolean;
+  canCustomizePlayerStyle: boolean;
+  canCustomizePlayerColor: boolean;
 }
 
 const PLANS = [
@@ -82,6 +95,31 @@ const FONTS = [
   { value: "Vollkorn", label: "Vollkorn" },
   { value: "Zilla Slab", label: "Zilla Slab" },
   { value: "Abril Fatface", label: "Abril Fatface" },
+  { value: "Metal Mania", label: "Metal Mania" },
+  { value: "Black Ops One", label: "Black Ops One" },
+  { value: "Russo One", label: "Russo One" },
+  { value: "Pirata One", label: "Pirata One" },
+  { value: "Monoton", label: "Monoton" },
+  { value: "Titan One", label: "Titan One" },
+  { value: "Bangers", label: "Bangers" },
+  { value: "Lobster", label: "Lobster" },
+  { value: "Permanent Marker", label: "Permanent Marker" },
+  { value: "Rock Salt", label: "Rock Salt" },
+  { value: "UnifrakturMaguntia", label: "UnifrakturMaguntia" },
+  { value: "Metamorphous", label: "Metamorphous" },
+  { value: "Chicle", label: "Chicle" },
+  { value: "Fondamento", label: "Fondamento" },
+  { value: "Felipa", label: "Felipa" },
+  { value: "Yesteryear", label: "Yesteryear" },
+  { value: "Creepster", label: "Creepster" },
+  { value: "Butcherman", label: "Butcherman" },
+  { value: "Nosifer", label: "Nosifer" },
+  { value: "Gaegu", label: "Gaegu" },
+  { value: "Fredericka the Great", label: "Fredericka the Great" },
+  { value: "Frijole", label: "Frijole" },
+  { value: "Boogaloo", label: "Boogaloo" },
+  { value: "Bungee", label: "Bungee" },
+  { value: "Rubik Mono One", label: "Rubik Mono One" },
 ];
 
 const BACKGROUNDS = [
@@ -153,6 +191,178 @@ const PLAYER_COLORS = [
 
 type TabId = "dashboard" | "songs" | "playlists" | "gallery" | "profile" | "plano" | "interesses" | "vip";
 
+function PlayerPreviewMini({ style, editCustom }: { style: string; editCustom: any }) {
+  const playerCor = editCustom?.playerCor || "#f5c518";
+  const playerGradient = editCustom?.playerGradient || "";
+  const playBtnBg = playerGradient || playerCor;
+
+  if (style === "minimalista") {
+    return (
+      <div className="rounded-lg overflow-hidden bg-black/95 border border-white/10">
+        <div className="h-0.5 bg-white/10">
+          <div className="h-full" style={{ width: "40%", background: playerGradient || playerCor }} />
+        </div>
+        <div className="flex items-center justify-between px-3 py-2">
+          <div className="w-8 h-8 rounded overflow-hidden">
+            <img src={`${import.meta.env.BASE_URL}images/default-cover.png`} className="w-full h-full object-cover" />
+          </div>
+          <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: playBtnBg }}>
+            <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+          </button>
+          <button className="text-white/50 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (style === "lista") {
+    return (
+      <div className="rounded-lg overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800 border border-white/10 p-3">
+        <div className="h-1 bg-white/5 mb-3">
+          <div className="h-full rounded-r-full" style={{ width: "40%", background: playerGradient || playerCor }} />
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="text-white/50 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+          <div className="w-10 h-10 rounded-lg overflow-hidden shadow-lg ring-2 ring-white/10">
+            <img src={`${import.meta.env.BASE_URL}images/default-cover.png`} className="w-full h-full object-cover" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-bold truncate">Nome da Música</p>
+            <p className="text-white/50 text-xs truncate">Artista</p>
+          </div>
+          <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: playBtnBg }}>
+            <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+          </button>
+          <span className="text-xs text-white/50 font-mono">0:00/3:45</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (style === "waveform") {
+    return (
+      <div className="rounded-lg overflow-hidden bg-[#0a0a1a] border border-cyan-500/30 p-3">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-lg overflow-hidden shadow-lg ring-2 ring-cyan-500/30">
+            <img src={`${import.meta.env.BASE_URL}images/default-cover.png`} className="w-full h-full object-cover" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-bold truncate">Nome da Música</p>
+            <p className="text-cyan-300/60 text-xs truncate">Artista</p>
+          </div>
+          <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: playBtnBg }}>
+            <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+          </button>
+          <button className="text-cyan-300/50 hover:text-cyan-300">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-cyan-300/50 font-mono w-8">0:00</span>
+          <div className="flex-1 h-6 bg-cyan-500/10 rounded flex items-center gap-0.5 px-1">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className="w-1 rounded-full"
+                style={{
+                  height: `${Math.random() * 60 + 20}%`,
+                  background: i < 8 ? (playerGradient || playerCor) : 'rgba(6, 182, 212, 0.3)'
+                }}
+              />
+            ))}
+          </div>
+          <span className="text-xs text-cyan-300/50 font-mono w-8 text-right">3:45</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (style === "moderno") {
+    return (
+      <div className="rounded-lg overflow-hidden bg-gradient-to-r from-purple-900/95 to-pink-900/95 border border-white/10 p-3">
+        <div className="h-0.5 bg-white/10 mb-3">
+          <div className="h-full rounded-r-full" style={{ width: "40%", background: playerGradient || 'linear-gradient(to right, #a855f7, #ec4899)' }} />
+        </div>
+        <div className="flex items-center justify-between">
+          <button className="text-white/50 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+          <div className="flex items-center gap-3 flex-1 max-w-[200px] mx-auto">
+            <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg ring-2 ring-white/20" style={{ background: playerCor }}>
+              <img src={`${import.meta.env.BASE_URL}images/default-cover.png`} className="w-full h-full object-cover" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-white text-sm font-bold truncate">Nome da Música</p>
+              <p className="text-white/60 text-xs truncate">Artista</p>
+            </div>
+          </div>
+          <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: playBtnBg, boxShadow: `0 0 15px ${playerCor}80` }}>
+            <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (style === "vintage") {
+    return (
+      <div className="rounded-lg overflow-hidden border border-amber-700/50 p-3" style={{ background: 'linear-gradient(to right, #451a03, #1c1917)' }}>
+        <div className="h-1.5 bg-amber-900/30 mb-3">
+          <div className="h-full rounded-full" style={{ width: "40%", background: playerGradient || 'linear-gradient(to right, #d97706, #ea580c)' }} />
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="text-amber-200/50 hover:text-amber-200">
+            <X className="w-4 h-4" />
+          </button>
+          <div className="w-10 h-10 text-amber-600 flex items-center justify-center">
+            <Disc className="w-8 h-8 animate-spin" style={{ animationDuration: '3s' }} />
+          </div>
+          <div className="w-10 h-10 rounded-full overflow-hidden shadow-lg ring-4 ring-amber-700/50">
+            <img src={`${import.meta.env.BASE_URL}images/default-cover.png`} className="w-full h-full object-cover" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-amber-100 text-sm font-bold truncate">Nome da Música</p>
+            <p className="text-amber-300/60 text-xs truncate">Artista</p>
+          </div>
+          <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: playerGradient || '#d97706' }}>
+            <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+          </button>
+          <span className="text-xs text-amber-200/50 font-mono hidden sm:block">0:00/3:45</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Padrao (default)
+  return (
+    <div className="rounded-lg overflow-hidden bg-[#0f0f23]/98 border border-purple-500/30 p-3">
+      <div className="h-0.5 bg-purple-900/30 mb-3">
+        <div className="h-full rounded-b-full" style={{ width: "40%", background: playerGradient || playerCor }} />
+      </div>
+      <div className="flex items-center justify-center gap-3">
+        <button className="w-8 h-8 rounded-full flex items-center justify-center bg-purple-500/30 hover:bg-purple-500/50">
+          <X className="w-4 h-4 text-purple-200" />
+        </button>
+        <div className="w-10 h-10 rounded-lg overflow-hidden shadow-lg ring-2 ring-purple-500/30">
+          <img src={`${import.meta.env.BASE_URL}images/default-cover.png`} className="w-full h-full object-cover" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-white text-sm font-bold truncate">Nome da Música</p>
+          <p className="text-purple-300/60 text-xs truncate">Artista</p>
+        </div>
+        <button className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ background: playBtnBg, boxShadow: `0 0 15px ${playerCor}40` }}>
+          <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+        </button>
+        <span className="text-xs text-purple-200/60 font-mono hidden sm:block">0:00/3:45</span>
+      </div>
+    </div>
+  );
+}
+
 export default function ArtistDashboard() {
   const [location, setLocation] = useLocation();
   const [loading, setLoading] = useState(true);
@@ -214,7 +424,7 @@ export default function ArtistDashboard() {
   const [newPlaylistDesc, setNewPlaylistDesc] = useState("");
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<any | null>(null);
-  const { autoPlayPlaylist, setAutoPlayPlaylist } = usePlayer();
+  const { autoPlayPlaylist, setAutoPlayPlaylist, setPlayerColors, setPlayerStyle } = usePlayer();
 
   const tabs: { id: TabId; label: string; icon: any }[] = [
     { id: "dashboard",      label: "Dashboard",       icon: BarChart3      },
@@ -265,11 +475,13 @@ export default function ArtistDashboard() {
       setEditCustom({
         fonte: a.fonte || "Arial",
         cor: a.cor || "#ffffff",
-        background: a.background || "padrao",
+        background: a.layout || "padrao",
         player: a.player || "padrao",
         playerGradient: a.playerGradient || "",
         playerCor: a.playerCor || "",
       });
+      // Apply saved player colors to global player context
+      setPlayerColors(a.playerGradient || null, a.playerCor || null);
       setVipSenha(a.vipSenha || "");
     } catch (err) {
       setError("Erro ao carregar dados");
@@ -430,7 +642,13 @@ export default function ArtistDashboard() {
     setSavingCustom(true);
     try {
       const formData = new FormData();
-      Object.entries(editCustom).forEach(([k, v]) => { if (v) formData.append(k, v); });
+      // Map background to layout for API
+      formData.append("fonte", editCustom.fonte);
+      formData.append("cor", editCustom.cor);
+      formData.append("layout", editCustom.background);
+      formData.append("player", editCustom.player);
+      if (editCustom.playerGradient) formData.append("playerGradient", editCustom.playerGradient);
+      if (editCustom.playerCor) formData.append("playerCor", editCustom.playerCor);
 
       const res = await fetch("/api/artists/profile", {
         method: "PUT",
@@ -439,6 +657,9 @@ export default function ArtistDashboard() {
       });
       if (res.ok) {
         showSaveSuccess();
+        // Update global player context with new colors and style immediately
+        setPlayerColors(editCustom.playerGradient || null, editCustom.playerCor || null);
+        setPlayerStyle(editCustom.player);
         loadData();
       } else {
         const data = await res.json();
@@ -460,8 +681,8 @@ export default function ArtistDashboard() {
         body: JSON.stringify({ planId, artistId: artist.id }),
       });
       const data = await res.json();
-      if (data.initPoint) {
-        window.open(data.initPoint, "_blank");
+      if (data.invoiceUrl) {
+        window.open(data.invoiceUrl, "_blank");
       } else if (data.error) {
         alert(data.error);
       }
@@ -1430,31 +1651,65 @@ export default function ArtistDashboard() {
                   </h3>
 
                   {/* Fonte */}
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-2 text-sm font-bold text-foreground">
-                      <Type className="w-4 h-4" /> Fonte do Nome
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {FONTS.map(f => (
-                        <button
-                          key={f.value}
-                          onClick={() => setEditCustom({ ...editCustom, fonte: f.value })}
-                          className={`p-3 rounded-lg border text-center transition-all ${
-                            editCustom.fonte === f.value
-                              ? "border-primary bg-primary/10 ring-2 ring-primary"
-                              : "border-border hover:border-primary/50 hover:bg-primary/5"
-                          }`}
-                        >
-                          <span className="text-base font-medium" style={{ fontFamily: f.value }}>{f.label}</span>
-                        </button>
-                      ))}
+                  {artist?.canCustomizeFont ? (
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 text-sm font-bold text-foreground">
+                        <Type className="w-4 h-4" /> Fonte do Nome
+                      </label>
+                      <Command className="rounded-lg border border-border overflow-hidden">
+                        <CommandInput 
+                          placeholder="Buscar fonte..." 
+                          className="border-b border-border"
+                        />
+                        <CommandList className="max-h-64 overflow-y-auto">
+                          <CommandEmpty>Nenhuma fonte encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            {FONTS.map(f => (
+                              <CommandItem
+                                key={f.value}
+                                value={f.value}
+                                onSelect={() => setEditCustom({ ...editCustom, fonte: f.value })}
+                                className={`px-3 py-2 cursor-pointer ${
+                                  editCustom.fonte === f.value
+                                    ? "bg-primary/10"
+                                    : "hover:bg-primary/5"
+                                }`}
+                              >
+                                <span className="text-base" style={{ fontFamily: f.value }}>{f.label}</span>
+                                {editCustom.fonte === f.value && (
+                                  <CheckCheck className="w-4 h-4 text-primary ml-auto" />
+                                )}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                      <div className="mt-2 p-3 bg-muted/30 rounded-lg border border-border/30">
+                        <span className="text-sm text-muted-foreground">Preview: </span>
+                        <span className="text-lg font-bold" style={{ fontFamily: editCustom.fonte }}>{artist.name || "Nome do Artista"}</span>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-3 opacity-60">
+                      <label className="flex items-center gap-2 text-sm font-bold text-foreground">
+                        <Type className="w-4 h-4" /> Fonte do Nome
+                        <Lock className="w-3 h-3 text-muted-foreground" />
+                      </label>
+                      <div className="p-4 bg-muted/30 rounded-lg border border-border/30 flex items-center gap-3">
+                        <Lock className="w-6 h-6 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-foreground">Fonte bloqueada</p>
+                          <p className="text-xs text-muted-foreground">Atualize seu plano para desbloquear</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Background */}
+                  {artist?.canCustomizeBackground ? (
                   <div className="space-y-3">
                     <label className="flex items-center gap-2 text-sm font-bold text-foreground">
-                      <Image className="w-4 h-4" /> Cor de Fundo
+                      <ImageIcon className="w-4 h-4" /> Cor de Fundo
                     </label>
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                       {BACKGROUNDS.map(b => (
@@ -1476,8 +1731,24 @@ export default function ArtistDashboard() {
                       ))}
                     </div>
                   </div>
+                  ) : (
+                  <div className="space-y-3 opacity-60">
+                    <label className="flex items-center gap-2 text-sm font-bold text-foreground">
+                      <ImageIcon className="w-4 h-4" /> Cor de Fundo
+                      <Lock className="w-3 h-3 text-muted-foreground" />
+                    </label>
+                    <div className="p-4 bg-muted/30 rounded-lg border border-border/30 flex items-center gap-3">
+                      <Lock className="w-6 h-6 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-foreground">Background bloqueado</p>
+                        <p className="text-xs text-muted-foreground">Atualize seu plano para desbloquear</p>
+                      </div>
+                    </div>
+                  </div>
+                  )}
 
                   {/* Cor da Fonte */}
+                  {artist?.canCustomizeTextColor ? (
                   <div className="space-y-3">
                     <label className="flex items-center gap-2 text-sm font-bold text-foreground">
                       <Palette className="w-4 h-4" /> Cor do Texto
@@ -1505,8 +1776,24 @@ export default function ArtistDashboard() {
                       </div>
                     </div>
                   </div>
+                  ) : (
+                  <div className="space-y-3 opacity-60">
+                    <label className="flex items-center gap-2 text-sm font-bold text-foreground">
+                      <Palette className="w-4 h-4" /> Cor do Texto
+                      <Lock className="w-3 h-3 text-muted-foreground" />
+                    </label>
+                    <div className="p-4 bg-muted/30 rounded-lg border border-border/30 flex items-center gap-3">
+                      <Lock className="w-6 h-6 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-foreground">Cor do texto bloqueada</p>
+                        <p className="text-xs text-muted-foreground">Atualize seu plano para desbloquear</p>
+                      </div>
+                    </div>
+                  </div>
+                  )}
 
                   {/* Player */}
+                  {artist?.canCustomizePlayerStyle ? (
                   <div className="space-y-3">
                     <label className="flex items-center gap-2 text-sm font-bold text-foreground">
                       <Music className="w-4 h-4" /> Estilo do Player
@@ -1524,12 +1811,33 @@ export default function ArtistDashboard() {
                         >
                           <span className="text-sm font-medium text-foreground block">{p.label}</span>
                           <span className="text-xs text-muted-foreground mt-0.5 block">{p.description}</span>
+                          {editCustom.player === p.value && (
+                            <div className="mt-2 pt-2 border-t border-primary/30">
+                              <PlayerPreviewMini style={p.value} editCustom={editCustom} />
+                            </div>
+                          )}
                         </button>
                       ))}
                     </div>
                   </div>
+                  ) : (
+                  <div className="space-y-3 opacity-60">
+                    <label className="flex items-center gap-2 text-sm font-bold text-foreground">
+                      <Music className="w-4 h-4" /> Estilo do Player
+                      <Lock className="w-3 h-3 text-muted-foreground" />
+                    </label>
+                    <div className="p-4 bg-muted/30 rounded-lg border border-border/30 flex items-center gap-3">
+                      <Lock className="w-6 h-6 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-foreground">Estilo do player bloqueado</p>
+                        <p className="text-xs text-muted-foreground">Atualize seu plano para desbloquear</p>
+                      </div>
+                    </div>
+                  </div>
+                  )}
 
                   {/* Cor do Player */}
+                  {artist?.canCustomizePlayerColor ? (
                   <div className="space-y-3">
                     <label className="flex items-center gap-2 text-sm font-bold text-foreground">
                       <Palette className="w-4 h-4" /> Cor do Player
@@ -1591,6 +1899,21 @@ export default function ArtistDashboard() {
                       </div>
                     </div>
                   </div>
+                  ) : (
+                  <div className="space-y-3 opacity-60">
+                    <label className="flex items-center gap-2 text-sm font-bold text-foreground">
+                      <Palette className="w-4 h-4" /> Cor do Player
+                      <Lock className="w-3 h-3 text-muted-foreground" />
+                    </label>
+                    <div className="p-4 bg-muted/30 rounded-lg border border-border/30 flex items-center gap-3">
+                      <Lock className="w-6 h-6 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-foreground">Cor do player bloqueada</p>
+                        <p className="text-xs text-muted-foreground">Atualize seu plano para desbloquear</p>
+                      </div>
+                    </div>
+                  </div>
+                  )}
 
                   {/* Preview */}
                   <div className="border-2 border-border/50 rounded-xl overflow-hidden">
@@ -1598,55 +1921,121 @@ export default function ArtistDashboard() {
                       <span className="text-xs font-medium text-muted-foreground">Prévia da sua página</span>
                     </div>
                     <div
-                      className="p-6 min-h-[200px] transition-all"
+                      className="relative min-h-[220px] overflow-hidden"
                       style={{
                         fontFamily: editCustom.fonte,
-                        color: editCustom.cor,
-                        background: (editCustom as any).background === "padrao" ? "hsl(var(--background))" :
-                                   (editCustom as any).background === "escuro" ? "#1a1a2e" :
-                                   (editCustom as any).background === "escuro-azul" ? "#0f0f23" :
-                                   (editCustom as any).background === "preto" ? "#000000" :
-                                   (editCustom as any).background === "branco" ? "#ffffff" :
-                                   (editCustom as any).background === "bege" ? "#f5f0e1" :
-                                   (editCustom as any).background === "cinza-claro" ? "#e5e5e5" :
-                                   (editCustom as any).background === "azul-escuro" ? "#1e3a5f" :
-                                   (editCustom as any).background === "verde-escuro" ? "#1a4d1a" :
-                                   (editCustom as any).background === "roxo-escuro" ? "#2d1b4e" :
-                                   (editCustom as any).background === "verde-azul" ? "#1a4d4d" :
-                                   (editCustom as any).background === "lilas" ? "#4a1a6b" :
-                                   (editCustom as any).background === "cinza-escuro" ? "#2d2d2d" :
-                                   (editCustom as any).background === "azul-azul" ? "#1a3a5f" :
-                                   (editCustom as any).background === "vermelho-escuro" ? "#5f1a1a" :
-                                   (editCustom as any).background === "dourado" ? "#5f4a1a" :
-                                   (editCustom as any).background === "turquesa" ? "#1a5f5f" :
-                                   (editCustom as any).background === "gradiente-azul" ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" :
-                                   (editCustom as any).background === "gradiente-verde" ? "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" :
-                                   (editCustom as any).background === "gradiente-roxo" ? "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)" :
-                                   (editCustom as any).background === "gradiente-sol" ? "linear-gradient(135deg, #f5af19 0%, #f12711 100%)" :
-                                   (editCustom as any).background === "gradiente-oceano" ? "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)" :
-                                   (editCustom as any).background === "gradiente-rosa" ? "linear-gradient(135deg, #ff6a88 0%, #ff9a9e 100%)" :
-                                   (editCustom as any).background === "gradiente-aurora" ? "linear-gradient(135deg, #00c6ff 0%, #0072ff 50%, #00c6ff 100%)" :
-                                   (editCustom as any).background === "gradiente-tropical" ? "linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)" :
-                                   (editCustom as any).background === "gradiente-pink" ? "linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)" :
-                                   "hsl(var(--background))",
                       }}
                     >
-                      <p className="text-xl font-bold" style={{ color: editCustom.cor }}>{artist?.name || "Nome do Artista"}</p>
-                      <p className="text-sm opacity-80" style={{ color: editCustom.cor }}>{artist?.profissao || "Cantor"} · {artist?.cidade || "Cidade"}</p>
-                      <div className="mt-4 flex items-center gap-3">
+                      {/* Banner Image or Background */}
+                      {artist?.bannerUrl ? (
                         <div 
-                          className="w-12 h-12 rounded-full flex items-center justify-center"
-                          style={{ background: editCustom.playerGradient || editCustom.playerCor || "hsl(var(--primary))" }}
-                        >
-                          <Music className="w-6 h-6" style={{ color: editCustom.cor }} />
+                          className="absolute inset-0"
+                          style={{
+                            backgroundImage: `url("${artist.bannerUrl}")`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }}
+                        />
+                      ) : (
+                        <div 
+                          className="absolute inset-0"
+                          style={{
+                            background: (editCustom as any).background === "padrao" ? "hsl(var(--background))" :
+                                       (editCustom as any).background === "escuro" ? "#1a1a2e" :
+                                       (editCustom as any).background === "escuro-azul" ? "#0f0f23" :
+                                       (editCustom as any).background === "preto" ? "#000000" :
+                                       (editCustom as any).background === "branco" ? "#ffffff" :
+                                       (editCustom as any).background === "bege" ? "#f5f0e1" :
+                                       (editCustom as any).background === "cinza-claro" ? "#e5e5e5" :
+                                       (editCustom as any).background === "azul-escuro" ? "#1e3a5f" :
+                                       (editCustom as any).background === "verde-escuro" ? "#1a4d1a" :
+                                       (editCustom as any).background === "roxo-escuro" ? "#2d1b4e" :
+                                       (editCustom as any).background === "verde-azul" ? "#1a4d4d" :
+                                       (editCustom as any).background === "lilas" ? "#4a1a6b" :
+                                       (editCustom as any).background === "cinza-escuro" ? "#2d2d2d" :
+                                       (editCustom as any).background === "azul-azul" ? "#1a3a5f" :
+                                       (editCustom as any).background === "vermelho-escuro" ? "#5f1a1a" :
+                                       (editCustom as any).background === "dourado" ? "#5f4a1a" :
+                                       (editCustom as any).background === "turquesa" ? "#1a5f5f" :
+                                       (editCustom as any).background === "gradiente-azul" ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" :
+                                       (editCustom as any).background === "gradiente-verde" ? "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" :
+                                       (editCustom as any).background === "gradiente-roxo" ? "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)" :
+                                       (editCustom as any).background === "gradiente-sol" ? "linear-gradient(135deg, #f5af19 0%, #f12711 100%)" :
+                                       (editCustom as any).background === "gradiente-oceano" ? "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)" :
+                                       (editCustom as any).background === "gradiente-rosa" ? "linear-gradient(135deg, #ff6a88 0%, #ff9a9e 100%)" :
+                                       (editCustom as any).background === "gradiente-aurora" ? "linear-gradient(135deg, #00c6ff 0%, #0072ff 50%, #00c6ff 100%)" :
+                                       (editCustom as any).background === "gradiente-tropical" ? "linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)" :
+                                       (editCustom as any).background === "gradiente-pink" ? "linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)" :
+                                       "hsl(var(--background))",
+                          }}
+                        />
+                      )}
+                      
+                      {/* Gradient overlay */}
+                      <div 
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)",
+                        }}
+                      />
+                      
+                      {/* Profile photo */}
+                      <div className="absolute top-20 left-4 z-10">
+                        <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white/50 shadow-2xl bg-black/30 flex items-center justify-center">
+                          {artist?.capaUrl ? (
+                            <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Music className="w-8 h-8 text-white/70" />
+                          )}
                         </div>
-                        <div>
-                          <p className="text-sm font-medium" style={{ color: editCustom.cor }}>Música Exemplo</p>
-                          <p className="text-xs opacity-60" style={{ color: editCustom.cor }}>Gênero</p>
-                        </div>
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="relative pt-28 pb-6 pl-4 pr-4 text-left" style={{ marginLeft: "6rem" }}>
+                        <h2 className="text-2xl font-bold text-white mb-1">{artist?.name || "Nome do Artista"}</h2>
+                        <p className="text-sm text-white/70">{artist?.profissao || "Cantor"} · {artist?.cidade || "Cidade"}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Song preview */}
+                    <div className="p-4 bg-card/50">
+                      <p className="text-xs text-muted-foreground mb-2">Suas músicas</p>
+                      <div className="space-y-2">
+                        {songs.slice(0, 3).map((song) => (
+                          <div key={song.id} className="flex items-center gap-2 p-2 rounded-lg bg-background/50 border border-border/30">
+                            <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0">
+                              {song.capaUrl ? (
+                                <img src={song.capaUrl} alt={song.titulo} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-primary/20 flex items-center justify-center">
+                                  <Music className="w-4 h-4 text-primary" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate">{song.titulo}</p>
+                              <p className="text-[10px] text-muted-foreground">{song.genero}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {songs.length === 0 && (
+                          <p className="text-xs text-muted-foreground">Nenhuma música cadastrada</p>
+                        )}
                       </div>
                     </div>
                   </div>
+
+                  {/* Player Preview - matches actual AudioPlayer style */}
+                  {artist?.canCustomizePlayerStyle && (
+                    <div className="border-2 border-border/50 rounded-xl overflow-hidden">
+                      <div className="bg-muted/50 px-4 py-2 border-b border-border/50">
+                        <span className="text-xs font-medium text-muted-foreground">Prévia do Player - {PLAYERS.find(p => p.value === editCustom.player)?.label || "Padrão"}</span>
+                      </div>
+                      <div className="p-3">
+                        <PlayerPreviewMini style={editCustom.player} editCustom={editCustom} />
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     onClick={handleSaveCustom}

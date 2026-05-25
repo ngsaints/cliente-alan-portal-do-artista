@@ -61,21 +61,54 @@ Gerenciamento completo das músicas:
 
 ### 3. 💳 MercadoPago (Configuração)
 
-Configuração das credenciais de pagamento:
+#### Campos no banco (`app_settings` categoria `mercadopago`):
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
-| `mp_access_token` | 🔒 Secret | Access Token de produção |
-| `mp_public_key` | 🔓 Público | Public Key (exibível no frontend) |
-| `mp_client_id` | 🔓 Público | ID da aplicação |
-| `mp_client_secret` | 🔒 Secret | Secret da aplicação |
-| `mp_sandbox` | 🔓 Boolean | Modo teste (true/false) |
+| `mp_access_token` | 🔒 Secret | Access Token de produção (`APP_USR-...`) ou teste (`TEST-...`) |
+| `mp_public_key` | 🔒 Secret | Public Key (para frontend) |
+| `mp_webhook_secret` | 🔒 Secret | Webhook Secret (validar assinatura do webhook) |
+| `mp_sandbox` | 🔓 Boolean | `true` = modo teste, `false` = produção |
+| `mp_webhook_url` | 🔓 Texto | URL do webhook configurada no MP |
 
-**Como configurar:**
-1. Acessar [MercadoPago Developers](https://www.mercadopago.com.br/developers)
-2. Criar aplicação no painel
-3. Copiar Access Token e Public Key
-4. Configurar webhook URL: `https://94.141.97.95/api/webhooks/mercadopago`
+#### Passo a passo para ativar:
+
+1. **Acesse o painel do MercadoPago Developers:**
+   https://www.mercadopago.com.br/developers
+
+2. **Crie ou selecione uma aplicação**
+
+3. **Copie as credenciais:**
+   - Vá em "Credenciais de produção" ou "Credenciais de teste"
+   - Copie o **Access Token** → cole no campo `mp_access_token`
+   - Copie a **Public Key** → cole no campo `mp_public_key`
+
+4. **Configure o Webhook:**
+   - No painel MP, vá em **Webhooks**
+   - URL: `https://SEU_DOMINIO/api/webhooks/mercadopago`
+   - Marque os eventos: `payment.created`, `payment.updated`
+   - Copie o **Webhook Secret** → cole no campo `mp_webhook_secret`
+
+5. **No painel admin (/admin):**
+   - Configure `mp_sandbox` = `true` para testes
+   - Após testar, mude para `false` e use credenciais de produção
+
+#### Fluxo de pagamento:
+
+```
+Artista escolhe plano → POST /api/payments/create-preference
+→ Redireciona para checkout MercadoPago
+→ Pagamento approved → Webhook notifica /api/webhooks/mercadopago
+→ Plano do artista é ativado automaticamente
+```
+
+#### Status de pagamento processados pelo webhook:
+
+| Status MP | Ação no sistema |
+|-----------|-----------------|
+| `approved` | Ativa plano, cria subscription |
+| `cancelled` | Log apenas |
+| `rejected` | Log apenas |
 
 **Segurança:** Campos secretos são mascarados (`••••••••`) e só revelados ao clicar no ícone de olho.
 

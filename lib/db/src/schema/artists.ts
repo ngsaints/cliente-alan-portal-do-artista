@@ -32,6 +32,7 @@ export const artistsTable = pgTable("artists", {
   // Plano
   plano: text("plano").notNull().default("free"), // free, basico, intermediario, pro, premium
   planoAtivo: boolean("plano_ativo").notNull().default(true),
+  asaasCustomerId: text("asaas_customer_id"), // ID do customer no Asaas
   musicaCount: numeric("musica_count").notNull().default("0"),
   
   // Limites do plano

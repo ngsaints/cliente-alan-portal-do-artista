@@ -17,6 +17,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Build**: esbuild (CJS bundle)
 - **File uploads**: multer (covers stored in `uploads/covers/`, audio in `uploads/audio/`)
 - **Sessions**: express-session (for admin auth)
+- **Payments**: Asaas API (subscriptions via PIX, boleto, credit card)
 
 ## Structure
 

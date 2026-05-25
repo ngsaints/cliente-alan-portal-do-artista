@@ -34,7 +34,7 @@ const FALLBACK_ARTIST = {
 
 export default function ArtistProfile() {
   const { slug } = useParams();
-  const { playSong } = usePlayer();
+  const { playSong, setPlayerColors, setPlayerStyle } = usePlayer();
   const artistId = slug || "1";
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const { genres } = useGenres();
@@ -45,6 +45,17 @@ export default function ArtistProfile() {
   const [artistData, setArtistData] = useState<any>(null);
   const [loadingArtist, setLoadingArtist] = useState(true);
   const numericArtistId = artistData?.id;
+
+  // Update player colors and style when artist data loads
+  useEffect(() => {
+    if (artistData) {
+      setPlayerColors(artistData.playerGradient || null, artistData.playerCor || null);
+      if (artistData.player) {
+        setPlayerStyle(artistData.player);
+      }
+    }
+    return () => setPlayerColors(null, null);
+  }, [artistData, setPlayerColors, setPlayerStyle]);
 
   // Load custom font when artist has one
   useEffect(() => {
@@ -594,10 +605,7 @@ export default function ArtistProfile() {
         }}
       />
 
-      <AudioPlayer 
-        playerGradient={artistData?.playerGradient} 
-        playerCor={artistData?.playerCor} 
-      />
+      <AudioPlayer />
     </div>
   );
 }

@@ -13,14 +13,23 @@ interface PlayerContextType {
   progress: number;
   duration: number;
   volume: number;
+  playerGradient: string | null;
+  playerCor: string | null;
+  playerStyle: PlayerStyle;
   playSong: (song: Song, playlist?: Song[], playlistsQueue?: PlaylistInfo[], currentPlaylistIdx?: number) => void;
+  setPlayerColors: (gradient: string | null, cor: string | null) => void;
+  setPlayerStyle: (style: PlayerStyle) => void;
   togglePlay: () => void;
   seek: (time: number) => void;
   setVolume: (vol: number) => void;
   setAutoPlayPlaylist: (enabled: boolean) => void;
+  setCurrentSong: (song: Song | null) => void;
+  setIsPlaying: (playing: boolean) => void;
   autoPlayPlaylist: boolean;
   audioRef: React.RefObject<HTMLAudioElement | null>;
 }
+
+export type PlayerStyle = "padrao" | "minimalista" | "lista" | "waveform" | "moderno" | "vintage";
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
 
@@ -31,7 +40,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(1);
   const [autoPlayPlaylist, setAutoPlayPlaylistState] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playerGradient, setPlayerGradient] = useState<string | null>(null);
+  const [playerCor, setPlayerCor] = useState<string | null>(null);
+  const [playerStyle, setPlayerStyle] = useState<PlayerStyle>("padrao");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Playlist state
   const playlistRef = useRef<Song[]>([]);
@@ -101,6 +113,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const setAutoPlayPlaylistStateState = (enabled: boolean) => {
     setAutoPlayPlaylistState(enabled);
     localStorage.setItem('autoPlayPlaylist', String(enabled));
+  };
+
+  const setPlayerColors = (gradient: string | null, cor: string | null) => {
+    setPlayerGradient(gradient);
+    setPlayerCor(cor);
+  };
+
+  const setPlayerStyleFn = (style: PlayerStyle) => {
+    setPlayerStyle(style);
   };
 
   // Load autoPlay setting from localStorage on mount
@@ -178,11 +199,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         progress,
         duration,
         volume,
+        playerGradient,
+        playerCor,
+        playerStyle,
         playSong,
+        setPlayerColors,
+        setPlayerStyle: setPlayerStyleFn,
         togglePlay,
         seek,
         setVolume,
         setAutoPlayPlaylist,
+        setCurrentSong,
+        setIsPlaying,
         autoPlayPlaylist,
         audioRef,
       }}
