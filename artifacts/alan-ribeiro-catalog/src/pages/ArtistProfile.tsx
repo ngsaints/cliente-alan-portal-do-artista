@@ -99,7 +99,7 @@ export default function ArtistProfile() {
     genre: selectedGenre || undefined,
   });
 
-  const artistSongs = (songs || []).filter((s) => !s.isVip && !s.isPrivate && (s as any).artistaId == numericArtistId);
+  const artistSongs = (songs || []).filter((s) => !s.isVip && !(s as any).isPrivate && (s as any).artistaId == numericArtistId);
 
   // Playlists
   const [playlists, setPlaylists] = useState<any[]>([]);

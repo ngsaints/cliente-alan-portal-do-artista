@@ -5,12 +5,21 @@ import { X, Send, Music, Phone, MessageSquare, CheckCircle2, Loader2 } from "luc
 interface InterestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  songId: number | string;
+  songId?: number | string;
   artistaId?: number | string | null;
   songTitle?: string;
+  onSubmit?: (data: {
+    nome: string;
+    email: string;
+    telefone: string;
+    mensagem: string;
+    contratarShow: boolean;
+    reservarMusica: boolean;
+    agendarReuniao: boolean;
+  }) => void;
 }
 
-export function InterestModal({ isOpen, onClose, songId, artistaId, songTitle }: InterestModalProps) {
+export function InterestModal({ isOpen, onClose, songId, artistaId, songTitle, onSubmit }: InterestModalProps) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -34,6 +43,22 @@ export function InterestModal({ isOpen, onClose, songId, artistaId, songTitle }:
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (onSubmit) {
+      onSubmit({
+        nome: nome.trim(),
+        email: email.trim(),
+        telefone: telefone.trim(),
+        mensagem: mensagem.trim(),
+        contratarShow,
+        reservarMusica,
+        agendarReuniao,
+      });
+      setDone(true);
+      setTimeout(handleClose, 2500);
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/interests", {

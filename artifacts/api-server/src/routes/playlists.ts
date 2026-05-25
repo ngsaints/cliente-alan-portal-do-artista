@@ -44,7 +44,7 @@ router.get("/playlists/public/:artistId", async (req, res): Promise<void> => {
     const playlists = await db
       .select()
       .from(playlistsTable)
-      .where(eq(playlistsTable.artistaId, artistId))
+      .where(eq(playlistsTable.artistaId, parseInt(artistId as string)))
       .orderBy(asc(playlistsTable.ordem));
 
     // Get songs for each playlist with full details

@@ -38,7 +38,7 @@ router.put("/artists/:id/profile", upload.single("capa"), async (req, res): Prom
     } = req.body;
 
     // Get current artist
-    const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, parseInt(id)));
+    const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, parseInt(id as string)));
     if (artists.length === 0) {
       res.status(404).json({ error: "Artista não encontrado" });
       return;
@@ -91,7 +91,7 @@ router.put("/artists/:id/profile", upload.single("capa"), async (req, res): Prom
         playerGradient: playerGradient !== undefined ? playerGradient : currentArtist.playerGradient,
         playerCor: playerCor !== undefined ? playerCor : currentArtist.playerCor,
       })
-      .where(eq(artistsTable.id, parseInt(id)))
+      .where(eq(artistsTable.id, parseInt(id as string)))
       .returning();
 
     res.json({

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Lock, ArrowLeft, Music } from "lucide-react";
-import { useListSongs } from "@workspace/api-client-react";
+import { useListSongs, getListSongsQueryKey } from "@workspace/api-client-react";
 import { useSEO } from "@/hooks/useSEO";
 
 export default function Vip() {
@@ -20,7 +20,12 @@ export default function Vip() {
 
   const { data: songs, isLoading } = useListSongs(
     { vip: true },
-    { query: { enabled: unlocked } }
+    {
+      query: {
+        enabled: unlocked,
+        queryKey: getListSongsQueryKey({ vip: true })
+      }
+    }
   );
 
   const verificar = async (e: React.FormEvent) => {

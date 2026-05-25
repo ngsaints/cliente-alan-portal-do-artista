@@ -88,7 +88,7 @@ export default function Demo() {
     genre: selectedGenre || undefined,
   });
 
-  const artistSongs = (songs || []).filter((s) => !s.isVip && !s.isPrivate);
+  const artistSongs = (songs || []).filter((s) => !s.isVip && !(s as any).isPrivate);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);

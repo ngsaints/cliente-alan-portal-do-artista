@@ -236,7 +236,7 @@ router.post("/galleries/:id/photos/upload", upload.single("foto"), async (req, r
     const [gallery] = await db
       .select()
       .from(galleriesTable)
-      .where(eq(galleriesTable.id, parseInt(id)));
+      .where(eq(galleriesTable.id, parseInt(id as string)));
 
     if (!gallery) {
       res.status(404).json({ error: "Galeria não encontrada" });
@@ -254,7 +254,7 @@ router.post("/galleries/:id/photos/upload", upload.single("foto"), async (req, r
     const [photo] = await db
       .insert(galleryPhotosTable)
       .values({
-        galleryId: parseInt(id),
+        galleryId: parseInt(id as string),
         fotoUrl,
         legenda,
       })

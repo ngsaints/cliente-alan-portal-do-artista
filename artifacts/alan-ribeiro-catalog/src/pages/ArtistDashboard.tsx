@@ -18,7 +18,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useGenres } from "@/hooks/useGenres";
-import { usePlayer } from "@/contexts/PlayerContext";
+import { usePlayer, PlayerStyle } from "@/contexts/PlayerContext";
 
 interface ArtistStats {
   totalSongs: number;
@@ -659,7 +659,7 @@ export default function ArtistDashboard() {
         showSaveSuccess();
         // Update global player context with new colors and style immediately
         setPlayerColors(editCustom.playerGradient || null, editCustom.playerCor || null);
-        setPlayerStyle(editCustom.player);
+        setPlayerStyle(editCustom.player as PlayerStyle);
         loadData();
       } else {
         const data = await res.json();
@@ -1147,7 +1147,7 @@ export default function ArtistDashboard() {
                       setNewSong({
                         titulo: "", descricao: "", genero: "Sertanejo", subgenero: "",
                         compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false",
-                        isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "",
+                        isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "", isPrivate: "false",
                       });
                       setShowAddForm(true);
                     }}
@@ -2050,7 +2050,7 @@ export default function ArtistDashboard() {
             )}
 
             {/* Personalização (merged into profile) - kept for logic */}
-            {activeTab === "personalizacao" && null}
+
 
             {/* VIP */}
             {activeTab === "vip" && (

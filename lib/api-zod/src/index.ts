@@ -1,2 +1,16 @@
 export * from "./generated/api";
-export * from "./generated/types";
+export type {
+  ArtistSettings,
+  AuthStatus,
+  CreateSongBody,
+  ErrorResponse,
+  HealthStatus,
+  ListSongsParams,
+  LoginBody,
+  Song,
+  UpdateSettingsBody,
+  UpdateSongBody,
+  VipLoginBody,
+  VipStatus,
+} from "./generated/types";
+

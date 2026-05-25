@@ -629,10 +629,12 @@ function SongModal({ mode, song, onClose, onSaved }: SongModalProps) {
 
     if (mode === "add") {
       if (tipoMidia === "audio" && !mp3File) {
-        return toast({ title: "Selecione um arquivo MP3", variant: "destructive" });
+        toast({ title: "Selecione um arquivo MP3", variant: "destructive" });
+        return;
       }
       if (tipoMidia === "video" && !form.youtubeUrl) {
-        return toast({ title: "Informe o link do YouTube", variant: "destructive" });
+        toast({ title: "Informe o link do YouTube", variant: "destructive" });
+        return;
       }
       createSong(
         { data: { ...form, tipoMidia, isVip: isVip ? "true" : "false", capa: capaFile || undefined, mp3: mp3File || undefined } },

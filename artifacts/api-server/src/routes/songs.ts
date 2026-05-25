@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import { db, songsTable, songLikesTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { ListSongsResponse, DeleteSongParams } from "@workspace/api-zod";
 import { uploadToR2, deleteFromR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import sharp from "sharp";
@@ -225,7 +225,7 @@ router.put(
           vipCode:      vipCode    !== undefined ? (vipCode    || null) : undefined,
           ...(capaPath    ? { capaPath }                             : {}),
         })
-        .where(eq(songsTable.id, parseInt(id)))
+        .where(eq(songsTable.id, parseInt(id as string)))
         .returning();
 
       if (!updated) {
@@ -298,8 +298,12 @@ router.post("/songs/:id/like", async (req, res): Promise<void> => {
     const existing = await db
       .select()
       .from(songLikesTable)
-      .where(eq(songLikesTable.songId, id))
-      .where(eq(songLikesTable.ipAddress, ip))
+      .where(
+        and(
+          eq(songLikesTable.songId, id as string),
+          eq(songLikesTable.ipAddress, ip)
+        )
+      )
       .limit(1);
 
     if (existing.length > 0) {
@@ -319,7 +323,7 @@ router.post("/songs/:id/like", async (req, res): Promise<void> => {
       .set({
         likes: sql`${songsTable.likes} + 1`,
       })
-      .where(eq(songsTable.id, parseInt(id)))
+      .where(eq(songsTable.id, parseInt(id as string)))
       .returning();
 
     res.json({ likes: updated.likes });

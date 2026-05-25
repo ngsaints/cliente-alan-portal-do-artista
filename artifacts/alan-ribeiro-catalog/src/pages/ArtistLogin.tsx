@@ -565,6 +565,8 @@ export default function ArtistLogin() {
             </p>
           </div>
         );
+      default:
+        return null;
     }
   };
 

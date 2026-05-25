@@ -207,7 +207,7 @@ router.put(
     }
 
     const { artistId, songId } = req.params;
-    if (sessionArtistId !== parseInt(artistId)) {
+    if (sessionArtistId !== parseInt(artistId as string)) {
       res.status(403).json({ error: "Você só pode editar músicas do seu próprio perfil" });
       return;
     }
@@ -255,7 +255,7 @@ router.put(
           isPrivate:    isPrivate  !== undefined ? privateFlag        : undefined,
           ...(capaPath    ? { capaPath }                             : {}),
         })
-        .where(eq(songsTable.id, parseInt(songId)))
+        .where(eq(songsTable.id, parseInt(songId as string)))
         .returning();
 
       if (!updated) {
