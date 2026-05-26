@@ -316,6 +316,7 @@ router.get("/artists/status", async (req, res): Promise<void> => {
         limiteMusicas: artist.limiteMusicas,
         musicaCount: artist.musicaCount,
         vipSenha: artist.vipSenha,
+        cardStyle: (artist as any).cardStyle,
         personalizacaoPercent: plan?.personalizacaoPercent ?? "10",
         canCustomizeFont: plan?.canCustomizeFont ?? true,
         canCustomizeBackground: plan?.canCustomizeBackground ?? true,
@@ -346,7 +347,7 @@ router.put(
     }
 
     try {
-      const { name, profissao, cidade, instagram, tiktok, spotify, contato, fonte, cor, layout, player, vipSenha, playerGradient, playerCor } = req.body;
+      const { name, profissao, cidade, instagram, tiktok, spotify, contato, fonte, cor, layout, player, vipSenha, playerGradient, playerCor, cardStyle } = req.body;
 
       const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, req.session.artistId));
       if (artists.length === 0) {
@@ -387,6 +388,7 @@ router.put(
           playerGradient: playerGradient !== undefined ? playerGradient : current.playerGradient,
           playerCor: playerCor !== undefined ? playerCor : current.playerCor,
           vipSenha: vipSenha !== undefined ? vipSenha : current.vipSenha,
+          cardStyle: cardStyle !== undefined ? cardStyle : (current as any).cardStyle,
           capaUrl,
           bannerUrl,
           updatedAt: new Date(),
@@ -412,6 +414,7 @@ router.put(
         player: updated.player,
         playerGradient: updated.playerGradient,
         playerCor: updated.playerCor,
+        cardStyle: (updated as any).cardStyle,
       });
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -562,6 +565,7 @@ router.get("/artists/:identifier", async (req, res): Promise<void> => {
       layout: artist.layout,
       playerGradient: artist.playerGradient,
       playerCor: artist.playerCor,
+      cardStyle: (artist as any).cardStyle,
     });
   } catch (error) {
     console.error("Error fetching artist:", error);

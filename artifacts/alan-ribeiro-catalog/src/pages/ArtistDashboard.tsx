@@ -1935,7 +1935,7 @@ export default function ArtistDashboard() {
                         }`}
                       >
                         {/* Mini preview — default card */}
-                        <div className="w-full aspect-square rounded-lg bg-card border border-border/50 mb-2 overflow-hidden relative">
+                        <div className="w-full max-w-[150px] aspect-square mx-auto rounded-lg bg-card border border-border/50 mb-2 overflow-hidden relative">
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                           <div className="absolute bottom-2 left-2 right-2">
                             <div className="h-2 bg-primary/60 rounded-full w-3/4 mb-1" />
@@ -1959,7 +1959,7 @@ export default function ArtistDashboard() {
                         }`}
                       >
                         {/* Mini preview — iPod */}
-                        <div className="w-full aspect-square rounded-[14px] mb-2 p-2 bg-[#1a1a1a] border border-white/10 flex flex-col justify-between shadow-inner">
+                        <div className="w-full max-w-[150px] aspect-square mx-auto rounded-[14px] mb-2 p-2 bg-[#1a1a1a] border border-white/10 flex flex-col justify-between shadow-inner">
                           {/* mini square cover art */}
                           <div className="w-full aspect-square rounded bg-[#121212] border border-white/5 flex items-center justify-center overflow-hidden relative">
                             <Music className="w-4 h-4 text-white/20" />
