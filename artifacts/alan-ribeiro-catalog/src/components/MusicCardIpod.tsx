@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, Heart, PlayCircle, Youtube, ExternalLink, Music } from "lucide-react";
 import { type Song } from "@workspace/api-client-react";
@@ -52,7 +52,6 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (isThisSong) {
-          // If this card's song is active and card enters view → hide global player
           setCardMode(entry.isIntersecting);
         }
       },
@@ -63,10 +62,8 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
     return () => observer.disconnect();
   }, [isThisSong, setCardMode]);
 
-  // When this card stops being the active song, release cardMode
   useEffect(() => {
     if (!isThisSong) {
-      // Only reset if we were the ones setting it
       setCardMode(false);
     }
   }, [isThisSong, setCardMode]);
@@ -84,235 +81,158 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
     document.dispatchEvent(event);
   };
 
-  // ─── iPod body colours ───────────────────────────────────────────────────
-  const bodyGrad  = "linear-gradient(145deg, #2d2d2d 0%, #1a1a1a 60%, #111 100%)";
-  const screenBg  = "linear-gradient(180deg, #0a0a0a 0%, #111 100%)";
-  const wheelBg   = "radial-gradient(circle at center, #333 0%, #222 60%, #1a1a1a 100%)";
-
   return (
     <motion.div
       ref={cardRef}
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08, duration: 0.4, ease: "easeOut" }}
-      className="group relative flex flex-col"
+      className="group relative flex flex-col w-full"
       style={{ fontFamily: "inherit" }}
     >
-      {/* ── iPod body ─────────────────────────────────────────────────────── */}
+      {/* iPod Outer Body */}
       <div
-        className="relative rounded-[28px] p-3 shadow-2xl transition-all duration-300 hover:-translate-y-1"
+        className="relative rounded-[20px] p-4 flex flex-col bg-[#161616] transition-all duration-300 hover:-translate-y-1"
         style={{
-          background: bodyGrad,
           boxShadow: isThisPlaying
-            ? `0 20px 60px ${playerCor || "#f5c518"}50, 0 4px 20px rgba(0,0,0,0.8)`
-            : "0 12px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.08)",
+            ? `0 15px 40px ${playerCor || "#f5c518"}30, 0 4px 12px rgba(0,0,0,0.5)`
+            : "0 10px 25px rgba(0,0,0,0.5)",
           border: isThisPlaying
-            ? `1.5px solid ${playerCor || "#f5c518"}60`
+            ? `1.5px solid ${playerCor || "#f5c518"}80`
             : "1.5px solid rgba(255,255,255,0.08)",
         }}
       >
-        {/* ── Screen ────────────────────────────────────────────────────── */}
-        <div
-          className="relative rounded-2xl overflow-hidden mb-3"
-          style={{ background: screenBg, aspectRatio: "1/1" }}
-        >
-          {/* Status bar */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 pt-2 pb-1"
-            style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)" }}
-          >
-            <div className="flex items-center gap-1.5">
-              {isVideo
-                ? <Youtube className="w-3 h-3 text-red-400" />
-                : <Music className="w-3 h-3" style={{ color: accent }} />}
-              <span className="text-[10px] font-medium text-white/70">
-                {song.genero}{song.subgenero ? ` · ${song.subgenero}` : ""}
-              </span>
-            </div>
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-              disponivel ? "bg-green-500/30 text-green-400" : "bg-red-500/30 text-red-400"
-            }`}>
-              {disponivel ? "Disponível" : "Reservado"}
+        {/* Top bar (Badge + Status) */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded-md">
+            {isVideo ? <Youtube className="w-3 h-3 text-red-500" /> : <Music className="w-3 h-3" style={{ color: accent }} />}
+            <span className="text-[10px] font-bold text-white/80 uppercase tracking-wide">
+              {song.genero}
             </span>
           </div>
+          <span className={`text-[10px] font-bold flex items-center gap-1 ${disponivel ? "text-emerald-400" : "text-rose-400"}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${disponivel ? "bg-emerald-400" : "bg-rose-400"}`} />
+            {disponivel ? "Disponível" : "Reservado"}
+          </span>
+        </div>
 
-          {/* Album art — spins when playing */}
-          <div className="relative w-full h-full flex items-center justify-center">
+        {/* Square Album Cover */}
+        <div className="relative aspect-square w-full rounded-xl overflow-hidden mb-3 bg-black/40 border border-white/5">
+          <img
+            src={song.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
+            alt={song.titulo}
+            className="w-full h-full object-cover"
+          />
+          {/* Overlay play button on hover */}
+          {!isThisPlaying && !isVideo && (
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+              <button
+                onClick={handlePlay}
+                className="w-14 h-14 rounded-full flex items-center justify-center bg-black/80 hover:scale-105 transition-transform"
+                style={{ border: `2px solid ${accent}` }}
+              >
+                <Play className="w-6 h-6 ml-0.5" style={{ color: accent, fill: accent }} />
+              </button>
+            </div>
+          )}
+          {isVideo && youtubeId && (
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+              <button
+                onClick={() => window.open(song.youtubeUrl || "", "_blank", "noopener,noreferrer")}
+                className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:scale-105 transition-transform"
+              >
+                <ExternalLink className="w-6 h-6 text-white" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Song Info */}
+        <div className="mb-2">
+          <h3 className="font-bold text-base text-white truncate leading-snug">
+            {song.titulo}
+          </h3>
+          <p className="text-xs text-white/50 truncate font-medium">
+            {song.compositor || song.subgenero || "-"}
+          </p>
+        </div>
+
+        {/* Progress Bar & Time */}
+        <div className="space-y-1 mb-4">
+          <div className="relative w-full h-1 bg-white/10 rounded-full overflow-hidden">
             <div
-              className="w-3/4 h-3/4 rounded-full overflow-hidden shadow-xl transition-all duration-700"
-              style={{
-                animation: isThisPlaying ? "spin 6s linear infinite" : "none",
-                boxShadow: isThisPlaying
-                  ? `0 0 30px ${playerCor || "#f5c518"}80, 0 0 60px ${playerCor || "#f5c518"}30`
-                  : "0 4px 20px rgba(0,0,0,0.6)",
-                border: `3px solid ${isThisPlaying ? (playerCor || "#f5c518") : "rgba(255,255,255,0.1)"}`,
-              }}
-            >
-              <img
-                src={song.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
-                alt={song.titulo}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            {/* Center hole */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div
-                className="w-5 h-5 rounded-full border-2 border-white/10"
-                style={{ background: screenBg }}
-              />
-            </div>
-
-            {/* Play overlay (only when not playing this song) */}
-            {!isThisPlaying && !isVideo && (
-              <div
-                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ background: "rgba(0,0,0,0.5)" }}
-              >
-                <button
-                  onClick={handlePlay}
-                  className="w-14 h-14 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-2xl"
-                  style={{ background: accent, boxShadow: `0 0 30px ${accent}80` }}
-                >
-                  <Play className="w-6 h-6 text-black fill-black ml-0.5" />
-                </button>
-              </div>
-            )}
-
-            {/* YouTube video overlay */}
-            {isVideo && youtubeId && (
-              <div
-                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ background: "rgba(0,0,0,0.5)" }}
-              >
-                <button
-                  onClick={() => window.open(song.youtubeUrl || "", "_blank", "noopener,noreferrer")}
-                  className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-2xl"
-                >
-                  <ExternalLink className="w-6 h-6 text-white" />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Progress bar on screen bottom */}
-          {isThisSong && (
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
-              <div
-                className="h-full transition-all duration-300"
-                style={{ width: `${pct}%`, background: accent }}
-              />
+              className="absolute top-0 left-0 h-full rounded-full transition-all duration-300"
+              style={{ width: `${isThisSong ? pct : 0}%`, background: accent }}
+            />
+            {isThisSong && (
               <input
                 type="range" min={0} max={duration || 100} value={progress}
                 onChange={e => seek(Number(e.target.value))}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
-            </div>
-          )}
-
-          {/* Time display */}
-          {isThisSong && (
-            <div className="absolute bottom-2 left-0 right-0 flex items-center justify-between px-3 pointer-events-none">
-              <span className="text-[9px] text-white/50 font-mono">{formatTime(progress)}</span>
-              <span className="text-[9px] text-white/50 font-mono">{formatTime(duration)}</span>
-            </div>
-          )}
+            )}
+          </div>
+          <div className="flex items-center justify-between text-[10px] text-white/40 font-mono">
+            <span>{isThisSong ? formatTime(progress) : "0:00"}</span>
+            <span>{isThisSong ? formatTime(duration) : formatTime(Number(song.duracao) || 208)}</span>
+          </div>
         </div>
 
-        {/* ── Track info (LCD style) ─────────────────────────────────── */}
-        <div
-          className="rounded-xl px-3 py-2 mb-3 text-center"
-          style={{
-            background: "rgba(0,0,0,0.5)",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          <p
-            className="font-bold text-sm leading-tight truncate mb-0.5"
-            style={{ color: accent, fontFamily: "monospace", textShadow: `0 0 8px ${accent}60` }}
-          >
-            {song.titulo}
-          </p>
-          <p className="text-[10px] text-white/40 truncate font-mono">
-            {song.genero}{song.compositor ? ` · ${song.compositor}` : ""}
-          </p>
-        </div>
-
-        {/* ── Click Wheel ────────────────────────────────────────────── */}
-        <div className="flex flex-col items-center mb-3">
-          {/* Outer ring */}
+        {/* Classical Click Wheel */}
+        <div className="flex justify-center mb-4">
           <div
-            className="relative w-28 h-28 rounded-full flex items-center justify-center"
+            className="relative w-28 h-28 rounded-full bg-[#202020] border border-white/10 flex items-center justify-center shadow-inner"
             style={{
-              background: wheelBg,
-              boxShadow: "0 4px 16px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "inset 0 2px 8px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.4)"
             }}
           >
-            {/* Top — Menu / stats */}
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center">
-              <div className="flex items-center gap-1.5 text-white/30">
-                <PlayCircle className="w-3 h-3" />
-                <span className="text-[9px] font-mono">{Number(song.plays || 0).toLocaleString("pt-BR")}</span>
-                <Heart className="w-3 h-3" />
-                <span className="text-[9px] font-mono">{Number(song.likes || 0).toLocaleString("pt-BR")}</span>
-              </div>
-            </div>
+            {/* Top MENU */}
+            <span className="absolute top-2.5 text-[8px] font-bold text-white/40 tracking-wider">MENU</span>
+            
+            {/* Left Prev */}
+            <span className="absolute left-3 text-[9px] font-bold text-white/40">◄◄</span>
+            
+            {/* Right Next */}
+            <span className="absolute right-3 text-[9px] font-bold text-white/40">►►</span>
+            
+            {/* Bottom Play/Pause Icon */}
+            <span className="absolute bottom-2.5 text-[9px] font-bold text-white/40 flex gap-0.5">►║</span>
 
-            {/* Left — prev (skip back visual) */}
-            <div className="absolute left-2 top-1/2 -translate-y-1/2 text-white/20">
-              <span className="text-[10px] font-bold">◄◄</span>
-            </div>
-
-            {/* Right — next (skip fwd visual) */}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-white/20">
-              <span className="text-[10px] font-bold">►►</span>
-            </div>
-
-            {/* Bottom — like button */}
-            <button
-              className="absolute bottom-2 left-1/2 -translate-x-1/2 text-white/30 hover:text-red-400 transition-colors"
-              onClick={e => {
-                e.stopPropagation();
-                fetch(`/api/songs/${song.id}/like`, { method: "POST" }).catch(() => {});
-              }}
-              title="Curtir"
-            >
-              <Heart className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Center play button */}
+            {/* Inner Button */}
             <button
               onClick={handlePlay}
-              className="w-12 h-12 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg"
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-95 shadow-md"
               style={{
-                background: isThisPlaying
-                  ? `radial-gradient(circle, ${accent}, ${accent}cc)`
-                  : "radial-gradient(circle, #444, #222)",
-                boxShadow: isThisPlaying
-                  ? `0 0 16px ${accent}80, inset 0 1px 0 rgba(255,255,255,0.2)`
-                  : "inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.4)",
-                border: `1.5px solid ${isThisPlaying ? accent + "80" : "rgba(255,255,255,0.12)"}`,
+                background: isThisPlaying ? accent : "#161616",
+                border: `1.5px solid ${isThisPlaying ? "transparent" : "rgba(255,255,255,0.1)"}`
               }}
             >
               {isThisPlaying
-                ? <Pause className="w-5 h-5 text-black fill-black" />
-                : <Play  className="w-5 h-5 fill-current ml-0.5" style={{ color: accent }} />}
+                ? <Pause className="w-4 h-4 text-black fill-black" />
+                : <Play className="w-4 h-4 ml-0.5" style={{ color: isThisPlaying ? "#000" : accent, fill: isThisPlaying ? "#000" : accent }} />}
             </button>
           </div>
         </div>
 
-        {/* ── Bottom actions ─────────────────────────────────────────── */}
-        <button
-          onClick={handleInterest}
-          className="w-full py-2 rounded-xl text-xs font-bold transition-all hover:opacity-90 active:scale-[0.98]"
-          style={{
-            background: accent,
-            color: "#000",
-            boxShadow: `0 4px 12px ${accent}50`,
-          }}
-        >
-          Tenho Interesse
-        </button>
+        {/* Action Button & Interest Button */}
+        <div className="grid grid-cols-2 gap-2 mt-auto pt-2 border-t border-white/5">
+          <button
+            onClick={handlePlay}
+            className="py-2.5 rounded-lg text-xs font-bold text-center border transition-all hover:bg-white/5 active:scale-[0.98]"
+            style={{ borderColor: accent, color: accent }}
+          >
+            {isThisPlaying ? "Pausar" : "Tocar Música"}
+          </button>
+          <button
+            onClick={handleInterest}
+            className="py-2.5 rounded-lg text-xs font-bold text-center transition-all hover:opacity-90 active:scale-[0.98]"
+            style={{ background: accent, color: "#161616" }}
+          >
+            Tenho Interesse
+          </button>
+        </div>
       </div>
     </motion.div>
   );
 }
+

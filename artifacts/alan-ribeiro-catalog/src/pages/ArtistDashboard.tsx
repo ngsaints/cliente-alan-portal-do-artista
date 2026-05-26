@@ -1959,27 +1959,24 @@ export default function ArtistDashboard() {
                         }`}
                       >
                         {/* Mini preview — iPod */}
-                        <div className="w-full aspect-square rounded-xl mb-2 p-2 overflow-hidden relative" style={{ background: "linear-gradient(145deg,#2d2d2d,#111)" }}>
-                          {/* mini screen */}
-                          <div className="w-full rounded-lg mb-1.5 overflow-hidden" style={{ background: "#0a0a0a", aspectRatio: "1/1" }}>
-                            <div
-                              className="w-full h-full rounded-full mx-auto"
-                              style={{
-                                width: "60%", height: "60%",
-                                margin: "20% auto 0",
-                                background: editCustom.playerGradient || editCustom.playerCor || "#f5c518",
-                                borderRadius: "50%",
-                                boxShadow: `0 0 8px ${editCustom.playerCor || "#f5c518"}80`,
-                              }}
-                            />
+                        <div className="w-full aspect-square rounded-lg mb-2 p-2 bg-[#161616] border border-white/5 flex flex-col justify-between">
+                          {/* mini square cover art */}
+                          <div className="w-full rounded bg-white/10 flex items-center justify-center overflow-hidden" style={{ aspectRatio: "1.8/1" }}>
+                            <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center">
+                              <Music className="w-3.5 h-3.5 text-primary" />
+                            </div>
                           </div>
-                          {/* mini wheel */}
+                          {/* mini progress bar */}
+                          <div className="w-full h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
+                            <div className="h-full bg-primary" style={{ width: "40%" }} />
+                          </div>
+                          {/* mini click wheel */}
                           <div
-                            className="w-8 h-8 rounded-full mx-auto flex items-center justify-center"
-                            style={{ background: "radial-gradient(circle,#444,#1a1a1a)", border: "1px solid rgba(255,255,255,0.1)" }}
+                            className="w-8 h-8 rounded-full mx-auto mt-1 flex items-center justify-center"
+                            style={{ background: "#202020", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.5)" }}
                           >
                             <div
-                              className="w-4 h-4 rounded-full"
+                              className="w-3 h-3 rounded-full"
                               style={{ background: editCustom.playerGradient || editCustom.playerCor || "#f5c518" }}
                             />
                           </div>
