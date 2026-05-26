@@ -359,7 +359,8 @@ components:
         artistName:
           type: string
         artistPhotoUrl:
-          type: ["string", "null"]
+          type: string
+          nullable: true
 
     UpdateSongBody:
       type: object
@@ -371,23 +372,29 @@ components:
         genero:
           type: string
         subgenero:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         compositor:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         status:
           type: string
         precoX:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         precoY:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         isVip:
           type: boolean
         tipoMidia:
           type: string
         youtubeUrl:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         vipCode:
-          type: ["string", "null"]
+          type: string
+          nullable: true
 
     Song:
       type: object
@@ -402,29 +409,38 @@ components:
         genero:
           type: string
         subgenero:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         compositor:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         status:
           type: string
         precoX:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         precoY:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         isVip:
           type: boolean
         capaUrl:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         mp3Url:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         tipoMidia:
           type: string
         youtubeUrl:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         vipCode:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         artistaId:
-          type: ["string", "null"]
+          type: string
+          nullable: true
         likes:
           type: string
         plays:
