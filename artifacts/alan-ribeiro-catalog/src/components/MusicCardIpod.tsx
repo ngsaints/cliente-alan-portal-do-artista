@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Play, Pause, Heart, PlayCircle, Youtube, ExternalLink, Music } from "lucide-react";
+import { Play, Pause, Youtube, ExternalLink, Music } from "lucide-react";
 import { type Song } from "@workspace/api-client-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 
@@ -42,7 +42,7 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
   const accent = playerGradient || playerCor || "#f5c518";
   const pct    = isThisSong && duration ? (progress / duration) * 100 : 0;
 
-  // ── IntersectionObserver: card in view + playing → cardMode = true ──
+  // ── IntersectionObserver: card in view ──
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -92,54 +92,60 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
     >
       {/* iPod Outer Body */}
       <div
-        className="relative rounded-[20px] p-4 flex flex-col bg-[#161616] transition-all duration-300 hover:-translate-y-1"
+        className="relative rounded-[24px] p-4 flex flex-col transition-all duration-300 hover:-translate-y-1 bg-[#1a1a1a]/95 border-2"
         style={{
+          borderColor: isThisPlaying ? accent : "rgba(255, 255, 255, 0.08)",
           boxShadow: isThisPlaying
-            ? `0 15px 40px ${playerCor || "#f5c518"}30, 0 4px 12px rgba(0,0,0,0.5)`
-            : "0 10px 25px rgba(0,0,0,0.5)",
-          border: isThisPlaying
-            ? `1.5px solid ${playerCor || "#f5c518"}80`
-            : "1.5px solid rgba(255,255,255,0.08)",
+            ? `0 20px 40px ${accent}25, 0 4px 20px rgba(0,0,0,0.6)`
+            : "0 10px 30px rgba(0,0,0,0.5)",
         }}
       >
-        {/* Top bar (Badge + Status) */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded-md">
-            {isVideo ? <Youtube className="w-3 h-3 text-red-500" /> : <Music className="w-3 h-3" style={{ color: accent }} />}
-            <span className="text-[10px] font-bold text-white/80 uppercase tracking-wide">
-              {song.genero}
-            </span>
-          </div>
-          <span className={`text-[10px] font-bold flex items-center gap-1 ${disponivel ? "text-emerald-400" : "text-rose-400"}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${disponivel ? "bg-emerald-400" : "bg-rose-400"}`} />
-            {disponivel ? "Disponível" : "Reservado"}
-          </span>
-        </div>
-
-        {/* Square Album Cover */}
-        <div className="relative aspect-square w-full rounded-xl overflow-hidden mb-3 bg-black/40 border border-white/5">
+        {/* Cover Container */}
+        <div className="relative aspect-square w-full rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-md">
           <img
             src={song.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
             alt={song.titulo}
             className="w-full h-full object-cover"
           />
-          {/* Overlay play button on hover */}
+
+          {/* Badges Overlayed on Top of the Cover */}
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+            <div className="flex items-center gap-1 bg-[#121212]/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
+              {isVideo ? (
+                <Youtube className="w-3.5 h-3.5 text-red-500" />
+              ) : (
+                <Music className="w-3.5 h-3.5" style={{ color: accent }} />
+              )}
+              <span className="text-[10px] font-bold text-white/90 uppercase tracking-wider">
+                {song.genero}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-[#121212]/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
+              <span className={`w-2 h-2 rounded-full ${disponivel ? "bg-emerald-500" : "bg-rose-500"}`} />
+              <span className="text-[10px] font-bold text-white/90">
+                {disponivel ? "Disponível" : "Reservado"}
+              </span>
+            </div>
+          </div>
+
+          {/* Play/External Overlay */}
           {!isThisPlaying && !isVideo && (
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <button
                 onClick={handlePlay}
-                className="w-14 h-14 rounded-full flex items-center justify-center bg-black/80 hover:scale-105 transition-transform"
+                className="w-16 h-16 rounded-full flex items-center justify-center bg-black/75 hover:scale-105 active:scale-95 transition-all shadow-2xl"
                 style={{ border: `2px solid ${accent}` }}
               >
-                <Play className="w-6 h-6 ml-0.5" style={{ color: accent, fill: accent }} />
+                <Play className="w-7 h-7 ml-1" style={{ color: accent, fill: accent }} />
               </button>
             </div>
           )}
+
           {isVideo && youtubeId && (
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <button
                 onClick={() => window.open(song.youtubeUrl || "", "_blank", "noopener,noreferrer")}
-                className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:scale-105 transition-transform"
+                className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-2xl"
               >
                 <ExternalLink className="w-6 h-6 text-white" />
               </button>
@@ -147,19 +153,28 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
           )}
         </div>
 
-        {/* Song Info */}
-        <div className="mb-2">
-          <h3 className="font-bold text-base text-white truncate leading-snug">
-            {song.titulo}
-          </h3>
-          <p className="text-xs text-white/50 truncate font-medium">
-            {song.compositor || song.subgenero || "-"}
-          </p>
+        {/* Title & Info Block */}
+        <div className="flex items-center justify-between mb-3 min-w-0">
+          <div className="min-w-0 flex-1 pr-2">
+            <h3 className="font-bold text-lg text-white truncate leading-tight tracking-tight">
+              {song.titulo}
+            </h3>
+            <p className="text-sm text-white/50 truncate font-medium mt-0.5">
+              {song.compositor || song.subgenero || "-"}
+            </p>
+          </div>
+          <button
+            onClick={handleInterest}
+            className="shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-all hover:scale-102 active:scale-98 shadow-sm"
+            style={{ background: accent, color: "#121212" }}
+          >
+            Tenho Interesse
+          </button>
         </div>
 
-        {/* Progress Bar & Time */}
-        <div className="space-y-1 mb-4">
-          <div className="relative w-full h-1 bg-white/10 rounded-full overflow-hidden">
+        {/* Linear Progress Bar */}
+        <div className="space-y-1.5 mb-5">
+          <div className="relative w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div
               className="absolute top-0 left-0 h-full rounded-full transition-all duration-300"
               style={{ width: `${isThisSong ? pct : 0}%`, background: accent }}
@@ -172,67 +187,62 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
               />
             )}
           </div>
-          <div className="flex items-center justify-between text-[10px] text-white/40 font-mono">
+          <div className="flex items-center justify-between text-[11px] text-white/40 font-mono tracking-tight">
             <span>{isThisSong ? formatTime(progress) : "0:00"}</span>
             <span>{isThisSong ? formatTime(duration) : formatTime(Number(song.duracao) || 208)}</span>
           </div>
         </div>
 
-        {/* Classical Click Wheel */}
-        <div className="flex justify-center mb-4">
+        {/* Click Wheel Section */}
+        <div className="flex justify-center mb-2">
           <div
-            className="relative w-28 h-28 rounded-full bg-[#202020] border border-white/10 flex items-center justify-center shadow-inner"
+            className="relative w-36 h-36 rounded-full bg-[#202020] border border-white/10 flex items-center justify-center shadow-2xl"
             style={{
-              boxShadow: "inset 0 2px 8px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.4)"
+              boxShadow: "inset 0 4px 12px rgba(0,0,0,0.8), 0 4px 10px rgba(0,0,0,0.5)"
             }}
           >
-            {/* Top MENU */}
-            <span className="absolute top-2.5 text-[8px] font-bold text-white/40 tracking-wider">MENU</span>
-            
-            {/* Left Prev */}
-            <span className="absolute left-3 text-[9px] font-bold text-white/40">◄◄</span>
-            
-            {/* Right Next */}
-            <span className="absolute right-3 text-[9px] font-bold text-white/40">►►</span>
-            
-            {/* Bottom Play/Pause Icon */}
-            <span className="absolute bottom-2.5 text-[9px] font-bold text-white/40 flex gap-0.5">►║</span>
+            {/* Click Wheel Labels */}
+            <span className="absolute top-3 text-[10px] font-black text-white/40 tracking-widest cursor-pointer select-none hover:text-white/60">
+              MENU
+            </span>
+            <span className="absolute left-3.5 text-[10px] font-bold text-white/40 cursor-pointer select-none hover:text-white/60">
+              ◄◄
+            </span>
+            <span className="absolute right-3.5 text-[10px] font-bold text-white/40 cursor-pointer select-none hover:text-white/60">
+              ►►
+            </span>
+            <span className="absolute bottom-3 text-[10px] font-bold text-white/40 cursor-pointer select-none hover:text-white/60 flex items-center gap-0.5">
+              ►║
+            </span>
 
-            {/* Inner Button */}
+            {/* Click Wheel Center Action Button */}
             <button
               onClick={handlePlay}
-              className="w-10 h-10 rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-95 shadow-md"
+              className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xl"
               style={{
                 background: isThisPlaying ? accent : "#161616",
-                border: `1.5px solid ${isThisPlaying ? "transparent" : "rgba(255,255,255,0.1)"}`
+                border: isThisPlaying ? "none" : "1.5px solid rgba(255,255,255,0.08)",
+                boxShadow: isThisPlaying ? `0 0 15px ${accent}60` : "none"
               }}
             >
-              {isThisPlaying
-                ? <Pause className="w-4 h-4 text-black fill-black" />
-                : <Play className="w-4 h-4 ml-0.5" style={{ color: isThisPlaying ? "#000" : accent, fill: isThisPlaying ? "#000" : accent }} />}
+              {isThisPlaying ? (
+                <Pause className="w-5 h-5 text-[#121212] fill-[#121212]" />
+              ) : (
+                <Play className="w-5 h-5 ml-0.5" style={{ color: accent, fill: accent }} />
+              )}
             </button>
           </div>
         </div>
 
-        {/* Action Button & Interest Button */}
-        <div className="grid grid-cols-2 gap-2 mt-auto pt-2 border-t border-white/5">
-          <button
-            onClick={handlePlay}
-            className="py-2.5 rounded-lg text-xs font-bold text-center border transition-all hover:bg-white/5 active:scale-[0.98]"
-            style={{ borderColor: accent, color: accent }}
-          >
-            {isThisPlaying ? "Pausar" : "Tocar Música"}
-          </button>
-          <button
-            onClick={handleInterest}
-            className="py-2.5 rounded-lg text-xs font-bold text-center transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ background: accent, color: "#161616" }}
-          >
-            Tenho Interesse
-          </button>
-        </div>
+        {/* Minimal Footer Play Indicator / Control */}
+        <button
+          onClick={handlePlay}
+          className="w-full mt-3 py-2 rounded-xl text-xs font-bold text-center border transition-all hover:bg-white/5 active:scale-[0.98] sm:hidden"
+          style={{ borderColor: accent, color: accent }}
+        >
+          {isThisPlaying ? "Pausar" : "Tocar Música"}
+        </button>
       </div>
     </motion.div>
   );
 }
-

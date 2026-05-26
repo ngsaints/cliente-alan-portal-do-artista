@@ -1959,24 +1959,40 @@ export default function ArtistDashboard() {
                         }`}
                       >
                         {/* Mini preview — iPod */}
-                        <div className="w-full aspect-square rounded-lg mb-2 p-2 bg-[#161616] border border-white/5 flex flex-col justify-between">
+                        <div className="w-full aspect-square rounded-[14px] mb-2 p-2 bg-[#1a1a1a] border border-white/10 flex flex-col justify-between shadow-inner">
                           {/* mini square cover art */}
-                          <div className="w-full rounded bg-white/10 flex items-center justify-center overflow-hidden" style={{ aspectRatio: "1.8/1" }}>
-                            <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center">
-                              <Music className="w-3.5 h-3.5 text-primary" />
+                          <div className="w-full aspect-square rounded bg-[#121212] border border-white/5 flex items-center justify-center overflow-hidden relative">
+                            <Music className="w-4 h-4 text-white/20" />
+                            {/* Overlay tag indicator */}
+                            <div className="absolute top-1 left-1 bg-[#1a1a1a]/80 scale-[0.6] origin-top-left px-1 py-0.5 rounded border border-white/10">
+                              <span className="text-white text-[8px] font-bold">GEN</span>
+                            </div>
+                            <div className="absolute top-1 right-1 bg-emerald-500/80 scale-[0.6] origin-top-right px-1 py-0.5 rounded">
+                              <span className="text-white text-[8px] font-bold">DISP</span>
                             </div>
                           </div>
                           {/* mini progress bar */}
-                          <div className="w-full h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
-                            <div className="h-full bg-primary" style={{ width: "40%" }} />
+                          <div className="w-full mt-1.5 space-y-0.5">
+                            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                              <div className="h-full bg-primary" style={{ width: "65%", background: editCustom.playerCor || "#f5c518" }} />
+                            </div>
+                            <div className="flex items-center justify-between text-[7px] text-white/30 font-mono scale-[0.8] origin-top">
+                              <span>0:45</span>
+                              <span>3:10</span>
+                            </div>
                           </div>
                           {/* mini click wheel */}
                           <div
-                            className="w-8 h-8 rounded-full mx-auto mt-1 flex items-center justify-center"
-                            style={{ background: "#202020", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.5)" }}
+                            className="w-9 h-9 rounded-full mx-auto mt-1 flex items-center justify-center relative bg-[#222] border border-white/10"
+                            style={{ boxShadow: "inset 0 1px 3px rgba(0,0,0,0.8)" }}
                           >
+                            <span className="absolute top-0.5 text-[4px] font-black text-white/30 tracking-[0.2px]">MENU</span>
+                            <span className="absolute left-1 text-[4px] text-white/30">◄◄</span>
+                            <span className="absolute right-1 text-[4px] text-white/30">►►</span>
+                            <span className="absolute bottom-0.5 text-[4px] text-white/30 scale-[0.7]">►║</span>
+                            {/* Center center button */}
                             <div
-                              className="w-3 h-3 rounded-full"
+                              className="w-3.5 h-3.5 rounded-full shadow"
                               style={{ background: editCustom.playerGradient || editCustom.playerCor || "#f5c518" }}
                             />
                           </div>
