@@ -16,7 +16,6 @@ export function PlayerPadrao() {
   } = usePlayer();
 
   const accent = playerGradient || playerCor || "#f5c518";
-  const isGrad = !!playerGradient;
 
   const closePlayer = () => {
     if (currentSong) {
@@ -38,6 +37,7 @@ export function PlayerPadrao() {
         boxShadow: `0 -10px 40px ${playerCor || '#f5c518'}15`
       }}
     >
+      {/* Progress Bar */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-white/5 -mt-px">
         <div 
           className="h-full rounded-b-full transition-all duration-300"
@@ -46,30 +46,31 @@ export function PlayerPadrao() {
         <input type="range" min={0} max={duration || 100} value={progress} onChange={(e) => seek(Number(e.target.value))} className="absolute top-0 left-0 w-full h-1 opacity-0 cursor-pointer -mt-px" />
       </div>
 
-      <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
-        <div className="flex items-center gap-3">
+      {/* DESKTOP LAYOUT */}
+      <div className="hidden sm:flex items-center justify-between gap-4 max-w-7xl mx-auto">
+        {/* Left: Info */}
+        <div className="flex items-center gap-3 w-1/3 min-w-0">
           <button onClick={closePlayer} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
           
-          <div className="flex items-center gap-3 min-w-0 flex-shrink-0 w-48 sm:w-64">
-            <div 
-              className="w-12 h-12 rounded-lg overflow-hidden shrink-0 shadow-lg border"
-              style={{ borderColor: `${playerCor || '#f5c518'}40` }}
-            >
-              <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
-            </div>
-            <div className="min-w-0 flex-1 hidden sm:block">
-              <h4 className="font-bold text-white truncate text-sm">{currentSong.titulo}</h4>
-              <p className="text-white/60 text-xs truncate">{currentSong.compositor || "Artista"}</p>
-            </div>
+          <div 
+            className="w-12 h-12 rounded-lg overflow-hidden shrink-0 shadow-lg border"
+            style={{ borderColor: `${playerCor || '#f5c518'}40` }}
+          >
+            <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h4 className="font-bold text-white truncate text-sm">{currentSong.titulo}</h4>
+            <p className="text-white/60 text-xs truncate">{currentSong.compositor || "Artista"}</p>
           </div>
         </div>
 
+        {/* Center: Play Controls */}
         <div className="flex flex-col items-center gap-1.5 flex-1">
           <button
             onClick={togglePlay}
-            className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg border border-white/10"
+            className="w-14 h-14 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg border border-white/10"
             style={{ background: accent, boxShadow: `0 0 25px ${playerCor || '#f5c518'}50` }}
           >
             {isPlaying ? <Pause className="w-6 h-6 text-black fill-black" /> : <Play className="w-6 h-6 text-black fill-black ml-0.5" />}
@@ -81,22 +82,48 @@ export function PlayerPadrao() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-48 justify-end">
+        {/* Right: Volume */}
+        <div className="flex items-center gap-2 w-1/3 justify-end">
           <button onClick={() => setVolume(volume === 0 ? 1 : 0)} className="text-white/60 hover:text-white transition-colors p-1 flex-shrink-0">
             {volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
-          <div className="w-20 h-1 bg-white/10 rounded-full overflow-hidden relative hidden sm:block">
+          <div className="w-20 h-1 bg-white/10 rounded-full overflow-hidden relative">
             <div className="absolute top-0 left-0 h-full rounded-full transition-all" style={{ width: `${volume * 100}%`, background: accent }} />
             <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="absolute top-0 left-0 w-full h-1 opacity-0 cursor-pointer" />
           </div>
         </div>
       </div>
 
-      <div className="sm:hidden flex items-center justify-center gap-2 mt-2">
-        <div className="w-6 h-6 rounded overflow-hidden shrink-0 shadow-lg border" style={{ borderColor: `${playerCor || '#f5c518'}30` }}>
-          <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+      {/* MOBILE LAYOUT */}
+      <div className="sm:hidden flex items-center justify-between w-full gap-3">
+        {/* Left: Capa + Info */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div 
+            className="w-10 h-10 rounded overflow-hidden shrink-0 border"
+            style={{ borderColor: `${playerCor || '#f5c518'}30` }}
+          >
+            <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h4 className="font-bold text-white text-xs truncate leading-snug">{currentSong.titulo}</h4>
+            <p className="text-white/50 text-[10px] truncate leading-none mt-0.5">{currentSong.compositor || "Artista"}</p>
+          </div>
         </div>
-        <span className="text-xs text-white/60 font-mono truncate max-w-[150px]">{currentSong.titulo}</span>
+
+        {/* Right: Controls */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <span className="text-[10px] text-white/40 font-mono">{formatTime(progress)} / {formatTime(duration)}</span>
+          <button
+            onClick={togglePlay}
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md"
+            style={{ background: accent }}
+          >
+            {isPlaying ? <Pause className="w-4 h-4 text-black fill-black" /> : <Play className="w-4 h-4 text-black fill-black ml-0.5" />}
+          </button>
+          <button onClick={closePlayer} className="w-7 h-7 rounded-full flex items-center justify-center bg-white/5 text-white/50 hover:text-white transition-all">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </motion.div>
   );
