@@ -5,7 +5,7 @@ import {
   User, Music, BarChart3, Settings, Upload, Eye, EyeOff, 
   TrendingUp, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
-  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock
+  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle
 } from "lucide-react";
 import {
   Command,
@@ -2106,29 +2106,176 @@ export default function ArtistDashboard() {
                     </div>
                     
                     {/* Song preview */}
-                    <div className="p-4 bg-card/50">
-                      <p className="text-xs text-muted-foreground mb-2">Suas músicas</p>
-                      <div className="space-y-2">
-                        {songs.slice(0, 3).map((song) => (
-                          <div key={song.id} className="flex items-center gap-2 p-2 rounded-lg bg-background/50 border border-border/30">
-                            <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0">
-                              {song.capaUrl ? (
-                                <img src={song.capaUrl} alt={song.titulo} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full bg-primary/20 flex items-center justify-center">
-                                  <Music className="w-4 h-4 text-primary" />
+                    <div className="p-6 bg-card/30 border-t border-border/50">
+                      <p className="text-sm font-bold text-white mb-4 tracking-tight">Músicas (Prévia do Layout)</p>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Se não houver músicas, usamos um modelo mock para demonstrar */}
+                        {(songs.length > 0 ? songs.slice(0, 2) : [
+                          {
+                            id: 999,
+                            titulo: "Exemplo de Música",
+                            descricao: "Esta é uma prévia do card de música da sua página pública.",
+                            genero: "Sertanejo Vanera",
+                            compositor: "Nome do Compositor",
+                            status: "Disponível",
+                            precoX: "150.00",
+                            precoY: "350.00",
+                            duracao: "208",
+                            capaUrl: null,
+                            tipoMidia: "audio",
+                            plays: "1250",
+                            likes: "340"
+                          }
+                        ]).map((song) => {
+                          const disponivel = song.status === "Disponível";
+                          const accent = editCustom.playerGradient || editCustom.playerCor || "#f5c518";
+
+                          if (editCustom.cardStyle === "ipod") {
+                            return (
+                              <div key={song.id} className="relative rounded-[24px] p-4 flex flex-col bg-[#161616] border border-white/10 shadow-xl">
+                                {/* Cover Container */}
+                                <div className="relative aspect-square w-full rounded-2xl overflow-hidden mb-4 bg-[#121212] border border-white/5 shadow-md">
+                                  {song.capaUrl ? (
+                                    <img src={song.capaUrl} alt={song.titulo} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-white/5">
+                                      <Music className="w-12 h-12 text-white/20" />
+                                    </div>
+                                  )}
+
+                                  {/* Badges Overlayed on Top of the Cover */}
+                                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                                    <div className="flex items-center gap-1 bg-[#121212]/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
+                                      <Music className="w-3.5 h-3.5" style={{ color: accent }} />
+                                      <span className="text-[9px] font-bold text-white/90 uppercase tracking-wider">
+                                        {song.genero}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-[#121212]/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
+                                      <span className={`w-2 h-2 rounded-full ${disponivel ? "bg-emerald-500" : "bg-rose-500"}`} />
+                                      <span className="text-[9px] font-bold text-white/90">
+                                        {disponivel ? "Disponível" : "Reservado"}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-foreground truncate">{song.titulo}</p>
-                              <p className="text-[10px] text-muted-foreground">{song.genero}</p>
-                            </div>
-                          </div>
-                        ))}
-                        {songs.length === 0 && (
-                          <p className="text-xs text-muted-foreground">Nenhuma música cadastrada</p>
-                        )}
+
+                                {/* Title & Info Block */}
+                                <div className="flex items-center justify-between mb-3 min-w-0">
+                                  <div className="min-w-0 flex-1 pr-2">
+                                    <h3 className="font-bold text-base text-white truncate leading-tight tracking-tight">
+                                      {song.titulo}
+                                    </h3>
+                                    <p className="text-xs text-white/50 truncate font-medium mt-0.5">
+                                      {song.compositor || "-"}
+                                    </p>
+                                  </div>
+                                  <button className="shrink-0 text-[10px] font-bold px-3 py-1.5 rounded-full" style={{ background: accent, color: "#121212" }}>
+                                    Tenho Interesse
+                                  </button>
+                                </div>
+
+                                {/* Linear Progress Bar */}
+                                <div className="space-y-1 mb-4">
+                                  <div className="relative w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                                    <div className="absolute top-0 left-0 h-full rounded-full" style={{ width: "30%", background: accent }} />
+                                  </div>
+                                  <div className="flex items-center justify-between text-[9px] text-white/40 font-mono tracking-tight">
+                                    <span>0:45</span>
+                                    <span>3:28</span>
+                                  </div>
+                                </div>
+
+                                {/* Click Wheel Section */}
+                                <div className="flex justify-center mb-2">
+                                  <div className="relative w-28 h-28 rounded-full bg-[#202020] border border-white/10 flex items-center justify-center shadow-inner">
+                                    {/* Click Wheel Labels */}
+                                    <span className="absolute top-2 text-[8px] font-black text-white/40 tracking-wider">MENU</span>
+                                    <span className="absolute left-2.5 text-[8px] font-bold text-white/40">◄◄</span>
+                                    <span className="absolute right-2.5 text-[8px] font-bold text-white/40">►►</span>
+                                    <span className="absolute bottom-2 text-[8px] font-bold text-white/40 flex items-center gap-0.5">►║</span>
+                                    
+                                    {/* Center Button */}
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#161616] border border-white/5">
+                                      <Play className="w-3.5 h-3.5 ml-0.5" style={{ color: accent, fill: accent }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            // Standard/Default card layout preview
+                            const formatVal = (v: string | null) => v ? parseFloat(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : null;
+                            const px = formatVal(song.precoX);
+                            const py = formatVal(song.precoY);
+
+                            return (
+                              <div key={song.id} className="relative flex flex-col bg-card/60 border border-border/40 rounded-2xl overflow-hidden shadow-md">
+                                {/* Thumbnail */}
+                                <div className="relative aspect-square overflow-hidden bg-black/40">
+                                  {song.capaUrl ? (
+                                    <img src={song.capaUrl} alt={song.titulo} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-white/5">
+                                      <Music className="w-12 h-12 text-white/20" />
+                                    </div>
+                                  )}
+
+                                  {/* Badges topo-esquerda */}
+                                  <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                                    <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
+                                      <Music className="w-3 h-3 text-primary" />
+                                      <span className="text-[10px] font-medium text-white/95">{song.genero}</span>
+                                    </div>
+                                    <div className={`self-start px-2.5 py-0.5 rounded-full text-[10px] font-bold ${disponivel ? "bg-green-600/80" : "bg-red-600/80"} text-white`}>
+                                      {disponivel ? "Disponível" : "Reservado"}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Body */}
+                                <div className="p-4 flex-1 flex flex-col">
+                                  <div className="flex items-center justify-between gap-2 mb-1">
+                                    <h3 className="text-base font-bold text-white truncate flex-1">{song.titulo}</h3>
+                                    <button className="shrink-0 px-2 py-1 rounded bg-primary text-primary-foreground text-[10px] font-bold">
+                                      Interesse
+                                    </button>
+                                  </div>
+                                  {song.compositor && <p className="text-[11px] text-muted-foreground mb-1">Compositor: {song.compositor}</p>}
+                                  <p className="text-xs text-muted-foreground line-clamp-2 flex-1 mb-3">{song.descricao}</p>
+
+                                  {(px || py) && (
+                                    <div className="flex gap-1.5 mb-3 text-[10px]">
+                                      {px && (
+                                        <div className="flex-1 bg-secondary/20 border border-border/50 rounded-lg p-1.5 text-center">
+                                          <div className="text-muted-foreground scale-[0.9]">Livre</div>
+                                          <div className="text-primary font-bold">{px}</div>
+                                        </div>
+                                      )}
+                                      {py && (
+                                        <div className="flex-1 bg-secondary/20 border border-border/50 rounded-lg p-1.5 text-center">
+                                          <div className="text-muted-foreground scale-[0.9]">Exclusivo</div>
+                                          <div className="text-primary font-bold">{py}</div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  <div className="space-y-2 mt-auto">
+                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                      <span className="flex items-center gap-0.5"><PlayCircle className="w-3 h-3" /> {song.plays}</span>
+                                      <span className="flex items-center gap-0.5"><Heart className="w-3 h-3" /> {song.likes}</span>
+                                    </div>
+                                    <button className="w-full py-2 rounded-xl text-xs font-semibold bg-secondary/30 text-primary border border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all">
+                                      Tocar Música
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                        })}
                       </div>
                     </div>
                   </div>

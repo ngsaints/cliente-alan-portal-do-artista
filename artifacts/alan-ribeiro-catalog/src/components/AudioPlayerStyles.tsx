@@ -15,8 +15,8 @@ export function PlayerPadrao() {
     volume, setVolume, playerGradient, playerCor, setCurrentSong, setIsPlaying,
   } = usePlayer();
 
-  const playButtonBg = playerGradient || playerCor || "#f5c518";
-  const trackGradient = playerGradient || "linear-gradient(to right, #f5c518, #f5c518)";
+  const accent = playerGradient || playerCor || "#f5c518";
+  const isGrad = !!playerGradient;
 
   const closePlayer = () => {
     if (currentSong) {
@@ -32,62 +32,71 @@ export function PlayerPadrao() {
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f0f23]/98 backdrop-blur-xl border-t border-purple-500/30 shadow-[0_-4px_30px_rgba(139,92,246,0.4)] p-3 sm:p-4"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-[#121212]/98 backdrop-blur-xl border-t shadow-2xl p-3 sm:p-4"
+      style={{
+        borderTopColor: `${playerCor || '#f5c518'}40`,
+        boxShadow: `0 -10px 40px ${playerCor || '#f5c518'}15`
+      }}
     >
-      <div className="absolute top-0 left-0 right-0 h-1 bg-purple-900/30 -mt-px">
+      <div className="absolute top-0 left-0 right-0 h-1 bg-white/5 -mt-px">
         <div 
           className="h-full rounded-b-full transition-all duration-300"
-          style={{ width: `${duration ? (progress / duration) * 100 : 0}%`, background: trackGradient }}
+          style={{ width: `${duration ? (progress / duration) * 100 : 0}%`, background: accent }}
         />
         <input type="range" min={0} max={duration || 100} value={progress} onChange={(e) => seek(Number(e.target.value))} className="absolute top-0 left-0 w-full h-1 opacity-0 cursor-pointer -mt-px" />
       </div>
 
-      <div className="flex items-center justify-center gap-4">
-        <button onClick={closePlayer} className="w-8 h-8 rounded-full flex items-center justify-center bg-purple-500/30 hover:bg-purple-500/50 transition-colors flex-shrink-0">
-          <X className="w-4 h-4 text-purple-200" />
-        </button>
-        
-        <div className="flex items-center gap-3 min-w-0 flex-shrink-0 w-1/3 hidden sm:flex">
-          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 shadow-lg ring-2 ring-purple-500/30">
-            <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h4 className="font-bold text-white truncate text-sm">{currentSong.titulo}</h4>
-            <p className="text-purple-300/60 text-xs truncate">{currentSong.compositor || "Artista"}</p>
+      <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3">
+          <button onClick={closePlayer} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all flex-shrink-0">
+            <X className="w-4 h-4" />
+          </button>
+          
+          <div className="flex items-center gap-3 min-w-0 flex-shrink-0 w-48 sm:w-64">
+            <div 
+              className="w-12 h-12 rounded-lg overflow-hidden shrink-0 shadow-lg border"
+              style={{ borderColor: `${playerCor || '#f5c518'}40` }}
+            >
+              <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+            </div>
+            <div className="min-w-0 flex-1 hidden sm:block">
+              <h4 className="font-bold text-white truncate text-sm">{currentSong.titulo}</h4>
+              <p className="text-white/60 text-xs truncate">{currentSong.compositor || "Artista"}</p>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-1.5 flex-1">
           <button
             onClick={togglePlay}
-            className="w-14 h-14 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg"
-            style={{ background: playButtonBg, boxShadow: `0 0 25px ${playerGradient ? playerCor || '#f5c518' : playButtonBg}60` }}
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg border border-white/10"
+            style={{ background: accent, boxShadow: `0 0 25px ${playerCor || '#f5c518'}50` }}
           >
-            {isPlaying ? <Pause className="w-7 h-7 text-black fill-black" /> : <Play className="w-7 h-7 text-black fill-black ml-0.5" />}
+            {isPlaying ? <Pause className="w-6 h-6 text-black fill-black" /> : <Play className="w-6 h-6 text-black fill-black ml-0.5" />}
           </button>
-          <div className="flex items-center gap-2 text-xs text-purple-200/60 font-mono">
+          <div className="flex items-center gap-2 text-xs text-white/50 font-mono">
             <span>{formatTime(progress)}</span>
             <span>/</span>
             <span>{formatTime(duration)}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-1/3 justify-end hidden sm:flex">
-          <button onClick={() => setVolume(volume === 0 ? 1 : 0)} className="text-purple-300 hover:text-white transition-colors p-1">
+        <div className="flex items-center gap-2 w-48 justify-end">
+          <button onClick={() => setVolume(volume === 0 ? 1 : 0)} className="text-white/60 hover:text-white transition-colors p-1 flex-shrink-0">
             {volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
-          <div className="w-20 h-1.5 bg-purple-900/40 rounded-full overflow-hidden relative">
-            <div className="absolute top-0 left-0 h-full rounded-full transition-all" style={{ width: `${volume * 100}%`, background: playButtonBg }} />
-            <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="absolute top-0 left-0 w-full h-1.5 opacity-0 cursor-pointer" />
+          <div className="w-20 h-1 bg-white/10 rounded-full overflow-hidden relative hidden sm:block">
+            <div className="absolute top-0 left-0 h-full rounded-full transition-all" style={{ width: `${volume * 100}%`, background: accent }} />
+            <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="absolute top-0 left-0 w-full h-1 opacity-0 cursor-pointer" />
           </div>
         </div>
       </div>
 
       <div className="sm:hidden flex items-center justify-center gap-2 mt-2">
-        <div className="w-8 h-8 rounded overflow-hidden shrink-0 shadow-lg ring-1 ring-purple-500/30">
+        <div className="w-6 h-6 rounded overflow-hidden shrink-0 shadow-lg border" style={{ borderColor: `${playerCor || '#f5c518'}30` }}>
           <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
         </div>
-        <span className="text-xs text-purple-200/60 font-mono truncate max-w-[150px]">{currentSong.titulo}</span>
+        <span className="text-xs text-white/60 font-mono truncate max-w-[150px]">{currentSong.titulo}</span>
       </div>
     </motion.div>
   );
