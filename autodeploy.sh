@@ -1,7 +1,7 @@
 #!/bin/bash
 # -------------------------------------------------------------------
 # Script de Autodeploy com Sub-rotina de Detecção de Erros e Logs
-# Monitora o GitHub e registra o resultado em /logs
+# Monitora o GitHub, registra o resultado em /logs e commita erros no Git
 # -------------------------------------------------------------------
 
 # Garante que o script roda no diretório correto do projeto
@@ -23,18 +23,36 @@ if [ "$LOCAL" != "$REMOTE" ]; then
     HISTORY_FILE="logs/deploy_history.log"
     LATEST_LOG="logs/latest_deploy.log"
 
-    # Sub-rotina de detecção de erros (ERR trap)
+    # Sub-rotina de detecção de erros (ERR trap) com push automático de logs de erro
     on_error() {
         local exit_code=$?
         local failed_command="$BASH_COMMAND"
-        echo ""
-        echo "❌ [$(date)] ERRO: O deploy falhou na instrução: '$failed_command' com código de saída $exit_code."
+        
+        # Mensagem de erro detalhada no log atual
+        echo "" >> "$LOG_FILE"
+        echo "❌ [$(date)] ERRO: O deploy falhou na instrução: '$failed_command' com código de saída $exit_code." >> "$LOG_FILE"
         
         # Grava no log de histórico simplificado
         echo "[$(date)] ERROR - Commit: $(git rev-parse --short origin/master || echo 'unknown') - Falhou no comando '$failed_command' (código: $exit_code)" >> "$HISTORY_FILE"
         
         # Cria cópia/link do último deploy com falha
         cp "$LOG_FILE" "$LATEST_LOG" 2>/dev/null || true
+        
+        # Tenta comitar e enviar os logs de erro para o GitHub (evitando loops infinitos)
+        local last_commit_msg=$(git log -1 --pretty=%B 2>/dev/null || echo "")
+        if [[ "$last_commit_msg" != *"chore(deploy-error)"* ]]; then
+            echo "📝 [$(date)] Commitando logs de erro para enviar ao GitHub..." >> "$LOG_FILE"
+            git config user.name "Autodeploy VPS" 2>/dev/null || true
+            git config user.email "deploy@portaldoartista.com" 2>/dev/null || true
+            
+            git add logs/ 2>/dev/null || true
+            git commit -m "chore(deploy-error): deploy failed on commit $(git rev-parse --short HEAD)" 2>/dev/null || true
+            
+            echo "⬆️ [$(date)] Enviando commit de erro para o repositório remoto..." >> "$LOG_FILE"
+            # Tenta dar push. Se falhar por falta de permissão de escrita na Deploy Key, ignora silenciosamente.
+            git push origin master 2>/dev/null || echo "⚠️ [$(date)] Aviso: Sem permissão de escrita no GitHub (push de log ignorado)." >> "$LOG_FILE"
+        fi
+        
         exit $exit_code
     }
     
