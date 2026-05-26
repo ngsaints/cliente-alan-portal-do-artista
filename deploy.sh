@@ -1,12 +1,9 @@
 #!/bin/bash
 set -e
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-nvm use 24 > /dev/null 2>&1
 
 echo "🔨 Building frontend..."
-cd /root/Portal-do-Artista/artifacts/alan-ribeiro-catalog
+cd /root/portal-do-artista/artifacts/alan-ribeiro-catalog
 PORT=3000 BASE_PATH=/ pnpm run build
 
 echo "📦 Deploying to /var/www/portal-do-artista..."
