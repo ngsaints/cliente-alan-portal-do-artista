@@ -7,8 +7,10 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Carrega variáveis do arquivo .env a partir da raiz
+// Carrega variáveis do arquivo .env a partir de múltiplos caminhos possíveis para garantir na VPS
 dotenv.config({ path: path.join(__dirname, "../.env") });
+dotenv.config({ path: path.join(__dirname, "../../.env") });
+dotenv.config({ path: path.join(__dirname, "../artifacts/api-server/.env") });
 
 import { pool } from "@workspace/db";
 
