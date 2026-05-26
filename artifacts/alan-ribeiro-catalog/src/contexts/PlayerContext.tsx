@@ -7,6 +7,8 @@ interface PlaylistInfo {
   songs: Song[];
 }
 
+export type CardStyle = "default" | "ipod";
+
 interface PlayerContextType {
   currentSong: Song | null;
   isPlaying: boolean;
@@ -16,6 +18,10 @@ interface PlayerContextType {
   playerGradient: string | null;
   playerCor: string | null;
   playerStyle: PlayerStyle;
+  cardStyle: CardStyle;
+  setCardStyle: (style: CardStyle) => void;
+  cardMode: boolean;
+  setCardMode: (v: boolean) => void;
   playSong: (song: Song, playlist?: Song[], playlistsQueue?: PlaylistInfo[], currentPlaylistIdx?: number) => void;
   setPlayerColors: (gradient: string | null, cor: string | null) => void;
   setPlayerStyle: (style: PlayerStyle) => void;
@@ -29,7 +35,7 @@ interface PlayerContextType {
   audioRef: React.RefObject<HTMLAudioElement | null>;
 }
 
-export type PlayerStyle = "padrao" | "minimalista" | "lista" | "waveform" | "moderno" | "vintage";
+export type PlayerStyle = "padrao" | "minimalista" | "lista" | "waveform" | "moderno" | "vintage" | "ipod";
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
 
@@ -43,7 +49,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [playerGradient, setPlayerGradient] = useState<string | null>(null);
   const [playerCor, setPlayerCor] = useState<string | null>(null);
   const [playerStyle, setPlayerStyle] = useState<PlayerStyle>("padrao");
+  const [cardStyle, setCardStyleState] = useState<CardStyle>("default");
+  const [cardMode, setCardMode] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const setCardStyle = (style: CardStyle) => setCardStyleState(style);
 
   // Playlist state
   const playlistRef = useRef<Song[]>([]);
@@ -202,6 +212,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         playerGradient,
         playerCor,
         playerStyle,
+        cardStyle,
+        setCardStyle,
+        cardMode,
+        setCardMode,
         playSong,
         setPlayerColors,
         setPlayerStyle: setPlayerStyleFn,

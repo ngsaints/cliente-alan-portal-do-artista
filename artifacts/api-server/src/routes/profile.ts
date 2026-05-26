@@ -34,7 +34,8 @@ router.put("/artists/:id/profile", upload.single("capa"), async (req, res): Prom
       layout, 
       player,
       playerGradient,
-      playerCor
+      playerCor,
+      cardStyle,
     } = req.body;
 
     // Get current artist
@@ -90,6 +91,7 @@ router.put("/artists/:id/profile", upload.single("capa"), async (req, res): Prom
         player: player || currentArtist.player,
         playerGradient: playerGradient !== undefined ? playerGradient : currentArtist.playerGradient,
         playerCor: playerCor !== undefined ? playerCor : currentArtist.playerCor,
+        cardStyle: cardStyle !== undefined ? cardStyle : (currentArtist as any).cardStyle,
       })
       .where(eq(artistsTable.id, parseInt(id as string)))
       .returning();
@@ -110,6 +112,7 @@ router.put("/artists/:id/profile", upload.single("capa"), async (req, res): Prom
       player: updatedArtist.player,
       playerGradient: updatedArtist.playerGradient,
       playerCor: updatedArtist.playerCor,
+      cardStyle: (updatedArtist as any).cardStyle,
     });
   } catch (error) {
     console.error("Error updating profile:", error);

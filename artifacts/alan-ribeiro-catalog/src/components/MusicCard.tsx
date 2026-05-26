@@ -3,10 +3,13 @@ import { motion } from "framer-motion";
 import { type Song } from "@workspace/api-client-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useState, useRef, useEffect } from "react";
+import { MusicCardIpod } from "@/components/MusicCardIpod";
+import { type CardStyle } from "@/contexts/PlayerContext";
 
 interface MusicCardProps {
   song: Song;
   index: number;
+  cardStyle?: CardStyle;
 }
 
 function formatPreco(val: string | null | undefined) {
@@ -24,7 +27,12 @@ function extractYouTubeId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export function MusicCard({ song, index }: MusicCardProps) {
+export function MusicCard({ song, index, cardStyle = "default" }: MusicCardProps) {
+  // Route to iPod card if that style is selected
+  if (cardStyle === "ipod") {
+    return <MusicCardIpod song={song} index={index} />;
+  }
+
   const { currentSong, isPlaying, playSong } = usePlayer();
   const isThisPlaying = currentSong?.id === song.id && isPlaying;
   const disponivel = !song.status || song.status === "Disponível";

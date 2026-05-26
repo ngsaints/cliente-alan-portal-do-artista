@@ -34,7 +34,7 @@ const FALLBACK_ARTIST = {
 
 export default function ArtistProfile() {
   const { slug } = useParams();
-  const { playSong, setPlayerColors, setPlayerStyle } = usePlayer();
+  const { playSong, setPlayerColors, setPlayerStyle, setCardStyle } = usePlayer();
   const artistId = slug || "1";
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const { genres } = useGenres();
@@ -46,16 +46,20 @@ export default function ArtistProfile() {
   const [loadingArtist, setLoadingArtist] = useState(true);
   const numericArtistId = artistData?.id;
 
-  // Update player colors and style when artist data loads
+  // Update player colors, style and card style when artist data loads
   useEffect(() => {
     if (artistData) {
       setPlayerColors(artistData.playerGradient || null, artistData.playerCor || null);
       if (artistData.player) {
         setPlayerStyle(artistData.player);
       }
+      setCardStyle((artistData.cardStyle as any) || "default");
     }
-    return () => setPlayerColors(null, null);
-  }, [artistData, setPlayerColors, setPlayerStyle]);
+    return () => {
+      setPlayerColors(null, null);
+      setCardStyle("default");
+    };
+  }, [artistData, setPlayerColors, setPlayerStyle, setCardStyle]);
 
   // Load custom font when artist has one
   useEffect(() => {
@@ -468,7 +472,12 @@ export default function ArtistProfile() {
         {!isLoading && artistSongs.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {artistSongs.map((song, index) => (
-              <MusicCard key={song.id} song={song} index={index} />
+              <MusicCard
+                key={song.id}
+                song={song}
+                index={index}
+                cardStyle={(artistData?.cardStyle as any) || "default"}
+              />
             ))}
           </div>
         )}

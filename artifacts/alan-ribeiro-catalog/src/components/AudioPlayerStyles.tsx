@@ -350,6 +350,121 @@ export function PlayerVintage() {
   );
 }
 
+export function PlayerIpod() {
+  const {
+    currentSong, isPlaying, togglePlay, progress, duration, seek,
+    volume, setVolume, setCurrentSong, setIsPlaying, playerGradient, playerCor,
+  } = usePlayer();
+
+  const accent = playerGradient || playerCor || "#f5c518";
+  const pct = duration ? (progress / duration) * 100 : 0;
+
+  if (!currentSong) return null;
+
+  return (
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 100, opacity: 0 }}
+      className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:p-4"
+      style={{
+        background: "linear-gradient(to top, #1a1a1a 0%, #2a2a2a 100%)",
+        borderTop: `2px solid ${playerCor || "#f5c518"}50`,
+        boxShadow: `0 -8px 32px ${playerCor || "#f5c518"}20`,
+      }}
+    >
+      {/* Progress bar */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/10">
+        <div
+          className="h-full transition-all duration-300 rounded-full"
+          style={{ width: `${pct}%`, background: accent }}
+        />
+        <input
+          type="range" min={0} max={duration || 100} value={progress}
+          onChange={e => seek(Number(e.target.value))}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+      </div>
+
+      <div className="flex items-center gap-3 max-w-2xl mx-auto">
+        {/* Close */}
+        <button
+          onClick={() => { setCurrentSong(null); setIsPlaying(false); }}
+          className="w-7 h-7 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-colors shrink-0"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Spinning album art — iPod signature */}
+        <div className="relative shrink-0">
+          <div
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden"
+            style={{
+              animation: isPlaying ? "spin 4s linear infinite" : "none",
+              boxShadow: `0 0 14px ${playerCor || "#f5c518"}70`,
+              border: `2px solid ${playerCor || "#f5c518"}60`,
+            }}
+          >
+            <img
+              src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
+              alt={currentSong.titulo}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {/* Center hole */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#2a2a2a] border border-white/20" />
+          </div>
+        </div>
+
+        {/* Song info */}
+        <div className="flex-1 min-w-0 hidden sm:block">
+          <h4 className="font-bold text-white truncate text-sm" style={{ fontFamily: "monospace" }}>
+            {currentSong.titulo}
+          </h4>
+          <p className="text-white/50 text-xs truncate">{currentSong.compositor || "Artista"}</p>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-white/40 font-mono hidden sm:block">{formatTime(progress)}</span>
+          <button
+            onClick={togglePlay}
+            className="w-11 h-11 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all border-2 border-white/10"
+            style={{ background: accent, boxShadow: `0 0 20px ${playerCor || "#f5c518"}60` }}
+          >
+            {isPlaying
+              ? <Pause className="w-5 h-5 text-black fill-black" />
+              : <Play  className="w-5 h-5 text-black fill-black ml-0.5" />}
+          </button>
+          <span className="text-xs text-white/40 font-mono hidden sm:block">{formatTime(duration)}</span>
+        </div>
+
+        {/* Volume */}
+        <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+          <button onClick={() => setVolume(volume === 0 ? 1 : 0)} className="text-white/40 hover:text-white transition-colors">
+            {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+          <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden relative">
+            <div className="absolute inset-y-0 left-0 rounded-full transition-all" style={{ width: `${volume * 100}%`, background: accent }} />
+            <input type="range" min={0} max={1} step={0.01} value={volume}
+              onChange={e => setVolume(Number(e.target.value))}
+              className="absolute inset-0 w-full opacity-0 cursor-pointer" />
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile: song name + time */}
+      <div className="sm:hidden flex items-center justify-center gap-2 mt-1.5">
+        <span className="text-[10px] text-white/60 font-mono truncate max-w-[180px]">{currentSong.titulo}</span>
+        <span className="text-[10px] text-white/30 font-mono">
+          {formatTime(progress)} / {formatTime(duration)}
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
 export function AudioPlayerByStyle({ style }: { style: PlayerStyle }) {
   switch (style) {
     case "minimalista": return <PlayerMinimalista />;
@@ -357,6 +472,7 @@ export function AudioPlayerByStyle({ style }: { style: PlayerStyle }) {
     case "waveform": return <PlayerWaveform />;
     case "moderno": return <PlayerModerno />;
     case "vintage": return <PlayerVintage />;
+    case "ipod": return <PlayerIpod />;
     default: return <PlayerPadrao />;
   }
-}
+}

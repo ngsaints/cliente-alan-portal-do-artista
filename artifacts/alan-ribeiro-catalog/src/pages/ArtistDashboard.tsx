@@ -405,6 +405,7 @@ export default function ArtistDashboard() {
     player: "padrao",
     playerGradient: "",
     playerCor: "",
+    cardStyle: "default",
   });
 
   const [profileCapaFile, setProfileCapaFile] = useState<File | null>(null);
@@ -479,6 +480,7 @@ export default function ArtistDashboard() {
         player: a.player || "padrao",
         playerGradient: a.playerGradient || "",
         playerCor: a.playerCor || "",
+        cardStyle: a.cardStyle || "default",
       });
       // Apply saved player colors to global player context
       setPlayerColors(a.playerGradient || null, a.playerCor || null);
@@ -649,6 +651,7 @@ export default function ArtistDashboard() {
       formData.append("player", editCustom.player);
       if (editCustom.playerGradient) formData.append("playerGradient", editCustom.playerGradient);
       if (editCustom.playerCor) formData.append("playerCor", editCustom.playerCor);
+      formData.append("cardStyle", editCustom.cardStyle);
 
       const res = await fetch("/api/artists/profile", {
         method: "PUT",
@@ -1909,6 +1912,98 @@ export default function ArtistDashboard() {
                       <Lock className="w-6 h-6 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-foreground">Cor do player bloqueada</p>
+                        <p className="text-xs text-muted-foreground">Atualize seu plano para desbloquear</p>
+                      </div>
+                    </div>
+                  </div>
+                  )}
+
+                  {/* Estilo dos Cards */}
+                  {artist?.canCustomizePlayerStyle ? (
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-sm font-bold text-foreground">
+                      <Disc className="w-4 h-4" /> Estilo dos Cards de Música
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Default card */}
+                      <button
+                        onClick={() => setEditCustom({ ...editCustom, cardStyle: "default", player: editCustom.player === "ipod" ? "padrao" : editCustom.player })}
+                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                          editCustom.cardStyle === "default"
+                            ? "border-primary bg-primary/10 ring-2 ring-primary"
+                            : "border-border hover:border-primary/50 hover:bg-primary/5"
+                        }`}
+                      >
+                        {/* Mini preview — default card */}
+                        <div className="w-full aspect-square rounded-lg bg-card border border-border/50 mb-2 overflow-hidden relative">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-2 left-2 right-2">
+                            <div className="h-2 bg-primary/60 rounded-full w-3/4 mb-1" />
+                            <div className="h-1.5 bg-white/30 rounded-full w-1/2" />
+                          </div>
+                          <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary/80 flex items-center justify-center">
+                            <Play className="w-2.5 h-2.5 text-black fill-black ml-0.5" />
+                          </div>
+                        </div>
+                        <span className="text-sm font-semibold text-foreground block">Padrão</span>
+                        <span className="text-xs text-muted-foreground">Card clássico com capa e player</span>
+                      </button>
+
+                      {/* iPod card */}
+                      <button
+                        onClick={() => setEditCustom({ ...editCustom, cardStyle: "ipod", player: "ipod" })}
+                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                          editCustom.cardStyle === "ipod"
+                            ? "border-primary bg-primary/10 ring-2 ring-primary"
+                            : "border-border hover:border-primary/50 hover:bg-primary/5"
+                        }`}
+                      >
+                        {/* Mini preview — iPod */}
+                        <div className="w-full aspect-square rounded-xl mb-2 p-2 overflow-hidden relative" style={{ background: "linear-gradient(145deg,#2d2d2d,#111)" }}>
+                          {/* mini screen */}
+                          <div className="w-full rounded-lg mb-1.5 overflow-hidden" style={{ background: "#0a0a0a", aspectRatio: "1/1" }}>
+                            <div
+                              className="w-full h-full rounded-full mx-auto"
+                              style={{
+                                width: "60%", height: "60%",
+                                margin: "20% auto 0",
+                                background: editCustom.playerGradient || editCustom.playerCor || "#f5c518",
+                                borderRadius: "50%",
+                                boxShadow: `0 0 8px ${editCustom.playerCor || "#f5c518"}80`,
+                              }}
+                            />
+                          </div>
+                          {/* mini wheel */}
+                          <div
+                            className="w-8 h-8 rounded-full mx-auto flex items-center justify-center"
+                            style={{ background: "radial-gradient(circle,#444,#1a1a1a)", border: "1px solid rgba(255,255,255,0.1)" }}
+                          >
+                            <div
+                              className="w-4 h-4 rounded-full"
+                              style={{ background: editCustom.playerGradient || editCustom.playerCor || "#f5c518" }}
+                            />
+                          </div>
+                        </div>
+                        <span className="text-sm font-semibold text-foreground block">iPod</span>
+                        <span className="text-xs text-muted-foreground">Player embutido no card</span>
+                      </button>
+                    </div>
+                    {editCustom.cardStyle === "ipod" && (
+                      <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
+                        ✨ No estilo iPod, a música toca <strong>dentro do card</strong> enquanto visível. Ao rolar a página, o player aparece no rodapé automaticamente.
+                      </p>
+                    )}
+                  </div>
+                  ) : (
+                  <div className="space-y-3 opacity-60">
+                    <label className="flex items-center gap-2 text-sm font-bold text-foreground">
+                      <Disc className="w-4 h-4" /> Estilo dos Cards
+                      <Lock className="w-3 h-3 text-muted-foreground" />
+                    </label>
+                    <div className="p-4 bg-muted/30 rounded-lg border border-border/30 flex items-center gap-3">
+                      <Lock className="w-6 h-6 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-foreground">Estilo dos cards bloqueado</p>
                         <p className="text-xs text-muted-foreground">Atualize seu plano para desbloquear</p>
                       </div>
                     </div>
