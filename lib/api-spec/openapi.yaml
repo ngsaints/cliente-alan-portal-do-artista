@@ -395,6 +395,9 @@ components:
         vipCode:
           type: string
           nullable: true
+        duracao:
+          type: string
+          nullable: true
 
     Song:
       type: object
@@ -445,6 +448,9 @@ components:
           type: string
         plays:
           type: string
+        duracao:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time

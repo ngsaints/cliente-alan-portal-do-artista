@@ -19,4 +19,5 @@ export interface UpdateSongBody {
   tipoMidia?: string;
   youtubeUrl?: string | null;
   vipCode?: string | null;
+  duracao?: string | null;
 }

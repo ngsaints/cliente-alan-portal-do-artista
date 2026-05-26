@@ -25,5 +25,6 @@ export interface Song {
   artistaId?: string | null;
   likes?: string;
   plays?: string;
+  duracao?: string | null;
   createdAt: Date;
 }

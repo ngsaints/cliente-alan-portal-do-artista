@@ -72,6 +72,7 @@ export const ListSongsResponseItem = zod.object({
   "artistaId": zod.string().nullish(),
   "likes": zod.string().optional(),
   "plays": zod.string().optional(),
+  "duracao": zod.string().nullish(),
   "createdAt": zod.date()
 })
 export const ListSongsResponse = zod.array(ListSongsResponseItem)
@@ -118,7 +119,8 @@ export const UpdateSongBody = zod.object({
   "isVip": zod.boolean().optional(),
   "tipoMidia": zod.string().optional(),
   "youtubeUrl": zod.string().nullish(),
-  "vipCode": zod.string().nullish()
+  "vipCode": zod.string().nullish(),
+  "duracao": zod.string().nullish()
 })
 
 export const UpdateSongResponse = zod.object({
@@ -140,6 +142,7 @@ export const UpdateSongResponse = zod.object({
   "artistaId": zod.string().nullish(),
   "likes": zod.string().optional(),
   "plays": zod.string().optional(),
+  "duracao": zod.string().nullish(),
   "createdAt": zod.date()
 })
 
