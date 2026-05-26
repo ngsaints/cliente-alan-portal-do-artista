@@ -7,6 +7,7 @@ import {
   createSubscription,
   getSubscriptionPayments,
   getPaymentById,
+  asaasFetch,
 } from "../lib/asaas-client.js";
 
 const router: IRouter = Router();
@@ -98,12 +99,56 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       }
     }
 
+    if (finalPrice < 5.00) {
+      // Ativação direta para valores menores que R$ 5,00 (p. ex. grátis ou com cupom de desconto total)
+      await db
+        .update(artistsTable)
+        .set({
+          plano: planId,
+          planoAtivo: true,
+          limiteMusicas: String(plan.limiteMusicas),
+          personalizacaoPercent: String(plan.personalizacaoPercent),
+          updatedAt: new Date(),
+        })
+        .where(eq(artistsTable.id, parseInt(artistId)));
+
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+      await db.insert(subscriptionsTable).values({
+        artistId: artistId,
+        planNome: planId,
+        asaasSubscriptionId: "direct_activation_" + Date.now(),
+        status: "active",
+        amount: String(finalPrice),
+        startedAt: new Date(),
+        expiresAt,
+        couponCode: appliedCoupon?.code ?? null,
+      });
+
+      res.json({
+        success: true,
+        activatedDirectly: true,
+        planNome: planId,
+        originalPrice: Number(plan.preco).toFixed(2),
+        finalPrice: finalPrice.toFixed(2),
+        discountAmount: discountAmount.toFixed(2),
+      });
+      return;
+    }
+
+    // Para cobranças no Asaas (>= R$ 5,00), o CPF/CNPJ é obrigatório
+    if (!artist.documento) {
+      res.status(400).json({ error: "Para criar esta cobrança é necessário preencher o CPF ou CNPJ nas configurações de perfil." });
+      return;
+    }
+
     let customerId = artist.asaasCustomerId;
     if (!customerId) {
       const customer = await findOrCreateCustomer(
         artist.name,
         artist.email,
-        undefined,
+        artist.documento ?? undefined,
         artist.contato ?? undefined
       );
       customerId = customer.id;
@@ -112,6 +157,21 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
         .update(artistsTable)
         .set({ asaasCustomerId: customerId, updatedAt: new Date() })
         .where(eq(artistsTable.id, parseInt(artistId)));
+    } else {
+      // Atualiza o documento e outros dados no Asaas para garantir integridade
+      try {
+        await asaasFetch(`/customers/${customerId}`, {
+          method: "POST",
+          body: {
+            cpfCnpj: artist.documento,
+            name: artist.name,
+            email: artist.email,
+            mobilePhone: artist.contato ?? undefined
+          }
+        });
+      } catch (err) {
+        console.warn("Erro ao atualizar dados do cliente no Asaas:", err);
+      }
     }
 
     const callbackUrl = portalUrl

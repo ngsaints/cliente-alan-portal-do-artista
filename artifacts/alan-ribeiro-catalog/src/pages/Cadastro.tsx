@@ -75,10 +75,12 @@ export default function Cadastro() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [dbPlans, setDbPlans] = useState<Plan[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    documento: "",
     contato: "",
     password: "",
     profissao: "Cantor",
@@ -92,10 +94,40 @@ export default function Cadastro() {
     plano: "free",
   });
 
+  useState(() => {
+    fetch("/api/plans")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const mapped: Plan[] = data.map((p: any) => {
+            let features: string[] = [];
+            if (p.nome === "free") features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`, "Capa básica"];
+            else if (p.nome === "basico") features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`, "Links sociais"];
+            else if (p.nome === "intermediario") features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`, "Banner"];
+            else if (p.nome === "pro") features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`, "Player customizável"];
+            else if (p.nome === "premium") features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`, "Máxima visibilidade"];
+            else features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`];
+
+            return {
+              id: p.nome,
+              nome: p.nome,
+              label: p.label,
+              preco: p.preco,
+              limiteMusicas: parseInt(p.limiteMusicas) || 0,
+              personalizacaoPercent: parseInt(p.personalizacaoPercent) || 0,
+              features
+            };
+          });
+          setDbPlans(mapped);
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar planos no cadastro:", err));
+  });
+
   const handleNext = () => {
     if (step === 1) {
-      if (!formData.name || !formData.email || !formData.password) {
-        setError("Preencha todos os campos obrigatórios");
+      if (!formData.name || !formData.email || !formData.password || !formData.documento) {
+        setError("Preencha todos os campos obrigatórios (Nome, Email, Senha e CPF/CNPJ)");
         return;
       }
       if (formData.password.length < 6) {
@@ -189,6 +221,17 @@ export default function Cadastro() {
                   placeholder="(00) 00000-0000"
                 />
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">CPF ou CNPJ (Obrigatório para faturamento) *</label>
+              <input
+                type="text"
+                value={formData.documento}
+                onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
+                required
+                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Ex: 000.000.000-00 ou 00.000.000/0000-00"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">Senha *</label>
@@ -333,7 +376,7 @@ export default function Cadastro() {
               Escolha seu Plano
             </h3>
             <div className="space-y-3">
-              {PLANS.map((plan) => {
+              {(dbPlans.length > 0 ? dbPlans : PLANS).map((plan) => {
                 const isSelected = formData.plano === plan.id;
                 const isFree = plan.id === "free";
 

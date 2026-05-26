@@ -7,6 +7,7 @@ export const artistsTable = pgTable("artists", {
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 255 }).unique(), // URL amigável
   email: varchar("email", { length: 255 }).notNull().unique(),
+  documento: varchar("documento", { length: 20 }), // CPF ou CNPJ
   password: text("password").notNull(),
   profissao: text("profissao"), // Cantor, Compositor, Banda, Grupo, Dupla
   contato: text("contato"),

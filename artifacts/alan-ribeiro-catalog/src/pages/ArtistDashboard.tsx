@@ -396,6 +396,7 @@ export default function ArtistDashboard() {
     tiktok: "",
     spotify: "",
     contato: "",
+    documento: "",
   });
 
   const [editCustom, setEditCustom] = useState({
@@ -418,6 +419,7 @@ export default function ArtistDashboard() {
 
   // Playlists state
   const [playlists, setPlaylists] = useState<any[]>([]);
+  const [dbPlans, setDbPlans] = useState<any[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<any | null>(null);
   const [playlistSongs, setPlaylistSongs] = useState<any[]>([]);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
@@ -440,6 +442,20 @@ export default function ArtistDashboard() {
 
   useEffect(() => {
     loadData();
+    fetch("/api/plans")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const mapped = data.map((p: any) => ({
+            id: p.nome,
+            label: p.label,
+            preco: p.preco,
+            limiteMusicas: parseInt(p.limiteMusicas) || 0,
+          }));
+          setDbPlans(mapped);
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar planos no dashboard:", err));
   }, []);
 
   const loadData = async () => {
@@ -472,6 +488,7 @@ export default function ArtistDashboard() {
         tiktok: a.tiktok || "",
         spotify: a.spotify || "",
         contato: a.contato || "",
+        documento: a.documento || "",
       });
       setEditCustom({
         fonte: a.fonte || "Arial",
@@ -684,7 +701,10 @@ export default function ArtistDashboard() {
         body: JSON.stringify({ planId, artistId: artist.id }),
       });
       const data = await res.json();
-      if (data.invoiceUrl) {
+      if (data.activatedDirectly) {
+        alert("Plano ativado com sucesso!");
+        loadData();
+      } else if (data.invoiceUrl) {
         window.open(data.invoiceUrl, "_blank");
       } else if (data.error) {
         alert(data.error);
@@ -1600,6 +1620,16 @@ export default function ArtistDashboard() {
                       />
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">CPF ou CNPJ (Obrigatório Asaas)</label>
+                      <input
+                        type="text"
+                        value={editProfile.documento}
+                        onChange={(e) => setEditProfile({ ...editProfile, documento: e.target.value })}
+                        placeholder="CPF ou CNPJ"
+                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                      />
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-muted-foreground mb-1">Instagram</label>
                       <input
                         type="text"
@@ -2391,7 +2421,7 @@ export default function ArtistDashboard() {
 
                 <h4 className="font-bold text-foreground mb-3">Atualizar Plano</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {PLANS.filter(p => p.id !== artist?.plano).map((plan) => (
+                  {(dbPlans.length > 0 ? dbPlans : PLANS).filter(p => p.id !== artist?.plano).map((plan) => (
                     <div key={plan.id} className="p-4 rounded-xl border border-border/40 bg-background/50">
                       <div className="flex items-center justify-between mb-2">
                         <h5 className="font-bold text-foreground">{plan.label}</h5>

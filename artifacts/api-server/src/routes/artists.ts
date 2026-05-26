@@ -77,10 +77,10 @@ router.post(
   ]),
   async (req, res): Promise<void> => {
     try {
-      const { name, email, contato, password, profissao, genero, cidade, instagram, tiktok, spotify, plano } = req.body;
+      const { name, email, documento, contato, password, profissao, genero, cidade, instagram, tiktok, spotify, plano } = req.body;
 
-      if (!name || !email || !password) {
-        res.status(400).json({ error: "Nome, email e senha são obrigatórios" });
+      if (!name || !email || !password || !documento) {
+        res.status(400).json({ error: "Nome, email, senha e CPF/CNPJ são obrigatórios" });
         return;
       }
 
@@ -133,6 +133,7 @@ router.post(
           name,
           slug,
           email,
+          documento,
           password: hashedPassword,
           profissao: profissao || "Cantor",
           genero: genero || null,
@@ -303,6 +304,7 @@ router.get("/artists/status", async (req, res): Promise<void> => {
         tiktok: artist.tiktok,
         spotify: artist.spotify,
         contato: artist.contato,
+        documento: artist.documento,
         slug: artist.slug,
         capaUrl: artist.capaUrl,
         bannerUrl: artist.bannerUrl,
@@ -347,7 +349,7 @@ router.put(
     }
 
     try {
-      const { name, profissao, cidade, instagram, tiktok, spotify, contato, fonte, cor, layout, player, vipSenha, playerGradient, playerCor, cardStyle } = req.body;
+      const { name, profissao, cidade, instagram, tiktok, spotify, contato, documento, fonte, cor, layout, player, vipSenha, playerGradient, playerCor, cardStyle } = req.body;
 
       const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, req.session.artistId));
       if (artists.length === 0) {
@@ -381,6 +383,7 @@ router.put(
           tiktok: tiktok ?? current.tiktok,
           spotify: spotify ?? current.spotify,
           contato: contato ?? current.contato,
+          documento: documento !== undefined ? documento : current.documento,
           fonte: fonte ?? current.fonte,
           cor: cor ?? current.cor,
           layout: layout ?? current.layout,
@@ -405,6 +408,7 @@ router.put(
         tiktok: updated.tiktok,
         spotify: updated.spotify,
         contato: updated.contato,
+        documento: updated.documento,
         slug: updated.slug,
         capaUrl: updated.capaUrl,
         bannerUrl: updated.bannerUrl,
