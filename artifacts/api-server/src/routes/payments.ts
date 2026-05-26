@@ -178,6 +178,40 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       ? `${portalUrl}/artista/dashboard?pagamento=sucesso`
       : undefined;
 
+    // Verifica se já existe uma assinatura pendente para reuso (evitando múltiplos registros/boletos no Asaas)
+    const pendingSubs = await db
+      .select()
+      .from(subscriptionsTable)
+      .where(and(
+        eq(subscriptionsTable.artistId, artistId),
+        eq(subscriptionsTable.planNome, planId),
+        eq(subscriptionsTable.status, "pending")
+      ))
+      .orderBy(sql`${subscriptionsTable.createdAt} DESC`);
+
+    if (pendingSubs.length > 0 && pendingSubs[0].asaasSubscriptionId) {
+      const pendingSub = pendingSubs[0];
+      try {
+        const payments = await getSubscriptionPayments(pendingSub.asaasSubscriptionId!);
+        const firstPayment = payments.data?.[0];
+        if (firstPayment) {
+          res.json({
+            subscriptionId: pendingSub.asaasSubscriptionId,
+            invoiceUrl: firstPayment.invoiceUrl ?? null,
+            paymentId: firstPayment.id ?? null,
+            sandbox: (await getAsaasCredentials()).sandbox,
+            appliedCoupon,
+            originalPrice: Number(plan.preco).toFixed(2),
+            finalPrice: finalPrice.toFixed(2),
+            discountAmount: discountAmount.toFixed(2),
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar pagamentos de assinatura pendente existente, criando nova:", err);
+      }
+    }
+
     const subscription = await createSubscription({
       customerId: customerId!,
       value: finalPrice,
