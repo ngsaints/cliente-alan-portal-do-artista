@@ -2464,7 +2464,7 @@ function PlaylistsTab() {
     try {
       const [playlistsRes, artistsRes, songsRes] = await Promise.all([
         fetch("/api/playlists/admin").then(r => r.json()),
-        fetch("/api/artists").then(r => r.json()),
+        fetch("/api/admin/artists", { credentials: "include" }).then(r => r.json()),
         fetch("/api/songs").then(r => r.json()),
       ]);
       setPlaylists(Array.isArray(playlistsRes) ? playlistsRes : []);
@@ -2759,7 +2759,7 @@ function GalleriesTab() {
     try {
       const [galleriesRes, artistsRes] = await Promise.all([
         fetch("/api/galleries/admin").then(r => r.json()),
-        fetch("/api/artists").then(r => r.json()),
+        fetch("/api/admin/artists", { credentials: "include" }).then(r => r.json()),
       ]);
       setGalleries(Array.isArray(galleriesRes) ? galleriesRes : []);
       setArtists(Array.isArray(artistsRes) ? artistsRes : []);

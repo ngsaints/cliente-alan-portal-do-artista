@@ -79,6 +79,10 @@ if [ "$LOCAL" != "$REMOTE" ]; then
     echo "📦 Instalando/atualizando dependências com pnpm..."
     pnpm install --frozen-lockfile || pnpm install
     
+    # Executa as migrações automáticas de banco de dados
+    echo "🗄️ Executando migrações automáticas no banco (pnpm db:migrate)..."
+    pnpm db:migrate
+    
     # Executa o script de build e reload padrão
     if [ -f "./deploy.sh" ]; then
         echo "🔨 Executando ./deploy.sh..."
