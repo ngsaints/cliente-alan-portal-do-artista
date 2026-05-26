@@ -181,7 +181,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
     const subscription = await createSubscription({
       customerId: customerId!,
       value: finalPrice,
-      billingType: "UNDEFINED",
+      billingType: "CREDIT_CARD",
       description: `Plano ${plan.label} — Portal do Artista`,
       externalReference: `${artistId}-${planId}`,
       callbackUrl,
