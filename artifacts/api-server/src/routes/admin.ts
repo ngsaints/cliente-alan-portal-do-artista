@@ -1,7 +1,30 @@
 import { Router, type IRouter } from "express";
+import multer from "multer";
+import sharp from "sharp";
 import { db, songsTable, artistsTable, interestsTable, plansTable, appSettingsTable } from "@workspace/db";
 import { eq, sql, count } from "drizzle-orm";
 import { FREE_PLAN } from "./payments";
+import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+import path from "path";
+import fs from "fs";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+async function saveDemoImage(buffer: Buffer, originalName: string): Promise<string> {
+  const jpgBuffer = await sharp(buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+  if (r2Enabled) {
+    const key = generateR2Key("demo", originalName.replace(/\.\w+$/, ".jpg"));
+    return uploadToR2(jpgBuffer, key, "image/jpeg");
+  }
+  const dir = path.join(process.cwd(), "uploads/demo");
+  fs.mkdirSync(dir, { recursive: true });
+  const filename = `${Date.now()}_${originalName.replace(/\.\w+$/, ".jpg")}`;
+  fs.writeFileSync(path.join(dir, filename), jpgBuffer);
+  return `/api/uploads/demo/${filename}`;
+}
 
 const router: IRouter = Router();
 
@@ -67,17 +90,39 @@ router.get("/admin/settings", async (req, res): Promise<void> => {
 });
 
 // PUT /admin/settings - Update app settings
-router.put("/admin/settings", async (req, res): Promise<void> => {
+router.put("/admin/settings", upload.fields([
+  { name: "demo_capa_url", maxCount: 1 },
+  { name: "demo_banner_url", maxCount: 1 },
+]), async (req, res): Promise<void> => {
   if (!req.session.logado) {
     res.status(401).json({ error: "Não autorizado" });
     return;
   }
 
   try {
-    const updates = req.body as Record<string, string>;
+    const files = req.files as Record<string, Express.Multer.File[]>;
 
+    // Handle file uploads (demo images)
+    if (files?.["demo_capa_url"]?.[0]) {
+      const url = await saveDemoImage(files["demo_capa_url"][0].buffer, files["demo_capa_url"][0].originalname);
+      await db
+        .update(appSettingsTable)
+        .set({ value: url, updatedAt: new Date() })
+        .where(eq(appSettingsTable.key, "demo_capa_url"));
+    }
+    if (files?.["demo_banner_url"]?.[0]) {
+      const url = await saveDemoImage(files["demo_banner_url"][0].buffer, files["demo_banner_url"][0].originalname);
+      await db
+        .update(appSettingsTable)
+        .set({ value: url, updatedAt: new Date() })
+        .where(eq(appSettingsTable.key, "demo_banner_url"));
+    }
+
+    // Handle regular text fields
+    const updates = req.body as Record<string, string>;
     for (const [key, value] of Object.entries(updates)) {
       if (!key || key === "undefined") continue;
+      if (key === "demo_capa_url" || key === "demo_banner_url") continue;
 
       await db
         .update(appSettingsTable)

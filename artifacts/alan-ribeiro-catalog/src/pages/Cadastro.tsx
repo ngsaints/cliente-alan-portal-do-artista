@@ -76,6 +76,36 @@ export default function Cadastro() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [dbPlans, setDbPlans] = useState<Plan[]>([]);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponResult, setCouponResult] = useState<{ discountType: string; discountValue: string; discountAmount: string; finalPrice: string; originalPrice: string } | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode || !formData.plano) return;
+    setValidatingCoupon(true);
+    setCouponError("");
+    setCouponResult(null);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode, planId: formData.plano }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCouponError(data.error || "Cupom inválido");
+      } else if (!data.valid) {
+        setCouponError("Cupom inválido para este plano");
+      } else {
+        setCouponResult(data.coupon);
+      }
+    } catch {
+      setCouponError("Erro ao validar cupom");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
 
   const [formData, setFormData] = useState({
     name: "",
@@ -379,6 +409,8 @@ export default function Cadastro() {
               {(dbPlans.length > 0 ? dbPlans : PLANS).map((plan) => {
                 const isSelected = formData.plano === plan.id;
                 const isFree = plan.id === "free";
+                const selectedPlanPrice = parseFloat(plan.preco);
+                const showDiscount = couponResult && plan.id === formData.plano && !isFree;
 
                 return (
                   <motion.div
@@ -403,9 +435,23 @@ export default function Cadastro() {
                           )}
                         </div>
                         <div className="flex items-baseline gap-1 mt-1">
-                          <span className="text-xl font-bold text-primary">
-                            R$ {parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </span>
+                          {showDiscount ? (
+                            <>
+                              <span className="text-xl font-bold text-green-400">
+                                R$ {parseFloat(couponResult.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                              <span className="text-sm text-muted-foreground line-through">
+                                R$ {selectedPlanPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                              <span className="text-xs font-bold text-green-400">
+                                (-{couponResult.discountType === "percentage" ? `${couponResult.discountValue}%` : `R$ ${parseFloat(couponResult.discountValue).toFixed(2)}`})
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-xl font-bold text-primary">
+                              R$ {selectedPlanPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                          )}
                           {!isFree && <span className="text-xs text-muted-foreground">/mês</span>}
                         </div>
                         <div className="flex flex-wrap gap-1 mt-2">
@@ -426,6 +472,40 @@ export default function Cadastro() {
                 );
               })}
             </div>
+
+            {/* Coupon Code */}
+            {formData.plano !== "free" && (
+              <div className="pt-2 border-t border-border/40">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                  Cupom de Desconto
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
+                    placeholder="Insira seu cupom"
+                    className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleValidateCoupon}
+                    disabled={!couponCode || validatingCoupon}
+                    className="px-4 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
+                  >
+                    {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                  </button>
+                </div>
+                {couponError && (
+                  <p className="text-xs text-red-400 mt-1">{couponError}</p>
+                )}
+                {couponResult && (
+                  <p className="text-xs text-green-400 mt-1">
+                    Cupom aplicado! Desconto de {couponResult.discountType === "percentage" ? `${couponResult.discountValue}%` : `R$ ${parseFloat(couponResult.discountValue).toFixed(2)}`}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         );
     }

@@ -1725,6 +1725,7 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [demoFiles, setDemoFiles] = useState<Record<string, File>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -1744,17 +1745,42 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
 
   const handleSave = async () => {
     setSaving(true);
-    const res = await fetch("/api/admin/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(values),
-    });
-    setSaving(false);
-    if (res.ok) {
-      toast({ title: "Configurações salvas com sucesso!" });
+
+    const isDemoWithFiles = category === "demo" && Object.keys(demoFiles).length > 0;
+
+    if (isDemoWithFiles) {
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(values)) {
+        formData.append(key, value);
+      }
+      for (const [key, file] of Object.entries(demoFiles)) {
+        formData.append(key, file);
+      }
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      });
+      setSaving(false);
+      if (res.ok) {
+        setDemoFiles({});
+        toast({ title: "Configurações salvas com sucesso!" });
+      } else {
+        toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+      }
     } else {
-      toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(values),
+      });
+      setSaving(false);
+      if (res.ok) {
+        toast({ title: "Configurações salvas com sucesso!" });
+      } else {
+        toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+      }
     }
   };
 
@@ -1842,6 +1868,51 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
                 <span className="text-sm text-muted-foreground">
                   {values[s.key] === "true" ? "Sandbox (testes)" : "Produção"}
                 </span>
+              </div>
+            ) : category === "demo" && s.key === "demo_cor" ? (
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={values[s.key] || "#f5d76e"}
+                  onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+                  className="w-10 h-10 rounded-lg border border-border cursor-pointer flex-shrink-0"
+                />
+                <input
+                  type="text"
+                  value={values[s.key] ?? ""}
+                  onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+                  placeholder="#f5d76e"
+                  className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm"
+                />
+              </div>
+            ) : category === "demo" && (s.key === "demo_capa_url" || s.key === "demo_banner_url") ? (
+              <div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    if (file) {
+                      setDemoFiles({ ...demoFiles, [s.key]: file });
+                      const reader = new FileReader();
+                      reader.onloadend = () => setValues({ ...values, [s.key]: reader.result as string });
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-foreground text-sm file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
+                />
+                {values[s.key] && values[s.key].startsWith("http") && (
+                  <div className="mt-2 relative inline-block">
+                    <img src={values[s.key]} alt={s.key} className="h-24 w-24 object-cover rounded-lg border border-border" />
+                    <button
+                      type="button"
+                      onClick={() => { setValues({ ...values, [s.key]: "" }); setDemoFiles({ ...demoFiles, [s.key]: undefined as any }); }}
+                      className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center hover:bg-destructive/80"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="relative">
@@ -2051,6 +2122,8 @@ function BannerModal({ banner, onClose, onSaved }: { banner: CtaBanner | null; o
     ativo: banner?.ativo ?? true,
     intervaloSegundos: banner?.intervaloSegundos || 4,
   });
+  const [imagemFile, setImagemFile] = useState<File | null>(null);
+  const [imagemPreview, setImagemPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
@@ -2061,11 +2134,23 @@ function BannerModal({ banner, onClose, onSaved }: { banner: CtaBanner | null; o
     const url = banner ? `/api/admin/banners/${banner.id}` : "/api/admin/banners";
     const method = banner ? "PUT" : "POST";
 
+    const formData = new FormData();
+    formData.append("texto", form.texto);
+    formData.append("corFundo", form.corFundo);
+    formData.append("corTexto", form.corTexto);
+    formData.append("botaoTexto", form.botaoTexto);
+    formData.append("botaoLink", form.botaoLink);
+    formData.append("ordem", String(form.ordem));
+    formData.append("ativo", String(form.ativo));
+    formData.append("intervaloSegundos", String(form.intervaloSegundos));
+    if (imagemFile) {
+      formData.append("imagemFile", imagemFile);
+    }
+
     const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(form),
+      body: formData,
     });
 
     setSaving(false);
@@ -2097,19 +2182,53 @@ function BannerModal({ banner, onClose, onSaved }: { banner: CtaBanner | null; o
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           <div
-            className="rounded-xl p-6 text-center"
+            className="relative rounded-xl p-6 text-center bg-cover bg-center"
             style={{
-              background: form.corFundo,
-              minHeight: "100px",
+              background: imagemPreview
+                ? `url(${imagemPreview}) center/cover`
+                : banner?.imagemFundoUrl
+                  ? `url(${banner.imagemFundoUrl}) center/cover`
+                  : form.corFundo,
+              minHeight: "140px",
             }}
           >
-            <p className="text-lg font-bold" style={{ color: form.corTexto }}>
+            <div className="absolute inset-0 bg-black/30 rounded-xl" />
+            <p className="relative z-10 text-lg font-bold" style={{ color: form.corTexto }}>
               {form.texto || "Texto do banner"}
             </p>
             {form.botaoTexto && (
-              <span className="inline-block mt-2 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+              <span className="relative z-10 inline-block mt-2 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-bold">
                 {form.botaoTexto}
               </span>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Imagem de Fundo (upload)</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setImagemFile(file);
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => setImagemPreview(reader.result as string);
+                  reader.readAsDataURL(file);
+                } else {
+                  setImagemPreview(null);
+                }
+              }}
+              className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-foreground text-sm file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
+            />
+            {(imagemPreview || banner?.imagemFundoUrl) && (
+              <button
+                type="button"
+                onClick={() => { setImagemFile(null); setImagemPreview(null); }}
+                className="mt-1 text-xs text-muted-foreground hover:text-destructive"
+              >
+                Remover imagem
+              </button>
             )}
           </div>
 
@@ -3374,13 +3493,40 @@ function CouponModal({ coupon, onClose, onSaved }: { coupon: Coupon | null; onCl
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Planos Aplicáveis (separados por vírgula)</label>
-            <input
-              value={form.applicablePlans}
-              onChange={(e) => setForm({ ...form, applicablePlans: e.target.value })}
-              placeholder="basico, intermediario, pro, premium (vazio = todos)"
-              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-            />
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Planos Aplicáveis (vazio = todos)</label>
+            <div className="space-y-1.5">
+              {[
+                { id: "basico", label: "Básico" },
+                { id: "intermediario", label: "Intermediário" },
+                { id: "pro", label: "Profissional" },
+                { id: "premium", label: "Premium" },
+              ].map((plan) => {
+                const plans = form.applicablePlans ? form.applicablePlans.split(",").map((p: string) => p.trim()).filter(Boolean) : [];
+                const checked = plans.includes(plan.id);
+                return (
+                  <label
+                    key={plan.id}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                      checked ? "border-primary/50 bg-primary/10" : "border-border bg-input hover:border-border/60"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        const current = plans;
+                        const next = checked
+                          ? current.filter((p: string) => p !== plan.id)
+                          : [...current, plan.id];
+                        setForm({ ...form, applicablePlans: next.join(", ") });
+                      }}
+                      className="w-4 h-4 accent-primary"
+                    />
+                    <span className="text-sm text-foreground">{plan.label}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           <div>
