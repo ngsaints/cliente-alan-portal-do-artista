@@ -1,12 +1,9 @@
 import { Router, type IRouter } from "express";
 import { db, interestsTable, artistsTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
-import { Resend } from "resend";
+import { eq, desc } from "drizzle-orm";
+import { getEmailConfig, getPortalUrl } from "../lib/email.js";
 
 const router: IRouter = Router();
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const PORTAL_URL = process.env.PORTAL_URL || "https://94.141.97.95";
 
 // ─── POST /interests — salvar interesse vinculado ao artista ─────────────────
 
@@ -39,37 +36,43 @@ router.post("/interests", async (req, res): Promise<void> => {
       .returning();
 
     // Send notification email to artist if artistaId exists
-    if (artistaId && resend) {
+    if (artistaId) {
       try {
         const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, parseInt(artistaId)));
         if (artists.length > 0) {
           const artist = artists[0];
-          const interestUrl = `${PORTAL_URL}/artista/dashboard?tab=interesses`;
-          const contatoMsg = contratarShow ? "Sim" : "Não";
-          await resend.emails.send({
-            from: "Portal do Artista <onboarding@resend.dev>",
-            to: artist.email,
-            subject: `🔔 Novo interesse recebido - ${nome}`,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #7c3aed;">🔔 Novo Interesse Recebido</h2>
-                <p>Olá, <strong>${artist.name}</strong>!</p>
-                <p>Você recebeu um novo interesse no seu perfil:</p>
-                <table style="border-collapse: collapse; width: 100%; margin: 16px 0;">
-                  <tr><td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">Nome</td><td style="padding: 8px; border: 1px solid #eee;">${nome}</td></tr>
-                  <tr><td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">Email</td><td style="padding: 8px; border: 1px solid #eee;">${email}</td></tr>
-                  <tr><td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">Telefone</td><td style="padding: 8px; border: 1px solid #eee;">${telefone || "Não informado"}</td></tr>
-                  <tr><td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">Mensagem</td><td style="padding: 8px; border: 1px solid #eee;">${mensagem || "Não informada"}</td></tr>
-                  <tr><td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">Quer contratar show</td><td style="padding: 8px; border: 1px solid #eee;">${contatoMsg}</td></tr>
-                </table>
-                <a href="${interestUrl}" style="display: inline-block; background-color: #7c3aed; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 16px 0;">
-                  Ver Interesses
-                </a>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-                <p style="color: #999; font-size: 12px;">Portal do Artista</p>
-              </div>
-            `,
-          });
+          const { resend, from } = await getEmailConfig();
+          const portalUrl = await getPortalUrl();
+          if (!resend) {
+            console.log("Resend not configured, skipping email notification");
+          } else {
+            const interestUrl = `${portalUrl}/artista/dashboard?tab=interesses`;
+            const contatoMsg = contratarShow ? "Sim" : "Não";
+            await resend.emails.send({
+              from,
+              to: artist.email,
+              subject: `🔔 Novo interesse recebido - ${nome}`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #7c3aed;">🔔 Novo Interesse Recebido</h2>
+                  <p>Olá, <strong>${artist.name}</strong>!</p>
+                  <p>Você recebeu um novo interesse no seu perfil:</p>
+                  <table style="border-collapse: collapse; width: 100%; margin: 16px 0;">
+                    <tr><td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">Nome</td><td style="padding: 8px; border: 1px solid #eee;">${nome}</td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">Email</td><td style="padding: 8px; border: 1px solid #eee;">${email}</td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">Telefone</td><td style="padding: 8px; border: 1px solid #eee;">${telefone || "Não informado"}</td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">Mensagem</td><td style="padding: 8px; border: 1px solid #eee;">${mensagem || "Não informada"}</td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">Quer contratar show</td><td style="padding: 8px; border: 1px solid #eee;">${contatoMsg}</td></tr>
+                  </table>
+                  <a href="${interestUrl}" style="display: inline-block; background-color: #7c3aed; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 16px 0;">
+                    Ver Interesses
+                  </a>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+                  <p style="color: #999; font-size: 12px;">Portal do Artista</p>
+                </div>
+              `,
+            });
+          }
         }
       } catch (emailErr) {
         console.error("Error sending interest notification email:", emailErr);

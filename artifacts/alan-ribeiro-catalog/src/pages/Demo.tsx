@@ -37,7 +37,7 @@ export default function Demo() {
   const [plansModalOpen, setPlansModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [interestModalOpen, setInterestModalOpen] = useState(false);
-  const [selectedSongTitle, setSelectedSongTitle] = useState<string>("");
+  const [selectedSong, setSelectedSong] = useState<{ id: number; titulo: string } | null>(null);
   const [demoSettings, setDemoSettings] = useState<Record<string, string>>({});
 
   useSEO({
@@ -96,10 +96,19 @@ export default function Demo() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleOpenInterest = (songTitle: string) => {
-    setSelectedSongTitle(songTitle);
+  const handleOpenInterest = (song: { id: number; titulo: string }) => {
+    setSelectedSong(song);
     setInterestModalOpen(true);
   };
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const song = (e as CustomEvent).detail.song;
+      handleOpenInterest({ id: song.id, titulo: song.titulo });
+    };
+    document.addEventListener("openInterest", handler);
+    return () => document.removeEventListener("openInterest", handler);
+  }, []);
 
   const handleInterestSubmit = (data: {
     nome: string; email: string; telefone: string; mensagem: string;
@@ -107,7 +116,7 @@ export default function Demo() {
   }) => {
     const newInterest: Interest = {
       id: Date.now(),
-      songTitle: selectedSongTitle || undefined,
+      songTitle: selectedSong?.titulo || undefined,
       ...data,
       createdAt: new Date().toISOString(),
     };
@@ -374,9 +383,10 @@ export default function Demo() {
       {/* Modals */}
       <InterestModal
         isOpen={interestModalOpen}
-        onClose={() => setInterestModalOpen(false)}
+        onClose={() => { setInterestModalOpen(false); setSelectedSong(null); }}
         onSubmit={handleInterestSubmit}
-        songTitle={selectedSongTitle}
+        songId={selectedSong?.id ?? 0}
+        songTitle={selectedSong?.titulo}
       />
 
       <PlansModal

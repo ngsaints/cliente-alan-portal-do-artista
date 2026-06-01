@@ -143,12 +143,14 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       return;
     }
 
+    const cleanDoc = artist.documento?.replace(/\D/g, "") || "";
+
     let customerId = artist.asaasCustomerId;
     if (!customerId) {
       const customer = await findOrCreateCustomer(
         artist.name,
         artist.email,
-        artist.documento ?? undefined,
+        cleanDoc || undefined,
         artist.contato ?? undefined
       );
       customerId = customer.id;
@@ -158,17 +160,18 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
         .set({ asaasCustomerId: customerId, updatedAt: new Date() })
         .where(eq(artistsTable.id, parseInt(artistId)));
     } else {
-      // Atualiza o documento e outros dados no Asaas para garantir integridade
       try {
-        await asaasFetch(`/customers/${customerId}`, {
-          method: "POST",
-          body: {
-            cpfCnpj: artist.documento,
-            name: artist.name,
-            email: artist.email,
-            mobilePhone: artist.contato ?? undefined
-          }
-        });
+        if (cleanDoc) {
+          await asaasFetch(`/customers/${customerId}`, {
+            method: "PUT",
+            body: {
+              cpfCnpj: cleanDoc,
+              name: artist.name,
+              email: artist.email,
+              mobilePhone: artist.contato ?? undefined
+            }
+          });
+        }
       } catch (err) {
         console.warn("Erro ao atualizar dados do cliente no Asaas:", err);
       }

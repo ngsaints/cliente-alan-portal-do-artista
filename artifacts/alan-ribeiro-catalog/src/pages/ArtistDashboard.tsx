@@ -55,12 +55,8 @@ interface ArtistProfile {
   canCustomizePlayerColor: boolean;
 }
 
-const PLANS = [
-  { id: "free", label: "Free", preco: "0", limiteMusicas: 2 },
-  { id: "basico", label: "Básico", preco: "19.90", limiteMusicas: 10 },
-  { id: "intermediario", label: "Intermediário", preco: "39.90", limiteMusicas: 25 },
-  { id: "pro", label: "Profissional", preco: "79.90", limiteMusicas: 50 },
-  { id: "premium", label: "Premium", preco: "149.90", limiteMusicas: 100 },
+const DEFAULT_PLANS = [
+  { id: "free", label: "Gratuito", preco: "0", limiteMusicas: 2 },
 ];
 
 const FONTS = [
@@ -2421,7 +2417,7 @@ export default function ArtistDashboard() {
 
                 <h4 className="font-bold text-foreground mb-3">Atualizar Plano</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {(dbPlans.length > 0 ? dbPlans : PLANS).filter(p => p.id !== artist?.plano).map((plan) => (
+                  {(dbPlans.length > 0 ? dbPlans : DEFAULT_PLANS).filter(p => p.id !== artist?.plano).map((plan) => (
                     <div key={plan.id} className="p-4 rounded-xl border border-border/40 bg-background/50">
                       <div className="flex items-center justify-between mb-2">
                         <h5 className="font-bold text-foreground">{plan.label}</h5>

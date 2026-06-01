@@ -7,10 +7,7 @@ import path from "path";
 import fs from "fs";
 import sharp from "sharp";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
-import { Resend } from "resend";
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const PORTAL_URL = process.env.PORTAL_URL || "https://94.141.97.95";
+import { getEmailConfig, getPortalUrl } from "../lib/email.js";
 
 const router: IRouter = Router();
 
@@ -164,11 +161,13 @@ router.post(
         }
 
         // Send welcome email
+        const { resend, from } = await getEmailConfig();
         if (resend) {
-          const profileUrl = `${PORTAL_URL}/a/${artist.slug}`;
+          const portalUrl = await getPortalUrl();
+          const profileUrl = `${portalUrl}/a/${artist.slug}`;
           try {
             await resend.emails.send({
-              from: "Portal do Artista <onboarding@resend.dev>",
+              from,
               to: artist.email,
               subject: `Bem-vindo ao Portal do Artista, ${artist.name}!`,
               html: `
@@ -358,6 +357,11 @@ router.put(
       }
 
       const current = artists[0];
+
+      // Check plan permissions
+      const planRows = await db.select().from(plansTable).where(eq(plansTable.nome, current.plano));
+      const plan = planRows[0] || { canUploadBanner: false, canUploadProfilePhoto: false, canCustomizeFont: false, canCustomizeBackground: false, canCustomizeTextColor: false, canCustomizePlayerStyle: false, canCustomizePlayerColor: false };
+
       let capaUrl = current.capaUrl;
       let bannerUrl = current.bannerUrl;
 
@@ -366,12 +370,29 @@ router.put(
       const bannerFile = files?.["bannerFile"]?.[0];
 
       if (capaFile) {
+        if (!plan.canUploadProfilePhoto) {
+          res.status(403).json({ error: "Seu plano não permite upload de foto de perfil." });
+          return;
+        }
         capaUrl = await saveImage(capaFile.buffer, "photos", capaFile.originalname);
       }
 
       if (bannerFile) {
+        if (!plan.canUploadBanner) {
+          res.status(403).json({ error: "Seu plano não permite upload de banner." });
+          return;
+        }
         bannerUrl = await saveImage(bannerFile.buffer, "banners", bannerFile.originalname);
       }
+
+      // Enforce plan permission checks for customization fields
+      const finalFonte = fonte !== undefined ? (plan.canCustomizeFont ? fonte : current.fonte) : current.fonte;
+      const finalCor = cor !== undefined ? (plan.canCustomizeBackground ? cor : current.cor) : current.cor;
+      const finalLayout = layout !== undefined ? (plan.canCustomizeBackground ? layout : current.layout) : current.layout;
+      const finalPlayer = player !== undefined ? (plan.canCustomizePlayerStyle ? player : current.player) : current.player;
+      const finalPlayerGradient = playerGradient !== undefined ? (plan.canCustomizePlayerColor ? playerGradient : current.playerGradient) : current.playerGradient;
+      const finalPlayerCor = playerCor !== undefined ? (plan.canCustomizePlayerColor ? playerCor : current.playerCor) : current.playerCor;
+      const finalCardStyle = cardStyle !== undefined ? (plan.canCustomizeBackground ? cardStyle : (current as any).cardStyle) : (current as any).cardStyle;
 
       const [updated] = await db
         .update(artistsTable)
@@ -384,14 +405,14 @@ router.put(
           spotify: spotify ?? current.spotify,
           contato: contato ?? current.contato,
           documento: documento !== undefined ? documento : current.documento,
-          fonte: fonte ?? current.fonte,
-          cor: cor ?? current.cor,
-          layout: layout ?? current.layout,
-          player: player ?? current.player,
-          playerGradient: playerGradient !== undefined ? playerGradient : current.playerGradient,
-          playerCor: playerCor !== undefined ? playerCor : current.playerCor,
+          fonte: finalFonte,
+          cor: finalCor,
+          layout: finalLayout,
+          player: finalPlayer,
+          playerGradient: finalPlayerGradient,
+          playerCor: finalPlayerCor,
           vipSenha: vipSenha !== undefined ? vipSenha : current.vipSenha,
-          cardStyle: cardStyle !== undefined ? cardStyle : (current as any).cardStyle,
+          cardStyle: finalCardStyle,
           capaUrl,
           bannerUrl,
           updatedAt: new Date(),

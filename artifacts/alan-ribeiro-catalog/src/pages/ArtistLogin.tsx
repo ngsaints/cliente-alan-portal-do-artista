@@ -5,55 +5,8 @@ import { Sparkles, Eye, EyeOff, Loader2, User, MapPin, Link2, Image, Star, Check
 import { Navbar } from "@/components/Navbar";
 import { useGenres } from "@/hooks/useGenres";
 import { ImageCrop } from "@/components/ImageCrop";
-
-const PLANS = [
-  {
-    id: "free",
-    nome: "free",
-    label: "Free Experimental",
-    preco: "0",
-    limiteMusicas: 2,
-    personalizacaoPercent: 10,
-    features: ["2 músicas", "10% personalização", "Capa básica"],
-  },
-  {
-    id: "basico",
-    nome: "basico",
-    label: "Básico",
-    preco: "19.90",
-    limiteMusicas: 10,
-    personalizacaoPercent: 20,
-    features: ["10 músicas", "20% personalização", "Links sociais"],
-  },
-  {
-    id: "intermediario",
-    nome: "intermediario",
-    label: "Intermediário",
-    preco: "39.90",
-    limiteMusicas: 25,
-    personalizacaoPercent: 50,
-    features: ["25 músicas", "50% personalização", "Banner"],
-  },
-  {
-    id: "pro",
-    nome: "pro",
-    label: "Profissional",
-    preco: "79.90",
-    limiteMusicas: 50,
-    personalizacaoPercent: 80,
-    features: ["50 músicas", "80% personalização", "Player customizável"],
-  },
-  {
-    id: "premium",
-    nome: "premium",
-    label: "Premium",
-    preco: "149.90",
-    limiteMusicas: 100,
-    personalizacaoPercent: 100,
-    features: ["100 músicas", "100% personalização", "Máxima visibilidade"],
-    badge: "30 dias grátis",
-  },
-];
+import { buildPlanFeatures } from "@/lib/utils";
+import { CitySearch } from "@/components/CitySearch";
 
 const PROFISSOES = ["Cantor", "Compositor", "Banda", "Grupo", "Dupla", "Outro"];
 
@@ -77,6 +30,7 @@ export default function ArtistLogin() {
     setActiveTab(tab);
   }, [search]);
 
+  const [dbPlans, setDbPlans] = useState<any[]>([]);
   const [cadastroStep, setCadastroStep] = useState<CadastroStep>("planos");
   const [selectedPlan, setSelectedPlan] = useState<string>("premium");
   const [cropingCapa, setCroppingCapa] = useState<File | null>(null);
@@ -85,6 +39,7 @@ export default function ArtistLogin() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    documento: "",
     contato: "",
     password: "",
     profissao: "Cantor",
@@ -110,6 +65,26 @@ export default function ArtistLogin() {
         }
       })
       .catch(() => setChecking(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/plans")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const mapped = data.map((p: any) => ({
+            id: p.nome,
+            nome: p.nome,
+            label: p.label,
+            preco: p.preco,
+            limiteMusicas: parseInt(p.limiteMusicas) || 0,
+            personalizacaoPercent: parseInt(p.personalizacaoPercent) || 0,
+            features: buildPlanFeatures(p),
+          }));
+          setDbPlans(mapped);
+        }
+      })
+      .catch(console.error);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -141,7 +116,7 @@ export default function ArtistLogin() {
       return;
     }
     if (cadastroStep === 1) {
-      if (!formData.name || !formData.email || !formData.password) {
+      if (!formData.name || !formData.email || !formData.password || !formData.documento) {
         setError("Preencha todos os campos obrigatórios");
         return;
       }
@@ -211,7 +186,7 @@ export default function ArtistLogin() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {PLANS.map((plan) => {
+            {dbPlans.length === 0 ? <div className="col-span-2 text-center py-8 text-muted-foreground">Carregando planos...</div> : dbPlans.map((plan) => {
               const isSelected = selectedPlan === plan.id;
               const isFree = plan.id === "free";
               const isPremium = plan.id === "premium";
@@ -249,7 +224,7 @@ export default function ArtistLogin() {
                         {!isFree && <span className="text-xs text-muted-foreground">/mês</span>}
                       </div>
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {plan.features.map((f, i) => (
+                        {(plan.features || []).map((f: string, i: number) => (
                           <span key={i} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary">
                             {f}
                           </span>
@@ -300,6 +275,17 @@ export default function ArtistLogin() {
                 required
                 className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="seu@email.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">CPF / CNPJ *</label>
+              <input
+                type="text"
+                value={formData.documento}
+                onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
+                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="000.000.000-00"
+                required
               />
             </div>
             <div>
@@ -359,13 +345,7 @@ export default function ArtistLogin() {
             </h3>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">Cidade/Estado</label>
-              <input
-                type="text"
-                value={formData.cidade}
-                onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Ex: Maricá, RJ"
-              />
+              <CitySearch value={formData.cidade} onChange={(v) => setFormData({ ...formData, cidade: v })} />
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">Gênero Musical Principal</label>
@@ -542,7 +522,7 @@ export default function ArtistLogin() {
             <div className="p-4 rounded-xl border border-primary/30 bg-primary/5">
               <div className="flex items-center gap-2 mb-2">
                 <h4 className="font-bold text-foreground">
-                  {PLANS.find(p => p.id === formData.plano)?.label || "Free Experimental"}
+                  {dbPlans.find(p => p.id === formData.plano)?.label || "Gratuito"}
                 </h4>
                 {formData.plano === "free" && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/20 text-green-400">GRÁTIS</span>
@@ -550,12 +530,12 @@ export default function ArtistLogin() {
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-bold text-primary">
-                  R$ {parseFloat(PLANS.find(p => p.id === formData.plano)?.preco || "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  R$ {parseFloat(dbPlans.find(p => p.id === formData.plano)?.preco || "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </span>
                 {formData.plano !== "free" && <span className="text-xs text-muted-foreground">/mês</span>}
               </div>
               <div className="flex flex-wrap gap-1 mt-2">
-                {PLANS.find(p => p.id === formData.plano)?.features.map((f, i) => (
+                {(dbPlans.find(p => p.id === formData.plano)?.features || []).map((f: string, i: number) => (
                   <span key={i} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary">{f}</span>
                 ))}
               </div>
@@ -749,7 +729,7 @@ export default function ArtistLogin() {
                       className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
                     >
                       <Zap className="w-4 h-4" />
-                      Continuar com {PLANS.find(p => p.id === selectedPlan)?.label}
+                      Continuar com {dbPlans.find(p => p.id === selectedPlan)?.label}
                     </button>
                   ) : (cadastroStep as number) < 5 ? (
                     <button

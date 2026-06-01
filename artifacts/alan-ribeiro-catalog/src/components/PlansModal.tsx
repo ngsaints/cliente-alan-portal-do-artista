@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Star, Check, ExternalLink } from "lucide-react";
+import { X, Star, Check, ExternalLink, Loader2 } from "lucide-react";
+import { buildPlanFeatures } from "@/lib/utils";
 
 interface Plan {
   id: string;
@@ -14,59 +15,6 @@ interface Plan {
   features: string[];
 }
 
-const PLANS: Plan[] = [
-  {
-    id: "free",
-    nome: "free",
-    label: "Free Experimental",
-    preco: "0",
-    limiteMusicas: 2,
-    personalizacaoPercent: 10,
-    fraseEfeito: "Experimente e veja seu trabalho ganhar destaque!",
-    features: ["2 músicas", "10% personalização", "Capa básica", "Bio do artista"],
-  },
-  {
-    id: "basico",
-    nome: "basico",
-    label: "Básico",
-    preco: "19.90",
-    limiteMusicas: 10,
-    personalizacaoPercent: 20,
-    fraseEfeito: "Comece a profissionalizar seu trabalho agora!",
-    features: ["10 músicas", "20% personalização", "Capa + Bio", "Playlist pública", "Links sociais"],
-  },
-  {
-    id: "intermediario",
-    nome: "intermediario",
-    label: "Intermediário",
-    preco: "39.90",
-    limiteMusicas: 25,
-    personalizacaoPercent: 50,
-    fraseEfeito: "Impulsione sua carreira com visibilidade profissional!",
-    features: ["25 músicas", "50% personalização", "Capa + Bio + Playlist", "Tema customizável", "Links sociais", "Banner"],
-  },
-  {
-    id: "pro",
-    nome: "pro",
-    label: "Profissional",
-    preco: "79.90",
-    limiteMusicas: 50,
-    personalizacaoPercent: 80,
-    fraseEfeito: "Seu perfil profissional com máxima qualidade!",
-    features: ["50 músicas", "80% personalização", "Tudo do Intermediário", "Player customizável", "Fonte personalizada", "Layout avançado", "Destaque na busca"],
-  },
-  {
-    id: "premium",
-    nome: "premium",
-    label: "Premium",
-    preco: "149.90",
-    limiteMusicas: 100,
-    personalizacaoPercent: 100,
-    fraseEfeito: "Transforme seu perfil em portfólio profissional completo!",
-    features: ["100 músicas", "100% personalização", "Tudo do Pro", "Máxima visibilidade", "Suporte prioritário", "Estatísticas avançadas", "Selos exclusivos"],
-  },
-];
-
 interface PlansModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -75,6 +23,33 @@ interface PlansModalProps {
 
 export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setLoading(true);
+    fetch("/api/plans")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const mapped: Plan[] = data.map((p: any) => ({
+            id: p.nome,
+            nome: p.nome,
+            label: p.label,
+            preco: p.preco,
+            limiteMusicas: parseInt(p.limiteMusicas) || 0,
+            personalizacaoPercent: parseInt(p.personalizacaoPercent) || 0,
+            descricao: p.descricao || undefined,
+            fraseEfeito: p.fraseEfeito || undefined,
+            features: buildPlanFeatures(p),
+          }));
+          setPlans(mapped);
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar planos:", err))
+      .finally(() => setLoading(false));
+  }, [isOpen]);
 
   const handleContratar = (planId: string) => {
     setSelectedPlan(planId);
@@ -114,7 +89,17 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
 
             {/* Plans list */}
             <div className="space-y-3">
-              {PLANS.map((plan) => {
+              {loading && (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              )}
+              {!loading && plans.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  Nenhum plano disponível no momento.
+                </div>
+              )}
+              {!loading && plans.map((plan) => {
                 const isSelected = selectedPlan === plan.id;
                 const isFree = plan.id === "free";
 

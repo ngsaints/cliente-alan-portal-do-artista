@@ -207,6 +207,15 @@ export default function ArtistProfile() {
     setInterestModalOpen(true);
   };
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const song = (e as CustomEvent).detail.song;
+      handleOpenInterest({ id: song.id, titulo: song.titulo });
+    };
+    document.addEventListener("openInterest", handler);
+    return () => document.removeEventListener("openInterest", handler);
+  }, []);
+
   return (
     <div 
       className="min-h-screen pb-32"

@@ -18,6 +18,7 @@ import {
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
+  Mail,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -111,7 +112,7 @@ interface Coupon {
 }
 
 type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons";
-type SettingsCategory = "asaas" | "r2" | "portal" | "demo";
+type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
@@ -1687,6 +1688,7 @@ function SettingsTab() {
     { id: "asaas", label: "Asaas", icon: CreditCard, color: "text-emerald-400" },
     { id: "r2", label: "Cloudflare R2", icon: Cloud, color: "text-sky-400" },
     { id: "portal", label: "Portal", icon: Globe, color: "text-purple-400" },
+    { id: "email", label: "Email", icon: Mail, color: "text-red-400" },
   ];
 
   return (
@@ -1715,6 +1717,16 @@ function SettingsTab() {
       </div>
 
       <SettingsCategoryForm key={activeCategory} category={activeCategory} />
+
+      {/* Hero Section Settings */}
+      <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+        <div className="flex items-center gap-2">
+          <Eye className="w-5 h-5 text-primary" />
+          <h3 className="font-bold text-lg text-foreground">Hero (Página Inicial)</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">Texto principal exibido no topo da página inicial.</p>
+        <HeroSettingsForm />
+      </div>
     </div>
   );
 }
@@ -1947,6 +1959,107 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
             {saving ? "Salvando..." : "Salvar Configurações"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Hero Settings Form ─────────────────────────────────────────────────────────
+
+function HeroSettingsForm() {
+  const [values, setValues] = useState({ heroTitle: "", heroSubtitle: "", heroCTA: "" });
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        setValues({
+          heroTitle: d.heroTitle || "",
+          heroSubtitle: d.heroSubtitle || "",
+          heroCTA: d.heroCTA || "",
+        });
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          heroTitle: values.heroTitle || null,
+          heroSubtitle: values.heroSubtitle || null,
+          heroCTA: values.heroCTA || null,
+        }),
+      });
+      if (res.ok) {
+        toast({ title: "Hero atualizado com sucesso!" });
+      } else {
+        toast({ title: "Erro ao salvar hero", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erro ao salvar hero", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1">Título</label>
+        <input
+          type="text"
+          value={values.heroTitle}
+          onChange={(e) => setValues({ ...values, heroTitle: e.target.value })}
+          placeholder='A plataforma completa para'
+          className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm"
+        />
+        <p className="text-xs text-muted-foreground mt-1">Ex: "A plataforma completa para"</p>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1">Subtítulo (destaque)</label>
+        <input
+          type="text"
+          value={values.heroSubtitle}
+          onChange={(e) => setValues({ ...values, heroSubtitle: e.target.value })}
+          placeholder='cantores e compositores'
+          className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm"
+        />
+        <p className="text-xs text-muted-foreground mt-1">Ex: "cantores e compositores" (parte destacada em gradiente)</p>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1">Texto CTA</label>
+        <textarea
+          value={values.heroCTA}
+          onChange={(e) => setValues({ ...values, heroCTA: e.target.value })}
+          placeholder='Cadastre suas músicas, monte seu portfólio musical e seja encontrado por contratantes e fãs em todo o Brasil.'
+          rows={3}
+          className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm resize-none"
+        />
+        <p className="text-xs text-muted-foreground mt-1">Texto de chamada abaixo do título.</p>
+      </div>
+      <div className="pt-2">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? "Salvando..." : "Salvar Hero"}
+        </button>
       </div>
     </div>
   );

@@ -92,11 +92,13 @@ export async function findOrCreateCustomer(
     return searchRes.data[0];
   }
 
+  const cleanCpfCnpj = cpfCnpj?.replace(/\D/g, "");
+
   const body: Record<string, any> = {
     name,
     email,
   };
-  if (cpfCnpj) body.cpfCnpj = cpfCnpj;
+  if (cleanCpfCnpj) body.cpfCnpj = cleanCpfCnpj;
   if (phone) body.mobilePhone = phone;
 
   return asaasFetch<AsaasCustomer>("/customers", {

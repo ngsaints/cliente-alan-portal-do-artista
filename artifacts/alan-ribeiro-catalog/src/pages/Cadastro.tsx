@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Sparkles, User, MapPin, Link2, Image, Star, Eye, EyeOff, Check, Loader2, X, Phone } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useGenres } from "@/hooks/useGenres";
+import { buildPlanFeatures } from "@/lib/utils";
+import { CitySearch } from "@/components/CitySearch";
 
 interface Plan {
   id: string;
@@ -14,54 +16,6 @@ interface Plan {
   personalizacaoPercent: number;
   features: string[];
 }
-
-const PLANS: Plan[] = [
-  {
-    id: "free",
-    nome: "free",
-    label: "Free Experimental",
-    preco: "0",
-    limiteMusicas: 2,
-    personalizacaoPercent: 10,
-    features: ["2 músicas", "10% personalização", "Capa básica"],
-  },
-  {
-    id: "basico",
-    nome: "basico",
-    label: "Básico",
-    preco: "19.90",
-    limiteMusicas: 10,
-    personalizacaoPercent: 20,
-    features: ["10 músicas", "20% personalização", "Links sociais"],
-  },
-  {
-    id: "intermediario",
-    nome: "intermediario",
-    label: "Intermediário",
-    preco: "39.90",
-    limiteMusicas: 25,
-    personalizacaoPercent: 50,
-    features: ["25 músicas", "50% personalização", "Banner"],
-  },
-  {
-    id: "pro",
-    nome: "pro",
-    label: "Profissional",
-    preco: "79.90",
-    limiteMusicas: 50,
-    personalizacaoPercent: 80,
-    features: ["50 músicas", "80% personalização", "Player customizável"],
-  },
-  {
-    id: "premium",
-    nome: "premium",
-    label: "Premium",
-    preco: "149.90",
-    limiteMusicas: 100,
-    personalizacaoPercent: 100,
-    features: ["100 músicas", "100% personalização", "Máxima visibilidade"],
-  },
-];
 
 const PROFISSOES = ["Cantor", "Compositor", "Banda", "Grupo", "Dupla", "Outro"];
 
@@ -124,35 +78,25 @@ export default function Cadastro() {
     plano: "free",
   });
 
-  useState(() => {
+  useEffect(() => {
     fetch("/api/plans")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          const mapped: Plan[] = data.map((p: any) => {
-            let features: string[] = [];
-            if (p.nome === "free") features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`, "Capa básica"];
-            else if (p.nome === "basico") features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`, "Links sociais"];
-            else if (p.nome === "intermediario") features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`, "Banner"];
-            else if (p.nome === "pro") features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`, "Player customizável"];
-            else if (p.nome === "premium") features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`, "Máxima visibilidade"];
-            else features = [`${p.limiteMusicas} músicas`, `${p.personalizacaoPercent}% personalização`];
-
-            return {
-              id: p.nome,
-              nome: p.nome,
-              label: p.label,
-              preco: p.preco,
-              limiteMusicas: parseInt(p.limiteMusicas) || 0,
-              personalizacaoPercent: parseInt(p.personalizacaoPercent) || 0,
-              features
-            };
-          });
+          const mapped: Plan[] = data.map((p: any) => ({
+            id: p.nome,
+            nome: p.nome,
+            label: p.label,
+            preco: p.preco,
+            limiteMusicas: parseInt(p.limiteMusicas) || 0,
+            personalizacaoPercent: parseInt(p.personalizacaoPercent) || 0,
+            features: buildPlanFeatures(p),
+          }));
           setDbPlans(mapped);
         }
       })
       .catch((err) => console.error("Erro ao carregar planos no cadastro:", err));
-  });
+  }, []);
 
   const handleNext = () => {
     if (step === 1) {
@@ -307,13 +251,7 @@ export default function Cadastro() {
             </h3>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">Cidade/Estado</label>
-              <input
-                type="text"
-                value={formData.cidade}
-                onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Ex: Maricá, RJ"
-              />
+              <CitySearch value={formData.cidade} onChange={(v) => setFormData({ ...formData, cidade: v })} />
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">Gênero Musical Principal</label>
@@ -406,7 +344,7 @@ export default function Cadastro() {
               Escolha seu Plano
             </h3>
             <div className="space-y-3">
-              {(dbPlans.length > 0 ? dbPlans : PLANS).map((plan) => {
+              {(dbPlans.length > 0 ? dbPlans : []).map((plan) => {
                 const isSelected = formData.plano === plan.id;
                 const isFree = plan.id === "free";
                 const selectedPlanPrice = parseFloat(plan.preco);

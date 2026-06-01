@@ -3,12 +3,9 @@ import { db, artistsTable, passwordResetsTable } from "@workspace/db";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { Resend } from "resend";
+import { getEmailConfig, getPortalUrl } from "../lib/email.js";
 
 const router: IRouter = Router();
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const PORTAL_URL = process.env.PORTAL_URL || "https://94.141.97.95";
 
 router.post("/artists/forgot-password", async (req, res): Promise<void> => {
   try {
@@ -42,12 +39,14 @@ router.post("/artists/forgot-password", async (req, res): Promise<void> => {
       expiresAt,
     });
 
-    const resetUrl = `${PORTAL_URL}/artista/reset/${token}`;
+    const { resend, from } = await getEmailConfig();
+    const portalUrl = await getPortalUrl();
+    const resetUrl = `${portalUrl}/artista/reset/${token}`;
 
     if (resend) {
       try {
         await resend.emails.send({
-          from: "Portal do Artista <onboarding@resend.dev>",
+          from,
           to: artist.email,
           subject: "Recuperação de Senha - Portal do Artista",
           html: `
@@ -72,12 +71,9 @@ router.post("/artists/forgot-password", async (req, res): Promise<void> => {
       }
     }
 
-    // Always return success to not leak whether email exists
-    // In dev mode, return the token for testing
-    const isDev = !resend;
     res.json({
       message: "Se o email estiver cadastrado, você receberá um link de recuperação.",
-      ...(isDev && { devToken: token, resetUrl }),
+      ...(!resend && { devToken: token, resetUrl }),
     });
   } catch (error) {
     console.error("Error in forgot-password:", error);
