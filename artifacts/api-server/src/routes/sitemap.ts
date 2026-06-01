@@ -3,7 +3,7 @@ import { db, artistsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
-const BASE_URL = process.env.PORTAL_URL || "https://94.141.97.95";
+const BASE_URL = process.env.PORTAL_URL || "https://portaldoartista.com";
 
 router.get("/sitemap.xml", async (_req, res): Promise<void> => {
   try {

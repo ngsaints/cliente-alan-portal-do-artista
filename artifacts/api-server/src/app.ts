@@ -3,10 +3,13 @@ import cors from "cors";
 import session from "express-session";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import pgSession from "connect-pg-simple";
 import router from "./routes";
 import path from "path";
 
 const app: Express = express();
+
+app.set("trust proxy", 1);
 
 // Security headers
 app.use(helmet({
@@ -33,12 +36,23 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const PgStore = pgSession(session);
+
 app.use(
   session({
+    store: process.env["DATABASE_URL"] ? new PgStore({
+      conString: process.env["DATABASE_URL"],
+      tableName: "sessions",
+      createTableIfMissing: true,
+    }) : undefined,
     secret: process.env["SESSION_SECRET"] || "alan-ribeiro-secret-key",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, httpOnly: true, maxAge: 24 * 60 * 60 * 1000 },
+    cookie: {
+      secure: false,
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    },
   })
 );
 

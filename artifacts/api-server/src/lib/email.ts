@@ -32,8 +32,8 @@ export async function getPortalUrl(): Promise<string> {
       .select({ value: appSettingsTable.value })
       .from(appSettingsTable)
       .where(eq(appSettingsTable.key, "portal_url"));
-    return row?.value || "https://94.141.97.95";
+    return row?.value || "https://portaldoartista.com";
   } catch {
-    return "https://94.141.97.95";
+    return "https://portaldoartista.com";
   }
 }

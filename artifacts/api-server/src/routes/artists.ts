@@ -63,7 +63,7 @@ async function ensureUniqueSlug(baseSlug: string): Promise<string> {
   return slug;
 }
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, fieldSize: 5 * 1024 * 1024 } });
 
 // Register new artist
 router.post(
