@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import { db, artistsTable, plansTable } from "@workspace/db";
+import { db, artistsTable, plansTable, subscriptionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import path from "path";
@@ -8,6 +8,7 @@ import fs from "fs";
 import sharp from "sharp";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getEmailConfig, getPortalUrl } from "../lib/email.js";
+import { findOrCreateCustomer, createSubscription, getAsaasCredentials, getSubscriptionPayments } from "../lib/asaas-client.js";
 
 const router: IRouter = Router();
 
@@ -97,7 +98,6 @@ router.post(
       const selectedPlano = plano || "free";
       
       // Buscar configurações do plano no banco
-      const { plansTable } = await import("@workspace/db");
       const plans = await db.select().from(plansTable).where(eq(plansTable.nome, selectedPlano));
       if (plans.length > 0) {
         limiteMusicas = String(plans[0].limiteMusicas);
@@ -124,6 +124,9 @@ router.post(
       const baseSlug = generateSlug(name);
       const slug = await ensureUniqueSlug(baseSlug);
 
+      const plan = plans[0] || null;
+      const isPaid = plan && parseFloat(String(plan.preco)) > 0;
+
       const [artist] = await db
         .insert(artistsTable)
         .values({
@@ -142,8 +145,9 @@ router.post(
           capaUrl,
           bannerUrl,
           plano: selectedPlano,
-          limiteMusicas,
-          personalizacaoPercent,
+          planoAtivo: !isPaid,
+          limiteMusicas: isPaid ? "0" : limiteMusicas,
+          personalizacaoPercent: isPaid ? "0" : personalizacaoPercent,
           musicaCount: "0",
         })
         .returning();
@@ -158,6 +162,44 @@ router.post(
           console.error("Error saving session:", err);
           res.status(500).json({ error: "Erro ao salvar sessão" });
           return;
+        }
+
+        let invoiceUrl: string | null = null;
+
+        // Create Asaas subscription for paid plans
+        if (isPaid) {
+          try {
+            const cleanDoc = (documento || "").replace(/\D/g, "");
+            const customer = await findOrCreateCustomer(name, email, cleanDoc || undefined, contato || undefined);
+
+            await db.update(artistsTable).set({ asaasCustomerId: customer.id }).where(eq(artistsTable.id, artist.id));
+
+            const { portalUrl } = await getAsaasCredentials();
+            const callbackUrl = portalUrl ? `${portalUrl}/artista/dashboard?pagamento=sucesso` : undefined;
+
+            const subscription = await createSubscription({
+              customerId: customer.id,
+              value: parseFloat(String(plan!.preco)),
+              billingType: "CREDIT_CARD",
+              description: `Plano ${plan!.label} — Portal do Artista`,
+              externalReference: `${artist.id}-${selectedPlano}`,
+              callbackUrl,
+            });
+
+            await db.insert(subscriptionsTable).values({
+              artistId: artist.id,
+              planNome: selectedPlano,
+              asaasSubscriptionId: subscription.id,
+              status: "pending",
+              amount: String(plan!.preco),
+              startedAt: new Date(),
+            });
+
+            const payments = await getSubscriptionPayments(subscription.id);
+            invoiceUrl = payments.data?.[0]?.invoiceUrl ?? null;
+          } catch (paymentErr) {
+            console.error("Error creating payment for new artist:", paymentErr);
+          }
         }
 
         // Send welcome email
@@ -200,6 +242,8 @@ router.post(
           email: artist.email,
           profissao: artist.profissao,
           plano: artist.plano,
+          planoAtivo: artist.planoAtivo,
+          invoiceUrl,
         });
       });
     } catch (error) {
