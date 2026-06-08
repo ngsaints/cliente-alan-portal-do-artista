@@ -69,13 +69,13 @@ export default function Demo() {
       .catch(() => {});
   }, []);
 
-  const handleSelectPlan = async (planId: string) => {
+  const handleSelectPlan = async (planId: string, couponCode?: string) => {
     setPlansModalOpen(false);
     if (artistLoggedIn && loggedInArtistId) {
       const res = await fetch("/api/payments/create-preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, artistId: loggedInArtistId }),
+        body: JSON.stringify({ planId, artistId: loggedInArtistId, couponCode }),
         credentials: "include",
       });
       const data = await res.json();

@@ -36,6 +36,10 @@ function mapSong(s: typeof songsTable.$inferSelect) {
     genero: s.genero,
     subgenero: s.subgenero ?? null,
     compositor: s.compositor ?? null,
+    letra: s.letra ?? null,
+    edicao: s.edicao ?? null,
+    distribuicao: s.distribuicao ?? null,
+    associacao: s.associacao ?? null,
     status: s.status,
     precoX: s.precoX ?? null,
     precoY: s.precoY ?? null,
@@ -83,7 +87,7 @@ router.post(
     }
 
     const { 
-      titulo, descricao, genero, subgenero, compositor, status, 
+      titulo, descricao, genero, subgenero, compositor, letra, edicao, distribuicao, associacao, status, 
       precoX, precoY, isVip, youtubeUrl, tipoMidia, vipCode 
     } = req.body;
 
@@ -153,6 +157,10 @@ router.post(
           genero,
           subgenero: subgenero || null,
           compositor: compositor || null,
+          letra: letra || null,
+          edicao: edicao || null,
+          distribuicao: distribuicao || null,
+          associacao: associacao || null,
           status: status || "Disponível",
           precoX: precoX || null,
           precoY: precoY || null,
@@ -187,7 +195,7 @@ router.put(
     }
 
     const { id } = req.params;
-    const { titulo, descricao, genero, subgenero, compositor, status,
+    const { titulo, descricao, genero, subgenero, compositor, letra, edicao, distribuicao, associacao, status,
             tipoMidia, youtubeUrl, isVip, vipCode } = req.body;
 
     try {
@@ -218,6 +226,10 @@ router.put(
           ...(genero      ? { genero }                               : {}),
           subgenero:    subgenero  !== undefined ? (subgenero  || null) : undefined,
           compositor:   compositor !== undefined ? (compositor || null) : undefined,
+          letra:        letra        !== undefined ? (letra        || null) : undefined,
+          edicao:       edicao       !== undefined ? (edicao       || null) : undefined,
+          distribuicao: distribuicao !== undefined ? (distribuicao || null) : undefined,
+          associacao:   associacao   !== undefined ? (associacao   || null) : undefined,
           ...(status      ? { status }                               : {}),
           ...(tipoMidia   ? { tipoMidia }                            : {}),
           youtubeUrl:   youtubeUrl !== undefined ? (youtubeUrl || null) : undefined,

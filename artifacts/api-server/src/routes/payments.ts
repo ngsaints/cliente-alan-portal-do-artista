@@ -7,6 +7,7 @@ import {
   createSubscription,
   getSubscriptionPayments,
   getPaymentById,
+  cancelSubscription,
   asaasFetch,
 } from "../lib/asaas-client.js";
 
@@ -97,6 +98,12 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
           }
         }
       }
+    }
+
+    if (appliedCoupon) {
+      await db.update(couponsTable).set({
+        usedCount: sql`${couponsTable.usedCount} + 1`,
+      }).where(eq(couponsTable.code, appliedCoupon.code));
     }
 
     if (finalPrice < 5.00) {
@@ -243,6 +250,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
         asaasSubscriptionId: subscription.id,
         status: "pending",
         amount: String(finalPrice),
+        billingType: "CREDIT_CARD",
         startedAt: new Date(),
         expiresAt,
         couponCode: appliedCoupon?.code ?? null,
@@ -268,6 +276,72 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
   }
 });
 
+router.post("/payments/cancel-subscription", async (req, res): Promise<void> => {
+  try {
+    const { artistId } = req.body;
+    if (!artistId) {
+      res.status(400).json({ error: "ID do artista é obrigatório" });
+      return;
+    }
+
+    const [artist] = await db.select().from(artistsTable).where(eq(artistsTable.id, parseInt(artistId)));
+    if (!artist) {
+      res.status(404).json({ error: "Artista não encontrado" });
+      return;
+    }
+
+    // Find active subscription
+    const subscriptions = await db
+      .select()
+      .from(subscriptionsTable)
+      .where(and(
+        eq(subscriptionsTable.artistId, artistId),
+        eq(subscriptionsTable.status, "active")
+      ))
+      .orderBy(sql`${subscriptionsTable.createdAt} DESC`);
+
+    const activeSub = subscriptions[0];
+    if (!activeSub) {
+      res.status(400).json({ error: "Nenhuma assinatura ativa encontrada" });
+      return;
+    }
+
+    // Cancel on Asaas if exists
+    if (activeSub.asaasSubscriptionId && !activeSub.asaasSubscriptionId.startsWith("direct_activation_")) {
+      try {
+        await cancelSubscription(activeSub.asaasSubscriptionId);
+        console.log(`✅ Assinatura ${activeSub.asaasSubscriptionId} cancelada no Asaas`);
+      } catch (err: any) {
+        console.error("Erro ao cancelar no Asaas:", err.message);
+      }
+    }
+
+    // Update subscription status
+    await db
+      .update(subscriptionsTable)
+      .set({ status: "cancelled" })
+      .where(eq(subscriptionsTable.id, activeSub.id));
+
+    // Revert artist to free plan
+    const [freePlan] = await db.select().from(plansTable).where(eq(plansTable.nome, FREE_PLAN));
+    await db
+      .update(artistsTable)
+      .set({
+        plano: FREE_PLAN,
+        planoAtivo: false,
+        limiteMusicas: freePlan ? String(freePlan.limiteMusicas) : "5",
+        personalizacaoPercent: freePlan ? String(freePlan.personalizacaoPercent) : "0",
+        updatedAt: new Date(),
+      })
+      .where(eq(artistsTable.id, parseInt(artistId)));
+
+    res.json({ success: true, message: "Assinatura cancelada com sucesso" });
+  } catch (error: any) {
+    console.error("Error cancelling subscription:", error);
+    res.status(500).json({ error: error.message ?? "Erro ao cancelar assinatura" });
+  }
+});
+
 router.post("/webhooks/asaas", async (req, res): Promise<void> => {
   try {
     const { webhookToken } = await getAsaasCredentials();
@@ -283,7 +357,7 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
 
     const { event, payment, subscription } = req.body;
 
-    if (event === "PAYMENT_CONFIRMED" || event === "PAYMENT_RECEIVED") {
+    if (event === "PAYMENT_CONFIRMED" || event === "PAYMENT_RECEIVED" || event === "PAYMENT_CREDIT_CARD_CAPTURED" || event === "CHECKOUT_PAID") {
       const paymentData = payment;
       if (!paymentData?.id) {
         res.json({ status: "ok", message: "No payment data" });
@@ -305,7 +379,25 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
       }
 
       const externalRef = paymentData.externalReference ?? "";
-      const [artistId, planId] = externalRef.split("-");
+      let [refArtistId, refPlanId] = externalRef.split("-");
+
+      // Fallback: if externalReference is empty, try to find by subscription ID
+      if (!refArtistId || !refPlanId) {
+        const subId = paymentData.subscription ?? subscription?.id;
+        if (subId) {
+          const [sub] = await db
+            .select()
+            .from(subscriptionsTable)
+            .where(eq(subscriptionsTable.asaasSubscriptionId, subId));
+          if (sub) {
+            refArtistId = sub.artistId;
+            refPlanId = sub.planNome;
+          }
+        }
+      }
+
+      const artistId = refArtistId;
+      const planId = refPlanId;
 
       if (artistId && planId) {
         const [plan] = await db.select().from(plansTable).where(eq(plansTable.nome, planId));

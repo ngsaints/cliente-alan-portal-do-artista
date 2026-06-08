@@ -175,3 +175,9 @@ export async function getSubscriptionPayments(subscriptionId: string): Promise<{
 export async function getPaymentById(paymentId: string): Promise<AsaasPayment> {
   return asaasFetch<AsaasPayment>(`/payments/${paymentId}`);
 }
+
+export async function cancelSubscription(subscriptionId: string): Promise<{ deleted: boolean }> {
+  return asaasFetch<{ deleted: boolean }>(`/subscriptions/${subscriptionId}`, {
+    method: "DELETE",
+  });
+}

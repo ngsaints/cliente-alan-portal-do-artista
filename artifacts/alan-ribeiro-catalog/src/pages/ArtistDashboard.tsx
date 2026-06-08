@@ -3,9 +3,10 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { 
   User, Music, BarChart3, Settings, Upload, Eye, EyeOff, 
-  TrendingUp, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
+  TrendingUp, TrendingUpDown, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
-  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle
+  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle,
+  TrendingUpDown
 } from "lucide-react";
 import {
   Command,
@@ -416,6 +417,11 @@ export default function ArtistDashboard() {
   // Playlists state
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [dbPlans, setDbPlans] = useState<any[]>([]);
+  const [planCouponCode, setPlanCouponCode] = useState("");
+  const [planCouponResult, setPlanCouponResult] = useState<{ discountType: string; discountValue: string; discountAmount: string; finalPrice: string; originalPrice: string } | null>(null);
+  const [planCouponError, setPlanCouponError] = useState("");
+  const [validatingPlanCoupon, setValidatingPlanCoupon] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [selectedPlaylist, setSelectedPlaylist] = useState<any | null>(null);
   const [playlistSongs, setPlaylistSongs] = useState<any[]>([]);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
@@ -427,13 +433,13 @@ export default function ArtistDashboard() {
 
   const tabs: { id: TabId; label: string; icon: any }[] = [
     { id: "dashboard",      label: "Dashboard",       icon: BarChart3      },
-    { id: "songs",          label: "Minhas Músicas",   icon: Music          },
-    { id: "playlists",      label: "Playlists",        icon: ListMusic      },
-    { id: "gallery",        label: "Galeria",          icon: Image          },
-    { id: "profile",        label: "Meu Perfil",       icon: User           },
-    { id: "vip",            label: "Área VIP",         icon: Crown          },
-    { id: "plano",          label: "Meu Plano",        icon: CreditCard     },
-    { id: "interesses",     label: "Interesses",       icon: MessageSquare  },
+    { id: "songs",          label: "Músicas",         icon: Music          },
+    { id: "playlists",      label: "Playlists",       icon: ListMusic      },
+    { id: "gallery",        label: "Galeria",         icon: Image          },
+    { id: "profile",        label: "Perfil",          icon: User           },
+    { id: "vip",            label: "VIP",             icon: Crown          },
+    { id: "plano",          label: "Plano",           icon: CreditCard     },
+    { id: "interesses",     label: "Interesses",      icon: MessageSquare  },
   ];
 
   useEffect(() => {
@@ -665,6 +671,9 @@ export default function ArtistDashboard() {
       if (editCustom.playerGradient) formData.append("playerGradient", editCustom.playerGradient);
       if (editCustom.playerCor) formData.append("playerCor", editCustom.playerCor);
       formData.append("cardStyle", editCustom.cardStyle);
+      if (editProfile.instagram) formData.append("instagram", editProfile.instagram);
+      if (editProfile.tiktok) formData.append("tiktok", editProfile.tiktok);
+      if (editProfile.spotify) formData.append("spotify", editProfile.spotify);
 
       const res = await fetch("/api/artists/profile", {
         method: "PUT",
@@ -691,10 +700,14 @@ export default function ArtistDashboard() {
   const handleUpgradePlan = async (planId: string) => {
     if (!artist) return;
     try {
+      const body: any = { planId, artistId: artist.id };
+      if (planCouponResult && selectedPlanId === planId) {
+        body.couponCode = planCouponCode;
+      }
       const res = await fetch("/api/payments/create-preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, artistId: artist.id }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (data.activatedDirectly) {
@@ -707,6 +720,51 @@ export default function ArtistDashboard() {
       }
     } catch (err) {
       alert("Erro ao processar pagamento");
+    }
+  };
+
+  const handleValidatePlanCoupon = async () => {
+    if (!planCouponCode || !selectedPlanId) return;
+    setValidatingPlanCoupon(true);
+    setPlanCouponError("");
+    setPlanCouponResult(null);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: planCouponCode, planId: selectedPlanId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        setPlanCouponError(data.error || "Cupom inválido para este plano");
+      } else {
+        setPlanCouponResult(data.coupon);
+      }
+    } catch {
+      setPlanCouponError("Erro ao validar cupom");
+    } finally {
+      setValidatingPlanCoupon(false);
+    }
+  };
+
+  const handleCancelPlan = async () => {
+    if (!artist) return;
+    if (!confirm("Tem certeza que deseja cancelar seu plano? Você perderá acesso às funcionalidades premium ao final do ciclo atual.")) return;
+    try {
+      const res = await fetch("/api/payments/cancel-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ artistId: artist.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("Plano cancelado com sucesso. Você foi movido para o plano gratuito.");
+        loadData();
+      } else {
+        alert(data.error || "Erro ao cancelar plano");
+      }
+    } catch (err) {
+      alert("Erro ao cancelar plano");
     }
   };
 
@@ -931,68 +989,70 @@ export default function ArtistDashboard() {
         </div>
       )}
 
-      <div className="pt-20 pb-4 px-4 sm:px-6 lg:px-8">
+      <div className="pt-16 md:pt-20 pb-4 px-3 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Painel do Artista</h1>
-              <p className="text-muted-foreground">Bem-vindo, {artist?.name}</p>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate">Painel do Artista</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">Bem-vindo, {artist?.name}</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
               {artist?.slug && (
-                <a
-                  href={`/${artist.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-primary border border-primary/30 hover:bg-primary/10 transition-colors text-sm font-medium"
-                >
+                <a href={`/${artist.slug}`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-primary border border-primary/30 hover:bg-primary/10 transition-colors text-xs sm:text-sm font-medium">
                   <ExternalLink className="w-4 h-4" />
-                  Meu Perfil
+                  <span className="hidden sm:inline">Meu Perfil</span>
+                  <span className="sm:hidden">Perfil</span>
                 </a>
               )}
-              {activeTab !== "dashboard" && (
-                <button
-                  onClick={() => setActiveTab("dashboard")}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-muted-foreground border border-border hover:border-primary/50 hover:text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  Dashboard
-                </button>
-              )}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              >
+              <button onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs sm:text-sm font-medium">
                 <LogOut className="w-4 h-4" />
-                Sair
+                <span>Sair</span>
               </button>
+              <NotificationBell
+                interests={interests}
+                onMarkRead={handleMarkRead}
+                onDelete={handleDeleteInterest}
+                inline
+              />
             </div>
           </div>
 
-          <NotificationBell
-            interests={interests}
-            onMarkRead={handleMarkRead}
-            onDelete={handleDeleteInterest}
-          />
-
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          <div className="flex gap-1.5 mb-4 overflow-x-auto sm:overflow-visible sm:flex-wrap" style={{scrollbarWidth:"none",msOverflowStyle:"none",WebkitOverflowScrolling:"touch"}}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 sm:shrink transition-all ${
                   activeTab === tab.id
                     ? "bg-primary text-primary-foreground"
                     : "bg-card text-muted-foreground border border-border hover:border-primary/50"
                 }`}
               >
-                <tab.icon className="w-4 h-4" />
+                <tab.icon className="w-3.5 h-3.5 shrink-0" />
                 {tab.label}
               </button>
             ))}
           </div>
+
+          {/* CRM Card */}
+          <a href="/artista/crm"
+            className="block mb-4 rounded-xl border-2 border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 to-amber-500/5 hover:border-yellow-500/60 hover:from-yellow-500/15 hover:to-amber-500/10 transition-all cursor-pointer overflow-hidden group"
+          >
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <TrendingUpDown className="w-5 h-5 text-yellow-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-yellow-500">CRM — Gestão de Carreira</h3>
+                <p className="text-[11px] text-muted-foreground">Contatos, financeiro, liberações, calendário e suporte</p>
+              </div>
+              <span className="text-[10px] text-yellow-500 font-medium shrink-0">Abrir →</span>
+            </div>
+          </a>
 
           {/* Tab Content */}
           <motion.div
@@ -1625,33 +1685,7 @@ export default function ArtistDashboard() {
                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">Instagram</label>
-                      <input
-                        type="text"
-                        value={editProfile.instagram}
-                        onChange={(e) => setEditProfile({ ...editProfile, instagram: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">TikTok</label>
-                      <input
-                        type="text"
-                        value={editProfile.tiktok}
-                        onChange={(e) => setEditProfile({ ...editProfile, tiktok: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">Spotify</label>
-                      <input
-                        type="url"
-                        value={editProfile.spotify}
-                        onChange={(e) => setEditProfile({ ...editProfile, spotify: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
-                      />
-                    </div>
+
                   </div>
                   {artist?.slug && (
                     <div className="flex items-center gap-2 p-3 bg-background/50 rounded-lg border border-border/30">
@@ -1678,6 +1712,45 @@ export default function ArtistDashboard() {
                     <Palette className="w-5 h-5 text-primary" />
                     Personalização
                   </h3>
+
+                  {/* Redes Sociais */}
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-sm font-bold text-foreground">
+                      <Link2 className="w-4 h-4" /> Redes Sociais
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Instagram</label>
+                        <input
+                          type="text"
+                          value={editProfile.instagram}
+                          onChange={(e) => setEditProfile({ ...editProfile, instagram: e.target.value })}
+                          placeholder="@seuinstagram"
+                          className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">TikTok</label>
+                        <input
+                          type="text"
+                          value={editProfile.tiktok}
+                          onChange={(e) => setEditProfile({ ...editProfile, tiktok: e.target.value })}
+                          placeholder="@seutiktok"
+                          className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground text-sm"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs text-muted-foreground mb-1">Spotify</label>
+                        <input
+                          type="url"
+                          value={editProfile.spotify}
+                          onChange={(e) => setEditProfile({ ...editProfile, spotify: e.target.value })}
+                          placeholder="https://open.spotify.com/artist/..."
+                          className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Fonte */}
                   {artist?.canCustomizeFont ? (
@@ -1740,24 +1813,31 @@ export default function ArtistDashboard() {
                     <label className="flex items-center gap-2 text-sm font-bold text-foreground">
                       <ImageIcon className="w-4 h-4" /> Cor de Fundo
                     </label>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                    <div className="flex flex-wrap gap-2 items-center">
                       {BACKGROUNDS.map(b => (
                         <button
                           key={b.value}
                           onClick={() => setEditCustom({ ...editCustom, background: b.value })}
-                          className={`p-1.5 rounded-lg border-2 text-center transition-all ${
+                          className={`w-9 h-9 rounded-full border-2 transition-all hover:scale-110 ${
                             (editCustom as any).background === b.value
-                              ? "border-primary ring-2 ring-primary"
-                              : "border-border hover:border-primary/50"
+                              ? "border-primary scale-110 ring-2 ring-primary"
+                              : "border-transparent hover:border-primary/50"
                           }`}
-                        >
-                          <div
-                            className="w-full h-12 rounded-md mb-1 shadow-inner"
-                            style={{ background: b.preview }}
-                          />
-                          <span className="text-[10px] text-muted-foreground leading-tight">{b.label}</span>
-                        </button>
+                          style={{ background: b.preview, backgroundSize: "cover" }}
+                          title={b.label}
+                        />
                       ))}
+                      <div className="flex items-center gap-1 ml-2 pl-2 border-l border-border">
+                        <input
+                          type="color"
+                          value={/^#[0-9a-fA-F]{3,6}$/.test((editCustom as any).background) ? (editCustom as any).background : "#1a1a2e"}
+                          onChange={(e) => setEditCustom({ ...editCustom, background: e.target.value })}
+                          className="w-9 h-9 rounded-full cursor-pointer border-0 p-0 hover:scale-110 transition-transform"
+                        />
+                        <span className="text-xs text-muted-foreground w-16 truncate">
+                          {/^#[0-9a-fA-F]{3,6}$/.test((editCustom as any).background) ? (editCustom as any).background : "Personalizar"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   ) : (
@@ -2415,24 +2495,82 @@ export default function ArtistDashboard() {
                   </div>
                 </div>
 
+                {artist?.plano && artist.plano !== "free" && (
+                  <div className="mb-6">
+                    <button
+                      onClick={handleCancelPlan}
+                      className="px-4 py-2 rounded-lg border border-red-500/30 text-red-400 text-sm font-medium hover:bg-red-500/10 transition-colors"
+                    >
+                      Cancelar Plano
+                    </button>
+                  </div>
+                )}
+
                 <h4 className="font-bold text-foreground mb-3">Atualizar Plano</h4>
+
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                    Cupom de Desconto
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={planCouponCode}
+                      onChange={(e) => { setPlanCouponCode(e.target.value.toUpperCase()); setPlanCouponResult(null); setPlanCouponError(""); }}
+                      placeholder="Insira seu cupom"
+                      className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary uppercase"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleValidatePlanCoupon}
+                      disabled={!planCouponCode || validatingPlanCoupon}
+                      className="px-4 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
+                    >
+                      {validatingPlanCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                    </button>
+                  </div>
+                  {planCouponError && (
+                    <p className="text-xs text-red-400 mt-1">{planCouponError}</p>
+                  )}
+                  {planCouponResult && (
+                    <p className="text-xs text-green-400 mt-1">
+                      Cupom aplicado! Desconto de {planCouponResult.discountType === "percentage" ? `${planCouponResult.discountValue}%` : `R$ ${parseFloat(planCouponResult.discountValue).toFixed(2)}`}.
+                      Selecione um plano abaixo para atualizar.
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {(dbPlans.length > 0 ? dbPlans : DEFAULT_PLANS).filter(p => p.id !== artist?.plano).map((plan) => (
+                  {(dbPlans.length > 0 ? dbPlans : DEFAULT_PLANS).filter(p => p.id !== artist?.plano).map((plan) => {
+                    const showDiscount = planCouponResult && selectedPlanId === plan.id;
+                    return (
                     <div key={plan.id} className="p-4 rounded-xl border border-border/40 bg-background/50">
                       <div className="flex items-center justify-between mb-2">
                         <h5 className="font-bold text-foreground">{plan.label}</h5>
-                        <span className="text-lg font-bold text-primary">R$ {plan.preco}/mês</span>
+                        {showDiscount ? (
+                          <div className="text-right">
+                            <span className="text-lg font-bold text-green-400">
+                              R$ {parseFloat(planCouponResult!.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                            <span className="block text-xs text-muted-foreground line-through">
+                              R$ {plan.preco}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-lg font-bold text-primary">R$ {plan.preco}/mês</span>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mb-3"> até {plan.limiteMusicas} músicas</p>
                       <button
-                        onClick={() => handleUpgradePlan(plan.id)}
+                        onClick={() => { setSelectedPlanId(plan.id); handleUpgradePlan(plan.id); }}
                         className="w-full py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 flex items-center justify-center gap-2"
                       >
                         <CreditCard className="w-4 h-4" />
                         Atualizar
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

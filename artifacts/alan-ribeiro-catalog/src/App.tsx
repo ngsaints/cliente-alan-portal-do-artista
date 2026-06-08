@@ -16,6 +16,7 @@ import ArtistForgotPassword from "@/pages/ArtistForgotPassword";
 import ArtistResetPassword from "@/pages/ArtistResetPassword";
 import Demo from "@/pages/Demo";
 import Cadastro from "@/pages/Cadastro";
+import CrmPage from "@/pages/CrmPage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -37,13 +38,14 @@ function Router() {
       <Route path="/artista/forgot" component={ArtistForgotPassword} />
       <Route path="/artista/reset/:token" component={ArtistResetPassword} />
       <Route path="/artista/dashboard" component={ArtistDashboard} />
+      <Route path="/artista/crm" component={CrmPage} />
       <Route path="/artistas" component={Artists} />
       <Route path="/admin" component={Admin} />
+      <Route path="/demo" component={Demo} />
       <Route path="/:slug" component={ArtistProfile} />
       <Route path="/:slug/galeria" component={ArtistGallery} />
       <Route path="/artista/:id/vip" component={ArtistVip} />
       <Route path="/artista/:id" component={ArtistProfile} />
-      <Route path="/demo" component={Demo} />
       <Route path="/vip" component={Vip} />
       <Route component={NotFound} />
     </Switch>

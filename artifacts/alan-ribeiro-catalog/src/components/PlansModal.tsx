@@ -18,17 +18,25 @@ interface Plan {
 interface PlansModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectPlan?: (planId: string) => void;
+  onSelectPlan?: (planId: string, couponCode?: string) => void;
 }
 
 export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponResult, setCouponResult] = useState<{ discountType: string; discountValue: string; discountAmount: string; finalPrice: string; originalPrice: string } | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     setLoading(true);
+    setSelectedPlan(null);
+    setCouponCode("");
+    setCouponResult(null);
+    setCouponError("");
     fetch("/api/plans")
       .then((res) => res.json())
       .then((data) => {
@@ -51,9 +59,33 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
       .finally(() => setLoading(false));
   }, [isOpen]);
 
+  const handleValidateCoupon = async () => {
+    if (!couponCode || !selectedPlan) return;
+    setValidatingCoupon(true);
+    setCouponError("");
+    setCouponResult(null);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode, planId: selectedPlan }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        setCouponError(data.error || "Cupom inválido para este plano");
+      } else {
+        setCouponResult(data.coupon);
+      }
+    } catch {
+      setCouponError("Erro ao validar cupom");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
   const handleContratar = (planId: string) => {
     setSelectedPlan(planId);
-    onSelectPlan?.(planId);
+    onSelectPlan?.(planId, couponResult ? couponCode : undefined);
   };
 
   return (
@@ -73,7 +105,6 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
             className="bg-card border border-border/40 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-center justify-between mb-6 sticky top-0 bg-card/95 backdrop-blur-sm pb-3 border-b border-border/40">
               <div className="flex items-center gap-2">
                 <Star className="w-5 h-5 text-primary fill-primary" />
@@ -87,7 +118,6 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
               </button>
             </div>
 
-            {/* Plans list */}
             <div className="space-y-3">
               {loading && (
                 <div className="flex justify-center py-8">
@@ -102,6 +132,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
               {!loading && plans.map((plan) => {
                 const isSelected = selectedPlan === plan.id;
                 const isFree = plan.id === "free";
+                const showDiscount = couponResult && isSelected && !isFree;
 
                 return (
                   <motion.div
@@ -134,9 +165,20 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                           </div>
 
                           <div className="flex items-baseline gap-1 mb-2">
-                            <span className="text-2xl font-extrabold text-primary">
-                              R$ {parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </span>
+                            {showDiscount ? (
+                              <>
+                                <span className="text-2xl font-extrabold text-green-400">
+                                  R$ {parseFloat(couponResult.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </span>
+                                <span className="text-sm text-muted-foreground line-through">
+                                  R$ {parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-2xl font-extrabold text-primary">
+                                R$ {parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                            )}
                             {!isFree && <span className="text-xs text-muted-foreground">/mês</span>}
                           </div>
 
@@ -151,7 +193,6 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                             </div>
                           </div>
 
-                          {/* Feature samples */}
                           <div className="flex flex-wrap gap-1.5 mb-3">
                             {plan.features.slice(0, 4).map((f, i) => (
                               <span
@@ -189,7 +230,39 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
               })}
             </div>
 
-            {/* Footer */}
+            {selectedPlan && selectedPlan !== "free" && (
+              <div className="mt-4 pt-4 border-t border-border/40">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                  Cupom de Desconto
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); setCouponError(""); }}
+                    placeholder="Insira seu cupom"
+                    className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleValidateCoupon}
+                    disabled={!couponCode || validatingCoupon}
+                    className="px-4 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
+                  >
+                    {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                  </button>
+                </div>
+                {couponError && (
+                  <p className="text-xs text-red-400 mt-1">{couponError}</p>
+                )}
+                {couponResult && (
+                  <p className="text-xs text-green-400 mt-1">
+                    Cupom aplicado! Desconto de {couponResult.discountType === "percentage" ? `${couponResult.discountValue}%` : `R$ ${parseFloat(couponResult.discountValue).toFixed(2)}`}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="mt-6 pt-4 border-t border-border/40 text-center">
               <p className="text-xs text-muted-foreground mb-2">
                 Cada plano é pensado para o momento da sua carreira.

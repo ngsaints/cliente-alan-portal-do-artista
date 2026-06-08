@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import { db, artistsTable, plansTable, subscriptionsTable } from "@workspace/db";
+import { db, artistsTable, plansTable, subscriptionsTable, couponsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import path from "path";
@@ -75,7 +75,7 @@ router.post(
   ]),
   async (req, res): Promise<void> => {
     try {
-      const { name, email, documento, contato, password, profissao, genero, cidade, instagram, tiktok, spotify, plano } = req.body;
+      const { name, email, documento, contato, password, profissao, genero, cidade, instagram, tiktok, spotify, plano, couponCode } = req.body;
 
       if (!name || !email || !password || !documento) {
         res.status(400).json({ error: "Nome, email, senha e CPF/CNPJ são obrigatórios" });
@@ -127,6 +127,45 @@ router.post(
       const plan = plans[0] || null;
       const isPaid = plan && parseFloat(String(plan.preco)) > 0;
 
+      // Process coupon code if provided
+      let couponDiscount = 0;
+      let validatedCoupon: typeof couponsTable.$inferSelect | null = null;
+      if (couponCode && isPaid) {
+        try {
+          const [coupon] = await db.select().from(couponsTable).where(eq(couponsTable.code, couponCode.toUpperCase()));
+          if (coupon && coupon.isActive) {
+            const now = new Date();
+            const isValid = (!coupon.validFrom || new Date(coupon.validFrom) <= now) &&
+              (!coupon.validUntil || new Date(coupon.validUntil) >= now) &&
+              (!coupon.maxUses || parseInt(String(coupon.usedCount)) < parseInt(String(coupon.maxUses)));
+            if (isValid) {
+              const applicablePlans = coupon.applicablePlans;
+              const planApplicable = !applicablePlans || applicablePlans.length === 0 || applicablePlans.includes(selectedPlano);
+              if (planApplicable) {
+                const planPrice = parseFloat(String(plan!.preco));
+                if (coupon.discountType === "percentage") {
+                  couponDiscount = (planPrice * parseFloat(String(coupon.discountValue))) / 100;
+                } else {
+                  couponDiscount = parseFloat(String(coupon.discountValue));
+                }
+                validatedCoupon = coupon;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error validating coupon during registration:", e);
+        }
+      }
+
+      if (validatedCoupon) {
+        await db.update(couponsTable).set({
+          usedCount: sql`${couponsTable.usedCount} + 1`,
+        }).where(eq(couponsTable.code, validatedCoupon.code));
+      }
+
+      const subscriptionAmount = isPaid ? Math.max(0, parseFloat(String(plan!.preco)) - couponDiscount) : 0;
+      const paidPlanActivatedDirectly = isPaid && subscriptionAmount < 5.00;
+
       const [artist] = await db
         .insert(artistsTable)
         .values({
@@ -145,9 +184,9 @@ router.post(
           capaUrl,
           bannerUrl,
           plano: selectedPlano,
-          planoAtivo: !isPaid,
-          limiteMusicas: isPaid ? "0" : limiteMusicas,
-          personalizacaoPercent: isPaid ? "0" : personalizacaoPercent,
+          planoAtivo: !isPaid || paidPlanActivatedDirectly,
+          limiteMusicas: (isPaid && !paidPlanActivatedDirectly) ? "0" : limiteMusicas,
+          personalizacaoPercent: (isPaid && !paidPlanActivatedDirectly) ? "0" : personalizacaoPercent,
           musicaCount: "0",
         })
         .returning();
@@ -169,34 +208,51 @@ router.post(
         // Create Asaas subscription for paid plans
         if (isPaid) {
           try {
-            const cleanDoc = (documento || "").replace(/\D/g, "");
-            const customer = await findOrCreateCustomer(name, email, cleanDoc || undefined, contato || undefined);
+            if (paidPlanActivatedDirectly) {
+              // Direct activation: plan already active from insert, just record subscription
+              const expiresAt = new Date();
+              expiresAt.setMonth(expiresAt.getMonth() + 1);
+              await db.insert(subscriptionsTable).values({
+                artistId: String(artist.id),
+                planNome: selectedPlano,
+                asaasSubscriptionId: "direct_activation_" + Date.now(),
+                status: "active",
+                amount: String(subscriptionAmount),
+                startedAt: new Date(),
+                expiresAt,
+                couponCode: validatedCoupon?.code ?? null,
+              });
+            } else {
+              const cleanDoc = (documento || "").replace(/\D/g, "");
+              const customer = await findOrCreateCustomer(name, email, cleanDoc || undefined, contato || undefined);
 
-            await db.update(artistsTable).set({ asaasCustomerId: customer.id }).where(eq(artistsTable.id, artist.id));
+              await db.update(artistsTable).set({ asaasCustomerId: customer.id }).where(eq(artistsTable.id, artist.id));
 
-            const { portalUrl } = await getAsaasCredentials();
-            const callbackUrl = portalUrl ? `${portalUrl}/artista/dashboard?pagamento=sucesso` : undefined;
+              const { portalUrl } = await getAsaasCredentials();
+              const callbackUrl = portalUrl ? `${portalUrl}/artista/dashboard?pagamento=sucesso` : undefined;
 
-            const subscription = await createSubscription({
-              customerId: customer.id,
-              value: parseFloat(String(plan!.preco)),
-              billingType: "CREDIT_CARD",
-              description: `Plano ${plan!.label} — Portal do Artista`,
-              externalReference: `${artist.id}-${selectedPlano}`,
-              callbackUrl,
-            });
+              const subscription = await createSubscription({
+                customerId: customer.id,
+                value: subscriptionAmount,
+                billingType: "CREDIT_CARD",
+                description: `Plano ${plan!.label} — Portal do Artista`,
+                externalReference: `${artist.id}-${selectedPlano}`,
+                callbackUrl,
+              });
 
-            await db.insert(subscriptionsTable).values({
-              artistId: artist.id,
-              planNome: selectedPlano,
-              asaasSubscriptionId: subscription.id,
-              status: "pending",
-              amount: String(plan!.preco),
-              startedAt: new Date(),
-            });
+              await db.insert(subscriptionsTable).values({
+                artistId: String(artist.id),
+                planNome: selectedPlano,
+                asaasSubscriptionId: subscription.id,
+                status: "pending",
+                amount: String(subscriptionAmount),
+                startedAt: new Date(),
+                couponCode: validatedCoupon?.code ?? null,
+              });
 
-            const payments = await getSubscriptionPayments(subscription.id);
-            invoiceUrl = payments.data?.[0]?.invoiceUrl ?? null;
+              const payments = await getSubscriptionPayments(subscription.id);
+              invoiceUrl = payments.data?.[0]?.invoiceUrl ?? null;
+            }
           } catch (paymentErr) {
             console.error("Error creating payment for new artist:", paymentErr);
           }

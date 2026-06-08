@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Music, ShieldAlert, Users, Zap, LogIn, LayoutDashboard, Menu, X } from "lucide-react";
+import { Music, Users, Zap, LogIn, LayoutDashboard, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
@@ -30,7 +30,6 @@ export function Navbar() {
   const otherLinks = [
     { href: "/artistas", icon: Users,       label: "Artistas" },
     { href: "/demo",     icon: Zap,         label: "Demo" },
-    { href: "/admin",    icon: ShieldAlert, label: "Admin" },
   ];
 
   const allLinks = [artistLink, ...otherLinks];

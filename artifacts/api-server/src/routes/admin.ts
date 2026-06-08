@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import sharp from "sharp";
-import { db, songsTable, artistsTable, interestsTable, plansTable, appSettingsTable } from "@workspace/db";
-import { eq, sql, count } from "drizzle-orm";
+import { db, songsTable, artistsTable, interestsTable, plansTable, appSettingsTable, subscriptionsTable } from "@workspace/db";
+import { eq, sql, count, and } from "drizzle-orm";
 import { FREE_PLAN } from "./payments";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+import { getAsaasCredentials } from "../lib/asaas-client.js";
 import path from "path";
 import fs from "fs";
 
@@ -232,6 +233,23 @@ router.get("/admin/artists", async (req, res): Promise<void> => {
 
   try {
     const artists = await db.select().from(artistsTable).orderBy(artistsTable.createdAt);
+
+    const artistIds = artists.map(a => a.id);
+    const subs = artistIds.length > 0
+      ? await db
+          .select({ artistId: subscriptionsTable.artistId, couponCode: subscriptionsTable.couponCode })
+          .from(subscriptionsTable)
+          .where(sql`${subscriptionsTable.artistId} IN (${artistIds.join(",")}) AND ${subscriptionsTable.couponCode} IS NOT NULL`)
+          .orderBy(sql`${subscriptionsTable.createdAt} DESC`)
+      : [];
+
+    const couponByArtist: Record<string, string> = {};
+    for (const s of subs) {
+      if (!couponByArtist[s.artistId]) {
+        couponByArtist[s.artistId] = s.couponCode!;
+      }
+    }
+
     res.json(artists.map(a => ({
       id: a.id,
       name: a.name,
@@ -243,6 +261,7 @@ router.get("/admin/artists", async (req, res): Promise<void> => {
       musicaCount: a.musicaCount,
       limiteMusicas: a.limiteMusicas,
       createdAt: a.createdAt,
+      couponCode: couponByArtist[String(a.id)] || null,
     })));
   } catch (error) {
     console.error("Error fetching artists:", error);
@@ -323,6 +342,66 @@ router.put("/admin/artists/:id", async (req, res): Promise<void> => {
   } catch (error) {
     console.error("Error updating artist:", error);
     res.status(500).json({ error: "Erro ao atualizar artista" });
+  }
+});
+
+// POST /admin/artists/:id/grant-plan - Admin grants a plan with expiration
+router.post("/admin/artists/:id/grant-plan", async (req, res): Promise<void> => {
+  if (!req.session.logado) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
+
+  try {
+    const { id } = req.params;
+    const { plano, duracaoMeses } = req.body;
+
+    if (!plano || !duracaoMeses) {
+      res.status(400).json({ error: "Plano e duração são obrigatórios" });
+      return;
+    }
+
+    const [plan] = await db.select().from(plansTable).where(eq(plansTable.nome, plano));
+    if (!plan) {
+      res.status(404).json({ error: "Plano não encontrado" });
+      return;
+    }
+
+    const meses = parseInt(duracaoMeses) || 1;
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + meses);
+
+    await db.insert(subscriptionsTable).values({
+      artistId: id,
+      planNome: plano,
+      asaasSubscriptionId: "admin_grant_" + Date.now(),
+      status: "active",
+      amount: "0",
+      billingType: "ADMIN_GRANT",
+      startedAt: new Date(),
+      expiresAt,
+    });
+
+    await db
+      .update(artistsTable)
+      .set({
+        plano,
+        planoAtivo: true,
+        limiteMusicas: String(plan.limiteMusicas),
+        personalizacaoPercent: String(plan.personalizacaoPercent),
+        updatedAt: new Date(),
+      })
+      .where(eq(artistsTable.id, parseInt(id)));
+
+    res.json({
+      success: true,
+      plano,
+      expiresAt: expiresAt.toISOString(),
+      message: `Plano ${plano} concedido por ${meses} mes(es)`,
+    });
+  } catch (error) {
+    console.error("Error granting plan:", error);
+    res.status(500).json({ error: "Erro ao conceder plano" });
   }
 });
 
@@ -482,6 +561,73 @@ router.delete("/admin/plans/:id", async (req, res): Promise<void> => {
   } catch (error) {
     console.error("Error deleting plan:", error);
     res.status(500).json({ error: "Erro ao deletar plano" });
+  }
+});
+
+// ─── Sincronizar assinaturas pendentes com Asaas (manual / admin) ──────────
+router.post("/admin/sync-subscriptions", async (req, res): Promise<void> => {
+  try {
+    if (!req.session.logado) { res.status(401).json({ error: "Não autorizado" }); return; }
+    const { apiKey: hasKey } = await getAsaasCredentials();
+    if (!hasKey) { res.status(500).json({ error: "Asaas não configurado" }); return; }
+
+    const pendings = await db.select().from(subscriptionsTable).where(
+      and(eq(subscriptionsTable.status, "pending"), sql`${subscriptionsTable.asaasSubscriptionId} IS NOT NULL`)
+    );
+
+    const results: any[] = [];
+
+    for (const sub of pendings) {
+      if (!sub.asaasSubscriptionId || sub.asaasSubscriptionId.startsWith("direct_")) continue;
+
+      try {
+        const { getSubscriptionPayments } = await import("../lib/asaas-client.js");
+        const payments = await getSubscriptionPayments(sub.asaasSubscriptionId!);
+        const firstPayment = payments.data?.[0];
+
+        if (firstPayment) {
+          if (firstPayment.status === "RECEIVED" || firstPayment.status === "CONFIRMED") {
+            const externalRef = firstPayment.externalReference ?? "";
+            const [artistId, planId] = externalRef.split("-");
+
+            const existing = await db.select().from(subscriptionsTable).where(
+              and(eq(subscriptionsTable.asaasPaymentId, firstPayment.id), eq(subscriptionsTable.status, "active"))
+            );
+
+            if (existing.length === 0 && artistId && planId) {
+              const [plan] = await db.select().from(plansTable).where(eq(plansTable.nome, planId));
+              if (plan) {
+                await db.update(artistsTable).set({
+                  plano: planId, planoAtivo: true,
+                  limiteMusicas: String(plan.limiteMusicas),
+                  personalizacaoPercent: String(plan.personalizacaoPercent),
+                  updatedAt: new Date(),
+                }).where(eq(artistsTable.id, parseInt(artistId)));
+
+                await db.update(subscriptionsTable).set({
+                  status: "active", asaasPaymentId: firstPayment.id,
+                  billingType: firstPayment.billingType ?? null,
+                }).where(eq(subscriptionsTable.id, sub.id));
+
+                results.push({ subscriptionId: sub.id, artistId, planId, status: "activated", paymentId: firstPayment.id });
+              }
+            } else {
+              results.push({ subscriptionId: sub.id, status: "already_processed" });
+            }
+          } else {
+            results.push({ subscriptionId: sub.id, status: firstPayment.status });
+          }
+        } else {
+          results.push({ subscriptionId: sub.id, status: "no_payments_found" });
+        }
+      } catch (err: any) {
+        results.push({ subscriptionId: sub.id, error: err.message });
+      }
+    }
+
+    res.json({ processed: results.length, results });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message ?? "Erro na sincronização" });
   }
 });
 

@@ -18,6 +18,15 @@ import playlistsRouter from "./playlists";
 import galleriesRouter from "./galleries";
 import sitemapRouter from "./sitemap";
 import couponsRouter from "./coupons";
+import contatosRouter from "./contatos";
+import custosRouter from "./custos";
+import receitasRouter from "./receitas";
+import eventosRouter from "./eventos";
+import ajudaRouter from "./ajuda";
+import audicoesRouter from "./audicoes";
+import liberacoesRouter from "./liberacoes";
+import financeiroRouter from "./financeiro";
+import songComposersRouter from "./song-composers";
 
 const router: IRouter = Router();
 
@@ -40,5 +49,14 @@ router.use(playlistsRouter);
 router.use(galleriesRouter);
 router.use(sitemapRouter);
 router.use(couponsRouter);
+router.use(contatosRouter);
+router.use(custosRouter);
+router.use(receitasRouter);
+router.use(eventosRouter);
+router.use(ajudaRouter);
+router.use(audicoesRouter);
+router.use(liberacoesRouter);
+router.use(financeiroRouter);
+router.use(songComposersRouter);
 
 export default router;

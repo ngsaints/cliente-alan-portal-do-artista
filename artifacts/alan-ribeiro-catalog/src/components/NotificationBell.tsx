@@ -20,9 +20,10 @@ interface NotificationBellProps {
   interests: Interest[];
   onMarkRead?: (id: number) => void;
   onDelete?: (id: number) => void;
+  inline?: boolean;
 }
 
-export function NotificationBell({ interests, onMarkRead, onDelete }: NotificationBellProps) {
+export function NotificationBell({ interests, onMarkRead, onDelete, inline }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedInterest, setSelectedInterest] = useState<Interest | null>(null);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -52,10 +53,13 @@ export function NotificationBell({ interests, onMarkRead, onDelete }: Notificati
   return (
     <>
       {/* Bell button */}
-      <div ref={bellRef} className="relative">
+      <div ref={bellRef} className={inline ? "relative" : ""}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="fixed top-20 right-4 z-50 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
+          className={inline
+            ? "relative w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
+            : "fixed top-20 right-4 z-50 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
+          }
         >
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
@@ -74,7 +78,10 @@ export function NotificationBell({ interests, onMarkRead, onDelete }: Notificati
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="fixed top-20 right-4 z-50 w-80 max-h-[400px] overflow-y-auto bg-card border border-border/40 rounded-2xl shadow-2xl"
+              className={inline
+                ? "absolute top-12 right-0 z-50 w-80 max-h-[400px] overflow-y-auto bg-card border border-border/40 rounded-2xl shadow-2xl"
+                : "fixed top-20 right-4 z-50 w-80 max-h-[400px] overflow-y-auto bg-card border border-border/40 rounded-2xl shadow-2xl"
+              }
             >
               <div className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border/40 px-4 py-3 flex items-center justify-between">
                 <h3 className="font-bold text-foreground">Interesses / Leads</h3>
@@ -248,7 +255,7 @@ export function NotificationBell({ interests, onMarkRead, onDelete }: Notificati
               <div className="mt-6 flex gap-2">
                 {selectedInterest.telefone && (
                   <a
-                    href={`https://wa.me/${selectedInterest.telefone.replace(/\D/g, "")}`}
+                     href={`https://wa.me/55${selectedInterest.telefone.replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 py-2.5 rounded-xl bg-green-600/20 text-green-400 text-sm font-semibold text-center hover:bg-green-600/30 transition-colors border border-green-500/20"

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Eye, EyeOff, Loader2, User, MapPin, Link2, Image, Star, Check, X, Phone, Zap, ArrowLeft, Info, Crown, AlertTriangle } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Loader2, User, MapPin, Image, Star, Check, X, Phone, Zap, ArrowLeft, Info, Crown, AlertTriangle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useGenres } from "@/hooks/useGenres";
 import { ImageCrop } from "@/components/ImageCrop";
@@ -45,13 +45,14 @@ export default function ArtistLogin() {
     profissao: "Cantor",
     genero: "Sertanejo",
     cidade: "",
-    instagram: "",
-    tiktok: "",
-    spotify: "",
     capaFile: null as File | null,
     bannerFile: null as File | null,
     plano: "premium",
   });
+  const [couponCode, setCouponCode] = useState("");
+  const [couponResult, setCouponResult] = useState<{ discountType: string; discountValue: string; discountAmount: string; finalPrice: string; originalPrice: string } | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
   const { genres } = useGenres();
 
   useEffect(() => {
@@ -86,6 +87,32 @@ export default function ArtistLogin() {
       })
       .catch(console.error);
   }, []);
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode || !formData.plano) return;
+    setValidatingCoupon(true);
+    setCouponError("");
+    setCouponResult(null);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode, planId: formData.plano }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCouponError(data.error || "Cupom inválido");
+      } else if (!data.valid) {
+        setCouponError("Cupom inválido para este plano");
+      } else {
+        setCouponResult(data.coupon);
+      }
+    } catch {
+      setCouponError("Erro ao validar cupom");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,7 +153,7 @@ export default function ArtistLogin() {
       }
     }
     setError("");
-    setCadastroStep((s) => (typeof s === "number" ? Math.min(s + 1, 5) : s) as CadastroStep);
+    setCadastroStep((s) => (typeof s === "number" ? Math.min(s + 1, 4) : s) as CadastroStep);
   };
 
   const handleBackCadastro = () => {
@@ -150,6 +177,9 @@ export default function ArtistLogin() {
           data.append(key, value);
         }
       });
+      if (couponCode && couponResult) {
+        data.append("couponCode", couponCode);
+      }
       const res = await fetch("/api/artists/register", {
         method: "POST",
         body: data,
@@ -369,46 +399,6 @@ export default function ArtistLogin() {
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Link2 className="w-5 h-5 text-primary" />
-              Redes Sociais
-            </h3>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Instagram</label>
-              <input
-                type="text"
-                value={formData.instagram}
-                onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="@seuinstagram"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">TikTok</label>
-              <input
-                type="text"
-                value={formData.tiktok}
-                onChange={(e) => setFormData({ ...formData, tiktok: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="@seutiktok"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Spotify</label>
-              <input
-                type="url"
-                value={formData.spotify}
-                onChange={(e) => setFormData({ ...formData, spotify: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="https://open.spotify.com/artist/..."
-              />
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
               <Image className="w-5 h-5 text-primary" />
               Fotos do Perfil
             </h3>
@@ -515,7 +505,7 @@ export default function ArtistLogin() {
           </div>
         );
 
-      case 5:
+      case 4:
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -532,9 +522,20 @@ export default function ArtistLogin() {
                 )}
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-primary">
-                  R$ {parseFloat(dbPlans.find(p => p.id === formData.plano)?.preco || "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </span>
+                {couponResult ? (
+                  <>
+                    <span className="text-2xl font-bold text-green-400">
+                      R$ {parseFloat(couponResult.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-sm text-muted-foreground line-through">
+                      R$ {parseFloat(couponResult.originalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-2xl font-bold text-primary">
+                    R$ {parseFloat(dbPlans.find(p => p.id === formData.plano)?.preco || "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                )}
                 {formData.plano !== "free" && <span className="text-xs text-muted-foreground">/mês</span>}
               </div>
               <div className="flex flex-wrap gap-1 mt-2">
@@ -543,6 +544,40 @@ export default function ArtistLogin() {
                 ))}
               </div>
             </div>
+
+            {formData.plano !== "free" && (
+              <div className="pt-2 border-t border-border/40">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                  Cupom de Desconto
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
+                    placeholder="Insira seu cupom"
+                    className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleValidateCoupon}
+                    disabled={!couponCode || validatingCoupon}
+                    className="px-4 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
+                  >
+                    {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                  </button>
+                </div>
+                {couponError && (
+                  <p className="text-xs text-red-400 mt-1">{couponError}</p>
+                )}
+                {couponResult && (
+                  <p className="text-xs text-green-400 mt-1">
+                    Cupom aplicado! Desconto de {couponResult.discountType === "percentage" ? `${couponResult.discountValue}%` : `R$ ${parseFloat(couponResult.discountValue).toFixed(2)}`}
+                  </p>
+                )}
+              </div>
+            )}
+
             <p className="text-sm text-muted-foreground">
               Revise seus dados e confirme o cadastro.
             </p>
@@ -696,7 +731,7 @@ export default function ArtistLogin() {
                 <p className="text-sm text-muted-foreground mb-4">
                   {cadastroStep === "planos"
                     ? "Escolha o plano ideal para sua carreira"
-                    : `Passo ${cadastroStep} de 5`}
+                    : `Passo ${cadastroStep} de 4`}
                 </p>
 
                 {error && (
@@ -734,7 +769,7 @@ export default function ArtistLogin() {
                       <Zap className="w-4 h-4" />
                       Continuar com {dbPlans.find(p => p.id === selectedPlan)?.label}
                     </button>
-                  ) : (cadastroStep as number) < 5 ? (
+                  ) : (cadastroStep as number) < 4 ? (
                     <button
                       onClick={handleNextCadastro}
                       className="flex-1 py-3 rounded-xl font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"

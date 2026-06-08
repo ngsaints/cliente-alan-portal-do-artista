@@ -3,7 +3,8 @@ import { db, galleriesTable, galleryPhotosTable } from "@workspace/db";
 import { eq, and, asc } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from "fs";
+import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 
 const uploadDir = "/var/www/portal-do-artista/uploads/gallery";
 if (!existsSync(uploadDir)) {
@@ -249,7 +250,23 @@ router.post("/galleries/:id/photos/upload", upload.single("foto"), async (req, r
       return;
     }
 
-    const fotoUrl = `/uploads/gallery/${req.file.filename}`;
+    let fotoUrl: string;
+    const localPath = req.file.path;
+
+    if (r2Enabled) {
+      try {
+        const buffer = readFileSync(localPath);
+        const ext = path.extname(req.file.originalname);
+        const key = generateR2Key("gallery", req.file.filename + ext);
+        fotoUrl = await uploadToR2(buffer, key, "image/jpeg");
+        unlinkSync(localPath);
+      } catch (e) {
+        console.error("R2 upload failed, falling back to local:", e);
+        fotoUrl = `/uploads/gallery/${req.file.filename}`;
+      }
+    } else {
+      fotoUrl = `/uploads/gallery/${req.file.filename}`;
+    }
 
     const [photo] = await db
       .insert(galleryPhotosTable)

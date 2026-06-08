@@ -18,7 +18,7 @@ import {
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
-  Mail,
+  Mail, Gift,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -48,6 +48,7 @@ interface Artist {
   planoAtivo: boolean;
   musicaCount: string;
   limiteMusicas: string;
+  couponCode: string | null;
   createdAt: string;
 }
 
@@ -457,8 +458,74 @@ function SongsTab() {
           >
             <X className="w-4 h-4" />
           </button>
-        )}
-      </div>
+      )}
+
+      {grantModalOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4" onClick={() => setGrantModalOpen(false)}>
+          <div className="bg-card border border-border/40 rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Gift className="w-5 h-5 text-violet-400" />
+                <h3 className="text-lg font-bold text-foreground">Conceder Plano</h3>
+              </div>
+              <button onClick={() => setGrantModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm text-muted-foreground mb-4">
+              Artista: <span className="text-foreground font-medium">{grantArtistName}</span>
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Plano</label>
+                <select
+                  value={grantPlano}
+                  onChange={(e) => setGrantPlano(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                >
+                  {PLANOS.filter(p => p !== "free").map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Duração</label>
+                <select
+                  value={grantDuracao}
+                  onChange={(e) => setGrantDuracao(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                >
+                  <option value="1">1 mês</option>
+                  <option value="3">3 meses</option>
+                  <option value="6">6 meses</option>
+                  <option value="12">12 meses</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setGrantModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl font-semibold bg-muted text-foreground hover:bg-muted/80 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGrantPlan}
+                disabled={grantSaving}
+                className="flex-1 py-2.5 rounded-xl font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {grantSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
+                Conceder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
       {/* List */}
       {isLoading ? (
@@ -964,6 +1031,12 @@ function ArtistsTab() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editPlano, setEditPlano] = useState("");
   const [editAtivo, setEditAtivo] = useState(true);
+  const [grantModalOpen, setGrantModalOpen] = useState(false);
+  const [grantArtistId, setGrantArtistId] = useState<number | null>(null);
+  const [grantArtistName, setGrantArtistName] = useState("");
+  const [grantPlano, setGrantPlano] = useState("premium");
+  const [grantDuracao, setGrantDuracao] = useState("1");
+  const [grantSaving, setGrantSaving] = useState(false);
   const { toast } = useToast();
 
   const load = () => {
@@ -1009,6 +1082,34 @@ function ArtistsTab() {
     }
   };
 
+  const handleOpenGrant = (a: Artist) => {
+    setGrantArtistId(a.id);
+    setGrantArtistName(a.name);
+    setGrantPlano("premium");
+    setGrantDuracao("1");
+    setGrantModalOpen(true);
+  };
+
+  const handleGrantPlan = async () => {
+    if (!grantArtistId) return;
+    setGrantSaving(true);
+    const res = await fetch(`/api/admin/artists/${grantArtistId}/grant-plan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ plano: grantPlano, duracaoMeses: grantDuracao }),
+    });
+    if (res.ok) {
+      toast({ title: `Plano ${grantPlano} concedido por ${grantDuracao} mes(es)` });
+      setGrantModalOpen(false);
+      load();
+    } else {
+      const err = await res.json();
+      toast({ title: err.error || "Erro ao conceder plano", variant: "destructive" });
+    }
+    setGrantSaving(false);
+  };
+
   const PLANOS = ["free", "basico", "intermediario", "pro", "premium"];
 
   return (
@@ -1041,6 +1142,7 @@ function ArtistsTab() {
                   <th className="text-left px-4 py-3 text-muted-foreground font-medium">Plano</th>
                   <th className="text-left px-4 py-3 text-muted-foreground font-medium">Músicas</th>
                   <th className="text-left px-4 py-3 text-muted-foreground font-medium">Status</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Cupom</th>
                   <th className="text-right px-4 py-3 text-muted-foreground font-medium">Ações</th>
                 </tr>
               </thead>
@@ -1085,6 +1187,15 @@ function ArtistsTab() {
                         </span>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      {a.couponCode ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-violet-500/20 text-violet-400" title="Plano contratado via cupom">
+                          {a.couponCode}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         {editingId === a.id ? (
@@ -1098,6 +1209,9 @@ function ArtistsTab() {
                           </>
                         ) : (
                           <>
+                            <button onClick={() => handleOpenGrant(a)} className="p-1.5 text-muted-foreground hover:text-violet-400 hover:bg-violet-400/10 rounded-lg transition-colors" title="Conceder plano">
+                              <Gift className="w-4 h-4" />
+                            </button>
                             <button onClick={() => handleEdit(a)} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Editar plano">
                               <Edit2 className="w-4 h-4" />
                             </button>
@@ -1718,15 +1832,67 @@ function SettingsTab() {
 
       <SettingsCategoryForm key={activeCategory} category={activeCategory} />
 
-      {/* Hero Section Settings */}
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-        <div className="flex items-center gap-2">
-          <Eye className="w-5 h-5 text-primary" />
-          <h3 className="font-bold text-lg text-foreground">Hero (Página Inicial)</h3>
+      {activeCategory === "portal" && (
+        /* Hero Section Settings */
+        <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+          <div className="flex items-center gap-2">
+            <Eye className="w-5 h-5 text-primary" />
+            <h3 className="font-bold text-lg text-foreground">Hero (Página Inicial)</h3>
+          </div>
+          <p className="text-xs text-muted-foreground">Texto principal exibido no topo da página inicial.</p>
+          <HeroSettingsForm />
         </div>
-        <p className="text-xs text-muted-foreground">Texto principal exibido no topo da página inicial.</p>
-        <HeroSettingsForm />
-      </div>
+      )}
+    </div>
+  );
+}
+
+function AddSettingForm({ category, onAdd }: { category: SettingsCategory; onAdd: (key: string, value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [newKey, setNewKey] = useState("");
+  const [newValue, setNewValue] = useState("");
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 px-4 py-2.5 bg-card border border-dashed border-border rounded-xl text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all"
+      >
+        <Plus className="w-4 h-4" />
+        Adicionar Chave
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="text"
+        value={newKey}
+        onChange={(e) => setNewKey(e.target.value.toLowerCase().replace(/\s+/g, "_"))}
+        placeholder="chave (ex: resend_api_key)"
+        className="w-44 px-3 py-2 bg-input border border-border rounded-lg text-xs text-foreground font-mono"
+      />
+      <input
+        type="text"
+        value={newValue}
+        onChange={(e) => setNewValue(e.target.value)}
+        placeholder="valor"
+        className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-xs text-foreground"
+      />
+      <button
+        onClick={() => { if (newKey) { onAdd(newKey, newValue); setOpen(false); setNewKey(""); setNewValue(""); } }}
+        disabled={!newKey}
+        className="flex items-center gap-1 px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-bold disabled:opacity-50"
+      >
+        <Plus className="w-3 h-3" /> OK
+      </button>
+      <button
+        onClick={() => { setOpen(false); setNewKey(""); setNewValue(""); }}
+        className="p-2 text-muted-foreground hover:text-foreground"
+      >
+        <X className="w-4 h-4" />
+      </button>
     </div>
   );
 }
@@ -1805,7 +1971,12 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
       <div className="text-center py-16 text-muted-foreground bg-card border border-dashed border-border rounded-2xl">
         <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-30" />
         <p>Nenhuma configuração encontrada para esta categoria.</p>
-        <p className="text-xs mt-2">Execute o seed para criar as configurações padrão.</p>
+        <p className="text-xs mt-2 mb-4">Execute o seed ou adicione uma nova chave manualmente.</p>
+        <AddSettingForm category={category} onAdd={(key, value) => {
+          const newSetting: Setting = { id: 0, category, key, value, rawValue: value, isSecret: category === "asaas" || key.includes("api_key") || key.includes("secret") || key.includes("token"), description: "", updatedAt: new Date().toISOString() };
+          setSettings([newSetting]);
+          setValues({ ...values, [key]: value });
+        }} />
       </div>
     );
   }
@@ -1843,6 +2014,20 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
             <li>Gerar API Token em <strong className="text-foreground">Manage R2 API Tokens</strong> com permissão de Leitura e Escrita</li>
             <li>Cole <strong className="text-foreground">Account ID</strong>, <strong className="text-foreground">Access Key ID</strong> e <strong className="text-foreground">Secret Access Key</strong> nos campos correspondentes</li>
             <li>Informe o nome do bucket e a <strong className="text-foreground">URL pública</strong> do bucket (ex: <code className="bg-black/30 px-1 py-0.5 rounded">https://seu-bucket.r2.dev</code>)</li>
+          </ol>
+        </div>
+      )}
+      {category === "email" && (
+        <div className="bg-gradient-to-r from-red-900/30 to-red-800/10 border border-red-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2 text-red-400">
+            <HelpCircle className="w-5 h-5" />
+            <h3 className="font-bold text-lg">Como Configurar o Resend (Email)</h3>
+          </div>
+          <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+            <li>Acesse <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:underline inline-flex items-center gap-1">Resend API Keys <ExternalLink className="w-3 h-3" /></a> e crie uma nova API Key</li>
+            <li>Cole a API Key no campo <code className="bg-black/30 px-1 py-0.5 rounded">resend_api_key</code></li>
+            <li>Configure o remetente no campo <code className="bg-black/30 px-1 py-0.5 rounded">email_from</code> (ex: <code className="bg-black/30 px-1 py-0.5 rounded">Portal do Artista &lt;contato@seudominio.com&gt;</code>)</li>
+            <li>No painel do Resend, <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:underline inline-flex items-center gap-1">adicione seu domínio <ExternalLink className="w-3 h-3" /></a> e verifique os registros DNS</li>
           </ol>
         </div>
       )}
@@ -1949,7 +2134,7 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
           </div>
         ))}
 
-        <div className="pt-2 border-t border-border/50">
+        <div className="pt-2 border-t border-border/50 flex items-center gap-3">
           <button
             onClick={handleSave}
             disabled={saving}
@@ -1958,6 +2143,11 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? "Salvando..." : "Salvar Configurações"}
           </button>
+          <AddSettingForm category={category} onAdd={(key, value) => {
+            const newSetting: Setting = { id: 0, category, key, value, rawValue: value, isSecret: key.includes("api_key") || key.includes("secret") || key.includes("token"), description: "", updatedAt: new Date().toISOString() };
+            setSettings([...settings, newSetting]);
+            setValues({ ...values, [key]: value });
+          }} />
         </div>
       </div>
     </div>
@@ -3609,6 +3799,7 @@ function CouponModal({ coupon, onClose, onSaved }: { coupon: Coupon | null; onCl
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">Planos Aplicáveis (vazio = todos)</label>
             <div className="space-y-1.5">
               {[
+                { id: "free", label: "Grátis" },
                 { id: "basico", label: "Básico" },
                 { id: "intermediario", label: "Intermediário" },
                 { id: "pro", label: "Profissional" },

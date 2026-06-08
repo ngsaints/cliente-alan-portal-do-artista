@@ -81,7 +81,7 @@ router.post(
         return;
       }
 
-      const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip, isPrivate } = req.body;
+      const { titulo, descricao, genero, subgenero, compositor, letra, edicao, distribuicao, associacao, status, precoX, precoY, isVip, isPrivate } = req.body;
 
       if (!titulo || !genero) {
         res.status(400).json({ error: "Campos obrigatórios faltando" });
@@ -149,6 +149,10 @@ router.post(
           genero,
           subgenero: subgenero || null,
           compositor: compositor || null,
+          letra: letra || null,
+          edicao: edicao || null,
+          distribuicao: distribuicao || null,
+          associacao: associacao || null,
           status: status || "Disponível",
           precoX: precoX || null,
           precoY: precoY || null,
@@ -212,7 +216,7 @@ router.put(
       return;
     }
 
-    const { titulo, descricao, genero, subgenero, compositor, status, precoX, precoY, isVip, tipoMidia, youtubeUrl, vipCode, isPrivate } = req.body;
+    const { titulo, descricao, genero, subgenero, compositor, letra, edicao, distribuicao, associacao, status, precoX, precoY, isVip, tipoMidia, youtubeUrl, vipCode, isPrivate } = req.body;
 
     try {
       const files = req.files as Record<string, Express.Multer.File[]>;
@@ -245,6 +249,10 @@ router.put(
           ...(genero      ? { genero }                               : {}),
           subgenero:    subgenero  !== undefined ? (subgenero  || null) : undefined,
           compositor:   compositor !== undefined ? (compositor || null) : undefined,
+          letra:        letra        !== undefined ? (letra        || null) : undefined,
+          edicao:       edicao       !== undefined ? (edicao       || null) : undefined,
+          distribuicao: distribuicao !== undefined ? (distribuicao || null) : undefined,
+          associacao:   associacao   !== undefined ? (associacao   || null) : undefined,
           ...(status      ? { status }                               : {}),
           ...(precoX      ? { precoX }                               : {}),
           ...(precoY      ? { precoY }                               : {}),
