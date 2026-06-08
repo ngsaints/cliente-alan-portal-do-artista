@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
-import { Sparkles, User, MapPin, Link2, Image, Star, Eye, EyeOff, Check, Loader2, X, Phone } from "lucide-react";
+import { Sparkles, User, MapPin, Image, Star, Eye, EyeOff, Check, Loader2, X, Phone } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useGenres } from "@/hooks/useGenres";
 import { buildPlanFeatures } from "@/lib/utils";
@@ -20,10 +20,12 @@ interface Plan {
 const PROFISSOES = ["Cantor", "Compositor", "Banda", "Grupo", "Dupla", "Outro"];
 
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4;
 
 export default function Cadastro() {
   const [location, setLocation] = useLocation();
+  const search = useSearch();
+  const preselectedPlan = new URLSearchParams(search).get("plano") || "free";
   const [step, setStep] = useState<Step>(1);
   const { genres } = useGenres();
   const [loading, setLoading] = useState(false);
@@ -70,12 +72,9 @@ export default function Cadastro() {
     profissao: "Cantor",
     genero: "Sertanejo",
     cidade: "",
-    instagram: "",
-    tiktok: "",
-    spotify: "",
     capaFile: null as File | null,
     bannerFile: null as File | null,
-    plano: "free",
+    plano: preselectedPlan,
   });
 
   useEffect(() => {
@@ -110,7 +109,7 @@ export default function Cadastro() {
       }
     }
     setError("");
-    setStep((s) => (Math.min(s + 1, 5) as Step));
+    setStep((s) => (Math.min(s + 1, 4) as Step));
   };
 
   const handleBack = () => {
@@ -131,6 +130,9 @@ export default function Cadastro() {
           data.append(key, value);
         }
       });
+      if (couponCode && couponResult) {
+        data.append("couponCode", couponCode);
+      }
 
       const res = await fetch("/api/artists/register", {
         method: "POST",
@@ -142,6 +144,10 @@ export default function Cadastro() {
 
       if (!res.ok) {
         throw new Error(result.error || "Erro ao cadastrar");
+      }
+
+      if (result.invoiceUrl) {
+        window.open(result.invoiceUrl, "_blank");
       }
 
       setLocation("/artista/dashboard");
@@ -272,46 +278,6 @@ export default function Cadastro() {
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Link2 className="w-5 h-5 text-primary" />
-              Redes Sociais
-            </h3>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Instagram</label>
-              <input
-                type="text"
-                value={formData.instagram}
-                onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="@seuinstagram"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">TikTok</label>
-              <input
-                type="text"
-                value={formData.tiktok}
-                onChange={(e) => setFormData({ ...formData, tiktok: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="@seutiktok"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Spotify</label>
-              <input
-                type="url"
-                value={formData.spotify}
-                onChange={(e) => setFormData({ ...formData, spotify: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="https://open.spotify.com/artist/..."
-              />
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
               <Image className="w-5 h-5 text-primary" />
               Fotos do Perfil
             </h3>
@@ -336,7 +302,7 @@ export default function Cadastro() {
           </div>
         );
 
-      case 5:
+      case 4:
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -468,13 +434,13 @@ export default function Cadastro() {
               Cadastre-se
             </h1>
             <p className="text-muted-foreground mt-2">
-              Passo {step} de 5
+              Passo {step} de 4
             </p>
           </motion.div>
 
           {/* Progress bar */}
           <div className="flex gap-2 mb-8">
-            {[1, 2, 3, 4, 5].map((s) => (
+            {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
                 className={`flex-1 h-2 rounded-full transition-all ${
@@ -508,7 +474,7 @@ export default function Cadastro() {
                   Voltar
                 </button>
               )}
-              {step < 5 ? (
+              {step < 4 ? (
                 <button
                   onClick={handleNext}
                   className="flex-1 py-3 rounded-xl font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"

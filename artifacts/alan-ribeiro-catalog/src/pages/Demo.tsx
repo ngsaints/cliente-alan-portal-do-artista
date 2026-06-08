@@ -1,4 +1,4 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
@@ -30,6 +30,7 @@ const DEMO_ARTIST = {
 
 export default function Demo() {
   const { id } = useParams();
+  const [, setLocation] = useLocation();
   const { playSong } = usePlayer();
   const artistId = id || "1";
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
@@ -39,6 +40,8 @@ export default function Demo() {
   const [interestModalOpen, setInterestModalOpen] = useState(false);
   const [selectedSong, setSelectedSong] = useState<{ id: number; titulo: string } | null>(null);
   const [demoSettings, setDemoSettings] = useState<Record<string, string>>({});
+  const [artistLoggedIn, setArtistLoggedIn] = useState(false);
+  const [loggedInArtistId, setLoggedInArtistId] = useState<number | null>(null);
 
   useSEO({
     title: "Demonstração - Portal do Artista",
@@ -53,6 +56,40 @@ export default function Demo() {
       .then(data => setDemoSettings(data))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetch("/api/artists/status", { credentials: "include" })
+      .then(r => r.json())
+      .then(data => {
+        if (data.authenticated) {
+          setArtistLoggedIn(true);
+          setLoggedInArtistId(data.artist?.id || null);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSelectPlan = async (planId: string) => {
+    setPlansModalOpen(false);
+    if (artistLoggedIn && loggedInArtistId) {
+      const res = await fetch("/api/payments/create-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId, artistId: loggedInArtistId }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.activatedDirectly) {
+        alert("Plano ativado com sucesso!");
+      } else if (data.invoiceUrl) {
+        window.open(data.invoiceUrl, "_blank");
+      } else if (data.error) {
+        alert(data.error);
+      }
+    } else {
+      setLocation(`/cadastro?plano=${planId}`);
+    }
+  };
 
   const artist = {
     ...DEMO_ARTIST,
@@ -392,10 +429,7 @@ export default function Demo() {
       <PlansModal
         isOpen={plansModalOpen}
         onClose={() => setPlansModalOpen(false)}
-        onSelectPlan={(planId) => {
-          alert(`Plano selecionado: ${planId}. Integração com pagamento em breve!`);
-          setPlansModalOpen(false);
-        }}
+        onSelectPlan={(planId) => handleSelectPlan(planId)}
       />
 
       <AudioPlayer />

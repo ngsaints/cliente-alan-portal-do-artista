@@ -1,4 +1,4 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
@@ -34,6 +34,7 @@ const FALLBACK_ARTIST = {
 
 export default function ArtistProfile() {
   const { slug } = useParams();
+  const [, setLocation] = useLocation();
   const { playSong, setPlayerColors, setPlayerStyle, setCardStyle } = usePlayer();
   const artistId = slug || "1";
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
@@ -44,6 +45,8 @@ export default function ArtistProfile() {
   const [selectedSong, setSelectedSong] = useState<{ id: number; titulo: string } | null>(null);
   const [artistData, setArtistData] = useState<any>(null);
   const [loadingArtist, setLoadingArtist] = useState(true);
+  const [artistLoggedIn, setArtistLoggedIn] = useState(false);
+  const [loggedInArtistId, setLoggedInArtistId] = useState<number | null>(null);
   const numericArtistId = artistData?.id;
 
   // Update player colors, style and card style when artist data loads
@@ -88,6 +91,40 @@ export default function ArtistProfile() {
       })
       .catch(() => setLoadingArtist(false));
   }, [artistId]);
+
+  useEffect(() => {
+    fetch("/api/artists/status", { credentials: "include" })
+      .then(r => r.json())
+      .then(data => {
+        if (data.authenticated) {
+          setArtistLoggedIn(true);
+          setLoggedInArtistId(data.artist?.id || null);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSelectPlan = async (planId: string) => {
+    setPlansModalOpen(false);
+    if (artistLoggedIn && loggedInArtistId) {
+      const res = await fetch("/api/payments/create-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId, artistId: loggedInArtistId }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.activatedDirectly) {
+        alert("Plano ativado com sucesso!");
+      } else if (data.invoiceUrl) {
+        window.open(data.invoiceUrl, "_blank");
+      } else if (data.error) {
+        alert(data.error);
+      }
+    } else {
+      setLocation(`/cadastro?plano=${planId}`);
+    }
+  };
 
   const [interests, setInterests] = useState<any[]>([]);
 
@@ -187,8 +224,18 @@ export default function ArtistProfile() {
       "dourado": "#5f4a1a",
       "turquesa": "#1a5f5f",
     };
-    return backgrounds[layout] || "hsl(var(--background))";
+    return backgrounds[layout] || (/^#/.test(layout || "") ? layout! : "hsl(var(--background))");
   };
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const song = (e as CustomEvent).detail.song;
+      setSelectedSong(song);
+      setInterestModalOpen(true);
+    };
+    document.addEventListener("openInterest", handler);
+    return () => document.removeEventListener("openInterest", handler);
+  }, []);
 
   // Show loading or fallback if artist not found
   if (loadingArtist) {
@@ -201,20 +248,6 @@ export default function ArtistProfile() {
 
   // Use API data or fallback to default
   const artist = artistData || FALLBACK_ARTIST;
-
-  const handleOpenInterest = (song: { id: number; titulo: string }) => {
-    setSelectedSong(song);
-    setInterestModalOpen(true);
-  };
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const song = (e as CustomEvent).detail.song;
-      handleOpenInterest({ id: song.id, titulo: song.titulo });
-    };
-    document.addEventListener("openInterest", handler);
-    return () => document.removeEventListener("openInterest", handler);
-  }, []);
 
   return (
     <div 
@@ -269,7 +302,7 @@ export default function ArtistProfile() {
             backgroundImage: artist.bannerUrl
               ? `url("${artist.bannerUrl}")`
               : "none",
-            backgroundColor: artist.cor || "#1a1a2e",
+            backgroundColor: "#1a1a2e",
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
@@ -294,13 +327,13 @@ export default function ArtistProfile() {
             transition={{ delay: 0.1 }}
           >
             <h1 
-              className="text-3xl md:text-5xl font-extrabold text-foreground mb-2"
-              style={{ fontFamily: artistData?.fonte ? `"${artistData.fonte}", var(--font-display)` : "var(--font-display)" }}
+              className="text-3xl md:text-5xl font-extrabold mb-2"
+              style={{ fontFamily: artistData?.fonte ? `"${artistData.fonte}", var(--font-display)` : "var(--font-display)", color: artist.cor || "var(--color-foreground)" }}
             >
               {artist.name}
             </h1>
-            <p className="text-lg text-muted-foreground mb-2">{artist.profissao}</p>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <p className="text-lg mb-2" style={{ color: artist.cor ? `${artist.cor}cc` : "var(--color-muted-foreground)" }}>{artist.profissao}</p>
+            <div className="flex items-center gap-4 text-sm" style={{ color: artist.cor ? `${artist.cor}99` : "var(--color-muted-foreground)" }}>
               <span className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 {artist.cidade}
@@ -617,10 +650,7 @@ export default function ArtistProfile() {
       <PlansModal
         isOpen={plansModalOpen}
         onClose={() => setPlansModalOpen(false)}
-        onSelectPlan={(planId) => {
-          alert(`Plano selecionado: ${planId}. Integração com pagamento em breve!`);
-          setPlansModalOpen(false);
-        }}
+        onSelectPlan={(planId) => handleSelectPlan(planId)}
       />
 
       <AudioPlayer />
