@@ -19,8 +19,15 @@ const useR2 = !!(process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID && pr
 
 // Update artist profile
 router.put("/artists/:id/profile", upload.single("capa"), async (req, res): Promise<void> => {
+  const sessionArtistId = req.session.artistId;
+  const { id } = req.params;
+
+  if (!sessionArtistId || sessionArtistId !== parseInt(id as string)) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
+
   try {
-    const { id } = req.params;
     const { 
       name, 
       profissao, 
