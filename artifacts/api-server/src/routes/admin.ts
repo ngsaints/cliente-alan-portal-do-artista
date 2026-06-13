@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import sharp from "sharp";
 import { db, songsTable, artistsTable, interestsTable, plansTable, appSettingsTable, subscriptionsTable } from "@workspace/db";
-import { eq, sql, count, and } from "drizzle-orm";
+import { eq, sql, count, and, inArray } from "drizzle-orm";
 import { FREE_PLAN } from "./payments";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getAsaasCredentials } from "../lib/asaas-client.js";
@@ -239,7 +239,10 @@ router.get("/admin/artists", async (req, res): Promise<void> => {
       ? await db
           .select({ artistId: subscriptionsTable.artistId, couponCode: subscriptionsTable.couponCode })
           .from(subscriptionsTable)
-          .where(sql`${subscriptionsTable.artistId} IN (${artistIds.join(",")}) AND ${subscriptionsTable.couponCode} IS NOT NULL`)
+          .where(and(
+            inArray(subscriptionsTable.artistId, artistIds.map(String)),
+            sql`${subscriptionsTable.couponCode} IS NOT NULL`
+          ))
           .orderBy(sql`${subscriptionsTable.createdAt} DESC`)
       : [];
 

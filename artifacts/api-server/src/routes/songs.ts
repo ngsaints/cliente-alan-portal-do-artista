@@ -32,7 +32,7 @@ function mapSong(s: typeof songsTable.$inferSelect) {
   return {
     id: s.id,
     titulo: s.titulo,
-    descricao: s.descricao,
+    descricao: s.descricao ?? "",
     genero: s.genero,
     subgenero: s.subgenero ?? null,
     compositor: s.compositor ?? null,
