@@ -255,6 +255,17 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
         expiresAt,
         couponCode: appliedCoupon?.code ?? null,
       });
+
+      await db
+        .update(artistsTable)
+        .set({
+          plano: planId,
+          planoAtivo: true,
+          limiteMusicas: String(plan.limiteMusicas),
+          personalizacaoPercent: String(plan.personalizacaoPercent),
+          updatedAt: new Date(),
+        })
+        .where(eq(artistsTable.id, parseInt(artistId)));
     }
 
     const payments = await getSubscriptionPayments(subscription.id);
@@ -453,8 +464,8 @@ router.get("/payments/subscription/:artistId", async (req, res): Promise<void> =
       .where(eq(subscriptionsTable.artistId, artistId))
       .orderBy(sql`${subscriptionsTable.createdAt} DESC`);
 
-    const active = subscriptions.find(s => s.status === "active" && (!s.expiresAt || new Date(s.expiresAt) > new Date()));
-    const expired = active && new Date(active.expiresAt!) < new Date();
+    const active = subscriptions.find(s => s.status === "active");
+    const expired = active && active.expiresAt && new Date(active.expiresAt) < new Date();
 
     if (expired) {
       await db

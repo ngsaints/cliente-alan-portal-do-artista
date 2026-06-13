@@ -106,6 +106,25 @@ export default function ArtistProfile() {
 
   const handleSelectPlan = async (planId: string, couponCode?: string) => {
     setPlansModalOpen(false);
+    if (planId === "free") {
+      if (artistLoggedIn && loggedInArtistId) {
+        const res = await fetch("/api/payments/cancel-subscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ artistId: loggedInArtistId }),
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert("Você foi movido para o plano gratuito.");
+        } else {
+          alert(data.error || "Erro ao mudar para plano gratuito");
+        }
+      } else {
+        setLocation("/cadastro?plano=free");
+      }
+      return;
+    }
     if (artistLoggedIn && loggedInArtistId) {
       const res = await fetch("/api/payments/create-preference", {
         method: "POST",

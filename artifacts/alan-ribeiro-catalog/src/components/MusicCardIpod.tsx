@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, Youtube, ExternalLink, Music } from "lucide-react";
 import { type Song } from "@workspace/api-client-react";
@@ -39,8 +39,34 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
   const isVideo    = song.tipoMidia === "video";
   const youtubeId  = extractYouTubeId(song.youtubeUrl || "");
 
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const [embedError, setEmbedError] = useState(false);
+  const videoRef = useRef<HTMLIFrameElement>(null);
+
   const accent = playerGradient || playerCor || "#f5c518";
   const pct    = isThisSong && duration ? (progress / duration) * 100 : 0;
+
+  // Reset video state when song changes
+  useEffect(() => {
+    setVideoPlaying(false);
+    setEmbedError(false);
+  }, [song.id]);
+
+  // Detect YouTube embed errors via postMessage
+  useEffect(() => {
+    if (!videoPlaying) { setEmbedError(false); return; }
+    const handler = (e: MessageEvent) => {
+      if (e.origin !== "https://www.youtube.com") return;
+      try {
+        const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+        if (data?.event === "onError" && (data?.info === 101 || data?.info === 150)) {
+          setEmbedError(true);
+        }
+      } catch {}
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [videoPlaying]);
 
   // ── IntersectionObserver: card in view ──
   const cardRef = useRef<HTMLDivElement>(null);
@@ -48,31 +74,35 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
-
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (isThisSong) {
-          setCardMode(entry.isIntersecting);
-        }
-      },
+      ([entry]) => { if (isThisSong) setCardMode(entry.isIntersecting); },
       { threshold: 0.4 }
     );
-
     observer.observe(el);
     return () => observer.disconnect();
   }, [isThisSong, setCardMode]);
 
-  useEffect(() => {
-    if (!isThisSong) {
-      setCardMode(false);
-    }
-  }, [isThisSong, setCardMode]);
+  useEffect(() => { if (!isThisSong) setCardMode(false); }, [isThisSong, setCardMode]);
+
+  const handlePlayVideo = () => setVideoPlaying(true);
+  const handleStopVideo = () => { setVideoPlaying(false); setEmbedError(false); };
+  const handleOpenYoutube = () => {
+    if (song.youtubeUrl) window.open(song.youtubeUrl, "_blank", "noopener,noreferrer");
+  };
 
   const handlePlay = () => {
-    if (isThisSong) {
-      togglePlay();
+    if (isVideo) {
+      handlePlayVideo();
+      return;
+    }
+    if (isThisSong) { togglePlay(); } else { playSong(song); }
+  };
+
+  const handleCoverClick = () => {
+    if (isVideo && youtubeId) {
+      handlePlayVideo();
     } else {
-      playSong(song);
+      handlePlay();
     }
   };
 
@@ -102,14 +132,69 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
       >
         {/* Cover Container */}
         <div className="relative aspect-square w-full rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-md">
-          <img
-            src={song.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
-            alt={song.titulo}
-            className="w-full h-full object-cover"
-          />
+          {isVideo && youtubeId && videoPlaying ? (
+            embedError ? (
+              /* Fallback: embed blocked */
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black gap-3 p-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-red-600/20 flex items-center justify-center">
+                  <Youtube className="w-6 h-6 text-red-500" />
+                </div>
+                <p className="text-white font-semibold text-xs">Incorporação não permitida</p>
+                <p className="text-white/40 text-[10px]">O dono desativou a reprodução externa.</p>
+                <button onClick={handleOpenYoutube}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 text-xs">
+                  <Youtube className="w-3.5 h-3.5" /> Abrir no YouTube
+                </button>
+                <button onClick={handleStopVideo} className="text-white/30 text-xs hover:text-white/60">
+                  Fechar
+                </button>
+              </div>
+            ) : (
+              /* Inline YouTube embed */
+              <>
+                <iframe
+                  ref={videoRef}
+                  className="w-full h-full"
+                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={song.titulo}
+                />
+                <button onClick={handleStopVideo}
+                  className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black transition-colors">
+                  <Pause className="w-4 h-4" />
+                </button>
+              </>
+            )
+          ) : (
+            /* Cover / Thumbnail */
+            <>
+              <img
+                src={
+                  isVideo && youtubeId
+                    ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`
+                    : (song.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`)
+                }
+                alt={song.titulo}
+                className="w-full h-full object-cover cursor-pointer"
+                onClick={isVideo && youtubeId ? handlePlayVideo : undefined}
+              />
+              {/* Play overlay on hover (desktop) */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                <span className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl ${isVideo && youtubeId ? "bg-red-600" : ""}`}
+                  style={isVideo && youtubeId ? {} : { border: `2px solid ${accent}` }}>
+                  {isVideo && youtubeId ? (
+                    <Play className="w-7 h-7 ml-1 text-white fill-white" />
+                  ) : (
+                    <Play className="w-7 h-7 ml-1" style={{ color: accent, fill: accent }} />
+                  )}
+                </span>
+              </div>
+            </>
+          )}
 
           {/* Badges Overlayed on Top of the Cover */}
-          <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none" style={{ zIndex: 1 }}>
             <div className="flex items-center gap-1 bg-[#121212]/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
               {isVideo ? (
                 <Youtube className="w-3.5 h-3.5 text-red-500" />
@@ -127,30 +212,6 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
               </span>
             </div>
           </div>
-
-          {/* Play/External Overlay */}
-          {!isThisPlaying && !isVideo && (
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-              <button
-                onClick={handlePlay}
-                className="w-16 h-16 rounded-full flex items-center justify-center bg-black/75 hover:scale-105 active:scale-95 transition-all shadow-2xl"
-                style={{ border: `2px solid ${accent}` }}
-              >
-                <Play className="w-7 h-7 ml-1" style={{ color: accent, fill: accent }} />
-              </button>
-            </div>
-          )}
-
-          {isVideo && youtubeId && (
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-              <button
-                onClick={() => window.open(song.youtubeUrl || "", "_blank", "noopener,noreferrer")}
-                className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-2xl"
-              >
-                <ExternalLink className="w-6 h-6 text-white" />
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Title & Info Block */}
@@ -197,11 +258,8 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
         <div className="flex justify-center mb-2">
           <div
             className="relative w-36 h-36 rounded-full bg-[#202020] border border-white/10 flex items-center justify-center shadow-2xl"
-            style={{
-              boxShadow: "inset 0 4px 12px rgba(0,0,0,0.8), 0 4px 10px rgba(0,0,0,0.5)"
-            }}
+            style={{ boxShadow: "inset 0 4px 12px rgba(0,0,0,0.8), 0 4px 10px rgba(0,0,0,0.5)" }}
           >
-            {/* Click Wheel Labels */}
             <span className="absolute top-3 text-[10px] font-black text-white/40 tracking-widest cursor-pointer select-none hover:text-white/60">
               MENU
             </span>
@@ -217,7 +275,7 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
 
             {/* Click Wheel Center Action Button */}
             <button
-              onClick={handlePlay}
+              onClick={isVideo && youtubeId ? handleCoverClick : handlePlay}
               className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xl"
               style={{
                 background: isThisPlaying ? accent : "#161616",
@@ -234,13 +292,13 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
           </div>
         </div>
 
-        {/* Minimal Footer Play Indicator / Control */}
+        {/* Mobile footer button */}
         <button
-          onClick={handlePlay}
+          onClick={isVideo && youtubeId ? handleCoverClick : handlePlay}
           className="w-full mt-3 py-2 rounded-xl text-xs font-bold text-center border transition-all hover:bg-white/5 active:scale-[0.98] sm:hidden"
           style={{ borderColor: accent, color: accent }}
         >
-          {isThisPlaying ? "Pausar" : "Tocar Música"}
+          {isVideo ? (videoPlaying && !embedError ? "Reproduzindo..." : "▶ Assistir") : (isThisPlaying ? "Pausar" : "Tocar Música")}
         </button>
       </div>
     </motion.div>

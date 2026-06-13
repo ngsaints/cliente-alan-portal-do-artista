@@ -29,6 +29,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
   const [couponResult, setCouponResult] = useState<{ discountType: string; discountValue: string; discountAmount: string; finalPrice: string; originalPrice: string } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -37,6 +38,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
     setCouponCode("");
     setCouponResult(null);
     setCouponError("");
+    setConfirming(false);
     fetch("/api/plans")
       .then((res) => res.json())
       .then((data) => {
@@ -58,6 +60,14 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
       .catch((err) => console.error("Erro ao carregar planos:", err))
       .finally(() => setLoading(false));
   }, [isOpen]);
+
+  const handleSelectPlan = (planId: string) => {
+    if (selectedPlan === planId) return;
+    setSelectedPlan(planId);
+    setCouponCode("");
+    setCouponResult(null);
+    setCouponError("");
+  };
 
   const handleValidateCoupon = async () => {
     if (!couponCode || !selectedPlan) return;
@@ -83,10 +93,14 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
     }
   };
 
-  const handleContratar = (planId: string) => {
-    setSelectedPlan(planId);
-    onSelectPlan?.(planId, couponResult ? couponCode : undefined);
+  const handleConfirm = () => {
+    if (!selectedPlan) return;
+    setConfirming(true);
+    onSelectPlan?.(selectedPlan, couponResult ? couponCode : undefined);
   };
+
+  const isFree = selectedPlan === "free";
+  const canConfirm = selectedPlan && (!isFree || isFree);
 
   return (
     <AnimatePresence>
@@ -131,19 +145,20 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
               )}
               {!loading && plans.map((plan) => {
                 const isSelected = selectedPlan === plan.id;
-                const isFree = plan.id === "free";
-                const showDiscount = couponResult && isSelected && !isFree;
+                const planIsFree = plan.id === "free";
+                const showDiscount = couponResult && isSelected && !planIsFree;
 
                 return (
                   <motion.div
                     key={plan.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-xl border transition-all overflow-hidden ${
+                    onClick={() => handleSelectPlan(plan.id)}
+                    className={`rounded-xl border transition-all overflow-hidden cursor-pointer ${
                       isSelected
-                        ? "border-primary/50 bg-primary/5"
+                        ? "border-primary/50 bg-primary/5 ring-2 ring-primary/20"
                         : plan.id === "premium"
-                        ? "border-primary/30 bg-gradient-to-r from-primary/10 to-transparent"
+                        ? "border-primary/30 bg-gradient-to-r from-primary/10 to-transparent hover:border-primary/50"
                         : "border-border/40 bg-card/50 hover:border-border"
                     }`}
                   >
@@ -157,7 +172,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                                 ⭐ TOP
                               </span>
                             )}
-                            {isFree && (
+                            {planIsFree && (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">
                                 GRÁTIS
                               </span>
@@ -179,7 +194,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                                 R$ {parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                               </span>
                             )}
-                            {!isFree && <span className="text-xs text-muted-foreground">/mês</span>}
+                            {!planIsFree && <span className="text-xs text-muted-foreground">/mês</span>}
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 mb-3">
@@ -212,25 +227,13 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                           <p className="text-xs text-muted-foreground italic">{plan.fraseEfeito}</p>
                         </div>
                       </div>
-
-                      <button
-                        onClick={() => handleContratar(plan.id)}
-                        className={`w-full mt-3 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-                          isFree
-                            ? "bg-muted text-foreground hover:bg-muted/80"
-                            : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
-                        }`}
-                      >
-                        <Check className="w-4 h-4" />
-                        {isFree ? "Começar Grátis" : `Contratar ${plan.label}`}
-                      </button>
                     </div>
                   </motion.div>
                 );
               })}
             </div>
 
-            {selectedPlan && selectedPlan !== "free" && (
+            {selectedPlan && !isFree && (
               <div className="mt-4 pt-4 border-t border-border/40">
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   Cupom de Desconto
@@ -263,18 +266,44 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
               </div>
             )}
 
-            <div className="mt-6 pt-4 border-t border-border/40 text-center">
-              <p className="text-xs text-muted-foreground mb-2">
-                Cada plano é pensado para o momento da sua carreira.
-              </p>
-              <button
-                onClick={onClose}
-                className="text-sm text-primary hover:underline flex items-center gap-1 mx-auto"
-              >
-                Fechar
-                <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
+            {selectedPlan && (
+              <div className="mt-6 pt-4 border-t border-border/40 space-y-3">
+                <p className="text-xs text-muted-foreground text-center">
+                  {isFree
+                    ? "Plano gratuito — sem cobrança."
+                    : couponResult
+                    ? `Total: R$ ${parseFloat(couponResult.finalPrice).toFixed(2)} (economia de R$ ${parseFloat(couponResult.discountAmount).toFixed(2)})`
+                    : "Clique em Confirmar para prosseguir."}
+                </p>
+                <button
+                  onClick={handleConfirm}
+                  disabled={confirming}
+                  className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                    isFree
+                      ? "bg-muted text-foreground hover:bg-muted/80"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
+                  } disabled:opacity-50`}
+                >
+                  {confirming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {isFree ? "Começar Grátis" : `Confirmar ${plans.find(p => p.id === selectedPlan)?.label || ""}`}
+                </button>
+              </div>
+            )}
+
+            {!selectedPlan && (
+              <div className="mt-6 pt-4 border-t border-border/40 text-center">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Selecione um plano acima para continuar.
+                </p>
+                <button
+                  onClick={onClose}
+                  className="text-sm text-primary hover:underline flex items-center gap-1 mx-auto"
+                >
+                  Fechar
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}

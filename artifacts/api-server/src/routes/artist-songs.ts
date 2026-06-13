@@ -45,12 +45,22 @@ router.get("/artist/:artistId/songs", async (req, res): Promise<void> => {
       genero: s.genero,
       subgenero: s.subgenero,
       compositor: s.compositor,
+      letra: s.letra ?? null,
+      edicao: s.edicao ?? null,
+      distribuicao: s.distribuicao ?? null,
+      associacao: s.associacao ?? null,
       status: s.status,
       precoX: s.precoX,
       precoY: s.precoY,
       isVip: s.isVip,
+      vipCode: s.vipCode ?? null,
       capaUrl: s.capaPath || null,
       mp3Url: s.mp3Path || null,
+      youtubeUrl: s.youtubeUrl ?? null,
+      tipoMidia: s.tipoMidia ?? "audio",
+      isPrivate: s.isPrivate ?? false,
+      likes: s.likes ?? "0",
+      plays: s.plays ?? "0",
       createdAt: s.createdAt,
     })));
   } catch (error) {
@@ -81,10 +91,31 @@ router.post(
         return;
       }
 
-      const { titulo, descricao, genero, subgenero, compositor, letra, edicao, distribuicao, associacao, status, precoX, precoY, isVip, isPrivate } = req.body;
+      const { titulo, descricao, genero, subgenero, compositor, letra, edicao, distribuicao, associacao, status, precoX, precoY, isVip, isPrivate, tipoMidia, youtubeUrl } = req.body;
 
       if (!titulo || !genero) {
         res.status(400).json({ error: "Campos obrigatórios faltando" });
+        return;
+      }
+
+      const tipo = tipoMidia || "audio";
+
+      const files = req.files as Record<string, Express.Multer.File[]>;
+      const capaFile = files?.["capa"]?.[0];
+      const mp3File = files?.["mp3"]?.[0];
+
+      if (tipo === "audio") {
+        if (!capaFile || !mp3File) {
+          res.status(400).json({ error: "Para áudio, capa e arquivo MP3 são obrigatórios" });
+          return;
+        }
+      } else if (tipo === "video") {
+        if (!youtubeUrl) {
+          res.status(400).json({ error: "Para vídeo, link do YouTube é obrigatório" });
+          return;
+        }
+      } else {
+        res.status(400).json({ error: "Tipo de mídia inválido" });
         return;
       }
 
@@ -105,36 +136,35 @@ router.post(
         return;
       }
 
-      const files = req.files as Record<string, Express.Multer.File[]>;
-      const capaFile = files?.["capa"]?.[0];
-      const mp3File = files?.["mp3"]?.[0];
+      let capaPath: string | null = null;
+      let mp3Path: string | null = null;
 
-      if (!capaFile || !mp3File) {
-        res.status(400).json({ error: "Capa e arquivo MP3 são obrigatórios" });
-        return;
+      if (capaFile) {
+        if (r2Enabled) {
+          const capaKey = generateR2Key("covers", capaFile.originalname.replace(/\.\w+$/, ".jpg"));
+          const capaJpg = await sharp(capaFile.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+          capaPath = await uploadToR2(capaJpg, capaKey, "image/jpeg");
+        } else {
+          const coversDir = path.join(process.cwd(), "uploads/covers");
+          fs.mkdirSync(coversDir, { recursive: true });
+          const capaJpg = await sharp(capaFile.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+          const capaName = `${Date.now()}_${capaFile.originalname.replace(/\.\w+$/, ".jpg")}`;
+          fs.writeFileSync(path.join(coversDir, capaName), capaJpg);
+          capaPath = `/api/uploads/covers/${capaName}`;
+        }
       }
 
-      let capaPath: string;
-      let mp3Path: string;
-
-      if (r2Enabled) {
-        const capaKey = generateR2Key("covers", capaFile.originalname.replace(/\.\w+$/, ".jpg"));
-        const mp3Key = generateR2Key("audio", mp3File.originalname);
-        const capaJpg = await sharp(capaFile.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
-        capaPath = await uploadToR2(capaJpg, capaKey, "image/jpeg");
-        mp3Path = await uploadToR2(mp3File.buffer, mp3Key, mp3File.mimetype);
-      } else {
-        const coversDir = path.join(process.cwd(), "uploads/covers");
-        const audioDir = path.join(process.cwd(), "uploads/audio");
-        fs.mkdirSync(coversDir, { recursive: true });
-        fs.mkdirSync(audioDir, { recursive: true });
-        const capaJpg = await sharp(capaFile.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
-        const capaName = `${Date.now()}_${capaFile.originalname.replace(/\.\w+$/, ".jpg")}`;
-        const mp3Name = `${Date.now()}_${mp3File.originalname}`;
-        fs.writeFileSync(path.join(coversDir, capaName), capaJpg);
-        fs.writeFileSync(path.join(audioDir, mp3Name), mp3File.buffer);
-        capaPath = `/api/uploads/covers/${capaName}`;
-        mp3Path = `/api/uploads/audio/${mp3Name}`;
+      if (tipo === "audio" && mp3File) {
+        if (r2Enabled) {
+          const mp3Key = generateR2Key("audio", mp3File.originalname);
+          mp3Path = await uploadToR2(mp3File.buffer, mp3Key, mp3File.mimetype);
+        } else {
+          const audioDir = path.join(process.cwd(), "uploads/audio");
+          fs.mkdirSync(audioDir, { recursive: true });
+          const mp3Name = `${Date.now()}_${mp3File.originalname}`;
+          fs.writeFileSync(path.join(audioDir, mp3Name), mp3File.buffer);
+          mp3Path = `/api/uploads/audio/${mp3Name}`;
+        }
       }
 
       const vipFlag = isVip === "true" || isVip === "1";
@@ -156,8 +186,10 @@ router.post(
           status: status || "Disponível",
           precoX: precoX || null,
           precoY: precoY || null,
-          capaPath,
-          mp3Path,
+          capaPath: capaPath || null,
+          mp3Path: mp3Path || null,
+          youtubeUrl: youtubeUrl || null,
+          tipoMidia: tipo,
           isVip: vipFlag,
           isPrivate: privateFlag,
         })

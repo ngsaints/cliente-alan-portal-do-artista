@@ -146,15 +146,13 @@ export function MusicCard({ song, index, cardStyle = "default" }: MusicCardProps
               <img
                 src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
                 alt={song.titulo}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 cursor-pointer"
+                onClick={handlePlayVideo}
               />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
-                <button
-                  onClick={handlePlayVideo}
-                  className="w-16 h-16 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
-                >
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px] pointer-events-none">
+                <span className="w-16 h-16 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg">
                   <Play className="w-8 h-8 fill-current ml-1" />
-                </button>
+                </span>
               </div>
             </>
           )
