@@ -458,74 +458,8 @@ function SongsTab() {
           >
             <X className="w-4 h-4" />
           </button>
-      )}
-
-      {grantModalOpen && (
-        <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4" onClick={() => setGrantModalOpen(false)}>
-          <div className="bg-card border border-border/40 rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-violet-400" />
-                <h3 className="text-lg font-bold text-foreground">Conceder Plano</h3>
-              </div>
-              <button onClick={() => setGrantModalOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-sm text-muted-foreground mb-4">
-              Artista: <span className="text-foreground font-medium">{grantArtistName}</span>
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Plano</label>
-                <select
-                  value={grantPlano}
-                  onChange={(e) => setGrantPlano(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                >
-                  {PLANOS.filter(p => p !== "free").map(p => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Duração</label>
-                <select
-                  value={grantDuracao}
-                  onChange={(e) => setGrantDuracao(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                >
-                  <option value="1">1 mês</option>
-                  <option value="3">3 meses</option>
-                  <option value="6">6 meses</option>
-                  <option value="12">12 meses</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setGrantModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl font-semibold bg-muted text-foreground hover:bg-muted/80 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleGrantPlan}
-                disabled={grantSaving}
-                className="flex-1 py-2.5 rounded-xl font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {grantSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
-                Conceder
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
 
       {/* List */}
       {isLoading ? (
@@ -1226,6 +1160,72 @@ function ArtistsTab() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {grantModalOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4" onClick={() => setGrantModalOpen(false)}>
+          <div className="bg-card border border-border/40 rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Gift className="w-5 h-5 text-violet-400" />
+                <h3 className="text-lg font-bold text-foreground">Conceder Plano</h3>
+              </div>
+              <button onClick={() => setGrantModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm text-muted-foreground mb-4">
+              Artista: <span className="text-foreground font-medium">{grantArtistName}</span>
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Plano</label>
+                <select
+                  value={grantPlano}
+                  onChange={(e) => setGrantPlano(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                >
+                  {PLANOS.filter(p => p !== "free").map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Duração</label>
+                <select
+                  value={grantDuracao}
+                  onChange={(e) => setGrantDuracao(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                >
+                  <option value="1">1 mês</option>
+                  <option value="3">3 meses</option>
+                  <option value="6">6 meses</option>
+                  <option value="12">12 meses</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setGrantModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl font-semibold bg-muted text-foreground hover:bg-muted/80 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGrantPlan}
+                disabled={grantSaving}
+                className="flex-1 py-2.5 rounded-xl font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {grantSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
+                Conceder
+              </button>
+            </div>
           </div>
         </div>
       )}

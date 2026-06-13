@@ -5,8 +5,7 @@ import {
   User, Music, BarChart3, Settings, Upload, Eye, EyeOff, 
   TrendingUp, TrendingUpDown, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
-  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle,
-  TrendingUpDown
+  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle
 } from "lucide-react";
 import {
   Command,
