@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import sharp from "sharp";
 import { db, songsTable, artistsTable, interestsTable, plansTable, appSettingsTable, subscriptionsTable } from "@workspace/db";
-import { eq, sql, count, and, inArray } from "drizzle-orm";
+import { eq, ne, sql, count, and, inArray } from "drizzle-orm";
 import { FREE_PLAN } from "./payments";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getAsaasCredentials } from "../lib/asaas-client.js";
@@ -123,7 +123,11 @@ router.put("/admin/settings", upload.fields([
     }
 
     if (req.body.demo_banners_metadata) {
-      const metadata = JSON.parse(req.body.demo_banners_metadata);
+      let rawMetadata = req.body.demo_banners_metadata;
+      if (Array.isArray(rawMetadata)) {
+        rawMetadata = rawMetadata[rawMetadata.length - 1];
+      }
+      const metadata = JSON.parse(rawMetadata);
       const uploadedFiles = files?.["demo_banner_url"] || [];
       let newFileIdx = 0;
       const demoBanners: { url: string; link: string }[] = [];
@@ -158,13 +162,18 @@ router.put("/admin/settings", upload.fields([
     const updates = req.body as Record<string, string>;
     for (const [key, value] of Object.entries(updates)) {
       if (!key || key === "undefined") continue;
-      if (key === "demo_capa_url" || key === "demo_banner_url") continue;
+      if (key === "demo_capa_url" || key === "demo_banner_url" || key === "demo_banners_metadata") continue;
 
       await db
         .insert(appSettingsTable)
         .values({ key, value, category: inferCategory(key), isSecret: "false", updatedAt: new Date() })
         .onConflictDoUpdate({ target: appSettingsTable.key, set: { value, updatedAt: new Date() } });
     }
+
+    // Clean up any accidental metadata rows from the database
+    await db
+      .delete(appSettingsTable)
+      .where(eq(appSettingsTable.key, "demo_banners_metadata"));
 
     res.json({ message: "Configurações atualizadas com sucesso" });
   } catch (error) {
@@ -185,7 +194,12 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
     const settings = await db
       .select()
       .from(appSettingsTable)
-      .where(eq(appSettingsTable.category, category))
+      .where(
+        and(
+          eq(appSettingsTable.category, category),
+          ne(appSettingsTable.key, "demo_banners_metadata")
+        )
+      )
       .orderBy(appSettingsTable.key);
 
     const result = settings.map(s => ({

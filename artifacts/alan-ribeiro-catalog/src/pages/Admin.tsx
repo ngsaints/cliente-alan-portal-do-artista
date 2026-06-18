@@ -1949,7 +1949,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
     if (category === "demo") {
       const formData = new FormData();
       for (const [key, value] of Object.entries(values)) {
-        if (key === "demo_banner_url" || key === "demo_capa_url") continue;
+        if (key === "demo_banner_url" || key === "demo_capa_url" || key === "demo_banners_metadata") continue;
         formData.append(key, value);
       }
 
