@@ -1904,9 +1904,10 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [demoFiles, setDemoFiles] = useState<Record<string, File>>({});
+  const [demoBannersList, setDemoBannersList] = useState<{ id: string; url?: string; file?: File; filePreview?: string; link: string }[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
+  const loadSettings = () => {
     setLoading(true);
     fetch(`/api/admin/settings/${category}`, { credentials: "include" })
       .then((r) => r.json())
@@ -1917,16 +1918,74 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           initial[s.key] = s.rawValue || "";
         });
         setValues(initial);
+
+        if (category === "demo") {
+          const bannerSetting = (Array.isArray(d) ? d : []).find(s => s.key === "demo_banner_url");
+          const val = bannerSetting?.rawValue || "";
+          try {
+            const parsed = JSON.parse(val);
+            if (Array.isArray(parsed)) {
+              setDemoBannersList(parsed.map((b, idx) => ({ id: String(idx), url: b.url, link: b.link || "" })));
+            } else {
+              setDemoBannersList(val ? [{ id: "1", url: val, link: "" }] : []);
+            }
+          } catch {
+            setDemoBannersList(val ? [{ id: "1", url: val, link: "" }] : []);
+          }
+        }
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadSettings();
   }, [category]);
 
   const handleSave = async () => {
     setSaving(true);
 
-    const isDemoWithFiles = category === "demo" && Object.keys(demoFiles).length > 0;
+    const isDemoWithFiles = category === "demo" && (Object.keys(demoFiles).length > 0 || demoBannersList.some(b => b.file));
 
-    if (isDemoWithFiles) {
+    if (category === "demo") {
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(values)) {
+        if (key === "demo_banner_url" || key === "demo_capa_url") continue;
+        formData.append(key, value);
+      }
+
+      if (demoFiles["demo_capa_url"]) {
+        formData.append("demo_capa_url", demoFiles["demo_capa_url"]);
+      }
+
+      const metadata: any[] = [];
+      let newFileCount = 0;
+
+      demoBannersList.forEach((item) => {
+        if (item.file) {
+          metadata.push({ isNew: true, fileIndex: newFileCount, link: item.link });
+          formData.append("demo_banner_url", item.file);
+          newFileCount++;
+        } else if (item.url) {
+          metadata.push({ url: item.url, link: item.link });
+        }
+      });
+
+      formData.append("demo_banners_metadata", JSON.stringify(metadata));
+
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      });
+      setSaving(false);
+      if (res.ok) {
+        setDemoFiles({});
+        toast({ title: "Configurações salvas com sucesso!" });
+        loadSettings();
+      } else {
+        toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+      }
+    } else if (isDemoWithFiles) {
       const formData = new FormData();
       for (const [key, value] of Object.entries(values)) {
         formData.append(key, value);
@@ -1943,6 +2002,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       if (res.ok) {
         setDemoFiles({});
         toast({ title: "Configurações salvas com sucesso!" });
+        loadSettings();
       } else {
         toast({ title: "Erro ao salvar configurações", variant: "destructive" });
       }
@@ -1956,6 +2016,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       setSaving(false);
       if (res.ok) {
         toast({ title: "Configurações salvas com sucesso!" });
+        loadSettings();
       } else {
         toast({ title: "Erro ao salvar configurações", variant: "destructive" });
       }
@@ -1983,32 +2044,6 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
 
   return (
     <div className="space-y-6">
-      {category === "demo" && (
-        <div className="bg-gradient-to-r from-yellow-900/30 to-yellow-800/10 border border-yellow-500/30 rounded-2xl p-5 space-y-3">
-          <div className="flex items-center gap-2 text-yellow-400">
-            <HelpCircle className="w-5 h-5" />
-            <h3 className="font-bold text-lg">Como Configurar o Carrossel de Imagens (Publicidade)</h3>
-          </div>
-          <div className="text-sm text-muted-foreground space-y-2">
-            <p>
-              O banner da Página Demo agora funciona como um carrossel de anúncios dinâmicos configurável.
-            </p>
-            <p className="text-xs">
-              Para cadastrar novas imagens no carrossel, definir a ordem de exibição, adicionar os botões de ação com links de redirecionamento (CTA) e ajustar os tempos de transição, utilize a aba de <strong>Banners</strong> do painel administrativo.
-            </p>
-          </div>
-          <div className="pt-2 border-t border-yellow-500/20">
-            <button
-              type="button"
-              onClick={() => onNavigate?.("banners")}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-bold rounded-xl text-sm hover:bg-primary/90 transition-all shadow-lg hover:scale-[1.02]"
-            >
-              <Layout className="w-4 h-4" />
-              Ir para o Gerenciador de Banners
-            </button>
-          </div>
-        </div>
-      )}
       {category === "asaas" && (
         <div className="bg-gradient-to-r from-emerald-900/30 to-emerald-800/10 border border-emerald-500/30 rounded-2xl p-5 space-y-3">
           <div className="flex items-center gap-2 text-emerald-400">
@@ -2108,7 +2143,84 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                   className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm"
                 />
               </div>
-            ) : category === "demo" && (s.key === "demo_capa_url" || s.key === "demo_banner_url") ? (
+            ) : category === "demo" && s.key === "demo_banner_url" ? (
+              <div className="space-y-4 bg-background/30 p-4 rounded-2xl border border-border/60">
+                <p className="text-[11px] text-muted-foreground">
+                  Adicione múltiplas imagens para criar um carrossel de publicidade na Página Demo. Cada imagem pode ter um link de redirecionamento.
+                </p>
+                <p className="text-[11px] font-medium text-primary">
+                  Tamanho recomendado: 1200x400px (proporção 3:1) para melhor preenchimento.
+                </p>
+
+                {/* Banner list */}
+                {demoBannersList.length > 0 && (
+                  <div className="space-y-3">
+                    {demoBannersList.map((item, idx) => (
+                      <div key={item.id} className="flex items-center gap-4 bg-card border border-border p-3 rounded-xl">
+                        {/* Thumbnail */}
+                        <div className="w-20 h-10 rounded-lg overflow-hidden border border-border bg-muted flex-shrink-0">
+                          <img
+                            src={item.filePreview || item.url}
+                            alt={`Banner ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        {/* Link input */}
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            placeholder="Link do botão (ex: https://...)"
+                            value={item.link}
+                            onChange={(e) => {
+                              const newList = [...demoBannersList];
+                              newList[idx].link = e.target.value;
+                              setDemoBannersList(newList);
+                            }}
+                            className="w-full px-3 py-1.5 bg-input border border-border rounded-lg text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+
+                        {/* Remove button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDemoBannersList(demoBannersList.filter(b => b.id !== item.id));
+                          }}
+                          className="p-1.5 hover:bg-destructive/15 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add banner input */}
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      if (file) {
+                        const reader = new FileReader();
+                        const id = Math.random().toString(36).substring(7);
+                        reader.onloadend = () => {
+                          setDemoBannersList(prev => [
+                            ...prev,
+                            { id, file, filePreview: reader.result as string, link: "" }
+                          ]);
+                        };
+                        reader.readAsDataURL(file);
+                        e.target.value = "";
+                      }
+                    }}
+                    className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-foreground text-sm file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
+                  />
+                </div>
+              </div>
+            ) : category === "demo" && s.key === "demo_capa_url" ? (
               <div>
                 <input
                   type="file"

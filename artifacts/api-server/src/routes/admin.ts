@@ -103,7 +103,7 @@ router.get("/admin/settings", async (req, res): Promise<void> => {
 // PUT /admin/settings - Update app settings
 router.put("/admin/settings", upload.fields([
   { name: "demo_capa_url", maxCount: 1 },
-  { name: "demo_banner_url", maxCount: 1 },
+  { name: "demo_banner_url", maxCount: 10 },
 ]), async (req, res): Promise<void> => {
   if (!req.session.logado) {
     res.status(401).json({ error: "Não autorizado" });
@@ -121,7 +121,32 @@ router.put("/admin/settings", upload.fields([
         .values({ key: "demo_capa_url", value: url, category: "demo", isSecret: "false", description: "Foto de perfil da página demo", updatedAt: new Date() })
         .onConflictDoUpdate({ target: appSettingsTable.key, set: { value: url, updatedAt: new Date() } });
     }
-    if (files?.["demo_banner_url"]?.[0]) {
+
+    if (req.body.demo_banners_metadata) {
+      const metadata = JSON.parse(req.body.demo_banners_metadata);
+      const uploadedFiles = files?.["demo_banner_url"] || [];
+      let newFileIdx = 0;
+      const demoBanners: { url: string; link: string }[] = [];
+
+      for (const item of metadata) {
+        if (item.isNew) {
+          const file = uploadedFiles[newFileIdx];
+          if (file) {
+            const url = await saveDemoImage(file.buffer, file.originalname);
+            demoBanners.push({ url, link: item.link || "" });
+            newFileIdx++;
+          }
+        } else if (item.url) {
+          demoBanners.push({ url: item.url, link: item.link || "" });
+        }
+      }
+
+      const value = JSON.stringify(demoBanners);
+      await db
+        .insert(appSettingsTable)
+        .values({ key: "demo_banner_url", value, category: "demo", isSecret: "false", description: "Carrossel de banners da página demo", updatedAt: new Date() })
+        .onConflictDoUpdate({ target: appSettingsTable.key, set: { value, updatedAt: new Date() } });
+    } else if (files?.["demo_banner_url"]?.[0]) {
       const url = await saveDemoImage(files["demo_banner_url"][0].buffer, files["demo_banner_url"][0].originalname);
       await db
         .insert(appSettingsTable)
