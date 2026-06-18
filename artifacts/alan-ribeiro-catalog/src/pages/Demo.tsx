@@ -1,7 +1,6 @@
 import { useParams, useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
-import { CTACarouselBanner } from "@/components/CTACarouselBanner";
 import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { useListSongs } from "@workspace/api-client-react";
@@ -42,6 +41,24 @@ export default function Demo() {
   const [demoSettings, setDemoSettings] = useState<Record<string, string>>({});
   const [artistLoggedIn, setArtistLoggedIn] = useState(false);
   const [loggedInArtistId, setLoggedInArtistId] = useState<number | null>(null);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/banners")
+      .then((r) => r.json())
+      .then((data) => setBanners(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = banners[currentBannerIndex]?.intervaloSegundos || 4;
+    const timer = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+    }, interval * 1000);
+    return () => clearInterval(timer);
+  }, [banners, currentBannerIndex]);
 
   useSEO({
     title: "Demonstração - Portal do Artista",
@@ -124,6 +141,8 @@ export default function Demo() {
     ...(demoSettings.demo_banner_url ? { bannerUrl: demoSettings.demo_banner_url } : {}),
     ...(demoSettings.demo_capa_url ? { capaUrl: demoSettings.demo_capa_url } : {}),
   };
+
+  const currentBanner = banners[currentBannerIndex] || null;
 
   const [interests, setInterests] = useState<Interest[]>([
     {
@@ -219,18 +238,112 @@ export default function Demo() {
         </div>
       </div>
 
-      {/* Banner Carousel */}
-      <CTACarouselBanner />
+      {/* Artist Profile with Banner (Carousel or Static Fallback) */}
+      <section className="relative h-[320px] md:h-[400px] overflow-hidden">
+        {banners.length > 0 ? (
+          <div className="absolute inset-0">
+            {banners.map((b, idx) => (
+              <div
+                key={b.id}
+                className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
+                  idx === currentBannerIndex ? "opacity-100" : "opacity-0 pointer-events-none"
+                }`}
+                style={{
+                  backgroundImage: b.imagemFundoUrl ? `url("${b.imagemFundoUrl}")` : "none",
+                  backgroundColor: b.corFundo || "#1a1a2e",
+                }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: artist.bannerUrl ? `url("${artist.bannerUrl}")` : "none",
+              backgroundColor: artist.cor || "#1a1a2e",
+            }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
 
-      {/* Artist Identity Section */}
-      <section className="px-4 sm:px-6 lg:px-8 mt-8 mb-6">
-        <div className="max-w-3xl mx-auto flex flex-col items-center text-center">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 mb-3">
+        {/* Demo Badge */}
+        <div className="absolute top-4 left-4 z-10">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 shadow-lg">
             <Zap className="w-3 h-3" />
             Demonstração
           </span>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-foreground mb-1">{artist.name}</h1>
-          <p className="text-base text-muted-foreground">{artist.profissao}</p>
+        </div>
+
+        {/* Banner Text in the center/top */}
+        {currentBanner && currentBanner.texto && (
+          <div className="absolute inset-x-0 top-12 bottom-20 flex items-center justify-center p-4 pointer-events-none z-10">
+            <h2
+              className="text-xl md:text-3xl font-extrabold text-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] max-w-2xl px-6"
+              style={{ color: currentBanner.corTexto || "#ffffff" }}
+            >
+              {currentBanner.texto}
+            </h2>
+          </div>
+        )}
+
+        {/* Artist info overlay */}
+        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 z-20">
+          {/* Left: Artist Info without profile picture */}
+          <div className="space-y-1">
+            <h1 className="text-3xl md:text-5xl font-extrabold text-foreground mb-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+              {artist.name}
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground font-medium mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+              {artist.profissao}
+            </p>
+            <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-muted-foreground">
+              {artist.cidade && (
+                <span className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  {artist.cidade}
+                </span>
+              )}
+              {artist.instagram && (
+                <a
+                  href={`https://instagram.com/${artist.instagram}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium hover:text-primary transition-colors"
+                >
+                  <Instagram className="w-3.5 h-3.5 text-pink-400" />
+                  @{artist.instagram}
+                </a>
+              )}
+              {artist.spotify && (
+                <a
+                  href={artist.spotify}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium hover:text-primary transition-colors"
+                >
+                  <Globe className="w-3.5 h-3.5 text-green-400" />
+                  Spotify
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Banner CTA button */}
+          {currentBanner && currentBanner.botaoTexto && currentBanner.botaoLink && (
+            <div className="mt-2 md:mt-0">
+              <a
+                href={currentBanner.botaoLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-all shadow-lg hover:scale-105"
+              >
+                <span>{currentBanner.botaoTexto}</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          )}
         </div>
       </section>
 

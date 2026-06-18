@@ -300,7 +300,7 @@ function AdminDashboard() {
           {activeTab === "plans" && <PlansTab />}
           {activeTab === "genres"    && <GenresTab />}
           {activeTab === "interests" && <InterestsTab />}
-          {activeTab === "settings" && <SettingsTab />}
+          {activeTab === "settings" && <SettingsTab onNavigate={setActiveTab} />}
           {activeTab === "banners" && <BannersTab />}
           {activeTab === "cities" && <CitiesTab />}
           {activeTab === "playlists" && <PlaylistsTab />}
@@ -1794,7 +1794,7 @@ function InterestsTab() {
 
 // ─── Tab 6: Configurações ─────────────────────────────────────────────────────
 
-function SettingsTab() {
+function SettingsTab({ onNavigate }: { onNavigate?: (tab: MainTab) => void }) {
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>("asaas");
 
   const categories: { id: SettingsCategory; label: string; icon: React.ElementType; color: string }[] = [
@@ -1830,7 +1830,7 @@ function SettingsTab() {
         ))}
       </div>
 
-      <SettingsCategoryForm key={activeCategory} category={activeCategory} />
+      <SettingsCategoryForm key={activeCategory} category={activeCategory} onNavigate={onNavigate} />
 
       {activeCategory === "portal" && (
         /* Hero Section Settings */
@@ -1897,7 +1897,7 @@ function AddSettingForm({ category, onAdd }: { category: SettingsCategory; onAdd
   );
 }
 
-function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
+function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCategory; onNavigate?: (tab: MainTab) => void }) {
   const [settings, setSettings] = useState<Setting[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
@@ -1983,6 +1983,32 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
 
   return (
     <div className="space-y-6">
+      {category === "demo" && (
+        <div className="bg-gradient-to-r from-yellow-900/30 to-yellow-800/10 border border-yellow-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2 text-yellow-400">
+            <HelpCircle className="w-5 h-5" />
+            <h3 className="font-bold text-lg">Como Configurar o Carrossel de Imagens (Publicidade)</h3>
+          </div>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>
+              O banner da Página Demo agora funciona como um carrossel de anúncios dinâmicos configurável.
+            </p>
+            <p className="text-xs">
+              Para cadastrar novas imagens no carrossel, definir a ordem de exibição, adicionar os botões de ação com links de redirecionamento (CTA) e ajustar os tempos de transição, utilize a aba de <strong>Banners</strong> do painel administrativo.
+            </p>
+          </div>
+          <div className="pt-2 border-t border-yellow-500/20">
+            <button
+              type="button"
+              onClick={() => onNavigate?.("banners")}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-bold rounded-xl text-sm hover:bg-primary/90 transition-all shadow-lg hover:scale-[1.02]"
+            >
+              <Layout className="w-4 h-4" />
+              Ir para o Gerenciador de Banners
+            </button>
+          </div>
+        </div>
+      )}
       {category === "asaas" && (
         <div className="bg-gradient-to-r from-emerald-900/30 to-emerald-800/10 border border-emerald-500/30 rounded-2xl p-5 space-y-3">
           <div className="flex items-center gap-2 text-emerald-400">
@@ -2098,7 +2124,7 @@ function SettingsCategoryForm({ category }: { category: SettingsCategory }) {
                   }}
                   className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-foreground text-sm file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
                 />
-                {values[s.key] && values[s.key].startsWith("http") && (
+                 {values[s.key] && (values[s.key].startsWith("http") || values[s.key].startsWith("data:") || values[s.key].startsWith("/uploads") || values[s.key].startsWith("/")) && (
                   <div className="mt-2 relative inline-block">
                     <img src={values[s.key]} alt={s.key} className="h-24 w-24 object-cover rounded-lg border border-border" />
                     <button
