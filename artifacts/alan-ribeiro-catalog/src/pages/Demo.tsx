@@ -290,44 +290,56 @@ export default function Demo() {
         </div>
 
         {/* Artist info overlay */}
-        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 z-20">
-          {/* Left: Artist Info without profile picture */}
-          <div className="space-y-1">
-            <h1 className="text-3xl md:text-5xl font-extrabold text-foreground mb-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
-              {artist.name}
-            </h1>
-            <p className="text-sm md:text-base text-muted-foreground font-medium mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-              {artist.profissao}
-            </p>
-            <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-muted-foreground">
-              {artist.cidade && (
-                <span className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium">
-                  <MapPin className="w-3.5 h-3.5 text-primary" />
-                  {artist.cidade}
-                </span>
+        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6 z-20">
+          {/* Left side: Avatar + Info */}
+          <div className="flex items-end gap-4 md:gap-6">
+            {/* Avatar */}
+            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center bg-card">
+              {artist.capaUrl ? (
+                <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover" />
+              ) : (
+                <Music className="w-12 h-12 text-primary" />
               )}
-              {artist.instagram && (
-                <a
-                  href={`https://instagram.com/${artist.instagram}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium hover:text-primary transition-colors"
-                >
-                  <Instagram className="w-3.5 h-3.5 text-pink-400" />
-                  @{artist.instagram}
-                </a>
-              )}
-              {artist.spotify && (
-                <a
-                  href={artist.spotify}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium hover:text-primary transition-colors"
-                >
-                  <Globe className="w-3.5 h-3.5 text-green-400" />
-                  Spotify
-                </a>
-              )}
+            </div>
+
+            {/* Info text */}
+            <div className="space-y-1">
+              <h1 className="text-3xl md:text-5xl font-extrabold text-foreground mb-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+                {artist.name}
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground font-medium mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                {artist.profissao}
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-muted-foreground">
+                {artist.cidade && (
+                  <span className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium">
+                    <MapPin className="w-3.5 h-3.5 text-primary" />
+                    {artist.cidade}
+                  </span>
+                )}
+                {artist.instagram && (
+                  <a
+                    href={`https://instagram.com/${artist.instagram}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium hover:text-primary transition-colors"
+                  >
+                    <Instagram className="w-3.5 h-3.5 text-pink-400" />
+                    @{artist.instagram}
+                  </a>
+                )}
+                {artist.spotify && (
+                  <a
+                    href={artist.spotify}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium hover:text-primary transition-colors"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-green-400" />
+                    Spotify
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 
