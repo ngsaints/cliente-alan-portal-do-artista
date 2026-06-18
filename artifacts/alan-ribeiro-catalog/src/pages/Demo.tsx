@@ -1,11 +1,11 @@
 import { useParams, useLocation } from "wouter";
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
+import { CTACarouselBanner } from "@/components/CTACarouselBanner";
 import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { useListSongs } from "@workspace/api-client-react";
-import { Music, MapPin, Instagram, Mic2, Disc3, Zap, CheckCircle, Phone, Mail, Globe } from "lucide-react";
+import { Music, MapPin, Instagram, Disc3, Zap, CheckCircle, Phone, Mail, Globe } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { PlansModal } from "@/components/PlansModal";
 import { NotificationBell, type Interest } from "@/components/NotificationBell";
@@ -219,77 +219,18 @@ export default function Demo() {
         </div>
       </div>
 
-      {/* Artist Profile with Banner */}
-      <section className="relative h-[300px] md:h-[400px] overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: artist.bannerUrl
-              ? `url("${artist.bannerUrl}")`
-              : "none",
-            backgroundColor: artist.cor || "#1a1a2e",
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+      {/* Banner Carousel */}
+      <CTACarouselBanner />
 
-        {/* Demo Badge */}
-        <div className="absolute top-4 left-4 z-10">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/20">
+      {/* Artist Identity Section */}
+      <section className="px-4 sm:px-6 lg:px-8 mt-8 mb-6">
+        <div className="max-w-3xl mx-auto flex flex-col items-center text-center">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 mb-3">
             <Zap className="w-3 h-3" />
             Demonstração
           </span>
-        </div>
-
-        {/* Artist info overlay */}
-        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 flex items-end gap-6">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center"
-          >
-            {artist.capaUrl ? (
-              <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover" />
-            ) : (
-              <Music className="w-16 h-16 text-primary" />
-            )}
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <h1 className="text-3xl md:text-5xl font-extrabold text-foreground mb-2">{artist.name}</h1>
-            <p className="text-lg text-muted-foreground mb-2">{artist.profissao}</p>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                {artist.cidade}
-              </span>
-              {artist.instagram && (
-                <a
-                  href={`https://instagram.com/${artist.instagram}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 hover:text-primary transition-colors"
-                >
-                  <Instagram className="w-4 h-4" />
-                  @{artist.instagram}
-                </a>
-              )}
-              {artist.spotify && (
-                <a
-                  href={artist.spotify}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 hover:text-primary transition-colors"
-                >
-                  <Mic2 className="w-4 h-4" />
-                  Spotify
-                </a>
-              )}
-            </div>
-          </motion.div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-foreground mb-1">{artist.name}</h1>
+          <p className="text-base text-muted-foreground">{artist.profissao}</p>
         </div>
       </section>
 

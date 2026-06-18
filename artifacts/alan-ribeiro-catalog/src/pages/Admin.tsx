@@ -2508,6 +2508,7 @@ function BannerModal({ banner, onClose, onSaved }: { banner: CtaBanner | null; o
 
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">Imagem de Fundo (upload)</label>
+            <p className="text-[11px] text-muted-foreground mb-2">Tamanho recomendado: 1200x400px (proporção 3:1) para melhor preenchimento no carrossel.</p>
             <input
               type="file"
               accept="image/*"
