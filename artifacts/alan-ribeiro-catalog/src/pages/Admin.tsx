@@ -1897,6 +1897,54 @@ function AddSettingForm({ category, onAdd }: { category: SettingsCategory; onAdd
   );
 }
 
+const SETTING_LABELS: Record<string, string> = {
+  // Portal / Geral
+  portal_name: "Nome do portal",
+  portal_url: "URL do portal",
+  portal_email: "E-mail de contato",
+  artist_name: "Nome do artista (Padrão)",
+  vip_password: "Senha da Área VIP",
+  
+  // Asaas
+  asaas_access_token: "Token de Acesso Asaas",
+  asaas_sandbox: "Modo de Sandbox Asaas",
+
+  // MercadoPago
+  mp_access_token: "Token de Acesso Mercado Pago",
+  mp_public_key: "Chave Pública Mercado Pago",
+
+  // E-mail
+  smtp_host: "Servidor SMTP",
+  smtp_port: "Porta SMTP",
+  smtp_user: "Usuário SMTP",
+  smtp_pass: "Senha SMTP",
+  email_from: "Remetente de E-mail (from)",
+
+  // Demo
+  demo_capa_url: "Foto de perfil",
+  demo_banner_url: "Carrossel de banners",
+  demo_name: "Nome do artista",
+  demo_profissao: "Profissão",
+  demo_cidade: "Cidade",
+  demo_contato: "Telefone / WhatsApp",
+  demo_email: "E-mail",
+  demo_instagram: "Instagram",
+  demo_tiktok: "TikTok",
+  demo_spotify: "Spotify",
+  demo_cor: "Cor tema",
+};
+
+function getSettingLabel(key: string): string {
+  return SETTING_LABELS[key] || key;
+}
+
+function getSettingDescription(key: string, defaultDesc: string): string {
+  if (key === "demo_capa_url") {
+    return "Foto de perfil do artista (redonda).";
+  }
+  return defaultDesc;
+}
+
 function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCategory; onNavigate?: (tab: MainTab) => void }) {
   const [settings, setSettings] = useState<Setting[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -2109,14 +2157,14 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
         {settings.map((s) => (
           <div key={s.key}>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-sm font-medium text-foreground">{s.key}</label>
+              <label className="text-sm font-medium text-foreground">{getSettingLabel(s.key)}</label>
               {s.isSecret && (
                 <span className="text-xs text-muted-foreground bg-background/80 px-2 py-0.5 rounded-full border border-border">
                   Secreto
                 </span>
               )}
             </div>
-            {s.description && <p className="text-xs text-muted-foreground mb-2">{s.description}</p>}
+            {s.description && <p className="text-xs text-muted-foreground mb-2">{getSettingDescription(s.key, s.description)}</p>}
             {s.key === "asaas_sandbox" ? (
               <div className="flex items-center gap-3">
                 <Switch

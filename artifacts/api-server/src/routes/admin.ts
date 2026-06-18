@@ -118,8 +118,8 @@ router.put("/admin/settings", upload.fields([
       const url = await saveDemoImage(files["demo_capa_url"][0].buffer, files["demo_capa_url"][0].originalname);
       await db
         .insert(appSettingsTable)
-        .values({ key: "demo_capa_url", value: url, category: "demo", isSecret: "false", description: "Foto de perfil da página demo", updatedAt: new Date() })
-        .onConflictDoUpdate({ target: appSettingsTable.key, set: { value: url, updatedAt: new Date() } });
+        .values({ key: "demo_capa_url", value: url, category: "demo", isSecret: "false", description: "Foto de perfil do artista", updatedAt: new Date() })
+        .onConflictDoUpdate({ target: appSettingsTable.key, set: { value: url, description: "Foto de perfil do artista", updatedAt: new Date() } });
     }
 
     if (req.body.demo_banners_metadata) {
@@ -191,6 +191,13 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
 
   try {
     const { category } = req.params;
+    if (category === "demo") {
+      await db
+        .update(appSettingsTable)
+        .set({ description: "Foto de perfil do artista" })
+        .where(eq(appSettingsTable.key, "demo_capa_url"));
+    }
+
     const settings = await db
       .select()
       .from(appSettingsTable)
