@@ -5,7 +5,7 @@ import {
   User, Music, BarChart3, Settings, Upload, Eye, EyeOff, 
   TrendingUp, TrendingUpDown, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
-  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle
+  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle, Share2
 } from "lucide-react";
 import {
   Command,
@@ -19,6 +19,7 @@ import { Navbar } from "@/components/Navbar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useGenres } from "@/hooks/useGenres";
 import { usePlayer, PlayerStyle } from "@/contexts/PlayerContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface ArtistStats {
   totalSongs: number;
@@ -368,6 +369,7 @@ export default function ArtistDashboard() {
   const [stats, setStats] = useState<ArtistStats>({ totalSongs: 0, totalPlays: 0, totalLikes: 0, vipContent: 0 });
   const [songs, setSongs] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const { genres } = useGenres();
@@ -1381,6 +1383,21 @@ export default function ArtistDashboard() {
                           {song.isVip && <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400">VIP</span>}
                           {song.isPrivate && <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-400">Privada</span>}
                           {song.tipoMidia === "video" && <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400">Vídeo</span>}
+                          <button
+                            onClick={() => {
+                              const publicPath = artist?.slug ? `/${artist.slug}` : `/artista/${artist?.id}`;
+                              const shareUrl = `${window.location.origin}${publicPath}?musica=${song.id}`;
+                              navigator.clipboard.writeText(shareUrl);
+                              toast({
+                                title: "Link de compartilhamento copiado!",
+                                description: "Você pode colar e enviar para quem quiser.",
+                              });
+                            }}
+                            className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            title="Copiar link de compartilhamento da música"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => { setSongToAddToPlaylist(song); setShowAddToPlaylist(true); }}
                             className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"

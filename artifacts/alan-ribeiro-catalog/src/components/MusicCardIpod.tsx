@@ -1,12 +1,14 @@
 import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Play, Pause, Youtube, ExternalLink, Music } from "lucide-react";
+import { Play, Pause, Youtube, ExternalLink, Music, Share2 } from "lucide-react";
 import { type Song } from "@workspace/api-client-react";
 import { usePlayer } from "@/contexts/PlayerContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface MusicCardIpodProps {
   song: Song;
   index: number;
+  highlighted?: boolean;
 }
 
 function formatTime(sec: number) {
@@ -24,13 +26,14 @@ function extractYouTubeId(url: string): string | null {
   return m ? m[1] : null;
 }
 
-export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
+export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpodProps) {
   const {
     currentSong, isPlaying, playSong, togglePlay,
     progress, duration, seek,
     playerGradient, playerCor,
     setCardMode,
   } = usePlayer();
+  const { toast } = useToast();
 
   const isThisSong   = currentSong?.id === song.id;
   const isThisPlaying = isThisSong && isPlaying;
@@ -113,6 +116,7 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
 
   return (
     <motion.div
+      id={`song-card-${song.id}`}
       ref={cardRef}
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
@@ -122,8 +126,10 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
     >
       {/* iPod Outer Body */}
       <div
-        className="relative rounded-[24px] p-4 flex flex-col transition-all duration-300 hover:-translate-y-1 bg-[#1a1a1a]/95 border-2"
-        style={{
+        className={`relative rounded-[24px] p-4 flex flex-col transition-all duration-300 hover:-translate-y-1 bg-[#1a1a1a]/95 border-2 ${
+          highlighted ? "animate-highlight scale-[1.01]" : ""
+        }`}
+        style={highlighted ? {} : {
           borderColor: isThisPlaying ? accent : "rgba(255, 255, 255, 0.08)",
           boxShadow: isThisPlaying
             ? `0 20px 40px ${accent}25, 0 4px 20px rgba(0,0,0,0.6)`
@@ -215,8 +221,8 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
         </div>
 
         {/* Title & Info Block */}
-        <div className="flex items-center justify-between mb-3 min-w-0">
-          <div className="min-w-0 flex-1 pr-2">
+        <div className="flex items-center justify-between mb-3 min-w-0 gap-2">
+          <div className="min-w-0 flex-1 pr-1">
             <h3 className="font-bold text-lg text-white truncate leading-tight tracking-tight">
               {song.titulo}
             </h3>
@@ -224,13 +230,31 @@ export function MusicCardIpod({ song, index }: MusicCardIpodProps) {
               {song.compositor || song.subgenero || "-"}
             </p>
           </div>
-          <button
-            onClick={handleInterest}
-            className="shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-all hover:scale-102 active:scale-98 shadow-sm"
-            style={{ background: accent, color: "#121212" }}
-          >
-            Tenho Interesse
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const shareUrl = `${window.location.origin}${window.location.pathname}?musica=${song.id}`;
+                navigator.clipboard.writeText(shareUrl);
+                toast({
+                  title: "Link copiado!",
+                  description: "Compartilhe esta música com quem quiser.",
+                });
+              }}
+              className="p-1.5 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/15 transition-all"
+              style={{ border: `1px solid rgba(255,255,255,0.08)` }}
+              title="Copiar link da música"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={handleInterest}
+              className="shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-all hover:scale-102 active:scale-98 shadow-sm"
+              style={{ background: accent, color: "#121212" }}
+            >
+              Tenho Interesse
+            </button>
+          </div>
         </div>
 
         {/* Linear Progress Bar */}

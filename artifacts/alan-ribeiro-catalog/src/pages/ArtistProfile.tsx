@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Navbar } from "@/components/Navbar";
@@ -43,6 +43,8 @@ export default function ArtistProfile() {
   const [copied, setCopied] = useState(false);
   const [interestModalOpen, setInterestModalOpen] = useState(false);
   const [selectedSong, setSelectedSong] = useState<{ id: number; titulo: string } | null>(null);
+  const [highlightedSongId, setHighlightedSongId] = useState<number | null>(null);
+  const hasAutoPlayed = useRef(false);
   const [artistData, setArtistData] = useState<any>(null);
   const [loadingArtist, setLoadingArtist] = useState(true);
   const [artistLoggedIn, setArtistLoggedIn] = useState(false);
@@ -78,6 +80,7 @@ export default function ArtistProfile() {
       }
     }
   }, [artistData?.fonte]);
+
 
   // Fetch artist data from API (supports ID or slug)
   useEffect(() => {
@@ -160,6 +163,37 @@ export default function ArtistProfile() {
   });
 
   const artistSongs = (songs || []).filter((s) => !s.isVip && !(s as any).isPrivate && (s as any).artistaId == numericArtistId);
+
+  // Handle shared song autoplay, scroll, and highlight
+  useEffect(() => {
+    if (isLoading || !artistSongs || artistSongs.length === 0 || hasAutoPlayed.current) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const songIdParam = params.get("musica");
+    if (songIdParam) {
+      const songId = parseInt(songIdParam);
+      if (!isNaN(songId)) {
+        const matchedSong = artistSongs.find(s => s.id === songId);
+        if (matchedSong) {
+          hasAutoPlayed.current = true;
+          setHighlightedSongId(songId);
+          // Play song automatically
+          playSong(matchedSong);
+          // Scroll to the card
+          setTimeout(() => {
+            const el = document.getElementById(`song-card-${songId}`);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 800);
+          // Clear highlight after 6 seconds
+          setTimeout(() => {
+            setHighlightedSongId(null);
+          }, 6000);
+        }
+      }
+    }
+  }, [artistSongs, isLoading]);
 
   // Playlists
   const [playlists, setPlaylists] = useState<any[]>([]);
@@ -538,6 +572,7 @@ export default function ArtistProfile() {
                 song={song}
                 index={index}
                 cardStyle={(artistData?.cardStyle as any) || "default"}
+                highlighted={highlightedSongId === song.id}
               />
             ))}
           </div>

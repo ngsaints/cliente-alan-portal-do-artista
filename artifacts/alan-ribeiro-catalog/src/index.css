@@ -102,3 +102,18 @@
     @apply font-bold tracking-tight;
   }
 }
+
+@keyframes highlight-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(245, 197, 24, 0.4);
+    border-color: rgba(245, 197, 24, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(245, 197, 24, 0.9);
+    border-color: rgba(245, 197, 24, 1);
+  }
+}
+
+.animate-highlight {
+  animation: highlight-pulse 2.2s infinite ease-in-out;
+}

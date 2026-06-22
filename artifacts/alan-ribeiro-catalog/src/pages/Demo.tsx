@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/Navbar";
 import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
@@ -43,6 +43,8 @@ export default function Demo() {
   const [loggedInArtistId, setLoggedInArtistId] = useState<number | null>(null);
   const [demoBanners, setDemoBanners] = useState<{ url: string; link: string }[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [highlightedSongId, setHighlightedSongId] = useState<number | null>(null);
+  const hasAutoPlayed = useRef(false);
 
   useEffect(() => {
     const rawVal = demoSettings.demo_banner_url || "";
@@ -88,6 +90,8 @@ export default function Demo() {
       .then(data => setDemoSettings(data))
       .catch(() => {});
   }, []);
+
+
 
   useEffect(() => {
     fetch("/api/artists/status", { credentials: "include" })
@@ -179,6 +183,37 @@ export default function Demo() {
   });
 
   const artistSongs = (songs || []).filter((s) => !s.isVip && !(s as any).isPrivate);
+
+  // Handle shared song autoplay, scroll, and highlight
+  useEffect(() => {
+    if (isLoading || !artistSongs || artistSongs.length === 0 || hasAutoPlayed.current) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const songIdParam = params.get("musica");
+    if (songIdParam) {
+      const songId = parseInt(songIdParam);
+      if (!isNaN(songId)) {
+        const matchedSong = artistSongs.find(s => s.id === songId);
+        if (matchedSong) {
+          hasAutoPlayed.current = true;
+          setHighlightedSongId(songId);
+          // Play song automatically
+          playSong(matchedSong);
+          // Scroll to the card
+          setTimeout(() => {
+            const el = document.getElementById(`song-card-${songId}`);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 800);
+          // Clear highlight after 6 seconds
+          setTimeout(() => {
+            setHighlightedSongId(null);
+          }, 6000);
+        }
+      }
+    }
+  }, [artistSongs, isLoading]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -499,7 +534,12 @@ export default function Demo() {
         {!isLoading && artistSongs.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {artistSongs.map((song, index) => (
-              <MusicCard key={song.id} song={song} index={index} />
+              <MusicCard
+                key={song.id}
+                song={song}
+                index={index}
+                highlighted={highlightedSongId === song.id}
+              />
             ))}
           </div>
         )}

@@ -1,15 +1,17 @@
-import { Play, Pause, Music, Youtube, Heart, PlayCircle, ExternalLink } from "lucide-react";
+import { Play, Pause, Music, Youtube, Heart, PlayCircle, ExternalLink, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { type Song } from "@workspace/api-client-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useState, useRef, useEffect } from "react";
 import { MusicCardIpod } from "@/components/MusicCardIpod";
 import { type CardStyle } from "@/contexts/PlayerContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface MusicCardProps {
   song: Song;
   index: number;
   cardStyle?: CardStyle;
+  highlighted?: boolean;
 }
 
 function formatPreco(val: string | null | undefined) {
@@ -27,13 +29,14 @@ function extractYouTubeId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export function MusicCard({ song, index, cardStyle = "default" }: MusicCardProps) {
+export function MusicCard({ song, index, cardStyle = "default", highlighted = false }: MusicCardProps) {
   // Route to iPod card if that style is selected
   if (cardStyle === "ipod") {
-    return <MusicCardIpod song={song} index={index} />;
+    return <MusicCardIpod song={song} index={index} highlighted={highlighted} />;
   }
 
   const { currentSong, isPlaying, playSong } = usePlayer();
+  const { toast } = useToast();
   const isThisPlaying = currentSong?.id === song.id && isPlaying;
   const disponivel = !song.status || song.status === "Disponível";
   const precoX = formatPreco(song.precoX);
@@ -85,10 +88,15 @@ export function MusicCard({ song, index, cardStyle = "default" }: MusicCardProps
 
   return (
     <motion.div
+      id={`song-card-${song.id}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.4 }}
-      className="group relative flex flex-col bg-card border border-border/40 rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.8)] hover:-translate-y-1"
+      className={`group relative flex flex-col bg-card border rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.8)] hover:-translate-y-1 ${
+        highlighted
+          ? "border-primary shadow-[0_0_20px_rgba(245,197,24,0.8)] ring-2 ring-primary/40 animate-highlight scale-[1.01]"
+          : "border-border/40"
+      }`}
     >
       {/* ── Área de mídia ─────────────────────────────────────── */}
       <div className="relative aspect-square overflow-hidden bg-black/50">
@@ -199,15 +207,32 @@ export function MusicCard({ song, index, cardStyle = "default" }: MusicCardProps
       <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-center justify-between gap-2 mb-1">
           <h3 className="text-xl font-bold text-primary line-clamp-1 flex-1">{song.titulo}</h3>
-          <button
-            onClick={() => {
-              const event = new CustomEvent("openInterest", { detail: { song }, bubbles: true });
-              document.dispatchEvent(event);
-            }}
-            className="shrink-0 px-3 py-1.5 rounded-lg bg-primary/80 text-primary-foreground text-xs font-bold hover:bg-primary transition-colors"
-          >
-            Tenho Interesse
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const shareUrl = `${window.location.origin}${window.location.pathname}?musica=${song.id}`;
+                navigator.clipboard.writeText(shareUrl);
+                toast({
+                  title: "Link copiado!",
+                  description: "Compartilhe esta música com quem quiser.",
+                });
+              }}
+              className="p-1.5 rounded-lg bg-secondary/40 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              title="Copiar link da música"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                const event = new CustomEvent("openInterest", { detail: { song }, bubbles: true });
+                document.dispatchEvent(event);
+              }}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-primary/80 text-primary-foreground text-xs font-bold hover:bg-primary transition-colors"
+            >
+              Tenho Interesse
+            </button>
+          </div>
         </div>
         {song.compositor && (
           <p className="text-xs text-muted-foreground mb-2">Compositor: {song.compositor}</p>
