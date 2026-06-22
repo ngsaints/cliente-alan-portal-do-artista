@@ -75,7 +75,7 @@ router.post(
   ]),
   async (req, res): Promise<void> => {
     try {
-      const { name, email, documento, contato, password, profissao, genero, cidade, instagram, tiktok, spotify, plano, couponCode } = req.body;
+      const { name, email, documento, contato, password, profissao, genero, cidade, instagram, tiktok, spotify, plano, couponCode, billingType } = req.body;
 
       if (!name || !email || !password || !documento) {
         res.status(400).json({ error: "Nome, email, senha e CPF/CNPJ são obrigatórios" });
@@ -231,10 +231,11 @@ router.post(
               const { portalUrl } = await getAsaasCredentials();
               const callbackUrl = portalUrl ? `${portalUrl}/artista/dashboard?pagamento=sucesso` : undefined;
 
+              const finalBillingType = (billingType === "PIX") ? "PIX" : "CREDIT_CARD";
               const subscription = await createSubscription({
                 customerId: customer.id,
                 value: subscriptionAmount,
-                billingType: "CREDIT_CARD",
+                billingType: finalBillingType,
                 description: `Plano ${plan!.label} — Portal do Artista`,
                 externalReference: `${artist.id}-${selectedPlano}`,
                 callbackUrl,
@@ -246,6 +247,7 @@ router.post(
                 asaasSubscriptionId: subscription.id,
                 status: "pending",
                 amount: String(subscriptionAmount),
+                billingType: finalBillingType,
                 startedAt: new Date(),
                 couponCode: validatedCoupon?.code ?? null,
               });

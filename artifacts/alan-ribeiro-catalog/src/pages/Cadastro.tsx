@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
-import { Sparkles, User, MapPin, Image, Star, Eye, EyeOff, Check, Loader2, X, Phone } from "lucide-react";
+import { Sparkles, User, MapPin, Image, Star, Eye, EyeOff, Check, Loader2, X, Phone, CreditCard } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useGenres } from "@/hooks/useGenres";
 import { buildPlanFeatures } from "@/lib/utils";
@@ -75,6 +75,7 @@ export default function Cadastro() {
     capaFile: null as File | null,
     bannerFile: null as File | null,
     plano: preselectedPlan,
+    billingType: "CREDIT_CARD" as "CREDIT_CARD" | "PIX",
   });
 
   useEffect(() => {
@@ -379,35 +380,68 @@ export default function Cadastro() {
 
             {/* Coupon Code */}
             {formData.plano !== "free" && (
-              <div className="pt-2 border-t border-border/40">
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                  Cupom de Desconto
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
-                    placeholder="Insira seu cupom"
-                    className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary uppercase"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleValidateCoupon}
-                    disabled={!couponCode || validatingCoupon}
-                    className="px-4 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
-                  >
-                    {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
-                  </button>
+              <div className="space-y-4">
+                <div className="pt-2 border-t border-border/40">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                    Cupom de Desconto
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
+                      placeholder="Insira seu cupom"
+                      className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary uppercase"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleValidateCoupon}
+                      disabled={!couponCode || validatingCoupon}
+                      className="px-4 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
+                    >
+                      {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <p className="text-xs text-red-400 mt-1">{couponError}</p>
+                  )}
+                  {couponResult && (
+                    <p className="text-xs text-green-400 mt-1">
+                      Cupom aplicado! Desconto de {couponResult.discountType === "percentage" ? `${couponResult.discountValue}%` : `R$ ${parseFloat(couponResult.discountValue).toFixed(2)}`}
+                    </p>
+                  )}
                 </div>
-                {couponError && (
-                  <p className="text-xs text-red-400 mt-1">{couponError}</p>
-                )}
-                {couponResult && (
-                  <p className="text-xs text-green-400 mt-1">
-                    Cupom aplicado! Desconto de {couponResult.discountType === "percentage" ? `${couponResult.discountValue}%` : `R$ ${parseFloat(couponResult.discountValue).toFixed(2)}`}
-                  </p>
-                )}
+
+                <div className="pt-4 border-t border-border/40 space-y-2">
+                  <label className="block text-xs font-medium text-muted-foreground">
+                    Forma de Pagamento
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, billingType: "CREDIT_CARD" })}
+                      className={`flex-1 py-2.5 px-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                        formData.billingType === "CREDIT_CARD"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Cartão de Crédito
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, billingType: "PIX" })}
+                      className={`flex-1 py-2.5 px-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                        formData.billingType === "PIX"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <span className="font-bold">PIX</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

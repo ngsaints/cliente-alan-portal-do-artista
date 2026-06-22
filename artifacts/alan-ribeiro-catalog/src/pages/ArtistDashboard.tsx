@@ -419,6 +419,7 @@ export default function ArtistDashboard() {
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [dbPlans, setDbPlans] = useState<any[]>([]);
   const [planCouponCode, setPlanCouponCode] = useState("");
+  const [upgradeBillingType, setUpgradeBillingType] = useState<"CREDIT_CARD" | "PIX">("CREDIT_CARD");
   const [planCouponResult, setPlanCouponResult] = useState<{ discountType: string; discountValue: string; discountAmount: string; finalPrice: string; originalPrice: string } | null>(null);
   const [planCouponError, setPlanCouponError] = useState("");
   const [validatingPlanCoupon, setValidatingPlanCoupon] = useState(false);
@@ -701,7 +702,7 @@ export default function ArtistDashboard() {
   const handleUpgradePlan = async (planId: string) => {
     if (!artist) return;
     try {
-      const body: any = { planId, artistId: artist.id };
+      const body: any = { planId, artistId: artist.id, billingType: upgradeBillingType };
       if (planCouponResult && selectedPlanId === planId) {
         body.couponCode = planCouponCode;
       }
@@ -2554,6 +2555,37 @@ export default function ArtistDashboard() {
                       Selecione um plano abaixo para atualizar.
                     </p>
                   )}
+                </div>
+
+                <div className="mb-6 p-4 rounded-xl border border-border/40 bg-background/30 space-y-3">
+                  <label className="block text-sm font-semibold text-foreground">
+                    Forma de Pagamento para Atualização
+                  </label>
+                  <div className="flex gap-2 max-w-sm">
+                    <button
+                      type="button"
+                      onClick={() => setUpgradeBillingType("CREDIT_CARD")}
+                      className={`flex-1 py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                        upgradeBillingType === "CREDIT_CARD"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/40 bg-card text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Cartão de Crédito
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUpgradeBillingType("PIX")}
+                      className={`flex-1 py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                        upgradeBillingType === "PIX"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/40 bg-card text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <span className="font-bold">PIX</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

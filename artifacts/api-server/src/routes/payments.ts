@@ -36,7 +36,7 @@ router.get("/payments/plans", async (_req, res): Promise<void> => {
 
 router.post("/payments/create-preference", async (req, res): Promise<void> => {
   try {
-    const { planId, artistId, couponCode } = req.body;
+    const { planId, artistId, couponCode, billingType } = req.body;
 
     if (!planId || !artistId) {
       res.status(400).json({ error: "Plano e artista são obrigatórios" });
@@ -222,10 +222,11 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       }
     }
 
+    const finalBillingType = (billingType === "PIX") ? "PIX" : "CREDIT_CARD";
     const subscription = await createSubscription({
       customerId: customerId!,
       value: finalPrice,
-      billingType: "CREDIT_CARD",
+      billingType: finalBillingType,
       description: `Plano ${plan.label} — Portal do Artista`,
       externalReference: `${artistId}-${planId}`,
       callbackUrl,
@@ -250,7 +251,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
         asaasSubscriptionId: subscription.id,
         status: "pending",
         amount: String(finalPrice),
-        billingType: "CREDIT_CARD",
+        billingType: finalBillingType,
         startedAt: new Date(),
         expiresAt,
         couponCode: appliedCoupon?.code ?? null,
