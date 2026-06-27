@@ -256,17 +256,6 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
         expiresAt,
         couponCode: appliedCoupon?.code ?? null,
       });
-
-      await db
-        .update(artistsTable)
-        .set({
-          plano: planId,
-          planoAtivo: true,
-          limiteMusicas: String(plan.limiteMusicas),
-          personalizacaoPercent: String(plan.personalizacaoPercent),
-          updatedAt: new Date(),
-        })
-        .where(eq(artistsTable.id, parseInt(artistId)));
     }
 
     const payments = await getSubscriptionPayments(subscription.id);
@@ -393,18 +382,35 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
       const externalRef = paymentData.externalReference ?? "";
       let [refArtistId, refPlanId] = externalRef.split("-");
 
-      // Fallback: if externalReference is empty, try to find by subscription ID
-      if (!refArtistId || !refPlanId) {
-        const subId = paymentData.subscription ?? subscription?.id;
-        if (subId) {
-          const [sub] = await db
-            .select()
-            .from(subscriptionsTable)
-            .where(eq(subscriptionsTable.asaasSubscriptionId, subId));
-          if (sub) {
+      const subId = paymentData.subscription ?? subscription?.id;
+      let pendingSub = null;
+
+      if (subId) {
+        const [sub] = await db
+          .select()
+          .from(subscriptionsTable)
+          .where(and(
+            eq(subscriptionsTable.asaasSubscriptionId, subId),
+            eq(subscriptionsTable.status, "pending")
+          ));
+        if (sub) {
+          pendingSub = sub;
+          if (!refArtistId || !refPlanId) {
             refArtistId = sub.artistId;
             refPlanId = sub.planNome;
           }
+        }
+      }
+
+      // Fallback: if externalReference is empty and no pending sub matched, try to find any sub by subscription ID
+      if ((!refArtistId || !refPlanId) && subId) {
+        const [sub] = await db
+          .select()
+          .from(subscriptionsTable)
+          .where(eq(subscriptionsTable.asaasSubscriptionId, subId));
+        if (sub) {
+          refArtistId = sub.artistId;
+          refPlanId = sub.planNome;
         }
       }
 
@@ -428,17 +434,30 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
           const expiresAt = new Date();
           expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-          await db.insert(subscriptionsTable).values({
-            artistId: artistId,
-            planNome: planId,
-            asaasSubscriptionId: paymentData.subscription ?? null,
-            asaasPaymentId: paymentData.id,
-            status: "active",
-            amount: String(paymentData.value ?? plan.preco),
-            billingType: paymentData.billingType ?? null,
-            startedAt: new Date(),
-            expiresAt,
-          });
+          if (pendingSub) {
+            await db
+              .update(subscriptionsTable)
+              .set({
+                status: "active",
+                asaasPaymentId: paymentData.id,
+                billingType: paymentData.billingType ?? pendingSub.billingType,
+                startedAt: new Date(),
+                expiresAt,
+              })
+              .where(eq(subscriptionsTable.id, pendingSub.id));
+          } else {
+            await db.insert(subscriptionsTable).values({
+              artistId: artistId,
+              planNome: planId,
+              asaasSubscriptionId: subId ?? null,
+              asaasPaymentId: paymentData.id,
+              status: "active",
+              amount: String(paymentData.value ?? plan.preco),
+              billingType: paymentData.billingType ?? null,
+              startedAt: new Date(),
+              expiresAt,
+            });
+          }
 
           console.log(`✅ Artista ${artistId} atualizado para plano ${planId} | Payment: ${paymentData.id}`);
         }
