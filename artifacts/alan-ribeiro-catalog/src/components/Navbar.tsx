@@ -29,7 +29,7 @@ export function Navbar() {
 
   const otherLinks = [
     { href: "/artistas", icon: Users,       label: "Artistas" },
-    { href: "/demo",     icon: Zap,         label: "Demo" },
+    { href: "/demo",     icon: Zap,         label: "Vitrine" },
   ];
 
   const allLinks = [artistLink, ...otherLinks];
