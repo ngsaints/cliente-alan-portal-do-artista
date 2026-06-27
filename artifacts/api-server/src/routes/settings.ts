@@ -36,6 +36,18 @@ router.get("/settings", async (_req, res): Promise<void> => {
   const heroTitle = await getSetting("hero_title");
   const heroSubtitle = await getSetting("hero_subtitle");
   const heroCTA = await getSetting("hero_cta");
+
+  let clarityProjectId: string | null = null;
+  try {
+    const [claritySetting] = await db
+      .select({ value: appSettingsTable.value })
+      .from(appSettingsTable)
+      .where(eq(appSettingsTable.key, "clarity_project_id"));
+    clarityProjectId = claritySetting?.value || null;
+  } catch (err) {
+    console.error("Error fetching clarity_project_id setting:", err);
+  }
+
   res.json({
     artistName,
     artistPhotoUrl: artistPhotoUrl || null,
@@ -44,6 +56,7 @@ router.get("/settings", async (_req, res): Promise<void> => {
     heroTitle: heroTitle || null,
     heroSubtitle: heroSubtitle || null,
     heroCTA: heroCTA || null,
+    clarityProjectId,
   });
 });
 

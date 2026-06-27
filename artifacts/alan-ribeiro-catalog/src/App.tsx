@@ -1,4 +1,6 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
+import { useEffect } from "react";
+import Clarity from "@microsoft/clarity";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -53,6 +55,18 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.clarityProjectId) {
+          Clarity.init(data.clarityProjectId);
+          console.log("Microsoft Clarity inicializado com o Project ID:", data.clarityProjectId);
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar configurações para inicializar o Clarity:", err));
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

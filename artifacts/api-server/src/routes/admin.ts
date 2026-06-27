@@ -198,6 +198,22 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         .where(eq(appSettingsTable.key, "demo_capa_url"));
     }
 
+    if (category === "clarity") {
+      const existing = await db
+        .select()
+        .from(appSettingsTable)
+        .where(eq(appSettingsTable.key, "clarity_project_id"));
+      if (existing.length === 0) {
+        await db.insert(appSettingsTable).values({
+          category: "clarity",
+          key: "clarity_project_id",
+          value: "",
+          isSecret: "false",
+          description: "Microsoft Clarity Project ID para análise de comportamento e mapa de calor."
+        });
+      }
+    }
+
     const settings = await db
       .select()
       .from(appSettingsTable)

@@ -113,7 +113,7 @@ interface Coupon {
 }
 
 type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons";
-type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email";
+type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email" | "clarity";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
@@ -1803,6 +1803,7 @@ function SettingsTab({ onNavigate }: { onNavigate?: (tab: MainTab) => void }) {
     { id: "r2", label: "Cloudflare R2", icon: Cloud, color: "text-sky-400" },
     { id: "portal", label: "Portal", icon: Globe, color: "text-purple-400" },
     { id: "email", label: "Email", icon: Mail, color: "text-red-400" },
+    { id: "clarity", label: "Microsoft Clarity", icon: BarChart3, color: "text-indigo-400" },
   ];
 
   return (
@@ -1904,6 +1905,9 @@ const SETTING_LABELS: Record<string, string> = {
   portal_email: "E-mail de contato",
   artist_name: "Nome do artista (Padrão)",
   vip_password: "Senha da Área VIP",
+  
+  // Microsoft Clarity
+  clarity_project_id: "ID do Projeto Microsoft Clarity",
   
   // Asaas
   asaas_access_token: "Token de Acesso Asaas",
@@ -2092,6 +2096,20 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
 
   return (
     <div className="space-y-6">
+      {category === "clarity" && (
+        <div className="bg-gradient-to-r from-indigo-900/30 to-indigo-800/10 border border-indigo-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2 text-indigo-400">
+            <HelpCircle className="w-5 h-5" />
+            <h3 className="font-bold text-lg">Como Configurar o Microsoft Clarity</h3>
+          </div>
+          <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+            <li>Acesse o painel do <a href="https://clarity.microsoft.com" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline inline-flex items-center gap-1">Microsoft Clarity <ExternalLink className="w-3 h-3" /></a></li>
+            <li>Crie um novo projeto ou selecione um existente.</li>
+            <li>Vá em <strong>Settings</strong> &gt; <strong>Overview</strong> e copie a chave do <strong>Project ID</strong> (código com cerca de 10 caracteres).</li>
+            <li>Cole o ID no campo `clarity_project_id` abaixo e salve.</li>
+          </ol>
+        </div>
+      )}
       {category === "asaas" && (
         <div className="bg-gradient-to-r from-emerald-900/30 to-emerald-800/10 border border-emerald-500/30 rounded-2xl p-5 space-y-3">
           <div className="flex items-center gap-2 text-emerald-400">
