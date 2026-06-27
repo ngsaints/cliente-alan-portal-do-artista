@@ -18,7 +18,7 @@ import {
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
-  Mail, Gift,
+  Mail, Gift, Send,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -112,7 +112,7 @@ interface Coupon {
   createdAt: string;
 }
 
-type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons";
+type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing";
 type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email" | "clarity";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -245,6 +245,7 @@ function AdminDashboard() {
     { id: "playlists", label: "Playlists", icon: ListMusic },
     { id: "galleries", label: "Galeria", icon: Image },
     { id: "coupons", label: "Cupons", icon: Ticket },
+    { id: "email_marketing", label: "E-mail Marketing", icon: Mail },
   ];
 
   return (
@@ -306,6 +307,7 @@ function AdminDashboard() {
           {activeTab === "playlists" && <PlaylistsTab />}
           {activeTab === "galleries" && <GalleriesTab />}
           {activeTab === "coupons" && <CouponsTab />}
+          {activeTab === "email_marketing" && <EmailMarketingTab />}
         </motion.div>
       </div>
     </div>
@@ -4082,6 +4084,442 @@ function CouponModal({ coupon, onClose, onSaved }: { coupon: Coupon | null; onCl
           </button>
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+// ─── Tab: E-mail Marketing ───────────────────────────────────────────────────
+
+function EmailMarketingTab() {
+  const [subject, setSubject] = useState("");
+  const [bodyHtml, setBodyHtml] = useState("");
+  const [recipientType, setRecipientType] = useState<"all" | "single">("all");
+  const [selectedArtistId, setSelectedArtistId] = useState("");
+  const [artists, setArtists] = useState<{ id: number; name: string; email: string }[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loadingArtists, setLoadingArtists] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setLoadingArtists(true);
+    fetch("/api/admin/artists", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setArtists(data);
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar artistas:", err))
+      .finally(() => setLoadingArtists(false));
+  }, []);
+
+  const insertTag = (tag: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+    const newText = before + tag + after;
+    setBodyHtml(newText);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + tag.length, start + tag.length);
+    }, 0);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    setUploading(true);
+    try {
+      const res = await fetch("/api/admin/email-marketing/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Erro no upload");
+      const data = await res.json();
+      insertTag(`<img src="${data.url}" style="max-width: 100%; height: auto; border-radius: 8px; margin: 15px 0;" alt="Imagem" />`);
+      toast({ title: "Imagem enviada e inserida!" });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Falha ao enviar imagem", variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const applyTemplate = (templateName: string) => {
+    if (bodyHtml.trim() && !confirm("Deseja substituir o conteúdo atual por este template?")) return;
+
+    if (templateName === "welcome") {
+      setSubject("Bem-vindo ao Portal do Artista!");
+      setBodyHtml(`<h2 style="color: #6366f1; font-weight: bold; margin-bottom: 15px;">Seja muito bem-vindo, {{nome}}!</h2>
+<p style="margin-bottom: 15px;">Ficamos muito felizes em ter você como parceiro do nosso portal de artistas.</p>
+<p style="margin-bottom: 15px;">Agora você já pode completar o seu perfil, fazer o upload das suas melhores faixas e compartilhar sua vitrine com seus contratantes e fãs!</p>
+<div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 15px; color: #374151;">
+  <strong>Dica de Sucesso:</strong> Personalize suas cores de destaque e adicione links para suas redes sociais para atrair mais contratantes!
+</div>
+<p style="margin-bottom: 15px;">Qualquer dúvida, conte com a nossa equipe de suporte respondendo a este e-mail.</p>
+<p>Boas criações,<br/><strong>Equipe Portal do Artista</strong></p>`);
+    } else if (templateName === "announcement") {
+      setSubject("Novidades e atualizações na plataforma!");
+      setBodyHtml(`<h2 style="color: #3b82f6; font-weight: bold; margin-bottom: 15px;">Temos novidades importantes para você!</h2>
+<p style="margin-bottom: 15px;">Olá, {{nome}}. Nossa equipe acaba de lançar novos recursos de personalização e estatísticas no seu painel.</p>
+<p style="margin-bottom: 15px;">Agora você pode acompanhar visualizações e reproduções das suas faixas em tempo real!</p>
+<p style="margin-bottom: 25px;">Acesse o painel hoje mesmo e confira as novidades.</p>
+<div style="text-align: center; margin-bottom: 25px;">
+  <a href="https://portaldoartista.com/artista/login" style="display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-decoration: none;">Acessar Meu Painel</a>
+</div>
+<p>Atenciosamente,<br/><strong>Equipe Portal do Artista</strong></p>`);
+    } else if (templateName === "promo") {
+      setSubject("Oferta Especial: Faça o upgrade do seu plano com desconto!");
+      setBodyHtml(`<h2 style="color: #10b981; font-weight: bold; margin-bottom: 15px;">Alavanque sua carreira com o Plano Premium!</h2>
+<p style="margin-bottom: 15px;">Olá, {{nome}}. Preparamos uma oportunidade única para você expandir o alcance da sua música.</p>
+<p style="margin-bottom: 15px;">Use o cupom especial e ganhe desconto na sua assinatura do plano básico, liberando limite ilimitado de faixas e personalização avançada.</p>
+<div style="margin: 25px auto; padding: 15px; border: 2px dashed #10b981; background-color: #f0fdf4; border-radius: 12px; text-align: center; max-width: 300px;">
+  <span style="font-size: 12px; color: #15803d; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Cupom de Desconto</span>
+  <div style="font-size: 24px; font-weight: bold; color: #166534; margin: 5px 0;">ARTISTAVIP</div>
+  <span style="font-size: 11px; color: #166534;">Insira no momento do upgrade</span>
+</div>
+<p style="margin-top: 20px;">Aproveite antes que a oferta expire!</p>`);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!subject.trim()) {
+      toast({ title: "Informe o assunto do e-mail", variant: "destructive" });
+      return;
+    }
+    if (!bodyHtml.trim()) {
+      toast({ title: "Escreva o conteúdo do e-mail", variant: "destructive" });
+      return;
+    }
+    if (recipientType === "single" && !selectedArtistId) {
+      toast({ title: "Selecione o artista para o envio", variant: "destructive" });
+      return;
+    }
+
+    if (!confirm(`Deseja realmente iniciar o envio de e-mails para ${recipientType === "all" ? "TODOS os artistas" : "o artista selecionado"}?`)) {
+      return;
+    }
+
+    setSending(true);
+    try {
+      const res = await fetch("/api/admin/email-marketing/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject,
+          bodyHtml,
+          recipientType,
+          artistId: recipientType === "single" ? selectedArtistId : undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao enviar e-mails");
+
+      toast({
+        title: "Envio concluído!",
+        description: data.message,
+      });
+
+      // Clear form
+      setSubject("");
+      setBodyHtml("");
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Erro no envio",
+        description: err.message || "Ocorreu uma falha ao enviar os e-mails.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const filteredArtists = artists.filter((a) =>
+    a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getPreviewHtml = () => {
+    const namePlaceholder = recipientType === "single" && selectedArtistId
+      ? (artists.find((a) => String(a.id) === selectedArtistId)?.name || "Artista")
+      : "Artista Exemplo";
+
+    return bodyHtml
+      .replace(/\{\{nome\}\}/g, namePlaceholder)
+      .replace(/\{\{name\}\}/g, namePlaceholder);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-display font-bold text-foreground">E-mail Marketing</h2>
+        <p className="text-sm text-muted-foreground">Crie e envie comunicados aos artistas cadastrados utilizando o Resend.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Editor panel */}
+        <div className="lg:col-span-7 bg-card border border-border rounded-2xl p-6 space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Destinatários</label>
+            <div className="flex gap-2 p-1 bg-background/50 border border-border rounded-xl w-fit">
+              <button
+                type="button"
+                onClick={() => { setRecipientType("all"); setSelectedArtistId(""); }}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  recipientType === "all"
+                    ? "bg-primary text-primary-foreground shadow"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Todos os Artistas ({artists.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecipientType("single")}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  recipientType === "single"
+                    ? "bg-primary text-primary-foreground shadow"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Apenas 1 Artista
+              </button>
+            </div>
+          </div>
+
+          {recipientType === "single" && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+              <label className="text-sm font-medium text-foreground">Selecionar Artista</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Buscar artista por nome ou e-mail..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              {filteredArtists.length > 0 && searchQuery && (
+                <div className="max-h-48 overflow-y-auto bg-background border border-border rounded-xl p-2 space-y-1 shadow-inner">
+                  {filteredArtists.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedArtistId(String(a.id));
+                        setSearchQuery("");
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors flex justify-between items-center ${
+                        selectedArtistId === String(a.id)
+                          ? "bg-primary/20 border border-primary/30 text-primary font-semibold"
+                          : "hover:bg-card text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <span>{a.name}</span>
+                      <span className="text-[10px] opacity-75">{a.email}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {selectedArtistId && (
+                <div className="flex items-center justify-between p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                  <div className="text-xs text-primary font-medium">
+                    Selecionado: <strong className="text-foreground">{artists.find((a) => String(a.id) === selectedArtistId)?.name}</strong> ({artists.find((a) => String(a.id) === selectedArtistId)?.email})
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedArtistId("")}
+                    className="text-xs text-muted-foreground hover:text-destructive font-bold"
+                  >
+                    Remover
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Templates */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Templates Rápidos</label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => applyTemplate("welcome")}
+                className="px-3 py-2.5 bg-background border border-border rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary transition-all text-center"
+              >
+                👋 Boas-vindas
+              </button>
+              <button
+                type="button"
+                onClick={() => applyTemplate("announcement")}
+                className="px-3 py-2.5 bg-background border border-border rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary transition-all text-center"
+              >
+                📢 Informativo
+              </button>
+              <button
+                type="button"
+                onClick={() => applyTemplate("promo")}
+                className="px-3 py-2.5 bg-background border border-border rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary transition-all text-center"
+              >
+                🎁 Oferta/Cupom
+              </button>
+            </div>
+          </div>
+
+          {/* Subject */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Assunto do E-mail</label>
+            <input
+              type="text"
+              placeholder="Digite o assunto do e-mail..."
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+            />
+          </div>
+
+          {/* Text Area and editor tools */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-medium text-foreground">Conteúdo (HTML)</label>
+              <div className="flex items-center gap-1.5">
+                <label className="cursor-pointer bg-primary/10 border border-primary/20 text-primary text-xs px-2.5 py-1.5 rounded-lg font-bold hover:bg-primary/20 transition-all flex items-center gap-1">
+                  {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+                  {uploading ? "Carregando..." : "Inserir Imagem"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Helper Formatting toolbar */}
+            <div className="flex flex-wrap gap-1 p-1 bg-background/50 border border-border rounded-t-xl border-b-0">
+              <button
+                type="button"
+                onClick={() => insertTag("{{nome}}")}
+                className="px-2 py-1 hover:bg-card rounded text-[10px] font-mono text-primary font-bold"
+                title="Nome personalizado do artista"
+              >
+                {"{{nome}}"}
+              </button>
+              <button
+                type="button"
+                onClick={() => insertTag("<strong>Texto em Negrito</strong>")}
+                className="px-2 py-1 hover:bg-card rounded text-[10px] font-bold text-muted-foreground hover:text-foreground"
+              >
+                B
+              </button>
+              <button
+                type="button"
+                onClick={() => insertTag('<h2 style="color: #6366f1; font-weight: bold; margin-bottom: 15px;">Título</h2>')}
+                className="px-2 py-1 hover:bg-card rounded text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+              >
+                H2
+              </button>
+              <button
+                type="button"
+                onClick={() => insertTag('<p style="margin-bottom: 15px;">Parágrafo</p>')}
+                className="px-2 py-1 hover:bg-card rounded text-[10px] text-muted-foreground hover:text-foreground"
+              >
+                P
+              </button>
+              <button
+                type="button"
+                onClick={() => insertTag('<a href="https://" style="color: #6366f1; text-decoration: underline;">Link</a>')}
+                className="px-2 py-1 hover:bg-card rounded text-[10px] underline text-muted-foreground hover:text-foreground"
+              >
+                Link
+              </button>
+              <button
+                type="button"
+                onClick={() => insertTag("<br/>")}
+                className="px-2 py-1 hover:bg-card rounded text-[10px] font-mono text-muted-foreground hover:text-foreground"
+              >
+                &lt;br/&gt;
+              </button>
+            </div>
+
+            <textarea
+              ref={textareaRef}
+              rows={12}
+              placeholder="Escreva a mensagem usando tags HTML normais para formatação..."
+              value={bodyHtml}
+              onChange={(e) => setBodyHtml(e.target.value)}
+              className="w-full px-4 py-3 bg-input border border-border rounded-b-xl text-foreground text-xs font-mono focus:border-primary focus:ring-1 focus:ring-primary leading-relaxed resize-y"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={sending || uploading}
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/95 transition-all text-sm shadow disabled:opacity-50"
+          >
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {sending ? "Disparando E-mails..." : "Enviar E-mail"}
+          </button>
+        </div>
+
+        {/* Live Preview panel */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pré-visualização do Inbox</span>
+            <span className="bg-emerald-500/10 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-500/20">
+              Tempo Real
+            </span>
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-lg">
+            <div className="bg-muted/80 px-4 py-3.5 border-b border-border text-[11px] space-y-1 text-muted-foreground">
+              <div>
+                <strong className="text-foreground">De:</strong> Portal do Artista &lt;onboarding@resend.dev&gt;
+              </div>
+              <div>
+                <strong className="text-foreground">Para:</strong>{" "}
+                {recipientType === "all" ? (
+                  <span className="italic">Todos os Artistas cadastrados</span>
+                ) : (
+                  artists.find((a) => String(a.id) === selectedArtistId)?.email || <span className="italic">selecione um artista...</span>
+                )}
+              </div>
+              <div>
+                <strong className="text-foreground">Assunto:</strong> {subject || <span className="italic text-muted-foreground/60">(Sem assunto)</span>}
+              </div>
+            </div>
+            <div className="p-4 bg-[#f9fafb] min-h-[400px] flex items-start justify-center overflow-x-auto">
+              <div
+                className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm w-full max-w-[600px] text-gray-800 font-sans text-xs leading-relaxed space-y-4 break-words"
+                dangerouslySetInnerHTML={{
+                  __html: getPreviewHtml() || '<p class="text-gray-400 italic text-center py-12">Escreva o conteúdo do e-mail na coluna da esquerda...</p>',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

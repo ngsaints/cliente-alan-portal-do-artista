@@ -6,6 +6,7 @@ import { eq, ne, sql, count, and, inArray } from "drizzle-orm";
 import { FREE_PLAN } from "./payments";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getAsaasCredentials } from "../lib/asaas-client.js";
+import { getEmailConfig } from "../lib/email.js";
 import path from "path";
 import fs from "fs";
 
@@ -693,6 +694,130 @@ router.post("/admin/sync-subscriptions", async (req, res): Promise<void> => {
     res.json({ processed: results.length, results });
   } catch (error: any) {
     res.status(500).json({ error: error.message ?? "Erro na sincronização" });
+  }
+});
+
+// POST /admin/email-marketing/upload-image - Upload an image for email marketing
+router.post(
+  "/admin/email-marketing/upload-image",
+  upload.single("image"),
+  async (req, res): Promise<void> => {
+    if (!req.session.logado) {
+      res.status(401).json({ error: "Não autorizado" });
+      return;
+    }
+    if (!req.file) {
+      res.status(400).json({ error: "Nenhum arquivo enviado" });
+      return;
+    }
+
+    try {
+      const buffer = req.file.buffer;
+      const originalName = req.file.originalname;
+      const jpgBuffer = await sharp(buffer).jpeg({ quality: 85 }).toBuffer();
+
+      let url: string;
+      if (r2Enabled) {
+        const key = generateR2Key("emails", originalName.replace(/\.\w+$/, ".jpg"));
+        url = await uploadToR2(jpgBuffer, key, "image/jpeg");
+      } else {
+        const dir = path.join(process.cwd(), "uploads/emails");
+        fs.mkdirSync(dir, { recursive: true });
+        const filename = `${Date.now()}_${originalName.replace(/\.\w+$/, ".jpg")}`;
+        fs.writeFileSync(path.join(dir, filename), jpgBuffer);
+        url = `/api/uploads/emails/${filename}`;
+      }
+
+      res.json({ url });
+    } catch (error) {
+      console.error("Error uploading email image:", error);
+      res.status(500).json({ error: "Erro ao processar imagem" });
+    }
+  }
+);
+
+// POST /admin/email-marketing/send - Send email marketing to artists
+router.post("/admin/email-marketing/send", async (req, res): Promise<void> => {
+  if (!req.session.logado) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
+
+  const { subject, bodyHtml, recipientType, artistId } = req.body;
+
+  if (!subject || !bodyHtml || !recipientType) {
+    res.status(400).json({ error: "Assunto, corpo do e-mail e destinatários são obrigatórios." });
+    return;
+  }
+
+  try {
+    const { resend, from } = await getEmailConfig();
+    if (!resend) {
+      res.status(400).json({ error: "O Resend não está configurado. Configure a API Key na aba Email antes de enviar." });
+      return;
+    }
+
+    let selectedArtists: { name: string; email: string }[] = [];
+
+    if (recipientType === "all") {
+      selectedArtists = await db
+        .select({ name: artistsTable.name, email: artistsTable.email })
+        .from(artistsTable);
+    } else if (recipientType === "single" && artistId) {
+      selectedArtists = await db
+        .select({ name: artistsTable.name, email: artistsTable.email })
+        .from(artistsTable)
+        .where(eq(artistsTable.id, parseInt(artistId)))
+        .limit(1);
+    } else {
+      res.status(400).json({ error: "Destinatário inválido ou ID do artista não fornecido." });
+      return;
+    }
+
+    if (selectedArtists.length === 0) {
+      res.status(400).json({ error: "Nenhum destinatário encontrado." });
+      return;
+    }
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const artist of selectedArtists) {
+      try {
+        const personalizedHtml = bodyHtml
+          .replace(/\{\{nome\}\}/g, artist.name)
+          .replace(/\{\{name\}\}/g, artist.name);
+
+        await resend.emails.send({
+          from,
+          to: artist.email,
+          subject,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+              <div style="padding: 20px; background-color: #ffffff; border-radius: 8px;">
+                ${personalizedHtml}
+              </div>
+              <div style="margin-top: 30px; padding: 20px 0; border-top: 1px solid #eeeeee; font-size: 11px; color: #999999; text-align: center;">
+                <p>Você está recebendo este e-mail porque está cadastrado no Portal do Artista.</p>
+              </div>
+            </div>
+          `,
+        });
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to send email to ${artist.email}:`, err);
+        failureCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Envio concluído: ${successCount} enviados com sucesso, ${failureCount} falhas.`,
+      stats: { success: successCount, failure: failureCount }
+    });
+  } catch (error: any) {
+    console.error("Error sending marketing email:", error);
+    res.status(500).json({ error: error.message ?? "Erro interno ao processar o envio de e-mails." });
   }
 });
 
