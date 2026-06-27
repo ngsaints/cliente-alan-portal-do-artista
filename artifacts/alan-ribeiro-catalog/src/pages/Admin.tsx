@@ -4092,7 +4092,7 @@ function CouponModal({ coupon, onClose, onSaved }: { coupon: Coupon | null; onCl
 
 function EmailMarketingTab() {
   const [subject, setSubject] = useState("");
-  const [bodyHtml, setBodyHtml] = useState("");
+  const [bodyText, setBodyText] = useState("");
   const [recipientType, setRecipientType] = useState<"all" | "single">("all");
   const [selectedArtistId, setSelectedArtistId] = useState("");
   const [artists, setArtists] = useState<{ id: number; name: string; email: string }[]>([]);
@@ -4116,6 +4116,45 @@ function EmailMarketingTab() {
       .finally(() => setLoadingArtists(false));
   }, []);
 
+  const convertTextToHtml = (text: string) => {
+    if (!text) return "";
+
+    let html = text;
+
+    // Convert double newlines to paragraphs
+    const paragraphs = html.split(/\n\s*\n/);
+    html = paragraphs
+      .map((p) => {
+        let pText = p.trim();
+        if (!pText) return "";
+
+        // Headings
+        if (pText.startsWith("# ")) {
+          return `<h2 style="color: #111827; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 12px;">${pText.substring(2)}</h2>`;
+        }
+        if (pText.startsWith("## ")) {
+          return `<h3 style="color: #1f2937; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; margin-top: 15px; margin-bottom: 10px;">${pText.substring(3)}</h3>`;
+        }
+
+        // Single newlines
+        pText = pText.replace(/\n/g, "<br/>");
+
+        return `<p style="margin-bottom: 15px; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #374151;">${pText}</p>`;
+      })
+      .join("\n");
+
+    // Bold markdown: **text** -> <strong>text</strong>
+    html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+
+    // Links markdown: [text](url) -> <a href="url" ...>text</a>
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #6366f1; text-decoration: underline; font-weight: 500;">$1</a>');
+
+    // Images markdown: ![alt](url) -> <img src="url" style="..." alt="alt" />
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" style="max-width: 100%; height: auto; border-radius: 12px; margin: 15px 0; display: block;" alt="$1" />');
+
+    return html;
+  };
+
   const insertTag = (tag: string) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -4125,7 +4164,7 @@ function EmailMarketingTab() {
     const before = text.substring(0, start);
     const after = text.substring(end, text.length);
     const newText = before + tag + after;
-    setBodyHtml(newText);
+    setBodyText(newText);
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + tag.length, start + tag.length);
@@ -4147,7 +4186,7 @@ function EmailMarketingTab() {
       });
       if (!res.ok) throw new Error("Erro no upload");
       const data = await res.json();
-      insertTag(`<img src="${data.url}" style="max-width: 100%; height: auto; border-radius: 8px; margin: 15px 0;" alt="Imagem" />`);
+      insertTag(`![Imagem](${data.url})`);
       toast({ title: "Imagem enviada e inserida!" });
     } catch (err) {
       console.error(err);
@@ -4159,39 +4198,48 @@ function EmailMarketingTab() {
   };
 
   const applyTemplate = (templateName: string) => {
-    if (bodyHtml.trim() && !confirm("Deseja substituir o conteúdo atual por este template?")) return;
+    if (bodyText.trim() && !confirm("Deseja substituir o conteúdo atual por este template?")) return;
 
     if (templateName === "welcome") {
       setSubject("Bem-vindo ao Portal do Artista!");
-      setBodyHtml(`<h2 style="color: #6366f1; font-weight: bold; margin-bottom: 15px;">Seja muito bem-vindo, {{nome}}!</h2>
-<p style="margin-bottom: 15px;">Ficamos muito felizes em ter você como parceiro do nosso portal de artistas.</p>
-<p style="margin-bottom: 15px;">Agora você já pode completar o seu perfil, fazer o upload das suas melhores faixas e compartilhar sua vitrine com seus contratantes e fãs!</p>
-<div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 15px; color: #374151;">
-  <strong>Dica de Sucesso:</strong> Personalize suas cores de destaque e adicione links para suas redes sociais para atrair mais contratantes!
-</div>
-<p style="margin-bottom: 15px;">Qualquer dúvida, conte com a nossa equipe de suporte respondendo a este e-mail.</p>
-<p>Boas criações,<br/><strong>Equipe Portal do Artista</strong></p>`);
+      setBodyText(`# Seja muito bem-vindo, {{nome}}!
+
+Ficamos muito felizes em ter você como parceiro do nosso portal de artistas.
+
+Agora você já pode completar o seu perfil, fazer o upload das suas melhores faixas e compartilhar sua vitrine com seus contratantes e fãs!
+
+**Dica de Sucesso:** Personalize suas cores de destaque e adicione links para suas redes sociais para atrair mais contratantes!
+
+Qualquer dúvida, conte com a nossa equipe de suporte respondendo a este e-mail.
+
+Boas criações,
+**Equipe Portal do Artista**`);
     } else if (templateName === "announcement") {
       setSubject("Novidades e atualizações na plataforma!");
-      setBodyHtml(`<h2 style="color: #3b82f6; font-weight: bold; margin-bottom: 15px;">Temos novidades importantes para você!</h2>
-<p style="margin-bottom: 15px;">Olá, {{nome}}. Nossa equipe acaba de lançar novos recursos de personalização e estatísticas no seu painel.</p>
-<p style="margin-bottom: 15px;">Agora você pode acompanhar visualizações e reproduções das suas faixas em tempo real!</p>
-<p style="margin-bottom: 25px;">Acesse o painel hoje mesmo e confira as novidades.</p>
-<div style="text-align: center; margin-bottom: 25px;">
-  <a href="https://portaldoartista.com/artista/login" style="display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-decoration: none;">Acessar Meu Painel</a>
-</div>
-<p>Atenciosamente,<br/><strong>Equipe Portal do Artista</strong></p>`);
+      setBodyText(`# Temos novidades importantes para você!
+
+Olá, {{nome}}. Nossa equipe acaba de lançar novos recursos de personalização e estatísticas no seu painel.
+
+Agora você pode acompanhar visualizações e reproduções das suas faixas em tempo real!
+
+Acesse o painel hoje mesmo e confira as novidades.
+
+[Acessar Meu Painel](https://portaldoartista.com/artista/login)
+
+Atenciosamente,
+**Equipe Portal do Artista**`);
     } else if (templateName === "promo") {
       setSubject("Oferta Especial: Faça o upgrade do seu plano com desconto!");
-      setBodyHtml(`<h2 style="color: #10b981; font-weight: bold; margin-bottom: 15px;">Alavanque sua carreira com o Plano Premium!</h2>
-<p style="margin-bottom: 15px;">Olá, {{nome}}. Preparamos uma oportunidade única para você expandir o alcance da sua música.</p>
-<p style="margin-bottom: 15px;">Use o cupom especial e ganhe desconto na sua assinatura do plano básico, liberando limite ilimitado de faixas e personalização avançada.</p>
-<div style="margin: 25px auto; padding: 15px; border: 2px dashed #10b981; background-color: #f0fdf4; border-radius: 12px; text-align: center; max-width: 300px;">
-  <span style="font-size: 12px; color: #15803d; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Cupom de Desconto</span>
-  <div style="font-size: 24px; font-weight: bold; color: #166534; margin: 5px 0;">ARTISTAVIP</div>
-  <span style="font-size: 11px; color: #166534;">Insira no momento do upgrade</span>
-</div>
-<p style="margin-top: 20px;">Aproveite antes que a oferta expire!</p>`);
+      setBodyText(`# Alavanque sua carreira com o Plano Premium!
+
+Olá, {{nome}}. Preparamos uma oportunidade única para você expandir o alcance da sua música.
+
+Use o cupom especial e ganhe desconto na sua assinatura do plano básico, liberando limite ilimitado de faixas e personalização avançada.
+
+**CUPOM: ARTISTAVIP**
+*(Insira no momento do upgrade)*
+
+Aproveite antes que a oferta expire!`);
     }
   };
 
@@ -4200,7 +4248,7 @@ function EmailMarketingTab() {
       toast({ title: "Informe o assunto do e-mail", variant: "destructive" });
       return;
     }
-    if (!bodyHtml.trim()) {
+    if (!bodyText.trim()) {
       toast({ title: "Escreva o conteúdo do e-mail", variant: "destructive" });
       return;
     }
@@ -4215,6 +4263,8 @@ function EmailMarketingTab() {
 
     setSending(true);
     try {
+      const bodyHtml = convertTextToHtml(bodyText);
+
       const res = await fetch("/api/admin/email-marketing/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -4236,7 +4286,7 @@ function EmailMarketingTab() {
 
       // Clear form
       setSubject("");
-      setBodyHtml("");
+      setBodyText("");
     } catch (err: any) {
       console.error(err);
       toast({
@@ -4259,7 +4309,9 @@ function EmailMarketingTab() {
       ? (artists.find((a) => String(a.id) === selectedArtistId)?.name || "Artista")
       : "Artista Exemplo";
 
-    return bodyHtml
+    const renderedHtml = convertTextToHtml(bodyText);
+
+    return renderedHtml
       .replace(/\{\{nome\}\}/g, namePlaceholder)
       .replace(/\{\{name\}\}/g, namePlaceholder);
   };
@@ -4268,7 +4320,7 @@ function EmailMarketingTab() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-display font-bold text-foreground">E-mail Marketing</h2>
-        <p className="text-sm text-muted-foreground">Crie e envie comunicados aos artistas cadastrados utilizando o Resend.</p>
+        <p className="text-sm text-muted-foreground">Envie comunicados bonitos de forma simples, sem precisar saber HTML.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -4358,7 +4410,7 @@ function EmailMarketingTab() {
 
           {/* Templates */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Templates Rápidos</label>
+            <label className="text-sm font-medium text-foreground">Modelos Rápidos de Texto</label>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
@@ -4399,7 +4451,7 @@ function EmailMarketingTab() {
           {/* Text Area and editor tools */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-foreground">Conteúdo (HTML)</label>
+              <label className="text-sm font-medium text-foreground">Mensagem (Escreva normalmente)</label>
               <div className="flex items-center gap-1.5">
                 <label className="cursor-pointer bg-primary/10 border border-primary/20 text-primary text-xs px-2.5 py-1.5 rounded-lg font-bold hover:bg-primary/20 transition-all flex items-center gap-1">
                   {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
@@ -4415,60 +4467,49 @@ function EmailMarketingTab() {
               </div>
             </div>
 
-            {/* Helper Formatting toolbar */}
+            {/* Helper Formatting toolbar (No HTML, simple markdown guides) */}
             <div className="flex flex-wrap gap-1 p-1 bg-background/50 border border-border rounded-t-xl border-b-0">
               <button
                 type="button"
                 onClick={() => insertTag("{{nome}}")}
-                className="px-2 py-1 hover:bg-card rounded text-[10px] font-mono text-primary font-bold"
-                title="Nome personalizado do artista"
+                className="px-2.5 py-1 hover:bg-card rounded text-[10px] font-mono text-primary font-bold"
+                title="Insere o nome do artista automaticamente"
               >
-                {"{{nome}}"}
+                {"Nome do Artista {{nome}}"}
               </button>
               <button
                 type="button"
-                onClick={() => insertTag("<strong>Texto em Negrito</strong>")}
-                className="px-2 py-1 hover:bg-card rounded text-[10px] font-bold text-muted-foreground hover:text-foreground"
+                onClick={() => insertTag("**texto em negrito**")}
+                className="px-2.5 py-1 hover:bg-card rounded text-[10px] font-bold text-muted-foreground hover:text-foreground"
+                title="Coloca o texto em negrito"
               >
-                B
+                Negrito
               </button>
               <button
                 type="button"
-                onClick={() => insertTag('<h2 style="color: #6366f1; font-weight: bold; margin-bottom: 15px;">Título</h2>')}
-                className="px-2 py-1 hover:bg-card rounded text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                onClick={() => insertTag("# Título")}
+                className="px-2.5 py-1 hover:bg-card rounded text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                title="Cria um título grande"
               >
-                H2
+                Título
               </button>
               <button
                 type="button"
-                onClick={() => insertTag('<p style="margin-bottom: 15px;">Parágrafo</p>')}
-                className="px-2 py-1 hover:bg-card rounded text-[10px] text-muted-foreground hover:text-foreground"
-              >
-                P
-              </button>
-              <button
-                type="button"
-                onClick={() => insertTag('<a href="https://" style="color: #6366f1; text-decoration: underline;">Link</a>')}
-                className="px-2 py-1 hover:bg-card rounded text-[10px] underline text-muted-foreground hover:text-foreground"
+                onClick={() => insertTag("[Texto do link](https://...)")}
+                className="px-2.5 py-1 hover:bg-card rounded text-[10px] underline text-muted-foreground hover:text-foreground"
+                title="Insere um link clicável"
               >
                 Link
-              </button>
-              <button
-                type="button"
-                onClick={() => insertTag("<br/>")}
-                className="px-2 py-1 hover:bg-card rounded text-[10px] font-mono text-muted-foreground hover:text-foreground"
-              >
-                &lt;br/&gt;
               </button>
             </div>
 
             <textarea
               ref={textareaRef}
               rows={12}
-              placeholder="Escreva a mensagem usando tags HTML normais para formatação..."
-              value={bodyHtml}
-              onChange={(e) => setBodyHtml(e.target.value)}
-              className="w-full px-4 py-3 bg-input border border-border rounded-b-xl text-foreground text-xs font-mono focus:border-primary focus:ring-1 focus:ring-primary leading-relaxed resize-y"
+              placeholder="Escreva sua mensagem aqui. Aperte Enter duas vezes para criar um novo parágrafo. Use os botões acima para formatar."
+              value={bodyText}
+              onChange={(e) => setBodyText(e.target.value)}
+              className="w-full px-4 py-3 bg-input border border-border rounded-b-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary leading-relaxed resize-y"
             />
           </div>
 
@@ -4486,9 +4527,9 @@ function EmailMarketingTab() {
         {/* Live Preview panel */}
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pré-visualização do Inbox</span>
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pré-visualização do E-mail</span>
             <span className="bg-emerald-500/10 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-500/20">
-              Tempo Real
+              Visualização Real
             </span>
           </div>
 
@@ -4511,7 +4552,7 @@ function EmailMarketingTab() {
             </div>
             <div className="p-4 bg-[#f9fafb] min-h-[400px] flex items-start justify-center overflow-x-auto">
               <div
-                className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm w-full max-w-[600px] text-gray-800 font-sans text-xs leading-relaxed space-y-4 break-words"
+                className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm w-full max-w-[600px] text-gray-800 font-sans text-sm leading-relaxed space-y-4 break-words"
                 dangerouslySetInnerHTML={{
                   __html: getPreviewHtml() || '<p class="text-gray-400 italic text-center py-12">Escreva o conteúdo do e-mail na coluna da esquerda...</p>',
                 }}
