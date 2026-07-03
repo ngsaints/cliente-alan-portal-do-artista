@@ -15,6 +15,7 @@ interface Plan {
   limiteMusicas: number;
   personalizacaoPercent: number;
   features: string[];
+  aiCreditsLimit?: number;
 }
 
 const PROFISSOES = ["Cantor", "Compositor", "Banda", "Grupo", "Dupla", "Outro"];

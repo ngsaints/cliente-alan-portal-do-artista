@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import { db, artistsTable, plansTable, subscriptionsTable, couponsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { db, artistsTable, plansTable, subscriptionsTable, couponsTable, appSettingsTable } from "@workspace/db";
+import { eq, sql, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
@@ -428,6 +428,8 @@ router.get("/artists/status", async (req, res): Promise<void> => {
         canCustomizePlayerColor: plan?.canCustomizePlayerColor ?? true,
         canUploadBanner: plan?.canUploadBanner ?? false,
         canUploadProfilePhoto: plan?.canUploadProfilePhoto ?? false,
+        aiQueriesCount: artist.aiQueriesCount,
+        aiCreditsLimit: plan?.aiCreditsLimit ?? 10,
       },
     });
   } catch (error) {
@@ -697,6 +699,144 @@ router.get("/artists/:identifier", async (req, res): Promise<void> => {
   } catch (error) {
     console.error("Error fetching artist:", error);
     res.status(500).json({ error: "Erro ao buscar artista" });
+  }
+});
+
+// POST /artists/mentor - Conversa com a Vivi (Mentora IA)
+router.post("/artists/mentor", async (req, res): Promise<void> => {
+  if (!req.session.artistId) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
+
+  try {
+    const { messages, tool } = req.body;
+    if (!messages || !Array.isArray(messages)) {
+      res.status(400).json({ error: "Parâmetro 'messages' é obrigatório e deve ser um array." });
+      return;
+    }
+
+    // 1. Obter configurações da OpenAI no appSettingsTable
+    const settings = await db
+      .select({ key: appSettingsTable.key, value: appSettingsTable.value })
+      .from(appSettingsTable)
+      .where(eq(appSettingsTable.category, "portal"));
+
+    const openaiEnabledSetting = settings.find(s => s.key === "openai_enabled")?.value;
+    const openaiApiKey = settings.find(s => s.key === "openai_api_key")?.value;
+
+    if (openaiEnabledSetting !== "true") {
+      res.status(400).json({ error: "A mentora virtual Vivi está desativada temporariamente pelo administrador." });
+      return;
+    }
+
+    if (!openaiApiKey) {
+      res.status(500).json({ error: "A chave de API da OpenAI não foi configurada no painel administrativo." });
+      return;
+    }
+
+    // 2. Obter artista e seu plano atual para verificar os créditos
+    const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, req.session.artistId));
+    if (artists.length === 0) {
+      res.status(404).json({ error: "Artista não encontrado" });
+      return;
+    }
+    const artist = artists[0];
+
+    const plans = await db.select().from(plansTable).where(eq(plansTable.nome, artist.plano));
+    const plan = plans[0];
+    const aiLimit = plan?.aiCreditsLimit ?? 10;
+
+    // 3. Verificar reset mensal dos créditos (30 dias)
+    const resetDate = new Date(artist.aiQueriesResetAt);
+    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+    const now = new Date();
+
+    let currentUsage = artist.aiQueriesCount;
+    if (now.getTime() - resetDate.getTime() >= thirtyDaysInMs) {
+      // Reseta contagem
+      currentUsage = 0;
+      await db
+        .update(artistsTable)
+        .set({
+          aiQueriesCount: 0,
+          aiQueriesResetAt: now
+        })
+        .where(eq(artistsTable.id, artist.id));
+    }
+
+    // 4. Verificar se tem saldo
+    if (currentUsage >= aiLimit) {
+      res.status(403).json({
+        error: `Você atingiu o limite de consultas de Inteligência Artificial do seu plano (${aiLimit} por mês). Faça um upgrade para continuar conversando com a Vivi!`
+      });
+      return;
+    }
+
+    // 5. Definir o system prompt baseado na ferramenta selecionada
+    let systemPrompt = `Você é a Vivi, a mentora virtual do PORTALDOARTISTA.COM. Você é uma parceira ideal para impulsionar a carreira, organizar metas, sugerir estratégias de marketing musical e ajudar cantores, compositores e bandas a alcançarem mais fãs.
+Fale de forma simples, motivadora, orientada a resultados e forneça dicas extremamente práticas e acionáveis, não respostas genéricas. Nunca responda com termos vagos. Mantenha as respostas focadas e evite textos excessivamente longos.`;
+
+    if (tool === "biografia") {
+      systemPrompt = `Você é a Vivi, mentora virtual oficial da plataforma Portal do Artista (PORTALDOARTISTA.COM). Sua missão é ajudar este artista a aprimorar, reescrever ou expandir sua biografia/perfil profissional de forma a chamar a atenção de contratantes, produtores e fãs. Dê sugestões de melhoria práticas, organizadas e estruturadas em parágrafos claros.`;
+    } else if (tool === "comercial") {
+      systemPrompt = `Você é a Vivi, mentora virtual oficial do Portal do Artista. Analise o potencial comercial da letra, tema ou prévia da música enviada pelo artista. Dê um feedback honesto, amigável e profissional sobre o apelo ao público, possíveis nichos e sugestões de ganchos (hooks) ou ajustes de rima/ritmo para tornar a música ainda mais vendável.`;
+    } else if (tool === "legenda") {
+      systemPrompt = `Você é a Vivi, mentora virtual oficial do Portal do Artista. Escreva legendas cativantes e estruturadas com emojis e hashtags ideais para que o artista publique no Instagram, TikTok e Facebook. Dê duas ou três opções com tons ligeiramente diferentes (ex: um focado em contar a história da música, outro focado em engajamento).`;
+    } else if (tool === "reels") {
+      systemPrompt = `Você é a Vivi, mentora virtual oficial do Portal do Artista. Escreva um roteiro estruturado passo a passo para um vídeo curto de Reels/TikTok (de até 60 segundos). Forneça indicações de imagem, legenda visual e o roteiro exato do que o artista deve falar para engajar o público e promover sua música.`;
+    } else if (tool === "hashtags") {
+      systemPrompt = `Você é a Vivi, mentora virtual oficial do Portal do Artista. Crie uma lista excelente de hashtags para posts de divulgação do artista, organizadas por categorias (nicho musical, gerais, engajamento) e explique brevemente como usá-las para aumentar o alcance.`;
+    } else if (tool === "release") {
+      systemPrompt = `Você é a Vivi, mentora virtual oficial do Portal do Artista. Crie um press-release (comunicado de imprensa) profissional que o artista possa enviar para rádios, blogs e jornais locais promovendo seu novo trabalho. Inclua título atraente, data de embargo, narrativa instigante e local para contatos de assessoria.`;
+    } else if (tool === "titulos") {
+      systemPrompt = `Você é a Vivi, mentora virtual oficial do Portal do Artista. Gere 5 sugestões de títulos criativos, marcantes e vendáveis para a música do artista com base nas palavras-chave, tema ou trecho de letra compartilhado por ele.`;
+    }
+
+    // 6. Fazer a requisição à OpenAI API
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("OpenAI API error response:", errText);
+      res.status(502).json({ error: "Erro na resposta da inteligência artificial. Tente novamente mais tarde." });
+      return;
+    }
+
+    const data = await response.json();
+    const reply = data.choices?.[0]?.message?.content || "";
+
+    // 7. Incrementar o saldo consumido de IA do artista
+    const newUsageCount = currentUsage + 1;
+    await db
+      .update(artistsTable)
+      .set({ aiQueriesCount: newUsageCount })
+      .where(eq(artistsTable.id, artist.id));
+
+    res.json({
+      reply,
+      aiQueriesCount: newUsageCount,
+      aiCreditsLimit: aiLimit
+    });
+
+  } catch (error) {
+    console.error("Error running AI mentor query:", error);
+    res.status(500).json({ error: "Erro ao processar consulta com o mentor." });
   }
 });
 

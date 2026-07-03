@@ -48,6 +48,27 @@ router.get("/settings", async (_req, res): Promise<void> => {
     console.error("Error fetching clarity_project_id setting:", err);
   }
 
+  let suporteInstagram: string | null = null;
+  let suporteWhatsapp: string | null = null;
+  let suporteEmail: string | null = null;
+  let openaiEnabled = false;
+
+  try {
+    const rows = await db
+      .select({ key: appSettingsTable.key, value: appSettingsTable.value })
+      .from(appSettingsTable)
+      .where(eq(appSettingsTable.category, "portal"));
+    
+    for (const r of rows) {
+      if (r.key === "suporte_instagram") suporteInstagram = r.value;
+      if (r.key === "suporte_whatsapp") suporteWhatsapp = r.value;
+      if (r.key === "suporte_email") suporteEmail = r.value;
+      if (r.key === "openai_enabled") openaiEnabled = r.value === "true";
+    }
+  } catch (err) {
+    console.error("Error fetching support/openai settings:", err);
+  }
+
   res.json({
     artistName,
     artistPhotoUrl: artistPhotoUrl || null,
@@ -57,6 +78,10 @@ router.get("/settings", async (_req, res): Promise<void> => {
     heroSubtitle: heroSubtitle || null,
     heroCTA: heroCTA || null,
     clarityProjectId,
+    suporteInstagram: suporteInstagram || "@Portaldoartista.oficial",
+    suporteWhatsapp: suporteWhatsapp || "21 99589 7040",
+    suporteEmail: suporteEmail || "portaldoartistaoficial@gmail.com",
+    openaiEnabled,
   });
 });
 

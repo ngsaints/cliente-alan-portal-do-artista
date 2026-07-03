@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, numeric, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, numeric, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -21,6 +21,7 @@ export const plansTable = pgTable("plans", {
   canCustomizePlayerColor: boolean("can_customize_player_color").notNull().default(true),
   canUploadBanner: boolean("can_upload_banner").notNull().default(false),
   canUploadProfilePhoto: boolean("can_upload_profile_photo").notNull().default(false),
+  aiCreditsLimit: integer("ai_credits_limit").notNull().default(10),
 });
 
 export const insertPlanSchema = createInsertSchema(plansTable).omit({ 

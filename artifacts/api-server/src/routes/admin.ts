@@ -215,6 +215,35 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
       }
     }
 
+    if (category === "portal") {
+      const keysToEnsure = [
+        { key: "portal_name", value: "Portal do Artista", desc: "Nome do portal" },
+        { key: "portal_url", value: "https://portaldoartista.com", desc: "URL do portal" },
+        { key: "portal_email", value: "portaldoartistaoficial@gmail.com", desc: "E-mail de contato principal" },
+        { key: "suporte_instagram", value: "@Portaldoartista.oficial", desc: "Instagram de suporte e dúvidas" },
+        { key: "suporte_whatsapp", value: "21 99589 7040", desc: "WhatsApp de suporte e dúvidas" },
+        { key: "suporte_email", value: "portaldoartistaoficial@gmail.com", desc: "E-mail de suporte e dúvidas" },
+        { key: "openai_enabled", value: "false", desc: "Ativar Mentora Virtual (Vivi) para os artistas" },
+        { key: "openai_api_key", value: "", desc: "OpenAI API Key para a mentora Vivi", isSecret: "true" },
+      ];
+      
+      for (const item of keysToEnsure) {
+        const existing = await db
+          .select()
+          .from(appSettingsTable)
+          .where(eq(appSettingsTable.key, item.key));
+        if (existing.length === 0) {
+          await db.insert(appSettingsTable).values({
+            category: "portal",
+            key: item.key,
+            value: item.value,
+            isSecret: item.isSecret || "false",
+            description: item.desc
+          });
+        }
+      }
+    }
+
     const settings = await db
       .select()
       .from(appSettingsTable)
@@ -528,7 +557,7 @@ router.put("/admin/plans/:id", async (req, res): Promise<void> => {
       descricao, fraseEfeito, ativo,
       canCustomizeFont, canCustomizeBackground, canCustomizeTextColor,
       canCustomizePlayerStyle, canCustomizePlayerColor,
-      canUploadBanner, canUploadProfilePhoto
+      canUploadBanner, canUploadProfilePhoto, aiCreditsLimit
     } = req.body;
 
     const updated = await db
@@ -549,6 +578,7 @@ router.put("/admin/plans/:id", async (req, res): Promise<void> => {
         canCustomizePlayerColor,
         canUploadBanner,
         canUploadProfilePhoto,
+        aiCreditsLimit: aiCreditsLimit !== undefined ? parseInt(aiCreditsLimit) : 10,
       })
       .where(eq(plansTable.id, parseInt(id)))
       .returning();
@@ -578,7 +608,7 @@ router.post("/admin/plans", async (req, res): Promise<void> => {
       descricao, fraseEfeito, ativo,
       canCustomizeFont, canCustomizeBackground, canCustomizeTextColor,
       canCustomizePlayerStyle, canCustomizePlayerColor,
-      canUploadBanner, canUploadProfilePhoto
+      canUploadBanner, canUploadProfilePhoto, aiCreditsLimit
     } = req.body;
 
     const created = await db
@@ -599,6 +629,7 @@ router.post("/admin/plans", async (req, res): Promise<void> => {
         canCustomizePlayerColor: canCustomizePlayerColor ?? true,
         canUploadBanner: canUploadBanner ?? false,
         canUploadProfilePhoto: canUploadProfilePhoto ?? false,
+        aiCreditsLimit: aiCreditsLimit !== undefined ? parseInt(aiCreditsLimit) : 10,
       })
       .returning();
 

@@ -13,6 +13,7 @@ interface Plan {
   descricao?: string;
   fraseEfeito?: string;
   features: string[];
+  aiCreditsLimit?: number;
 }
 
 interface PlansModalProps {

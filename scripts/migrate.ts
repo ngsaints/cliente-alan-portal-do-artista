@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { execSync } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +17,26 @@ import { pool } from "@workspace/db";
 
 async function runMigrations() {
   console.log("🚀 Iniciando migrações automáticas do banco de dados...");
+
+  // Backup preventivo antes das migrações
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      console.log("💾 Criando backup preventivo do banco de dados...");
+      const backupsDir = path.join(__dirname, "../backups");
+      if (!fs.existsSync(backupsDir)) {
+        fs.mkdirSync(backupsDir, { recursive: true });
+      }
+      const backupFile = path.join(backupsDir, `backup_${Date.now()}.sql`);
+      const maskedUrl = dbUrl.replace(/:([^:@]+)@/, ":******@");
+      console.log(`   Executando pg_dump para: ${maskedUrl}`);
+      execSync(`pg_dump --dbname="${dbUrl}" -f "${backupFile}"`, { stdio: "ignore" });
+      console.log(`💾 Backup criado com sucesso em: ${backupFile}`);
+    }
+  } catch (backupErr: any) {
+    console.error("❌ Falha ao criar backup preventivo:", backupErr.message);
+    console.log("⚠️ Continuando migração mesmo assim...");
+  }
   
   // Cria tabela de histórico de migrações se não existir
   await pool.query(`

@@ -5,7 +5,8 @@ import {
   User, Music, BarChart3, Settings, Upload, Eye, EyeOff, 
   TrendingUp, TrendingUpDown, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
-  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle, Share2
+  ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle, Share2,
+  Bot, Sparkles
 } from "lucide-react";
 import {
   Command,
@@ -54,6 +55,8 @@ interface ArtistProfile {
   canCustomizeTextColor: boolean;
   canCustomizePlayerStyle: boolean;
   canCustomizePlayerColor: boolean;
+  aiQueriesCount?: number;
+  aiCreditsLimit?: number;
 }
 
 const DEFAULT_PLANS = [
@@ -186,7 +189,7 @@ const PLAYER_COLORS = [
   "#fab1a0", "#74b9ff", "#a855f7",
 ];
 
-type TabId = "dashboard" | "songs" | "playlists" | "gallery" | "profile" | "plano" | "interesses" | "vip";
+type TabId = "dashboard" | "songs" | "playlists" | "gallery" | "profile" | "plano" | "interesses" | "vip" | "mentor";
 
 function PlayerPreviewMini({ style, editCustom }: { style: string; editCustom: any }) {
   const playerCor = editCustom?.playerCor || "#f5c518";
@@ -368,6 +371,8 @@ export default function ArtistDashboard() {
   const [artist, setArtist] = useState<ArtistProfile | null>(null);
   const [stats, setStats] = useState<ArtistStats>({ totalSongs: 0, totalPlays: 0, totalLikes: 0, vipContent: 0 });
   const [songs, setSongs] = useState<any[]>([]);
+  const [openaiEnabled, setOpenaiEnabled] = useState(false);
+  const [supportChannels, setSupportChannels] = useState({ instagram: "", whatsapp: "", email: "" });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -423,6 +428,191 @@ export default function ArtistDashboard() {
   const [planCouponResult, setPlanCouponResult] = useState<{ discountType: string; discountValue: string; discountAmount: string; finalPrice: string; originalPrice: string } | null>(null);
   const [planCouponError, setPlanCouponError] = useState("");
   const [validatingPlanCoupon, setValidatingPlanCoupon] = useState(false);
+
+  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([
+    { role: "assistant", content: "👋 Olá! Eu sou a Vivi, mentora virtual do PORTALDOARTISTA.COM. Estou aqui para ajudar você a organizar sua carreira, divulgar suas músicas e aproveitar todas as ferramentas da plataforma. Como posso te ajudar hoje?" }
+  ]);
+  const [currentTool, setCurrentTool] = useState<string>("chat");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [quickQuestion, setQuickQuestion] = useState<string | null>(null);
+
+  const handleQuickMentorQuestion = (text: string) => {
+    setQuickQuestion(text);
+    setActiveTab("mentor");
+  };
+
+  const handleSelectTool = (toolName: string) => {
+    setCurrentTool(toolName);
+    let intro = "👋 Olá! Eu sou a Vivi. Escolha uma das ferramentas ao lado ou faça uma pergunta livre sobre sua carreira.";
+    if (toolName === "biografia") {
+      intro = "✍️ Cole sua biografia profissional atual ou conte-me sua história para eu reescrevê-la de forma impactante!";
+    } else if (toolName === "potencial") {
+      intro = "🎵 Envie a letra, gênero ou tema da sua música para eu analisar seu apelo comercial e público-alvo.";
+    } else if (toolName === "legenda") {
+      intro = "📱 Diga sobre o que é a sua música ou publicação para eu gerar opções de legendas para Instagram, TikTok e Facebook.";
+    } else if (toolName === "reels") {
+      intro = "📢 Fale do tema que quer gravar para eu criar um roteiro de vídeo de Reels/TikTok dinâmico de até 60 segundos.";
+    } else if (toolName === "hashtags") {
+      intro = "🎯 Digite o tema ou estilo do seu post para eu listar hashtags estratégicas.";
+    } else if (toolName === "release") {
+      intro = "📄 Me conte sobre seu novo lançamento, show ou conquista para eu redigir um press release completo.";
+    } else if (toolName === "titulos") {
+      intro = "🎼 Conte sobre o tema ou a letra da música para eu sugerir 5 títulos marcantes.";
+    }
+    
+    setChatMessages([
+      { role: "assistant", content: intro }
+    ]);
+  };
+
+  const triggerVivi = async (messagesList: { role: "user" | "assistant"; content: string }[], toolName: string) => {
+    setChatLoading(true);
+    try {
+      const res = await fetch("/api/artists/mentor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          messages: messagesList,
+          tool: toolName
+        })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setChatMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+        if (artist) {
+          setArtist({
+            ...artist,
+            aiQueriesCount: data.aiQueriesCount
+          });
+        }
+      } else {
+        toast({
+          title: "Erro ao consultar a Vivi",
+          description: data.error || "Não foi possível obter resposta no momento.",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error("Error communicating with Vivi:", err);
+      toast({
+        title: "Erro de conexão",
+        description: "Falha ao se conectar com a mentora virtual.",
+        variant: "destructive"
+      });
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "mentor" && quickQuestion) {
+      const question = quickQuestion;
+      setQuickQuestion(null);
+      setCurrentTool("chat");
+      const newMsgs = [...chatMessages, { role: "user" as const, content: question }];
+      setChatMessages(newMsgs);
+      triggerVivi(newMsgs, "chat");
+    }
+  }, [activeTab, quickQuestion]);
+
+  const getProfileCompletion = () => {
+    if (!artist) return { percent: 0, items: [] as { label: string; status: "success" | "warning" | "error" }[] };
+    
+    let score = 10;
+    const items: { label: string; status: "success" | "warning" | "error" }[] = [];
+    
+    if (artist.profissao && artist.profissao.trim()) {
+      score += 10;
+      items.push({ label: "Profissão cadastrada", status: "success" });
+    } else {
+      items.push({ label: "Defina sua profissão no perfil", status: "warning" });
+    }
+    
+    if (artist.cidade && artist.cidade.trim()) {
+      score += 10;
+      items.push({ label: "Cidade cadastrada", status: "success" });
+    } else {
+      items.push({ label: "Informe sua cidade de atuação", status: "warning" });
+    }
+    
+    if (artist.contato && artist.contato.trim()) {
+      score += 10;
+      items.push({ label: "Contato preenchido", status: "success" });
+    } else {
+      items.push({ label: "Adicione telefone/contato no perfil", status: "warning" });
+    }
+    
+    const artistGenero = (artist as any).genero;
+    if (artistGenero && artistGenero.trim()) {
+      score += 10;
+      items.push({ label: "Gênero musical definido", status: "success" });
+    } else {
+      items.push({ label: "Selecione seu gênero principal", status: "warning" });
+    }
+    
+    if (artist.capaUrl && !artist.capaUrl.includes("default")) {
+      score += 15;
+      items.push({ label: "Foto de perfil personalizada", status: "success" });
+    } else {
+      items.push({ label: "Você está usando a foto padrão", status: "warning" });
+    }
+    
+    if (artist.bannerUrl && !artist.bannerUrl.includes("default")) {
+      score += 15;
+      items.push({ label: "Banner personalizado", status: "success" });
+    } else {
+      items.push({ label: "Adicione um banner de destaque", status: "warning" });
+    }
+    
+    const hasInstagram = artist.instagram && artist.instagram.trim();
+    const hasTiktok = artist.tiktok && artist.tiktok.trim();
+    const hasSpotify = artist.spotify && artist.spotify.trim();
+    
+    if (hasInstagram) {
+      score += 10;
+      items.push({ label: "Instagram conectado", status: "success" });
+    } else {
+      items.push({ label: "Você ainda não conectou seu Instagram", status: "warning" });
+    }
+    
+    if (hasTiktok || hasSpotify) {
+      score += 10;
+      items.push({ label: "Outras redes conectadas", status: "success" });
+    } else {
+      items.push({ label: "Preencha links do Spotify ou TikTok", status: "warning" });
+    }
+    
+    if (songs.length === 0) {
+      items.push({ label: "Nenhuma música no catálogo", status: "error" });
+    } else {
+      items.push({ label: `${songs.length} música(s) cadastrada(s)`, status: "success" });
+      
+      const defaultCoversCount = songs.filter(s => !s.capaUrl || s.capaUrl.includes("default-cover")).length;
+      if (defaultCoversCount > 0) {
+        items.push({ label: `${defaultCoversCount} música(s) sem capa personalizada`, status: "warning" });
+      } else {
+        items.push({ label: "Todas as músicas têm capa", status: "success" });
+      }
+    }
+
+    if (songs.length > 0) {
+      const dates = songs.map(s => s.createdAt ? new Date(s.createdAt).getTime() : 0);
+      const newestDate = Math.max(...dates);
+      if (newestDate > 0) {
+        const diffDays = (Date.now() - newestDate) / (1000 * 60 * 60 * 24);
+        if (diffDays > 60) {
+          items.push({ label: `Sem novas músicas há mais de 60 dias`, status: "error" });
+        } else {
+          items.push({ label: "Catálogo atualizado recentemente", status: "success" });
+        }
+      }
+    }
+    
+    return { percent: score, items };
+  };
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [selectedPlaylist, setSelectedPlaylist] = useState<any | null>(null);
   const [playlistSongs, setPlaylistSongs] = useState<any[]>([]);
@@ -439,6 +629,7 @@ export default function ArtistDashboard() {
     { id: "playlists",      label: "Playlists",       icon: ListMusic      },
     { id: "gallery",        label: "Galeria",         icon: Image          },
     { id: "profile",        label: "Perfil",          icon: User           },
+    ...(openaiEnabled ? [{ id: "mentor" as TabId, label: "Mentora IA", icon: Bot }] : []),
     { id: "vip",            label: "VIP",             icon: Crown          },
     { id: "plano",          label: "Plano",           icon: CreditCard     },
     { id: "interesses",     label: "Interesses",      icon: MessageSquare  },
@@ -464,15 +655,23 @@ export default function ArtistDashboard() {
 
   const loadData = async () => {
     try {
-      const [statusRes, songsRes] = await Promise.all([
+      const [statusRes, songsRes, settingsRes] = await Promise.all([
         fetch("/api/artists/status", { credentials: "include" }).then(r => r.json()),
         fetch("/api/songs", { credentials: "include" }).then(r => r.json()),
+        fetch("/api/settings").then(r => r.json()).catch(() => ({})),
       ]);
 
       if (!statusRes.loggedIn) {
         setLocation("/artista/login");
         return;
       }
+
+      setOpenaiEnabled(settingsRes.openaiEnabled || false);
+      setSupportChannels({
+        instagram: settingsRes.suporteInstagram || "@Portaldoartista.oficial",
+        whatsapp: settingsRes.suporteWhatsapp || "21 99589 7040",
+        email: settingsRes.suporteEmail || "portaldoartistaoficial@gmail.com"
+      });
 
       const a = statusRes.artist;
       setArtist(a);
@@ -1065,6 +1264,188 @@ export default function ArtistDashboard() {
             {/* Dashboard */}
             {activeTab === "dashboard" && (
               <div className="space-y-6">
+                {/* Diagnóstico da Carreira & CTA Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Card do Diagnóstico */}
+                  <div className="md:col-span-2 bg-card border border-border/40 rounded-2xl p-6 space-y-4 shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-purple-400" />
+                        Diagnóstico da Carreira
+                      </h3>
+                      <span className="text-sm font-semibold text-purple-400 bg-purple-500/10 px-2.5 py-0.5 rounded-full border border-purple-500/20">
+                        {getProfileCompletion().percent}% completo
+                      </span>
+                    </div>
+                    
+                    {/* Barra de progresso */}
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500" 
+                        style={{ width: `${getProfileCompletion().percent}%` }}
+                      />
+                    </div>
+                    
+                    {/* Checklist */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                      {getProfileCompletion().items.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-xs">
+                          {item.status === "success" && (
+                            <span className="w-4 h-4 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 flex items-center justify-center shrink-0">✓</span>
+                          )}
+                          {item.status === "warning" && (
+                            <span className="w-4 h-4 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 flex items-center justify-center shrink-0">!</span>
+                          )}
+                          {item.status === "error" && (
+                            <span className="w-4 h-4 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center shrink-0">✗</span>
+                          )}
+                          <span className={item.status === "success" ? "text-muted-foreground" : "text-foreground font-medium"}>
+                            {item.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Card de Próximas Ações (Pílulas de CTA) */}
+                  <div className="bg-card border border-border/40 rounded-2xl p-6 space-y-4 flex flex-col justify-between shadow-xl">
+                    <div>
+                      <h3 className="text-base font-bold text-foreground flex items-center gap-2 mb-3">
+                        <Bot className="w-5 h-5 text-purple-400" />
+                        Ação Recomendada
+                      </h3>
+                      
+                      {/* Lógica das Pílulas de CTA */}
+                      {(() => {
+                        const completion = getProfileCompletion().percent;
+                        const hasSongs = songs.length > 0;
+                        const isFree = artist?.plano === "free";
+                        
+                        if (completion < 90) {
+                          return (
+                            <div className="space-y-3">
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                Complete seu perfil para passar mais credibilidade a fãs e contratantes. Adicione redes sociais, banner e biografia.
+                              </p>
+                              <button 
+                                onClick={() => setActiveTab("profile")}
+                                className="w-full py-2 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/95 transition-all shadow-md"
+                              >
+                                Completar Perfil
+                              </button>
+                            </div>
+                          );
+                        }
+                        
+                        if (!hasSongs) {
+                          return (
+                            <div className="space-y-3">
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                Sua vitrine está vazia! Envie suas faixas ou releases para que seu perfil fique visível na busca de artistas.
+                              </p>
+                              <button 
+                                onClick={() => setActiveTab("songs")}
+                                className="w-full py-2 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/95 transition-all shadow-md"
+                              >
+                                Subir Músicas
+                              </button>
+                            </div>
+                          );
+                        }
+                        
+                        if (isFree) {
+                          return (
+                            <div className="space-y-3">
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                Você está no plano Gratuito com limites de upload e personalização. Faça o upgrade e impulsione sua carreira!
+                              </p>
+                              <button 
+                                onClick={() => setActiveTab("plano")}
+                                className="w-full py-2 px-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black text-xs font-bold hover:opacity-95 transition-all shadow-md"
+                              >
+                                Assinar Plano Básico
+                              </button>
+                            </div>
+                          );
+                        }
+                        
+                        // Lembrete da Vivi se tudo estiver concluído
+                        return (
+                          <div className="space-y-3">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              Parabéns! Suas ações básicas estão concluídas. Lembre-se que você pode usar a nossa IA no menu <strong>Mentora IA</strong> para planejar lançamentos e fechar negócios.
+                            </p>
+                            {openaiEnabled && (
+                              <button 
+                                onClick={() => setActiveTab("mentor")}
+                                className="w-full py-2 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/95 transition-all shadow-md"
+                              >
+                                Conversar com a Vivi
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    
+                    {/* Dica da semana (se a IA estiver ativa) */}
+                    {openaiEnabled && (
+                      <div className="mt-3 p-3 bg-purple-500/5 border border-purple-500/10 rounded-xl">
+                        <div className="flex items-center gap-1.5 text-xs text-purple-400 font-bold mb-1">
+                          <Sparkles className="w-3 h-3" />
+                          Dica da Semana:
+                        </div>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                          "Grave vídeos curtos mostrando os bastidores da criação da sua música e use-os para engajar no Reels."
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pergunte ao Mentor IA (Vivi) */}
+                {openaiEnabled && (
+                  <div className="bg-gradient-to-r from-purple-900/10 via-indigo-900/5 to-purple-900/10 border border-purple-500/20 rounded-2xl p-6 space-y-4 shadow-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-lg shrink-0 border border-purple-500/30">
+                        🤖
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-foreground text-sm">Pergunte à Vivi — Sua Mentora Virtual</h4>
+                        <p className="text-xs text-muted-foreground">Tire dúvidas sobre sua carreira, marketing ou crie legendas e roteiros de Reels.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Ex: Como posso divulgar meu novo single nas redes sociais?"
+                        id="quick-mentor-input"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const val = (e.target as HTMLInputElement).value;
+                            if (val.trim()) {
+                              handleQuickMentorQuestion(val);
+                            }
+                          }
+                        }}
+                        className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm"
+                      />
+                      <button 
+                        onClick={() => {
+                          const el = document.getElementById("quick-mentor-input") as HTMLInputElement;
+                          if (el && el.value.trim()) {
+                            handleQuickMentorQuestion(el.value);
+                          }
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors shadow-md"
+                      >
+                        Perguntar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Gestão de Músicas */}
                 <div className="bg-card border border-border/40 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -2625,6 +3006,157 @@ export default function ArtistDashboard() {
             {/* Interesses */}
             {activeTab === "interesses" && artist && (
               <ArtistInteresses artistId={artist.id} />
+            )}
+
+            {/* Mentora IA (Vivi) */}
+            {activeTab === "mentor" && openaiEnabled && (
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[500px]">
+                {/* Painel Lateral - Ferramentas */}
+                <div className="lg:col-span-1 bg-card border border-border/40 rounded-2xl p-4 space-y-3 shadow-xl">
+                  <h4 className="font-bold text-foreground text-xs px-2 flex items-center gap-1.5 uppercase tracking-wider text-purple-400">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Ferramentas de IA
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground px-2 leading-relaxed">
+                    Selecione uma tarefa específica para Vivi focar seu conhecimento:
+                  </p>
+                  
+                  <div className="space-y-1">
+                    {[
+                      { id: "chat", label: "Conversa Livre", icon: MessageSquare },
+                      { id: "biografia", label: "Melhorar Biografia", icon: User },
+                      { id: "potencial", label: "Análise de Música", icon: Music },
+                      { id: "legenda", label: "Legenda de Posts", icon: ImageIcon },
+                      { id: "reels", label: "Roteiro de Reels", icon: PlayCircle },
+                      { id: "hashtags", label: "Sugestão de Hashtags", icon: Share2 },
+                      { id: "release", label: "Criar Press Release", icon: Disc },
+                      { id: "titulos", label: "Ideias de Títulos", icon: Pencil }
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => handleSelectTool(t.id)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left text-xs transition-colors ${
+                          currentTool === t.id
+                            ? "bg-primary text-primary-foreground font-bold"
+                            : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                        }`}
+                      >
+                        <t.icon className="w-3.5 h-3.5" />
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Área de Chat */}
+                <div className="lg:col-span-3 flex flex-col bg-card border border-border/40 rounded-2xl overflow-hidden h-[520px] shadow-xl">
+                  {/* Top Bar do Chat */}
+                  <div className="px-5 py-4 border-b border-border/40 flex items-center justify-between bg-background/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold shrink-0">
+                        Vivi
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-foreground text-sm">Vivi — Mentora Musical</h4>
+                        <span className="text-[10px] text-purple-400 font-medium">Online e pronta para ajudar</span>
+                      </div>
+                    </div>
+
+                    {/* IA Usage Counter */}
+                    {artist && (
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-muted-foreground block">Uso de IA no mês</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden hidden sm:block">
+                            <div 
+                              className="h-full bg-purple-500" 
+                              style={{ width: `${Math.min(100, (((artist.aiQueriesCount || 0) / (artist.aiCreditsLimit || 10)) * 100))}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold text-foreground">
+                            {artist.aiQueriesCount || 0} / {artist.aiCreditsLimit || 10}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Histórico do Chat */}
+                  <div className="flex-1 overflow-y-auto p-5 space-y-4" style={{ scrollbarWidth: "thin" }}>
+                    {chatMessages.map((msg, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`flex gap-3 max-w-[85%] ${msg.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"}`}
+                      >
+                        {msg.role === "assistant" && (
+                          <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-xs shrink-0 select-none">
+                            👩‍🎤
+                          </div>
+                        )}
+                        <div className={`p-4 rounded-2xl text-sm leading-relaxed ${
+                          msg.role === "user" 
+                            ? "bg-primary text-primary-foreground rounded-tr-none" 
+                            : "bg-background/40 border border-border/30 text-foreground rounded-tl-none"
+                        }`} style={{ whiteSpace: "pre-wrap" }}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {chatLoading && (
+                      <div className="flex gap-3 mr-auto max-w-[85%] items-center">
+                        <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-xs shrink-0 select-none">
+                          👩‍🎤
+                        </div>
+                        <div className="bg-background/40 border border-border/30 p-3 rounded-2xl rounded-tl-none flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Input do Chat */}
+                  <form 
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!chatInput.trim() || chatLoading) return;
+                      const text = chatInput;
+                      setChatInput("");
+                      const newMsgs = [...chatMessages, { role: "user" as const, content: text }];
+                      setChatMessages(newMsgs);
+                      await triggerVivi(newMsgs, currentTool);
+                    }}
+                    className="p-3 border-t border-border/40 bg-background/20 flex gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      placeholder={
+                        currentTool === "biografia" ? "Cole sua biografia ou digite sobre sua carreira..." :
+                        currentTool === "potencial" ? "Cole a letra ou conte o tema da música..." :
+                        currentTool === "legenda" ? "Descreva seu lançamento para gerar a legenda..." :
+                        currentTool === "reels" ? "Fale sobre a música para criar o roteiro de Reels..." :
+                        currentTool === "hashtags" ? "Fale o tema do post para sugerir hashtags..." :
+                        currentTool === "release" ? "Descreva seu lançamento/evento para o release..." :
+                        currentTool === "titulos" ? "Descreva a história da música para sugerir títulos..." :
+                        "Fale com a Vivi..."
+                      }
+                      disabled={chatLoading}
+                      className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm disabled:opacity-50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={chatLoading || !chatInput.trim()}
+                      className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      Enviar
+                    </button>
+                  </form>
+                </div>
+              </div>
             )}
 
           </motion.div>

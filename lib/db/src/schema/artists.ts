@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean, numeric, varchar, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, numeric, varchar, jsonb, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -41,6 +41,10 @@ export const artistsTable = pgTable("artists", {
   limiteMusicas: numeric("limite_musicas").notNull().default("2"),
   personalizacaoPercent: numeric("personalizacao_percent").notNull().default("10"),
   
+  // Controle de IA (Vivi)
+  aiQueriesCount: integer("ai_queries_count").notNull().default(0),
+  aiQueriesResetAt: timestamp("ai_queries_reset_at", { withTimezone: true }).notNull().defaultNow(),
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

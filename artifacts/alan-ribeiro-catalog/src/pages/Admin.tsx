@@ -69,6 +69,7 @@ interface Plan {
   canCustomizePlayerColor: boolean;
   canUploadBanner: boolean;
   canUploadProfilePhoto: boolean;
+  aiCreditsLimit?: number;
 }
 
 interface Interest {
@@ -1379,6 +1380,10 @@ function PlansTab() {
               <label className="text-xs text-muted-foreground block mb-1">Personalização (%)</label>
               <input value={createData.personalizacaoPercent || ""} onChange={e => setCreateData({ ...createData, personalizacaoPercent: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="50" />
             </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Consultas IA / mês</label>
+              <input type="number" value={createData.aiCreditsLimit || ""} onChange={e => setCreateData({ ...createData, aiCreditsLimit: parseInt(e.target.value) || 0 })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="10" />
+            </div>
             <div className="lg:col-span-2">
               <label className="text-xs text-muted-foreground block mb-1">Frase de efeito</label>
               <input value={createData.fraseEfeito || ""} onChange={e => setCreateData({ ...createData, fraseEfeito: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="Texto motivacional" />
@@ -1432,6 +1437,10 @@ function PlansTab() {
                       <label className="text-xs text-muted-foreground">Personalização (%)</label>
                       <input value={editData.personalizacaoPercent || ""} onChange={e => setEditData({ ...editData, personalizacaoPercent: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" />
                     </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Consultas IA / mês</label>
+                      <input type="number" value={editData.aiCreditsLimit || ""} onChange={e => setEditData({ ...editData, aiCreditsLimit: parseInt(e.target.value as any) || 0 })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" />
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground">Frase de Efeito</label>
@@ -1473,7 +1482,7 @@ function PlansTab() {
                     {plan.preco === "0" ? "Grátis" : `R$ ${plan.preco}`}
                     {plan.preco !== "0" && <span className="text-sm text-muted-foreground font-normal">/mês</span>}
                   </p>
-                  <p className="text-sm text-muted-foreground mb-1">Até {plan.limiteMusicas} músicas · {plan.personalizacaoPercent}% personalização</p>
+                  <p className="text-sm text-muted-foreground mb-1">Até {plan.limiteMusicas} músicas · {plan.personalizacaoPercent}% personalização · {plan.aiCreditsLimit ?? 10} consultas IA/mês</p>
                   <div className="flex flex-wrap gap-1 mb-3">
                     {plan.canCustomizeFont && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Fonte</span>}
                     {plan.canCustomizeBackground && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Fundo</span>}
@@ -1907,6 +1916,11 @@ const SETTING_LABELS: Record<string, string> = {
   portal_email: "E-mail de contato",
   artist_name: "Nome do artista (Padrão)",
   vip_password: "Senha da Área VIP",
+  suporte_instagram: "Instagram de Suporte",
+  suporte_whatsapp: "WhatsApp de Suporte",
+  suporte_email: "E-mail de Suporte",
+  openai_enabled: "Ativar Mentora Virtual (Vivi)",
+  openai_api_key: "Chave de API OpenAI (Vivi)",
   
   // Microsoft Clarity
   clarity_project_id: "ID do Projeto Microsoft Clarity",
@@ -2170,6 +2184,11 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
             <li><code className="bg-black/30 px-1 py-0.5 rounded">portal_name</code> — Nome exibido no site</li>
             <li><code className="bg-black/30 px-1 py-0.5 rounded">portal_url</code> — URL canônica (ex: https://portaldoartista.com)</li>
             <li><code className="bg-black/30 px-1 py-0.5 rounded">portal_email</code> — Email de contato principal</li>
+            <li><code className="bg-black/30 px-1 py-0.5 rounded">suporte_instagram</code> — Instagram de suporte exibido no rodapé</li>
+            <li><code className="bg-black/30 px-1 py-0.5 rounded">suporte_whatsapp</code> — WhatsApp de contato para suporte e dúvidas</li>
+            <li><code className="bg-black/30 px-1 py-0.5 rounded">suporte_email</code> — E-mail de suporte</li>
+            <li><code className="bg-black/30 px-1 py-0.5 rounded">openai_enabled</code> — Ativa a mentora virtual Vivi para os artistas (true/false)</li>
+            <li><code className="bg-black/30 px-1 py-0.5 rounded">openai_api_key</code> — Chave de API OpenAI para a mentora Vivi</li>
           </ul>
         </div>
       )}
@@ -2185,14 +2204,16 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
               )}
             </div>
             {s.description && <p className="text-xs text-muted-foreground mb-2">{getSettingDescription(s.key, s.description)}</p>}
-            {s.key === "asaas_sandbox" ? (
+            {s.key === "asaas_sandbox" || s.key === "openai_enabled" ? (
               <div className="flex items-center gap-3">
                 <Switch
                   checked={values[s.key] === "true"}
                   onCheckedChange={(checked) => setValues({ ...values, [s.key]: checked ? "true" : "false" })}
                 />
                 <span className="text-sm text-muted-foreground">
-                  {values[s.key] === "true" ? "Sandbox (testes)" : "Produção"}
+                  {s.key === "asaas_sandbox" 
+                    ? (values[s.key] === "true" ? "Sandbox (testes)" : "Produção")
+                    : (values[s.key] === "true" ? "Ativada" : "Desativada")}
                 </span>
               </div>
             ) : category === "demo" && s.key === "demo_cor" ? (
