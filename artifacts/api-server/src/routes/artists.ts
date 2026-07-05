@@ -773,7 +773,26 @@ router.post("/artists/mentor", async (req, res): Promise<void> => {
       return;
     }
 
-    // 5. Definir o system prompt baseado na ferramenta selecionada
+    // 5. Definir o contexto do plano do artista
+    let planContext = "";
+    if (artist.plano === "free") {
+      planContext = `O artista ${artist.name} está no plano GRATUITO (Free). Esse plano possui limite de até 2 músicas e 10 consultas de IA. Incentive-o de forma amigável e motivadora a conhecer as vantagens de fazer upgrade para o plano Básico (20 músicas) ou Premium (200 músicas) para ter personalização de cores/fontes do catálogo e mais espaço.`;
+    } else if (artist.plano === "basico") {
+      planContext = `O artista ${artist.name} está no plano BÁSICO. Esse plano permite até 20 músicas no catálogo e 30 consultas de IA. Dê os parabéns por ter dado esse passo profissional e ajude-o a divulgar.`;
+    } else if (artist.plano === "intermediario" || artist.plano === "pro") {
+      planContext = `O artista ${artist.name} está no plano PRO/INTERMEDIÁRIO. Dê dicas mais completas e avançadas sobre divulgação e engajamento.`;
+    } else if (artist.plano === "premium") {
+      planContext = `O artista ${artist.name} está no plano PREMIUM. Esse plano é o máximo completo com até 200 músicas, 100% de personalização e 200 consultas de IA. Trate-o como um artista VIP com recursos totais.`;
+    }
+
+    const planHeader = `[INFORMAÇÃO DO ARTISTA]
+Nome do artista: ${artist.name}
+Plano atual: ${artist.plano.toUpperCase()}
+${planContext}
+
+`;
+
+    // 6. Definir o system prompt baseado na ferramenta selecionada
     let systemPrompt = `Você é a Vivi, a mentora virtual do PORTALDOARTISTA.COM. Você é uma parceira ideal para impulsionar a carreira, organizar metas, sugerir estratégias de marketing musical e ajudar cantores, compositores e bandas a alcançarem mais fãs.
 Fale de forma simples, motivadora, orientada a resultados e forneça dicas extremamente práticas e acionáveis, não respostas genéricas. Nunca responda com termos vagos. Mantenha as respostas focadas e evite textos excessivamente longos.`;
 
@@ -793,7 +812,7 @@ Fale de forma simples, motivadora, orientada a resultados e forneça dicas extre
       systemPrompt = `Você é a Vivi, mentora virtual oficial do Portal do Artista. Gere 5 sugestões de títulos criativos, marcantes e vendáveis para a música do artista com base nas palavras-chave, tema ou trecho de letra compartilhado por ele.`;
     }
 
-    // 6. Fazer a requisição à OpenAI API
+    // 7. Fazer a requisição à OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -803,7 +822,7 @@ Fale de forma simples, motivadora, orientada a resultados e forneça dicas extre
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: planHeader + systemPrompt },
           ...messages
         ],
         temperature: 0.7,

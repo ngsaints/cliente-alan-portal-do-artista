@@ -157,7 +157,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                     onClick={() => handleSelectPlan(plan.id)}
                     className={`rounded-xl border transition-all overflow-hidden cursor-pointer ${
                       isSelected
-                        ? "border-primary/50 bg-primary/5 ring-2 ring-primary/20"
+                        ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20"
                         : plan.id === "premium"
                         ? "border-primary/30 bg-gradient-to-r from-primary/10 to-transparent hover:border-primary/50"
                         : "border-border/40 bg-card/50 hover:border-border"
@@ -166,17 +166,24 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold text-foreground">{plan.label}</h4>
-                            {plan.id === "premium" && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
-                                ⭐ TOP
-                              </span>
-                            )}
-                            {planIsFree && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">
-                                GRÁTIS
-                              </span>
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-foreground">{plan.label}</h4>
+                              {plan.id === "premium" && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
+                                  ⭐ TOP
+                                </span>
+                              )}
+                              {planIsFree && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">
+                                  GRÁTIS
+                                </span>
+                              )}
+                            </div>
+                            {isSelected && (
+                              <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                                <Check className="w-3.5 h-3.5 text-white" />
+                              </div>
                             )}
                           </div>
 
@@ -226,6 +233,12 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                           </div>
 
                           <p className="text-xs text-muted-foreground italic">{plan.fraseEfeito}</p>
+                          {isSelected && (
+                            <div className="mt-3 p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-[11px] font-extrabold text-emerald-400 flex items-center justify-center gap-1.5 animate-pulse">
+                              <Check className="w-3.5 h-3.5" />
+                              Você está escolhendo esse plano
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -286,7 +299,14 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                   } disabled:opacity-50`}
                 >
                   {confirming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  {isFree ? "Começar Grátis" : `Confirmar ${plans.find(p => p.id === selectedPlan)?.label || ""}`}
+                  {(() => {
+                    const plan = plans.find(p => p.id === selectedPlan);
+                    if (!plan) return "Confirmar";
+                    const planLabel = plan.id === "free" ? "Gratuito" : plan.label;
+                    const finalPrice = couponResult ? couponResult.finalPrice : plan.preco;
+                    const planPrice = plan.id === "free" ? "R$ 0,00" : `R$ ${parseFloat(finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`;
+                    return isFree ? `Começar Grátis (${planPrice})` : `Confirmar Plano ${planLabel} (${planPrice})`;
+                  })()}
                 </button>
               </div>
             )}

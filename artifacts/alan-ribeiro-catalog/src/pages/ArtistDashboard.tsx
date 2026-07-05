@@ -653,6 +653,23 @@ export default function ArtistDashboard() {
       .catch((err) => console.error("Erro ao carregar planos no dashboard:", err));
   }, []);
 
+  useEffect(() => {
+    if (artist && chatMessages.length === 1 && chatMessages[0].content.startsWith("👋 Olá! Eu sou a Vivi")) {
+      let welcome = "";
+      if (artist.plano === "free") {
+        welcome = `👋 Olá, ${artist.name}! Eu sou a Vivi, sua mentora virtual aqui no Portal do Artista. No seu plano **Gratuito**, você pode cadastrar até 2 músicas e possui 10 consultas de IA por mês. Posso te ajudar a organizar sua carreira, gerar ideias de posts ou analisar suas letras. Como posso te apoiar hoje?`;
+      } else if (artist.plano === "basico") {
+        welcome = `👋 Olá, ${artist.name}! Eu sou a Vivi. Parabéns pelo seu plano **Básico**! Com ele, você pode subir até 20 músicas no catálogo e conta com 30 consultas de IA por mês. Vamos trabalhar na sua biografia, divulgações ou títulos das suas faixas? Me diga o que precisamos fazer hoje.`;
+      } else if (artist.plano === "premium") {
+        welcome = `👑 Olá, ${artist.name}! Eu sou a Vivi. Como membro **Premium**, você tem acesso total: até 200 músicas, personalização ilimitada do catálogo e 200 consultas de IA por mês. Vamos construir uma estratégia de lançamento de alto impacto para sua carreira? O que quer criar hoje?`;
+      } else {
+        const planName = artist.plano.charAt(0).toUpperCase() + artist.plano.slice(1);
+        welcome = `👋 Olá, ${artist.name}! Eu sou a Vivi. Excelente escolha com o plano **${planName}**! Você tem limites estendidos e ${artist.aiCreditsLimit || 50} consultas de IA por mês. Como posso te ajudar a divulgar suas músicas e alcançar mais fãs hoje?`;
+      }
+      setChatMessages([{ role: "assistant", content: welcome }]);
+    }
+  }, [artist]);
+
   const loadData = async () => {
     try {
       const [statusRes, songsRes, settingsRes] = await Promise.all([

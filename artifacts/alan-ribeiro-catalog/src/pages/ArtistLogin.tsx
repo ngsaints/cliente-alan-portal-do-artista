@@ -231,7 +231,7 @@ export default function ArtistLogin() {
                   onClick={() => setSelectedPlan(plan.id)}
                   className={`p-4 rounded-xl border cursor-pointer transition-all ${
                     isSelected
-                      ? "border-primary/50 bg-primary/5"
+                      ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20"
                       : "border-border/40 bg-card/50 hover:border-border"
                   }`}
                 >
@@ -263,10 +263,16 @@ export default function ArtistLogin() {
                           </span>
                         ))}
                       </div>
+                      {isSelected && (
+                        <div className="mt-3 p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-[11px] font-extrabold text-emerald-400 flex items-center justify-center gap-1.5 animate-pulse">
+                          <Check className="w-3.5 h-3.5" />
+                          Você está escolhendo esse plano
+                        </div>
+                      )}
                     </div>
                     {isSelected && (
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="w-4 h-4 text-primary-foreground" />
+                      <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-4 h-4 text-white" />
                       </div>
                     )}
                   </div>
@@ -761,13 +767,19 @@ export default function ArtistLogin() {
                       Voltar
                     </button>
                   )}
-                  {cadastroStep === "planos" ? (
+                   {cadastroStep === "planos" ? (
                     <button
                       onClick={handleNextCadastro}
-                      className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                      className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-sm"
                     >
                       <Zap className="w-4 h-4" />
-                      Continuar com {dbPlans.find(p => p.id === selectedPlan)?.label}
+                      {(() => {
+                        const plan = dbPlans.find(p => p.id === selectedPlan);
+                        if (!plan) return "Continuar";
+                        const planLabel = plan.id === "free" ? "Gratuito" : plan.label;
+                        const planPrice = plan.id === "free" ? "R$ 0,00" : `R$ ${parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`;
+                        return `Continuar com o plano ${planLabel} (${planPrice})`;
+                      })()}
                     </button>
                   ) : (cadastroStep as number) < 4 ? (
                     <button
