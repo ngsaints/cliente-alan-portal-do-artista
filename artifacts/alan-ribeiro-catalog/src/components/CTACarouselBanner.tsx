@@ -183,10 +183,10 @@ export function CTACarouselBanner() {
             <button
               key={banner.id}
               onClick={() => goTo(index)}
-              className={`h-1.5 rounded-full transition-all ${
+              className={`p-0 m-0 border-none outline-none cursor-pointer rounded-full transition-all ${
                 index === currentIndex
-                  ? "w-8 bg-primary"
-                  : "w-2 bg-white/30 hover:bg-white/50"
+                  ? "w-8 h-1.5 bg-primary"
+                  : "w-2 h-1.5 bg-white/30 hover:bg-white/50"
               }`}
               aria-label={`Ir para banner ${index + 1}`}
             />
