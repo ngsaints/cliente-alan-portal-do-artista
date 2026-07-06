@@ -52,6 +52,10 @@ router.get("/settings", async (_req, res): Promise<void> => {
   let suporteWhatsapp: string | null = null;
   let suporteEmail: string | null = null;
   let openaiEnabled = false;
+  let footerCopyright: string | null = null;
+  let footerFounderDescription: string | null = null;
+  let footerCopyrightProtection: string | null = null;
+  let footerPlatformTagline: string | null = null;
 
   try {
     const rows = await db

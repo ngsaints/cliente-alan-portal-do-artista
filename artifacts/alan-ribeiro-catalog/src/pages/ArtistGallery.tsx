@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Image, X, ArrowLeft, Loader2 } from "lucide-react";
 import { useSEO } from "@/hooks/useSEO";
+import { Footer } from "@/components/Footer";
 
 interface Photo {
   id: number;
@@ -137,6 +138,8 @@ export default function ArtistGallery() {
           )}
         </div>
       )}
-    </div>
+    
+      <Footer />
+</div>
   );
 }

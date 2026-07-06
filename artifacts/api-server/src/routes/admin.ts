@@ -225,6 +225,10 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "suporte_email", value: "portaldoartistaoficial@gmail.com", desc: "E-mail de suporte e dúvidas" },
         { key: "openai_enabled", value: "false", desc: "Ativar Mentora Virtual (Vivi) para os artistas" },
         { key: "openai_api_key", value: "", desc: "OpenAI API Key para a mentora Vivi", isSecret: "true" },
+        { key: "footer_copyright", value: "© 2026 Portaldoartista.com – Todos os direitos reservados.", desc: "Rodapé: Copyright" },
+        { key: "footer_founder_description", value: "Portal desenvolvido e mantido por Alan Ribeiro, fundador do Portaldoartista.com e desenvolvedor de soluções digitais voltadas à valorização e profissionalização de artistas independentes.", desc: "Rodapé: Descrição do Fundador" },
+        { key: "footer_copyright_protection", value: "Todo o conteúdo, identidade visual, estrutura da plataforma, códigos, layout, recursos e funcionalidades são protegidos pela legislação de direitos autorais. É proibida a reprodução, distribuição, modificação ou utilização total ou parcial sem autorização prévia.", desc: "Rodapé: Proteção Autoral" },
+        { key: "footer_platform_tagline", value: "A maior plataforma de gestão de carreira para artistas da música.", desc: "Rodapé: Slogan da Plataforma" },
       ];
       
       for (const item of keysToEnsure) {

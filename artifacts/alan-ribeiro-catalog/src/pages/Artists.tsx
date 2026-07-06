@@ -6,6 +6,7 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { Music, MapPin, Instagram, Users, Star, ExternalLink, Loader2, Search, X } from "lucide-react";
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
+import { Footer } from "@/components/Footer";
 import {
   Command,
   CommandInput,
@@ -269,6 +270,7 @@ export default function Artists() {
         )}
       </main>
 
+      <Footer />
       <AudioPlayer />
     </div>
   );

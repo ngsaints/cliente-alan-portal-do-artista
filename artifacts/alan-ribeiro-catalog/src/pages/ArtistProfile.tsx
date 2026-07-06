@@ -13,6 +13,7 @@ import { PlansModal } from "@/components/PlansModal";
 import { NotificationBell, type Interest } from "@/components/NotificationBell";
 import { InterestModal } from "@/components/InterestModal";
 import { useSEO } from "@/hooks/useSEO";
+import { Footer } from "@/components/Footer";
 
 
 
@@ -733,6 +734,7 @@ export default function ArtistProfile() {
         </div>
       )}
 
+      <Footer />
       <AudioPlayer />
     </div>
   );

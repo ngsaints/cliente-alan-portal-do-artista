@@ -12,6 +12,7 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
 import { CTACarouselBanner } from "@/components/CTACarouselBanner";
+import { Footer } from "@/components/Footer";
 
 export default function Home() {
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
@@ -284,7 +285,7 @@ export default function Home() {
                   transition={{ delay: index * 0.05 }}
                 >
                   <Link
-                    href={artist.slug ? `/a/${artist.slug}` : `/artista/${artist.id}`}
+                    href={artist.slug ? `/${artist.slug}` : `/artista/${artist.id}`}
                     className="group block bg-card border border-border/40 rounded-2xl overflow-hidden hover:border-primary/50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.8)] hover:-translate-y-1 transition-all duration-300"
                   >
                     <div className="relative aspect-square overflow-hidden bg-black/50">
@@ -375,6 +376,7 @@ export default function Home() {
         songTitle={selectedSong?.titulo}
       />
 
+      <Footer />
       <AudioPlayer />
     </div>
   );

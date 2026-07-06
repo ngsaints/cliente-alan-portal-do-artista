@@ -1921,6 +1921,10 @@ const SETTING_LABELS: Record<string, string> = {
   suporte_email: "E-mail de Suporte",
   openai_enabled: "Ativar Mentora Virtual (Vivi)",
   openai_api_key: "Chave de API OpenAI (Vivi)",
+  footer_copyright: "Rodapé: Copyright",
+  footer_founder_description: "Rodapé: Descrição do Autor (Alan Ribeiro)",
+  footer_copyright_protection: "Rodapé: Proteção de Direitos Autorais",
+  footer_platform_tagline: "Rodapé: Slogan da Plataforma",
   
   // Microsoft Clarity
   clarity_project_id: "ID do Projeto Microsoft Clarity",
