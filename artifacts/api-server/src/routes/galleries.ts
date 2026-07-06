@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, galleriesTable, galleryPhotosTable } from "@workspace/db";
+import { db, galleriesTable, galleryPhotosTable, artistsTable } from "@workspace/db";
 import { eq, and, asc } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
@@ -26,10 +26,37 @@ const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 const router: IRouter = Router();
 
+// Helper to resolve artist numeric ID from ID or slug
+async function resolveArtistId(param: string): Promise<string | null> {
+  const num = parseInt(param);
+  if (!isNaN(num)) {
+    return param;
+  }
+  
+  const artists = await db
+    .select({ id: artistsTable.id })
+    .from(artistsTable)
+    .where(eq(artistsTable.slug, param))
+    .limit(1);
+    
+  if (artists.length > 0) {
+    return String(artists[0].id);
+  }
+  
+  return null;
+}
+
 // GET /galleries/:artistId - Get gallery for artist
 router.get("/galleries/:artistId", async (req, res): Promise<void> => {
   try {
-    const { artistId } = req.params;
+    const { artistId: artistIdParam } = req.params;
+    const artistId = await resolveArtistId(artistIdParam);
+    
+    if (!artistId) {
+      res.json({ photos: [], total: 0, page: 1, totalPages: 0 });
+      return;
+    }
+
     const limit = parseInt(req.query.limit as string) || 6;
     const page = parseInt(req.query.page as string) || 1;
     const offset = (page - 1) * limit;
@@ -80,7 +107,13 @@ router.get("/galleries/:artistId", async (req, res): Promise<void> => {
 // GET /galleries/:artistId/all - Get all photos (for full gallery page)
 router.get("/galleries/:artistId/all", async (req, res): Promise<void> => {
   try {
-    const { artistId } = req.params;
+    const { artistId: artistIdParam } = req.params;
+    const artistId = await resolveArtistId(artistIdParam);
+
+    if (!artistId) {
+      res.json({ photos: [], titulo: "Galeria" });
+      return;
+    }
 
     const galleries = await db
       .select()
