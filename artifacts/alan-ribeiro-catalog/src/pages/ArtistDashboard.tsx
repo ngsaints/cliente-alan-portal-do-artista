@@ -2990,29 +2990,34 @@ export default function ArtistDashboard() {
                   {(dbPlans.length > 0 ? dbPlans : DEFAULT_PLANS).filter(p => p.id !== artist?.plano).map((plan) => {
                     const showDiscount = planCouponResult && selectedPlanId === plan.id;
                     return (
-                    <div key={plan.id} className="p-4 rounded-xl border border-border/40 bg-background/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-bold text-foreground">{plan.label}</h5>
-                        {showDiscount ? (
-                          <div className="text-right">
-                            <span className="text-lg font-bold text-green-400">
-                              R$ {parseFloat(planCouponResult!.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </span>
-                            <span className="block text-xs text-muted-foreground line-through">
-                              R$ {plan.preco}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-lg font-bold text-primary">R$ {plan.preco}/mês</span>
-                        )}
+                    <div 
+                      key={plan.id} 
+                      onClick={() => { setSelectedPlanId(plan.id); handleUpgradePlan(plan.id); }}
+                      className="p-4 rounded-xl border border-border/40 bg-background/50 hover:border-primary/60 transition-all cursor-pointer group clickable-item flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="font-bold text-foreground group-hover:text-primary transition-colors">{plan.label}</h5>
+                          {showDiscount ? (
+                            <div className="text-right">
+                              <span className="text-lg font-bold text-green-400">
+                                R$ {parseFloat(planCouponResult!.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                              <span className="block text-xs text-muted-foreground line-through">
+                                R$ {plan.preco}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-lg font-bold text-primary">R$ {plan.preco}/mês</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3"> até {plan.limiteMusicas} músicas</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-3"> até {plan.limiteMusicas} músicas</p>
                       <button
-                        onClick={() => { setSelectedPlanId(plan.id); handleUpgradePlan(plan.id); }}
-                        className="w-full py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm group-hover:bg-primary/90 flex items-center justify-center gap-2 transition-all pointer-events-none"
                       >
                         <CreditCard className="w-4 h-4" />
-                        Atualizar
+                        Atualizar para {plan.label}
                       </button>
                     </div>
                     );

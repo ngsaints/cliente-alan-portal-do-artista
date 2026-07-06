@@ -31,7 +31,22 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback de SEO estruturado para robôs de busca do Google (substituído pelo React após carregamento) -->
+      <header style="display: none;">
+        <nav>
+          <a href="/">Início</a>
+          <a href="/artistas">Artistas</a>
+          <a href="/planos">Planos</a>
+          <a href="/cadastro">Cadastro</a>
+          <a href="/login">Login</a>
+        </nav>
+      </header>
+      <main style="display: none;">
+        <h1>Portal do Artista - Sua Música, Seu Espaço</h1>
+        <p>A plataforma definitiva para cantores, compositores e bandas independentes divulgarem suas músicas, criarem catálogos de alta qualidade, conectarem com fãs e gerenciarem sua carreira musical.</p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

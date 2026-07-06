@@ -117,3 +117,30 @@
 .animate-highlight {
   animation: highlight-pulse 2.2s infinite ease-in-out;
 }
+
+/* Micro-interações e acessibilidade para botões e links interativos */
+button,
+a[role="button"],
+.clickable-item {
+  position: relative;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+button:active,
+a[role="button"]:active,
+.clickable-item:active {
+  transform: scale(0.96) !important;
+  filter: brightness(0.9);
+}
+
+/* Evitar escala indesejada em botões de áudio, sliders ou inputs */
+input[type="range"]:active,
+button.no-scale:active {
+  transform: none !important;
+}
+
+/* Área clicável mínima de 44px para botões comuns */
+button:not(.w-8):not(.h-8):not(.w-10):not(.h-10):not(.p-0):not(.p-0\.5):not(.p-1):not(.p-1\.5):not(.p-2):not(.w-fit):not(.h-fit) {
+  min-height: 44px;
+}

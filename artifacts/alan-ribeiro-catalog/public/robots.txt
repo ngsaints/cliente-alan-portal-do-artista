@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://94.141.97.95/sitemap.xml
+Sitemap: https://portaldoartista.com/sitemap.xml
 
 # Crawl delay (optional, be nice to other sites)
 Crawl-delay: 1
