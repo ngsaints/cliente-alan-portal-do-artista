@@ -16,6 +16,7 @@ import { Footer } from "@/components/Footer";
 
 export default function Home() {
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [visibleSongsCount, setVisibleSongsCount] = useState(8);
   const { genres } = useGenres();
   const [heroSettings, setHeroSettings] = useState<{ title: string | null; subtitle: string | null; cta: string | null }>({ title: null, subtitle: null, cta: null });
   useSEO({
@@ -201,7 +202,7 @@ export default function Home() {
             {genres.map((genre) => (
               <button
                 key={genre}
-                onClick={() => setSelectedGenre(selectedGenre === genre ? null : genre)}
+                onClick={() => { setSelectedGenre(selectedGenre === genre ? null : genre); setVisibleSongsCount(8); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedGenre === genre
                     ? "bg-primary text-primary-foreground shadow-[0_0_10px_rgba(245,197,24,0.3)]"
@@ -359,11 +360,24 @@ export default function Home() {
           )}
 
           {!isLoading && !error && allSongs.length > 0 && (
+            <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {allSongs.map((song, index) => (
+              {allSongs.slice(0, visibleSongsCount).map((song, index) => (
                 <MusicCard key={`all-${song.id}`} song={song} index={index} />
               ))}
             </div>
+
+            {allSongs.length > visibleSongsCount && (
+              <div className="text-center mt-10">
+                <button
+                  onClick={() => setVisibleSongsCount(prev => prev + 8)}
+                  className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-primary text-primary-foreground font-bold hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-primary/20"
+                >
+                  Carregar Mais Músicas ({allSongs.length - visibleSongsCount} restantes)
+                </button>
+              </div>
+            )}
+            </>
           )}
         </section>
       </main>
