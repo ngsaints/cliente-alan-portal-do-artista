@@ -207,19 +207,10 @@ export default function ArtistLogin() {
             <h3 className="text-xl font-bold text-foreground">Escolha seu Plano</h3>
           </div>
           
-          {/* Banner especial Premium */}
-          <div className="bg-gradient-to-r from-yellow-500/20 via-yellow-500/10 to-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 mb-4">
-            <div className="flex items-center gap-3">
-              <Crown className="w-8 h-8 text-yellow-500" />
-              <div>
-                <p className="font-bold text-foreground">30 dias grátis com Premium!</p>
-                <p className="text-xs text-muted-foreground">Experimente o plano máximo completo sem compromisso.</p>
-              </div>
-            </div>
-          </div>
+
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {dbPlans.length === 0 ? <div className="col-span-2 text-center py-8 text-muted-foreground">Carregando planos...</div> : dbPlans.map((plan) => {
+            {dbPlans.length === 0 ? <div className="col-span-2 text-center py-8 text-muted-foreground">Carregando planos...</div> : dbPlans.filter(p => p.id !== "free").map((plan) => {
               const isSelected = selectedPlan === plan.id;
               const isFree = plan.id === "free";
               const isPremium = plan.id === "premium";
@@ -280,6 +271,26 @@ export default function ArtistLogin() {
               );
             })}
           </div>
+
+          {dbPlans.length > 0 && dbPlans.some(p => p.id === "free") && (
+            <div className="text-center pt-2">
+              <p className="text-xs text-muted-foreground">
+                Quer começar com recursos limitados?{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPlan("free");
+                    setFormData({ ...formData, plano: "free" });
+                    setCadastroStep(1);
+                    setError("");
+                  }}
+                  className="text-primary hover:text-primary/80 hover:underline font-bold transition-all"
+                >
+                  Experimente o plano Gratuito
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       );
     }
