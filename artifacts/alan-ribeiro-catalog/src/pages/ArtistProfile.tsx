@@ -6,7 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { useListSongs } from "@workspace/api-client-react";
-import { Music, MapPin, Instagram, Mic2, ExternalLink, Disc3, Zap, CheckCircle, Phone, Mail, Globe, Star, ListMusic, Play, Image } from "lucide-react";
+import { Music, MapPin, Instagram, Mic2, ExternalLink, Disc3, Zap, CheckCircle, Phone, Mail, Globe, Star, ListMusic, Play, Image, X } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useGenres } from "@/hooks/useGenres";
 import { PlansModal } from "@/components/PlansModal";
@@ -44,6 +44,7 @@ export default function ArtistProfile() {
   const [interestModalOpen, setInterestModalOpen] = useState(false);
   const [selectedSong, setSelectedSong] = useState<{ id: number; titulo: string } | null>(null);
   const [highlightedSongId, setHighlightedSongId] = useState<number | null>(null);
+  const [activeLightboxImage, setActiveLightboxImage] = useState<string | null>(null);
   const hasAutoPlayed = useRef(false);
   const [artistData, setArtistData] = useState<any>(null);
   const [loadingArtist, setLoadingArtist] = useState(true);
@@ -350,7 +351,8 @@ export default function ArtistProfile() {
       {/* Artist Profile with Banner */}
       <section className="relative h-[300px] md:h-[400px] overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className={`absolute inset-0 bg-cover bg-center ${artist.bannerUrl ? 'cursor-pointer hover:opacity-95 transition-opacity' : ''}`}
+          onClick={() => artist.bannerUrl && setActiveLightboxImage(artist.bannerUrl)}
           style={{
             backgroundImage: artist.bannerUrl
               ? `url("${artist.bannerUrl}")`
@@ -358,14 +360,15 @@ export default function ArtistProfile() {
             backgroundColor: "#1a1a2e",
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none" />
 
         {/* Artist info overlay */}
-        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 flex items-end gap-6">
+        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 flex items-end gap-6 pointer-events-none">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center"
+            onClick={() => artist.capaUrl && setActiveLightboxImage(artist.capaUrl)}
+            className={`w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center pointer-events-auto transition-all ${artist.capaUrl ? 'cursor-pointer hover:scale-105 hover:ring-2 hover:ring-primary' : ''}`}
           >
             {artist.capaUrl ? (
               <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover" />
@@ -675,17 +678,17 @@ export default function ArtistProfile() {
 
             <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
               {gallery.photos.slice(0, 6).map((photo: any) => (
-                <Link
+                <button
                   key={photo.id}
-                  href={`/${slug}/galeria`}
-                  className="aspect-square rounded-xl overflow-hidden bg-muted hover:ring-2 hover:ring-primary transition-all"
+                  onClick={() => setActiveLightboxImage(photo.fotoUrl)}
+                  className="aspect-square rounded-xl overflow-hidden bg-muted hover:ring-2 hover:ring-primary transition-all text-left clickable-item"
                 >
                   <img
                     src={photo.fotoUrl}
                     alt={photo.legenda || ""}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 pointer-events-none"
                   />
-                </Link>
+                </button>
               ))}
             </div>
           </section>
@@ -706,6 +709,29 @@ export default function ArtistProfile() {
         onClose={() => setPlansModalOpen(false)}
         onSelectPlan={(planId) => handleSelectPlan(planId)}
       />
+
+      {activeLightboxImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 cursor-pointer"
+          onClick={() => setActiveLightboxImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 p-2 text-white/75 hover:text-white transition-colors cursor-pointer"
+            onClick={() => setActiveLightboxImage(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+
+          <motion.img
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            src={activeLightboxImage}
+            alt="Foto Ampliada"
+            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       <AudioPlayer />
     </div>
