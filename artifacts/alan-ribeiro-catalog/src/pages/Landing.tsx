@@ -37,6 +37,31 @@ export default function Landing() {
   const [, setLocation] = useLocation();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [faqOpen, setFaqOpen] = useState<Record<number, boolean>>({});
+  const [settings, setSettings] = useState({
+    landingVideoUrl: "",
+    landingHeroTitle: "Sua música pode ser incrível. Mas ela está sendo apresentada como merece?",
+    landingHeroSubtitle: "Pare de enviar apenas um MP3. Crie sua página profissional, organize sua carreira e apresente suas músicas como um artista profissional.",
+    landingHeroCta: "COMEÇAR AGORA",
+    artistName: "",
+    artistPhotoUrl: "",
+  });
+
+  useEffect(() => {
+    // Fetch settings
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        setSettings({
+          landingVideoUrl: data.landingVideoUrl || "",
+          landingHeroTitle: data.landingHeroTitle || "Sua música pode ser incrível. Mas ela está sendo apresentada como merece?",
+          landingHeroSubtitle: data.landingHeroSubtitle || "Pare de enviar apenas um MP3. Crie sua página profissional, organize sua carreira e apresente suas músicas como um artista profissional.",
+          landingHeroCta: data.landingHeroCta || "COMEÇAR AGORA",
+          artistName: data.artistName || "Alan Ribeiro",
+          artistPhotoUrl: data.artistPhotoUrl || "",
+        });
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     fetch("/api/plans")
@@ -276,21 +301,50 @@ export default function Landing() {
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="h-32 rounded-xl bg-gradient-to-r from-primary/10 to-yellow-500/5 flex items-center gap-4 p-4 border border-border/20">
-                    <div className="w-16 h-16 rounded-full bg-primary/20 shrink-0 border border-primary/30" />
-                    <div className="space-y-1.5 flex-1">
-                      <div className="h-3.5 w-1/3 bg-white/10 rounded" />
-                      <div className="h-2.5 w-2/3 bg-white/5 rounded" />
-                      <div className="h-2.5 w-1/2 bg-white/5 rounded" />
+                    {settings.artistPhotoUrl ? (
+                      <img 
+                        src={settings.artistPhotoUrl} 
+                        alt={settings.artistName || "Alan Ribeiro"} 
+                        className="w-16 h-16 rounded-full object-cover shrink-0 border border-primary/30" 
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-yellow-500 shrink-0 border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/20">
+                        <span className="text-black font-extrabold text-lg tracking-wider">AR</span>
+                      </div>
+                    )}
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-extrabold text-white text-sm leading-none">
+                          {settings.artistName || "Alan Ribeiro"}
+                        </h4>
+                        <span className="px-1.5 py-0.5 rounded text-[8px] font-extrabold bg-primary/25 text-primary border border-primary/35 uppercase tracking-widest leading-none">
+                          VIP
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-primary font-bold leading-none mt-1">Compositor & Produtor</p>
+                      <p className="text-[10px] text-muted-foreground leading-normal max-w-[200px] mt-1.5">
+                        Fundador do Portal do Artista e criador de soluções para músicos independentes.
+                      </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="h-16 rounded-xl bg-card border border-border/20 p-3 space-y-2">
-                      <div className="h-2 w-1/2 bg-white/10 rounded" />
-                      <div className="h-2 w-3/4 bg-white/5 rounded" />
+                    <div className="rounded-xl bg-card border border-border/20 p-3 flex items-center gap-2 hover:bg-white/5 transition-colors cursor-pointer">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shrink-0">
+                        <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-white truncate leading-tight">Minha Nova Música</p>
+                        <p className="text-[8px] text-muted-foreground truncate leading-none mt-0.5">Alan Ribeiro</p>
+                      </div>
                     </div>
-                    <div className="h-16 rounded-xl bg-card border border-border/20 p-3 space-y-2">
-                      <div className="h-2 w-2/3 bg-white/10 rounded" />
-                      <div className="h-2 w-1/3 bg-white/5 rounded" />
+                    <div className="rounded-xl bg-card border border-border/20 p-3 flex items-center gap-2 hover:bg-white/5 transition-colors cursor-pointer">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shrink-0">
+                        <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-white truncate leading-tight">Lançamento 2026</p>
+                        <p className="text-[8px] text-muted-foreground truncate leading-none mt-0.5">Alan Ribeiro</p>
+                      </div>
                     </div>
                   </div>
                 </div>
