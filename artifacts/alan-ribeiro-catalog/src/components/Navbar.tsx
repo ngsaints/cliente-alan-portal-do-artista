@@ -28,6 +28,7 @@ export function Navbar() {
     : { href: "/artista/login",    icon: LogIn,           label: "Login Artista" };
 
   const otherLinks = [
+    { href: "/explorar", icon: Music,       label: "Músicas" },
     { href: "/artistas", icon: Users,       label: "Artistas" },
     { href: "/demo",     icon: Zap,         label: "Vitrine" },
   ];

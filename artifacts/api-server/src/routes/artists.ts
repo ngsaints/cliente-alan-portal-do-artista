@@ -393,6 +393,8 @@ router.get("/artists/status", async (req, res): Promise<void> => {
     const plans = await db.select().from(plansTable).where(eq(plansTable.nome, artist.plano));
     const plan = plans[0];
 
+    const isPaidActive = artist.planoAtivo;
+
     res.json({
       loggedIn: true,
       artist: {
@@ -416,20 +418,21 @@ router.get("/artists/status", async (req, res): Promise<void> => {
         playerGradient: artist.playerGradient,
         playerCor: artist.playerCor,
         plano: artist.plano,
+        planoAtivo: artist.planoAtivo,
         limiteMusicas: artist.limiteMusicas,
         musicaCount: artist.musicaCount,
         vipSenha: artist.vipSenha,
         cardStyle: (artist as any).cardStyle,
-        personalizacaoPercent: plan?.personalizacaoPercent ?? "10",
-        canCustomizeFont: plan?.canCustomizeFont ?? true,
-        canCustomizeBackground: plan?.canCustomizeBackground ?? true,
-        canCustomizeTextColor: plan?.canCustomizeTextColor ?? true,
-        canCustomizePlayerStyle: plan?.canCustomizePlayerStyle ?? true,
-        canCustomizePlayerColor: plan?.canCustomizePlayerColor ?? true,
-        canUploadBanner: plan?.canUploadBanner ?? false,
-        canUploadProfilePhoto: plan?.canUploadProfilePhoto ?? false,
+        personalizacaoPercent: isPaidActive ? (plan?.personalizacaoPercent ?? "10") : "10",
+        canCustomizeFont: isPaidActive ? (plan?.canCustomizeFont ?? true) : false,
+        canCustomizeBackground: isPaidActive ? (plan?.canCustomizeBackground ?? true) : false,
+        canCustomizeTextColor: isPaidActive ? (plan?.canCustomizeTextColor ?? true) : false,
+        canCustomizePlayerStyle: isPaidActive ? (plan?.canCustomizePlayerStyle ?? true) : false,
+        canCustomizePlayerColor: isPaidActive ? (plan?.canCustomizePlayerColor ?? true) : false,
+        canUploadBanner: isPaidActive ? (plan?.canUploadBanner ?? false) : false,
+        canUploadProfilePhoto: isPaidActive ? (plan?.canUploadProfilePhoto ?? false) : false,
         aiQueriesCount: artist.aiQueriesCount,
-        aiCreditsLimit: plan?.aiCreditsLimit ?? 10,
+        aiCreditsLimit: isPaidActive ? (plan?.aiCreditsLimit ?? 10) : 10,
       },
     });
   } catch (error) {
@@ -464,7 +467,9 @@ router.put(
 
       // Check plan permissions
       const planRows = await db.select().from(plansTable).where(eq(plansTable.nome, current.plano));
-      const plan = planRows[0] || { canUploadBanner: false, canUploadProfilePhoto: false, canCustomizeFont: false, canCustomizeBackground: false, canCustomizeTextColor: false, canCustomizePlayerStyle: false, canCustomizePlayerColor: false };
+      const plan = current.planoAtivo 
+        ? (planRows[0] || { canUploadBanner: false, canUploadProfilePhoto: false, canCustomizeFont: false, canCustomizeBackground: false, canCustomizeTextColor: false, canCustomizePlayerStyle: false, canCustomizePlayerColor: false })
+        : { canUploadBanner: false, canUploadProfilePhoto: false, canCustomizeFont: false, canCustomizeBackground: false, canCustomizeTextColor: false, canCustomizePlayerStyle: false, canCustomizePlayerColor: false };
 
       let capaUrl = current.capaUrl;
       let bannerUrl = current.bannerUrl;

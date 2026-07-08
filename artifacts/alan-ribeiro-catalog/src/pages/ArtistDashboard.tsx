@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingUpDown, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
   ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle, Share2,
-  Bot, Sparkles
+  Bot, Sparkles, Zap
 } from "lucide-react";
 import {
   Command,
@@ -50,6 +50,7 @@ interface ArtistProfile {
   limiteMusicas: string;
   musicaCount: string;
   vipSenha: string;
+  planoAtivo?: boolean;
   canCustomizeFont: boolean;
   canCustomizeBackground: boolean;
   canCustomizeTextColor: boolean;
@@ -1281,6 +1282,48 @@ export default function ArtistDashboard() {
             {/* Dashboard */}
             {activeTab === "dashboard" && (
               <div className="space-y-6">
+                {/* Alerta de pagamento pendente */}
+                {artist && artist.plano !== "free" && !artist.planoAtivo && (
+                  <div className="p-4.5 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-lg">
+                    <div className="flex items-start gap-3">
+                      <Zap className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5 animate-pulse" />
+                      <div>
+                        <h4 className="font-bold text-white text-sm">Assinatura Pendente de Pagamento</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed font-normal">
+                          Seu perfil e os recursos do plano <strong>{artist.plano.toUpperCase()}</strong> estão limitados. Eles serão totalmente liberados assim que o pagamento for confirmado pelo Asaas.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        // Open the invoice by fetching subscription
+                        fetch(`/api/payments/subscription/${artist.id}`)
+                          .then((r) => r.json())
+                          .then((data) => {
+                            if (data.subscriptions && data.subscriptions.length > 0) {
+                              const sub = data.subscriptions[0];
+                              fetch(`/api/payments/invoice/${sub.asaasSubscriptionId}`)
+                                .then((r) => r.json())
+                                .then((pData) => {
+                                  if (pData.invoiceUrl) {
+                                    window.open(pData.invoiceUrl, "_blank");
+                                  } else {
+                                    alert("Fatura não gerada ou indisponível. Fale com o suporte.");
+                                  }
+                                })
+                                .catch(() => alert("Erro ao carregar fatura."));
+                            } else {
+                              alert("Nenhuma assinatura pendente encontrada.");
+                            }
+                          })
+                          .catch(() => alert("Erro ao buscar assinaturas."));
+                      }}
+                      className="px-4 py-2 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xs transition-colors shrink-0 text-center cursor-pointer"
+                    >
+                      Pagar Fatura
+                    </button>
+                  </div>
+                )}
                 {/* Diagnóstico da Carreira & CTA Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Card do Diagnóstico */}

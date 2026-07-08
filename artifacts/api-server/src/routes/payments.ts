@@ -529,4 +529,17 @@ router.get("/payments/subscription/:artistId", async (req, res): Promise<void> =
   }
 });
 
+
+router.get("/payments/invoice/:subscriptionId", async (req, res): Promise<void> => {
+  try {
+    const { subscriptionId } = req.params;
+    const payments = await getSubscriptionPayments(subscriptionId);
+    const invoiceUrl = payments.data?.[0]?.invoiceUrl ?? null;
+    res.json({ invoiceUrl });
+  } catch (err: any) {
+    console.error("Error fetching invoiceUrl:", err);
+    res.status(500).json({ error: err.message || "Erro ao carregar fatura" });
+  }
+});
+
 export default router;

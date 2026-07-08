@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PlayerProvider } from "@/contexts/PlayerContext";
 import Home from "@/pages/Home";
+import Landing from "@/pages/Landing";
 import Admin from "@/pages/Admin";
 import Vip from "@/pages/Vip";
 import Artists from "@/pages/Artists";
@@ -34,7 +35,8 @@ const queryClient = new QueryClient({
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={Landing} />
+      <Route path="/explorar" component={Home} />
       <Route path="/cadastro" component={Cadastro} />
       <Route path="/artista/login" component={ArtistLogin} />
       <Route path="/artista/forgot" component={ArtistForgotPassword} />
