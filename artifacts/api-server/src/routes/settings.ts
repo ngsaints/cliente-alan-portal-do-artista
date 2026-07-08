@@ -56,6 +56,10 @@ router.get("/settings", async (_req, res): Promise<void> => {
   let footerFounderDescription: string | null = null;
   let footerCopyrightProtection: string | null = null;
   let footerPlatformTagline: string | null = null;
+  let landingVideoUrl: string | null = null;
+  let landingHeroTitle: string | null = null;
+  let landingHeroSubtitle: string | null = null;
+  let landingHeroCta: string | null = null;
 
   try {
     const rows = await db
