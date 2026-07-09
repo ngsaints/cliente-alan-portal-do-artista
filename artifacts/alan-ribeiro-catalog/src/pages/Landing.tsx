@@ -39,6 +39,7 @@ export default function Landing() {
   const [faqOpen, setFaqOpen] = useState<Record<number, boolean>>({});
   const [settings, setSettings] = useState({
     landingVideoUrl: "",
+    landingHeroVideoUrl: "",
     landingHeroTitle: "Sua música pode ser incrível. Mas ela está sendo apresentada como merece?",
     landingHeroSubtitle: "Pare de enviar apenas um MP3. Crie sua página profissional, organize sua carreira e apresente suas músicas como um artista profissional.",
     landingHeroCta: "COMEÇAR AGORA",
@@ -53,6 +54,7 @@ export default function Landing() {
       .then((data) => {
         setSettings({
           landingVideoUrl: data.landingVideoUrl || "",
+          landingHeroVideoUrl: data.landingHeroVideoUrl || "",
           landingHeroTitle: data.landingHeroTitle || "Sua música pode ser incrível. Mas ela está sendo apresentada como merece?",
           landingHeroSubtitle: data.landingHeroSubtitle || "Pare de enviar apenas um MP3. Crie sua página profissional, organize sua carreira e apresente suas músicas como um artista profissional.",
           landingHeroCta: data.landingHeroCta || "COMEÇAR AGORA",
@@ -216,12 +218,24 @@ export default function Landing() {
                   VIP
                 </div>
               </div>
-              <div className="h-40 rounded-2xl bg-black/40 flex items-center justify-center relative overflow-hidden group">
-                <Play className="w-12 h-12 text-primary fill-primary/20 group-hover:scale-110 transition-transform cursor-pointer" />
-                <span className="absolute bottom-3 left-3 text-xs text-white/80 bg-black/50 px-2 py-0.5 rounded">
-                  Clique para escutar
-                </span>
-              </div>
+              {getYoutubeEmbedUrl(settings.landingHeroVideoUrl) ? (
+                <div className="h-40 rounded-2xl overflow-hidden border border-border/10">
+                  <iframe
+                    src={getYoutubeEmbedUrl(settings.landingHeroVideoUrl) || undefined}
+                    title="Vídeo do Hero"
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <div className="h-40 rounded-2xl bg-black/40 flex items-center justify-center relative overflow-hidden group">
+                  <Play className="w-12 h-12 text-primary fill-primary/20 group-hover:scale-110 transition-transform cursor-pointer" />
+                  <span className="absolute bottom-3 left-3 text-xs text-white/80 bg-black/50 px-2 py-0.5 rounded">
+                    Clique para escutar
+                  </span>
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="h-2 w-full bg-border/20 rounded-full" />
                 <div className="h-2 w-2/3 bg-border/20 rounded-full" />
@@ -438,18 +452,30 @@ export default function Landing() {
           </p>
         </div>
 
-        <div className="relative max-w-3xl mx-auto aspect-video rounded-3xl overflow-hidden bg-black/60 border border-border/40 shadow-2xl flex flex-col items-center justify-center p-6 text-center group">
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-          <div className="z-10 flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary/20 border border-primary text-primary flex items-center justify-center group-hover:scale-110 transition-transform cursor-pointer shadow-lg shadow-primary/20">
-              <Play className="w-6 h-6 fill-current ml-1" />
-            </div>
-            <div>
-              <p className="font-bold text-white text-base">Vídeo de Demonstração Rápida</p>
-              <p className="text-xs text-muted-foreground/80 mt-1 max-w-md">Veja como criar o perfil, adicionar suas primeiras músicas no catálogo e gerenciar seus contatos em segundos.</p>
+        {getYoutubeEmbedUrl(settings.landingVideoUrl) ? (
+          <div className="relative max-w-3xl mx-auto aspect-video rounded-3xl overflow-hidden bg-black/60 border border-border/40 shadow-2xl">
+            <iframe
+              src={getYoutubeEmbedUrl(settings.landingVideoUrl) || undefined}
+              title="Vídeo de Demonstração"
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+          <div className="relative max-w-3xl mx-auto aspect-video rounded-3xl overflow-hidden bg-black/60 border border-border/40 shadow-2xl flex flex-col items-center justify-center p-6 text-center group">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+            <div className="z-10 flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-primary/20 border border-primary text-primary flex items-center justify-center group-hover:scale-110 transition-transform cursor-pointer shadow-lg shadow-primary/20">
+                <Play className="w-6 h-6 fill-current ml-1" />
+              </div>
+              <div>
+                <p className="font-bold text-white text-base">Vídeo de Demonstração Rápida</p>
+                <p className="text-xs text-muted-foreground/80 mt-1 max-w-md">Veja como criar o perfil, adicionar suas primeiras músicas no catálogo e gerenciar seus contatos em segundos.</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </section>
 
       {/* 6. BENEFÍCIOS */}

@@ -14,7 +14,8 @@ function inferCategory(key: string): string {
   if (key.startsWith("demo_")) return "demo";
   if (key.startsWith("asaas_")) return "asaas";
   if (key.startsWith("r2_")) return "r2";
-  if (key.startsWith("portal_")) return "portal";
+  if (key.startsWith("portal_") || key.startsWith("landing_") || key.startsWith("footer_") || key.startsWith("suporte_") || key.startsWith("openai_")) return "portal";
+  if (key.startsWith("clarity_")) return "clarity";
   if (key.startsWith("mp_")) return "mercadopago";
   if (key.startsWith("smtp_") || key.startsWith("email_")) return "email";
   return "geral";
@@ -168,7 +169,7 @@ router.put("/admin/settings", upload.fields([
       await db
         .insert(appSettingsTable)
         .values({ key, value, category: inferCategory(key), isSecret: "false", updatedAt: new Date() })
-        .onConflictDoUpdate({ target: appSettingsTable.key, set: { value, updatedAt: new Date() } });
+        .onConflictDoUpdate({ target: appSettingsTable.key, set: { value, category: inferCategory(key), updatedAt: new Date() } });
     }
 
     // Clean up any accidental metadata rows from the database
@@ -227,6 +228,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "openai_api_key", value: "", desc: "OpenAI API Key para a mentora Vivi", isSecret: "true" },
         { key: "footer_copyright", value: "© 2026 Portaldoartista.com – Todos os direitos reservados.", desc: "Rodapé: Copyright" },
         { key: "landing_video_url", value: "", desc: "Landing: Link do Vídeo (YouTube)" },
+        { key: "landing_hero_video_url", value: "", desc: "Landing: Link do Vídeo do Hero (YouTube)" },
         { key: "landing_hero_title", value: "Sua música pode ser incrível. Mas ela está sendo apresentada como merece?", desc: "Landing: Título Principal" },
         { key: "landing_hero_subtitle", value: "Pare de enviar apenas um MP3. Crie sua página profissional, organize sua carreira e apresente suas músicas como um artista profissional.", desc: "Landing: Subtítulo" },
         { key: "landing_hero_cta", value: "COMEÇAR AGORA", desc: "Landing: Texto do Botão (CTA)" },

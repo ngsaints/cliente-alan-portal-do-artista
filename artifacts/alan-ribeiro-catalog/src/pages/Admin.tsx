@@ -250,7 +250,7 @@ function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 w-full overflow-x-hidden">
       {/* Navbar */}
       <nav className="sticky top-0 z-40 bg-card/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -1825,12 +1825,12 @@ function SettingsTab({ onNavigate }: { onNavigate?: (tab: MainTab) => void }) {
       </div>
 
       {/* Category tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0">
         {categories.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap shrink-0 transition-all ${
               activeCategory === cat.id
                 ? "bg-primary text-primary-foreground"
                 : "bg-card border border-border text-muted-foreground hover:text-foreground"
@@ -1923,6 +1923,7 @@ const SETTING_LABELS: Record<string, string> = {
   openai_api_key: "Chave de API OpenAI (Vivi)",
   footer_copyright: "Rodapé: Copyright",
   landing_video_url: "Landing: URL do Vídeo (YouTube)",
+  landing_hero_video_url: "Landing: URL do Vídeo do Hero (YouTube)",
   landing_hero_title: "Landing: Título Principal",
   landing_hero_subtitle: "Landing: Subtítulo",
   landing_hero_cta: "Landing: Texto do Botão (CTA)",
