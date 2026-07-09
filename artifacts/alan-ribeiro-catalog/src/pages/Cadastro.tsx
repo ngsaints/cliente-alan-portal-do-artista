@@ -217,7 +217,7 @@ export default function Cadastro() {
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">Senha *</label>
-              <div className="relative">
+              <div className="relative" style={{ position: 'relative' }}>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
@@ -229,7 +229,8 @@ export default function Cadastro() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground"
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
