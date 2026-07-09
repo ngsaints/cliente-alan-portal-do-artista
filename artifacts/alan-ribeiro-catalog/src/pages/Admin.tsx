@@ -446,8 +446,11 @@ function SongsTab() {
       </div>
 
       {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+      <div className="relative" style={{ position: 'relative' }}>
+        <Search 
+          className="text-muted-foreground pointer-events-none" 
+          style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', zIndex: 10 }}
+        />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -457,7 +460,8 @@ function SongsTab() {
         {search && (
           <button
             onClick={() => setSearch("")}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -2348,7 +2352,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                 )}
               </div>
             ) : (
-              <div className="relative">
+              <div className="relative" style={{ position: 'relative' }}>
                 <input
                   type={s.isSecret && !revealed[s.key] ? "password" : "text"}
                   value={values[s.key] ?? ""}
@@ -2360,7 +2364,8 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                   <button
                     type="button"
                     onClick={() => setRevealed({ ...revealed, [s.key]: !revealed[s.key] })}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                   >
                     {revealed[s.key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -4387,8 +4392,11 @@ Aproveite antes que a oferta expire!`);
           {recipientType === "single" && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
               <label className="text-sm font-medium text-foreground">Selecionar Artista</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <div className="relative" style={{ position: 'relative' }}>
+                <Search 
+                  className="text-muted-foreground" 
+                  style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', zIndex: 10 }}
+                />
                 <input
                   type="text"
                   placeholder="Buscar artista por nome ou e-mail..."
