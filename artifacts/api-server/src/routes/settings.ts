@@ -72,6 +72,10 @@ router.get("/settings", async (_req, res): Promise<void> => {
       if (r.key === "suporte_whatsapp") suporteWhatsapp = r.value;
       if (r.key === "suporte_email") suporteEmail = r.value;
       if (r.key === "openai_enabled") openaiEnabled = r.value === "true";
+      if (r.key === "landing_video_url") landingVideoUrl = r.value;
+      if (r.key === "landing_hero_title") landingHeroTitle = r.value;
+      if (r.key === "landing_hero_subtitle") landingHeroSubtitle = r.value;
+      if (r.key === "landing_hero_cta") landingHeroCta = r.value;
     }
   } catch (err) {
     console.error("Error fetching support/openai settings:", err);
@@ -90,6 +94,10 @@ router.get("/settings", async (_req, res): Promise<void> => {
     suporteWhatsapp: suporteWhatsapp || "21 99589 7040",
     suporteEmail: suporteEmail || "portaldoartistaoficial@gmail.com",
     openaiEnabled,
+    landingVideoUrl: landingVideoUrl || "",
+    landingHeroTitle: landingHeroTitle || "Sua música pode ser incrível. Mas ela está sendo apresentada como merece?",
+    landingHeroSubtitle: landingHeroSubtitle || "Pare de enviar apenas um MP3. Crie sua página profissional, organize sua carreira e apresente suas músicas como um artista profissional.",
+    landingHeroCta: landingHeroCta || "COMEÇAR AGORA",
   });
 });
 
