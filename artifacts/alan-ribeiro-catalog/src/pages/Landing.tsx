@@ -161,23 +161,34 @@ export default function Landing() {
             </div>
             
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-              Sua música pode ser incrível.<br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-yellow-200 to-primary">
-                Mas ela está sendo apresentada como merece?
-              </span>
+              {settings.landingHeroTitle.includes(".") ? (
+                <>
+                  {settings.landingHeroTitle.substring(0, settings.landingHeroTitle.indexOf(".") + 1)}<br />
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-yellow-200 to-primary">
+                    {settings.landingHeroTitle.substring(settings.landingHeroTitle.indexOf(".") + 1).trim()}
+                  </span>
+                </>
+              ) : (
+                settings.landingHeroTitle
+              )}
             </h1>
             
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-              Pare de enviar apenas arquivos soltos no WhatsApp ou links de pastas desorganizadas. 
-              Crie sua página profissional em minutos, organize seu catálogo de faixas e impressione quem decide.
+              {settings.landingHeroSubtitle}
             </p>
 
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <Link href="/cadastro">
-                <button className="w-full sm:w-auto px-10 py-4.5 rounded-full bg-primary text-primary-foreground font-extrabold text-lg hover:bg-primary/95 transition-all shadow-[0_8px_30px_rgba(245,197,24,0.3)] hover:-translate-y-0.5 active:translate-y-0">
-                  COMEÇAR AGORA
-                </button>
-              </Link>
+              <button 
+                onClick={() => {
+                  const element = document.getElementById("planos");
+                  if (element) {
+                    element.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+                className="w-full sm:w-auto px-10 py-4.5 rounded-full bg-primary text-primary-foreground font-extrabold text-lg hover:bg-primary/95 transition-all shadow-[0_8px_30px_rgba(245,197,24,0.3)] hover:-translate-y-0.5 active:translate-y-0"
+              >
+                {settings.landingHeroCta}
+              </button>
             </div>
 
             <div className="pt-6 flex items-center justify-center lg:justify-start gap-2 text-muted-foreground text-sm">
@@ -667,11 +678,17 @@ export default function Landing() {
           </div>
 
           <div className="pt-4">
-            <Link href="/cadastro">
-              <button className="px-12 py-5 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-black text-lg transition-all shadow-[0_8px_30px_rgba(245,197,24,0.35)] hover:-translate-y-0.5 active:translate-y-0">
-                QUERO COMEÇAR AGORA
-              </button>
-            </Link>
+            <button 
+              onClick={() => {
+                const element = document.getElementById("planos");
+                if (element) {
+                  element.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
+              className="px-12 py-5 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-black text-lg transition-all shadow-[0_8px_30px_rgba(245,197,24,0.35)] hover:-translate-y-0.5 active:translate-y-0"
+            >
+              QUERO COMEÇAR AGORA
+            </button>
           </div>
           
           <p className="text-xs text-muted-foreground/80 flex items-center justify-center gap-1">
