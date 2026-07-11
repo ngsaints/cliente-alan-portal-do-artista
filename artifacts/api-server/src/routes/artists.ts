@@ -8,7 +8,7 @@ import fs from "fs";
 import sharp from "sharp";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getEmailConfig, getPortalUrl } from "../lib/email.js";
-import { findOrCreateCustomer, createSubscription, getAsaasCredentials, getSubscriptionPayments } from "../lib/asaas-client.js";
+import { findOrCreateCustomer, createSubscription, getAsaasCredentials, getSubscriptionPayments, getPaymentPixQrCode } from "../lib/asaas-client.js";
 
 const router: IRouter = Router();
 
@@ -253,7 +253,17 @@ router.post(
               });
 
               const payments = await getSubscriptionPayments(subscription.id);
-              invoiceUrl = payments.data?.[0]?.invoiceUrl ?? null;
+              const firstPayment = payments.data?.[0];
+              invoiceUrl = firstPayment?.invoiceUrl ?? null;
+
+              var pixDetails = null;
+              if (finalBillingType === "PIX" && firstPayment) {
+                try {
+                  pixDetails = await getPaymentPixQrCode(firstPayment.id);
+                } catch (err) {
+                  console.warn("Erro ao buscar QR Code do PIX:", err);
+                }
+              }
             }
           } catch (paymentErr) {
             console.error("Error creating payment for new artist:", paymentErr);
@@ -302,6 +312,7 @@ router.post(
           plano: artist.plano,
           planoAtivo: artist.planoAtivo,
           invoiceUrl,
+          pixDetails: (typeof pixDetails !== 'undefined' ? pixDetails : null),
         });
       });
     } catch (error) {

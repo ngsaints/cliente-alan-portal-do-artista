@@ -181,3 +181,14 @@ export async function cancelSubscription(subscriptionId: string): Promise<{ dele
     method: "DELETE",
   });
 }
+
+export interface AsaasPixQrCode {
+  success: boolean;
+  encodedImage: string;
+  payload: string;
+  expirationDate: string;
+}
+
+export async function getPaymentPixQrCode(paymentId: string): Promise<AsaasPixQrCode> {
+  return asaasFetch<AsaasPixQrCode>(`/payments/${paymentId}/pixQrCode`);
+}

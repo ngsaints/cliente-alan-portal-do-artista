@@ -8,6 +8,7 @@ import {
   getSubscriptionPayments,
   getPaymentById,
   cancelSubscription,
+  getPaymentPixQrCode,
   asaasFetch,
 } from "../lib/asaas-client.js";
 
@@ -261,10 +262,20 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
     const payments = await getSubscriptionPayments(subscription.id);
     const firstPayment = payments.data?.[0];
 
+    let pixDetails = null;
+    if (finalBillingType === "PIX" && firstPayment) {
+      try {
+        pixDetails = await getPaymentPixQrCode(firstPayment.id);
+      } catch (err) {
+        console.warn("Erro ao buscar QR Code do PIX:", err);
+      }
+    }
+
     res.json({
       subscriptionId: subscription.id,
       invoiceUrl: firstPayment?.invoiceUrl ?? null,
       paymentId: firstPayment?.id ?? null,
+      pixDetails,
       sandbox: (await getAsaasCredentials()).sandbox,
       appliedCoupon,
       originalPrice: Number(plan.preco).toFixed(2),
@@ -340,6 +351,22 @@ router.post("/payments/cancel-subscription", async (req, res): Promise<void> => 
   } catch (error: any) {
     console.error("Error cancelling subscription:", error);
     res.status(500).json({ error: error.message ?? "Erro ao cancelar assinatura" });
+  }
+});
+
+
+router.get("/payments/pix/:paymentId", async (req, res): Promise<void> => {
+  try {
+    const { paymentId } = req.params;
+    if (!paymentId) {
+      res.status(400).json({ error: "ID do pagamento é obrigatório" });
+      return;
+    }
+    const pixData = await getPaymentPixQrCode(paymentId);
+    res.json(pixData);
+  } catch (error: any) {
+    console.error("Error fetching PIX QR Code:", error);
+    res.status(500).json({ error: error.message ?? "Erro ao carregar dados do PIX" });
   }
 });
 

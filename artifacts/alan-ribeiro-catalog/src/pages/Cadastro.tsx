@@ -148,7 +148,14 @@ export default function Cadastro() {
         throw new Error(result.error || "Erro ao cadastrar");
       }
 
-      if (result.invoiceUrl) {
+      if (result.pixDetails) {
+        sessionStorage.setItem("pending_pix_details", JSON.stringify({
+          encodedImage: result.pixDetails.encodedImage,
+          payload: result.pixDetails.payload,
+          expirationDate: result.pixDetails.expirationDate,
+          invoiceUrl: result.invoiceUrl || undefined,
+        }));
+      } else if (result.invoiceUrl) {
         window.open(result.invoiceUrl, "_blank");
       }
 

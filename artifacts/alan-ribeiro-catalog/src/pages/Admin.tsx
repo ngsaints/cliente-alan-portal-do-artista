@@ -888,22 +888,22 @@ function SongModal({ mode, song, onClose, onSaved }: SongModalProps) {
                 {/* MP3: somente ao adicionar */}
                 {mode === "add" ? (
                   <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">MP3 (áudio) *</label>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Arquivo de Áudio (MP3, WAV, M4A, etc.) *</label>
                     <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${mp3File ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 hover:bg-white/[0.02]"}`}>
                       {mp3File
                         ? <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
                         : <Upload className="w-5 h-5 text-muted-foreground shrink-0" />}
                       <span className="text-sm text-muted-foreground truncate">
-                        {mp3File ? mp3File.name : "Selecionar MP3"}
+                        {mp3File ? mp3File.name : "Selecionar arquivo de áudio"}
                       </span>
-                      <input type="file" accept="audio/*" className="hidden"
+                      <input type="file" accept="audio/*, .mp3, .wav, .m4a, .aac, .ogg, .flac, .wma" className="hidden"
                         onChange={(e) => setMp3File(e.target.files?.[0] || null)} />
                     </label>
                   </div>
                 ) : (
                   <div className="flex items-start gap-2 px-4 py-3 bg-background/60 rounded-xl border border-border/50 text-xs text-muted-foreground">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 opacity-60" />
-                    Para trocar o arquivo MP3, delete esta música e adicione novamente.
+                    Para trocar o arquivo de áudio, delete esta música e adicione novamente.
                   </div>
                 )}
               </>

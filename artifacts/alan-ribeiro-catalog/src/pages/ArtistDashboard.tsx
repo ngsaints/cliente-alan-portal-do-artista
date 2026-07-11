@@ -426,6 +426,12 @@ export default function ArtistDashboard() {
   const [dbPlans, setDbPlans] = useState<any[]>([]);
   const [planCouponCode, setPlanCouponCode] = useState("");
   const [upgradeBillingType, setUpgradeBillingType] = useState<"CREDIT_CARD" | "PIX">("CREDIT_CARD");
+  const [pixModalData, setPixModalData] = useState<{
+    encodedImage: string;
+    payload: string;
+    expirationDate: string;
+    invoiceUrl?: string;
+  } | null>(null);
   const [planCouponResult, setPlanCouponResult] = useState<{ discountType: string; discountValue: string; discountAmount: string; finalPrice: string; originalPrice: string } | null>(null);
   const [planCouponError, setPlanCouponError] = useState("");
   const [validatingPlanCoupon, setValidatingPlanCoupon] = useState(false);
@@ -1737,8 +1743,8 @@ export default function ArtistDashboard() {
                               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer" />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-muted-foreground mb-1">MP3 (áudio)</label>
-                            <input type="file" accept=".mp3,audio/*" onChange={e => setMp3File(e.target.files?.[0] || null)} required
+                            <label className="block text-sm font-medium text-muted-foreground mb-1">Arquivo de Áudio (MP3, WAV, M4A, etc.)</label>
+                            <input type="file" accept="audio/*, .mp3, .wav, .m4a, .aac, .ogg, .flac, .wma" onChange={e => setMp3File(e.target.files?.[0] || null)} required
                               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer" />
                           </div>
                         </>
@@ -3227,7 +3233,82 @@ export default function ArtistDashboard() {
           </motion.div>
         </div>
       </div>
-    </div>
+    
+      {pixModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border/40 rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
+            <button
+              onClick={() => setPixModalData(null)}
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2">
+                <span className="font-bold text-lg">PIX</span>
+              </div>
+              <h3 className="font-bold text-lg text-white">Pagamento da Assinatura</h3>
+              <p className="text-xs text-muted-foreground">
+                Escaneie o QR Code abaixo com o app do seu banco ou copie a chave Copia e Cola.
+              </p>
+            </div>
+
+            {/* QR Code */}
+            <div className="bg-white p-4 rounded-2xl mx-auto w-48 h-48 flex items-center justify-center shadow-inner border border-zinc-200">
+              <img
+                src={`data:image/png;base64,${pixModalData.encodedImage}`}
+                alt="PIX QR Code"
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* Copia e Cola */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-muted-foreground">Código Pix Copia e Cola</label>
+              <div className="flex gap-2 bg-background border border-border rounded-xl p-1.5">
+                <input
+                  type="text"
+                  readOnly
+                  value={pixModalData.payload}
+                  className="flex-1 bg-transparent border-0 px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-0 truncate"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(pixModalData.payload);
+                    alert("Código Copia e Cola copiado para a área de transferência!");
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors shrink-0"
+                >
+                  Copiar
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setPixModalData(null)}
+                className="w-full py-2.5 rounded-xl font-bold bg-zinc-800 text-foreground hover:bg-zinc-700 transition-colors text-sm"
+              >
+                Já paguei, fechar janela
+              </button>
+              {pixModalData.invoiceUrl && (
+                <a
+                  href={pixModalData.invoiceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-center text-xs text-muted-foreground hover:text-foreground underline transition-colors"
+                >
+                  Abrir fatura completa no Asaas
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+</div>
   );
 }
 
