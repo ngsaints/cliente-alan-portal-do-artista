@@ -96,6 +96,15 @@ router.post(
       return;
     }
 
+    if (precoX !== undefined && precoX !== "" && precoX !== null && isNaN(Number(precoX))) {
+      res.status(400).json({ error: "precoX deve ser um valor numérico válido" });
+      return;
+    }
+    if (precoY !== undefined && precoY !== "" && precoY !== null && isNaN(Number(precoY))) {
+      res.status(400).json({ error: "precoY deve ser um valor numérico válido" });
+      return;
+    }
+
     const tipo = tipoMidia || "audio";
     const files = req.files as Record<string, Express.Multer.File[]>;
     const capaFile = files?.["capa"]?.[0];
@@ -196,7 +205,16 @@ router.put(
 
     const { id } = req.params;
     const { titulo, descricao, genero, subgenero, compositor, letra, edicao, distribuicao, associacao, status,
-            tipoMidia, youtubeUrl, isVip, vipCode } = req.body;
+            tipoMidia, youtubeUrl, isVip, vipCode, precoX, precoY } = req.body;
+
+    if (precoX !== undefined && precoX !== "" && precoX !== null && isNaN(Number(precoX))) {
+      res.status(400).json({ error: "precoX deve ser um valor numérico válido" });
+      return;
+    }
+    if (precoY !== undefined && precoY !== "" && precoY !== null && isNaN(Number(precoY))) {
+      res.status(400).json({ error: "precoY deve ser um valor numérico válido" });
+      return;
+    }
 
     try {
       // Se uma nova capa foi enviada, faz o upload
@@ -235,6 +253,8 @@ router.put(
           youtubeUrl:   youtubeUrl !== undefined ? (youtubeUrl || null) : undefined,
           isVip:        isVip      !== undefined ? vipFlag           : undefined,
           vipCode:      vipCode    !== undefined ? (vipCode    || null) : undefined,
+          precoX:       precoX     !== undefined ? (precoX && precoX !== "" ? precoX.toString() : null) : undefined,
+          precoY:       precoY     !== undefined ? (precoY && precoY !== "" ? precoY.toString() : null) : undefined,
           ...(capaPath    ? { capaPath }                             : {}),
         })
         .where(eq(songsTable.id, parseInt(id as string)))

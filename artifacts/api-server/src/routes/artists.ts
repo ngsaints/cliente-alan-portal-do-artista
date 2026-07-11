@@ -614,7 +614,7 @@ router.post("/artists/vip-verify/:artistId", async (req, res): Promise<void> => 
 });
 
 // GET /artists/public - List public artists
-router.get("/artists/public", async (req, res): Promise<void> => {
+const getPublicArtists = async (req: any, res: any): Promise<void> => {
   try {
     const { genero, plano, search } = req.query;
     
@@ -660,7 +660,10 @@ router.get("/artists/public", async (req, res): Promise<void> => {
     console.error("Error fetching public artists:", error);
     res.status(500).json({ error: "Erro ao buscar artistas" });
   }
-});
+};
+
+router.get("/artists", getPublicArtists);
+router.get("/artists/public", getPublicArtists);
 
 // GET /artists/:identifier - Get artist by ID or slug
 router.get("/artists/:identifier", async (req, res): Promise<void> => {

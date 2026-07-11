@@ -98,6 +98,15 @@ router.post(
         return;
       }
 
+      if (precoX !== undefined && precoX !== "" && precoX !== null && isNaN(Number(precoX))) {
+        res.status(400).json({ error: "precoX deve ser um valor numérico válido" });
+        return;
+      }
+      if (precoY !== undefined && precoY !== "" && precoY !== null && isNaN(Number(precoY))) {
+        res.status(400).json({ error: "precoY deve ser um valor numérico válido" });
+        return;
+      }
+
       const tipo = tipoMidia || "audio";
 
       const files = req.files as Record<string, Express.Multer.File[]>;
@@ -250,6 +259,15 @@ router.put(
 
     const { titulo, descricao, genero, subgenero, compositor, letra, edicao, distribuicao, associacao, status, precoX, precoY, isVip, tipoMidia, youtubeUrl, vipCode, isPrivate } = req.body;
 
+    if (precoX !== undefined && precoX !== "" && precoX !== null && isNaN(Number(precoX))) {
+      res.status(400).json({ error: "precoX deve ser um valor numérico válido" });
+      return;
+    }
+    if (precoY !== undefined && precoY !== "" && precoY !== null && isNaN(Number(precoY))) {
+      res.status(400).json({ error: "precoY deve ser um valor numérico válido" });
+      return;
+    }
+
     try {
       const files = req.files as Record<string, Express.Multer.File[]>;
       const capaFile = files?.["capa"]?.[0];
@@ -286,8 +304,8 @@ router.put(
           distribuicao: distribuicao !== undefined ? (distribuicao || null) : undefined,
           associacao:   associacao   !== undefined ? (associacao   || null) : undefined,
           ...(status      ? { status }                               : {}),
-          ...(precoX      ? { precoX }                               : {}),
-          ...(precoY      ? { precoY }                               : {}),
+          precoX:       precoX     !== undefined ? (precoX && precoX !== "" ? precoX.toString() : null) : undefined,
+          precoY:       precoY     !== undefined ? (precoY && precoY !== "" ? precoY.toString() : null) : undefined,
           ...(tipoMidia   ? { tipoMidia }                            : {}),
           youtubeUrl:   youtubeUrl !== undefined ? (youtubeUrl || null) : undefined,
           isVip:        isVip      !== undefined ? vipFlag           : undefined,
