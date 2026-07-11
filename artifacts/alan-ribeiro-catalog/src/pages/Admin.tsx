@@ -18,7 +18,7 @@ import {
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
-  Mail, Gift, Send,
+  Mail, Gift, Send, Terminal,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -113,7 +113,7 @@ interface Coupon {
   createdAt: string;
 }
 
-type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing";
+type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs";
 type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email" | "clarity";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -309,6 +309,7 @@ function AdminDashboard() {
           {activeTab === "galleries" && <GalleriesTab />}
           {activeTab === "coupons" && <CouponsTab />}
           {activeTab === "email_marketing" && <EmailMarketingTab />}
+          {activeTab === "server_logs" && <ServerLogsTab />}
         </motion.div>
       </div>
     </div>
@@ -4597,6 +4598,291 @@ Aproveite antes que a oferta expire!`);
               />
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Aba Logs do Servidor ────────────────────────────────────────────────────────
+
+interface LogEntry {
+  timestamp: string;
+  level: "INFO" | "WARN" | "ERROR";
+  message: string;
+}
+
+function ServerLogsTab() {
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [filterLevel, setFilterLevel] = useState<"ALL" | "INFO" | "WARN" | "ERROR">("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchLogs = async (silent = false) => {
+    if (!silent) setLoading(true);
+    else setRefreshing(true);
+    try {
+      const res = await fetch("/api/admin/logs");
+      if (!res.ok) throw new Error("Erro ao buscar logs");
+      const data = await res.json();
+      setLogs(data.logs || []);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os logs do servidor.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      fetchLogs(true);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
+
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs]);
+
+  const handleClearLogs = async () => {
+    if (!confirm("Tem certeza que deseja limpar os logs salvos no servidor? Isso apagará o histórico permanentemente.")) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/logs", { method: "DELETE" });
+      if (!res.ok) throw new Error("Erro ao limpar logs");
+      setLogs([]);
+      toast({
+        title: "Logs limpos",
+        description: "O arquivo de logs do servidor foi esvaziado com sucesso.",
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Erro",
+        description: "Não foi possível limpar os logs do servidor.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadLogs = () => {
+    const textContent = logs
+      .map((log) => `${log.timestamp} [${log.level}] ${log.message}`)
+      .join("\n");
+    const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `logs_servidor_${new Date().toISOString().slice(0, 10)}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const filteredLogs = logs.filter((log) => {
+    const matchesLevel = filterLevel === "ALL" || log.level === filterLevel;
+    const matchesSearch = log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          log.level.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesLevel && matchesSearch;
+  });
+
+  const errorCount = logs.filter(l => l.level === "ERROR").length;
+  const warnCount = logs.filter(l => l.level === "WARN").length;
+  const infoCount = logs.filter(l => l.level === "INFO").length;
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground font-display flex items-center gap-2">
+            <Terminal className="w-6 h-6 text-primary" />
+            Logs do Servidor
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Acompanhe em tempo real os eventos, avisos e erros do sistema para diagnóstico rápido.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-card border border-border px-3 py-1.5 rounded-xl text-xs font-medium">
+            <span className={`w-2 h-2 rounded-full ${autoRefresh ? "bg-emerald-500 animate-pulse" : "bg-zinc-500"}`} />
+            <span>Atualização em tempo real</span>
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              className="accent-primary w-4 h-4 cursor-pointer ml-1"
+            />
+          </div>
+
+          <button
+            onClick={() => fetchLogs()}
+            disabled={loading || refreshing}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing || loading ? "animate-spin" : ""}`} />
+            Atualizar
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="bg-card border border-border/50 rounded-2xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+            {logs.length}
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total de Eventos</p>
+            <p className="text-xs font-semibold text-foreground">Logs no Buffer</p>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border/50 rounded-2xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center font-bold text-sm">
+            {errorCount}
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Erros</p>
+            <p className="text-xs font-semibold text-destructive font-bold">Falhas</p>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border/50 rounded-2xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-yellow-500/10 text-yellow-500 flex items-center justify-center font-bold text-sm">
+            {warnCount}
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Avisos</p>
+            <p className="text-xs font-semibold text-yellow-500">Alertas</p>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border/50 rounded-2xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-sm">
+            {infoCount}
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Informações</p>
+            <p className="text-xs font-semibold text-blue-400">Mensagens</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setFilterLevel("ALL")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${filterLevel === "ALL" ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground hover:text-foreground"}`}
+          >
+            Todos
+          </button>
+          <button
+            onClick={() => setFilterLevel("ERROR")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${filterLevel === "ERROR" ? "bg-destructive text-destructive-foreground" : "bg-background border border-border text-destructive hover:bg-destructive/10"}`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
+            Erros ({errorCount})
+          </button>
+          <button
+            onClick={() => setFilterLevel("WARN")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${filterLevel === "WARN" ? "bg-yellow-500 text-black" : "bg-background border border-border text-yellow-500 hover:bg-yellow-500/10"}`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+            Avisos ({warnCount})
+          </button>
+          <button
+            onClick={() => setFilterLevel("INFO")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${filterLevel === "INFO" ? "bg-blue-500 text-white" : "bg-background border border-border text-blue-400 hover:bg-blue-500/10"}`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+            Informações ({infoCount})
+          </button>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar termos no log..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-60 pl-9 pr-4 py-1.5 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleDownloadLogs}
+              disabled={filteredLogs.length === 0}
+              className="flex-1 sm:flex-none px-4 py-1.5 rounded-xl bg-zinc-850 text-foreground font-bold hover:bg-zinc-800 border border-zinc-700 transition-colors text-xs disabled:opacity-40"
+            >
+              Baixar (.txt)
+            </button>
+            <button
+              onClick={handleClearLogs}
+              className="flex-1 sm:flex-none px-4 py-1.5 rounded-xl bg-destructive/10 text-destructive font-bold hover:bg-destructive/20 border border-destructive/20 transition-colors text-xs"
+            >
+              Limpar Logs
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[500px]">
+        <div className="bg-zinc-900 px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-destructive" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500" />
+            <div className="w-3 h-3 rounded-full bg-emerald-500" />
+            <span className="text-[10px] text-zinc-500 font-mono ml-2">server_output.log</span>
+          </div>
+          <span className="text-[10px] text-zinc-500 font-mono">UTF-8</span>
+        </div>
+
+        <div className="flex-1 p-4 overflow-y-auto font-mono text-[11px] space-y-2 select-text scrollbar-thin scrollbar-thumb-zinc-800 bg-zinc-950">
+          {loading ? (
+            <div className="h-full flex items-center justify-center text-zinc-500 gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              Carregando logs do servidor...
+            </div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-zinc-550">
+              Nenhum log encontrado para os critérios selecionados.
+            </div>
+          ) : (
+            filteredLogs.map((log, index) => {
+              const dateStr = new Date(log.timestamp).toLocaleTimeString();
+              const levelColor =
+                log.level === "ERROR" ? "text-red-500" :
+                log.level === "WARN" ? "text-yellow-400" :
+                "text-cyan-400";
+
+              return (
+                <div key={index} className="hover:bg-zinc-900/50 py-0.5 px-1.5 rounded flex items-start gap-3 transition-colors border-l-2 border-transparent hover:border-zinc-800">
+                  <span className="text-zinc-600 shrink-0 font-normal">{dateStr}</span>
+                  <span className={`font-bold ${levelColor} shrink-0 w-14`}>[{log.level}]</span>
+                  <span className="text-zinc-300 break-all whitespace-pre-wrap flex-1">{log.message}</span>
+                </div>
+              );
+            })
+          )}
+          <div ref={terminalEndRef} />
         </div>
       </div>
     </div>

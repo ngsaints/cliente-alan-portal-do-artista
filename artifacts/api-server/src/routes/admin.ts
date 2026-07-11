@@ -7,6 +7,7 @@ import { FREE_PLAN } from "./payments";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getAsaasCredentials } from "../lib/asaas-client.js";
 import { getEmailConfig } from "../lib/email.js";
+import { logBuffer, clearLogs } from "../lib/logger.js";
 import path from "path";
 import fs from "fs";
 
@@ -859,6 +860,33 @@ router.post("/admin/email-marketing/send", async (req, res): Promise<void> => {
   } catch (error: any) {
     console.error("Error sending marketing email:", error);
     res.status(500).json({ error: error.message ?? "Erro interno ao processar o envio de e-mails." });
+  }
+});
+
+router.get("/admin/logs", async (req, res): Promise<void> => {
+  if (!req.session.logado) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
+  try {
+    res.json({ logs: logBuffer });
+  } catch (error: any) {
+    console.error("Error fetching admin logs:", error);
+    res.status(500).json({ error: "Erro ao carregar logs" });
+  }
+});
+
+router.delete("/admin/logs", async (req, res): Promise<void> => {
+  if (!req.session.logado) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
+  try {
+    clearLogs();
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Error clearing admin logs:", error);
+    res.status(500).json({ error: "Erro ao limpar logs" });
   }
 });
 
