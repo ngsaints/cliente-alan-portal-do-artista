@@ -114,8 +114,8 @@ router.post(
       const mp3File = files?.["mp3"]?.[0];
 
       if (tipo === "audio") {
-        if (!capaFile || !mp3File) {
-          res.status(400).json({ error: "Para áudio, capa e arquivo MP3 são obrigatórios" });
+        if (!mp3File) {
+          res.status(400).json({ error: "Para áudio, o arquivo de áudio é obrigatório" });
           return;
         }
       } else if (tipo === "video") {
@@ -193,8 +193,8 @@ router.post(
           distribuicao: distribuicao || null,
           associacao: associacao || null,
           status: status || "Disponível",
-          precoX: precoX || null,
-          precoY: precoY || null,
+          precoX: (precoX && precoX !== "") ? precoX.toString() : null,
+          precoY: (precoY && precoY !== "") ? precoY.toString() : null,
           capaPath: capaPath || null,
           mp3Path: mp3Path || null,
           youtubeUrl: youtubeUrl || null,

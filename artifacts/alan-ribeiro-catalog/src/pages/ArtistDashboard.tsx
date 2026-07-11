@@ -1080,8 +1080,17 @@ export default function ArtistDashboard() {
         setMusicTermsAccepted(false);
         loadData();
       } else {
-        const data = await res.json();
-        alert(data.error || (isEditing ? "Erro ao editar música" : "Erro ao adicionar música"));
+        let errorMsg = isEditing ? "Erro ao editar música" : "Erro ao adicionar música";
+        try {
+          const data = await res.json();
+          if (data && data.error) errorMsg = data.error;
+        } catch (e) {
+          try {
+            const rawText = await res.text();
+            if (rawText) errorMsg = rawText;
+          } catch (e2) {}
+        }
+        alert(errorMsg);
       }
     } catch (err) {
       alert("Erro ao processar música");
