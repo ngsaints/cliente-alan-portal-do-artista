@@ -241,6 +241,7 @@ function AdminDashboard() {
     { id: "genres",    label: "Gêneros",        icon: Tag            },
     { id: "interests", label: "Interesses",     icon: MessageSquare  },
     { id: "settings", label: "Configurações", icon: Settings },
+    { id: "server_logs", label: "Logs do Servidor", icon: Terminal },
     { id: "banners", label: "Banners", icon: Layout },
     { id: "cities", label: "Cidades", icon: MapPin },
     { id: "playlists", label: "Playlists", icon: ListMusic },
