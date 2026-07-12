@@ -243,6 +243,7 @@ router.put(
   "/artist/:artistId/songs/:songId",
   upload.fields([
     { name: "capa", maxCount: 1 },
+    { name: "mp3", maxCount: 1 },
   ]),
   async (req, res): Promise<void> => {
     const sessionArtistId = req.session.artistId;
@@ -271,6 +272,7 @@ router.put(
     try {
       const files = req.files as Record<string, Express.Multer.File[]>;
       const capaFile = files?.["capa"]?.[0];
+      const mp3File = files?.["mp3"]?.[0];
 
       let capaPath: string | undefined;
       if (capaFile) {
@@ -285,6 +287,20 @@ router.put(
           const capaName = `${Date.now()}_${capaFile.originalname.replace(/\.\w+$/, ".jpg")}`;
           fs.writeFileSync(path.join(coversDir, capaName), capaJpg);
           capaPath = `/api/uploads/covers/${capaName}`;
+        }
+      }
+
+      let mp3Path: string | undefined;
+      if (mp3File) {
+        if (r2Enabled) {
+          const mp3Key = generateR2Key("audio", mp3File.originalname);
+          mp3Path = await uploadToR2(mp3File.buffer, mp3Key, mp3File.mimetype);
+        } else {
+          const audioDir = path.join(process.cwd(), "uploads/audio");
+          fs.mkdirSync(audioDir, { recursive: true });
+          const mp3Name = `${Date.now()}_${mp3File.originalname}`;
+          fs.writeFileSync(path.join(audioDir, mp3Name), mp3File.buffer);
+          mp3Path = `/api/uploads/audio/${mp3Name}`;
         }
       }
 
@@ -312,6 +328,7 @@ router.put(
           vipCode:      vipCode    !== undefined ? (vipCode    || null) : undefined,
           isPrivate:    isPrivate  !== undefined ? privateFlag        : undefined,
           ...(capaPath    ? { capaPath }                             : {}),
+          ...(mp3Path     ? { mp3Path }                              : {}),
         })
         .where(eq(songsTable.id, parseInt(songId as string)))
         .returning();

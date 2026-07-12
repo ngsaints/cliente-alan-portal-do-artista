@@ -1752,8 +1752,8 @@ export default function ArtistDashboard() {
                               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer" />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-muted-foreground mb-1">Arquivo de Áudio (MP3, WAV, M4A, etc.)</label>
-                            <input type="file" accept="audio/*, .mp3, .wav, .m4a, .aac, .ogg, .flac, .wma" onChange={e => setMp3File(e.target.files?.[0] || null)} required
+                            <label className="block text-sm font-medium text-muted-foreground mb-1">Arquivo de Áudio (MP3, WAV, M4A, etc.) {!editingSong && " *"}</label>
+                            <input type="file" accept="audio/*, .mp3, .wav, .m4a, .aac, .ogg, .flac, .wma" onChange={e => setMp3File(e.target.files?.[0] || null)} required={!editingSong}
                               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer" />
                           </div>
                         </>
