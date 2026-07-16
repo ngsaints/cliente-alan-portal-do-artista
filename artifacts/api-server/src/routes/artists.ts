@@ -651,11 +651,47 @@ const getPublicArtists = async (req: any, res: any): Promise<void> => {
       artists = artists.filter(a => a.genero === genero);
     }
 
-    // Sort by plan priority (premium > pro > intermediario > basico > free)
-    const planoOrder: Record<string, number> = { premium: 5, pro: 4, intermediario: 3, basico: 2, free: 1 };
-    artists.sort((a, b) => (planoOrder[b.plano] || 0) - (planoOrder[a.plano] || 0));
+    // Shuffle helper (Fisher-Yates)
+    function shuffleArray<T>(array: T[]): T[] {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
 
-    res.json(artists);
+    // Sort: prioritizes profiles with photo, then by plan tier, and randomizes/shuffles within each tier.
+    const planoOrder: Record<string, number> = { premium: 5, pro: 4, intermediario: 3, basico: 2, free: 1 };
+    
+    const artistsWithScores = artists.map(a => {
+      // Check if they uploaded a custom profile photo (capaUrl is present and is not empty or default)
+      const hasPhoto = a.capaUrl && a.capaUrl !== "" && !a.capaUrl.includes("default-cover");
+      const score = (planoOrder[a.plano] || 0) + (hasPhoto ? 100 : 0);
+      return { artist: a, score };
+    });
+
+    // Group by final score
+    const groups: Record<number, any[]> = {};
+    artistsWithScores.forEach(item => {
+      if (!groups[item.score]) {
+        groups[item.score] = [];
+      }
+      groups[item.score].push(item.artist);
+    });
+
+    // Sort scores descending, shuffle each group, and merge
+    const sortedScores = Object.keys(groups)
+      .map(Number)
+      .sort((a, b) => b - a);
+
+    let sortedArtists: any[] = [];
+    sortedScores.forEach(score => {
+      const shuffledGroup = shuffleArray(groups[score]);
+      sortedArtists = sortedArtists.concat(shuffledGroup);
+    });
+
+    res.json(sortedArtists);
   } catch (error) {
     console.error("Error fetching public artists:", error);
     res.status(500).json({ error: "Erro ao buscar artistas" });

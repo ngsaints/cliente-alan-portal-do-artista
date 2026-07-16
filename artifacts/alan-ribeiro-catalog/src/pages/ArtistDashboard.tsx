@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingUpDown, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
   ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle, Share2,
-  Bot, Sparkles, Zap
+  Bot, Sparkles, Zap, Download
 } from "lucide-react";
 import {
   Command,
@@ -425,6 +425,7 @@ export default function ArtistDashboard() {
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [dbPlans, setDbPlans] = useState<any[]>([]);
   const [planCouponCode, setPlanCouponCode] = useState("");
+  const [showShareModal, setShowShareModal] = useState(false);
   const [upgradeBillingType, setUpgradeBillingType] = useState<"CREDIT_CARD" | "PIX">("CREDIT_CARD");
   const [pixModalData, setPixModalData] = useState<{
     encodedImage: string;
@@ -1233,12 +1234,19 @@ export default function ArtistDashboard() {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {artist?.slug && (
-                <a href={`/${artist.slug}`} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-primary border border-primary/30 hover:bg-primary/10 transition-colors text-xs sm:text-sm font-medium">
-                  <ExternalLink className="w-4 h-4" />
-                  <span className="hidden sm:inline">Meu Perfil</span>
-                  <span className="sm:hidden">Perfil</span>
-                </a>
+                <>
+                  <a href={`/${artist.slug}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-primary border border-primary/30 hover:bg-primary/10 transition-colors text-xs sm:text-sm font-medium">
+                    <ExternalLink className="w-4 h-4" />
+                    <span className="hidden sm:inline">Meu Perfil</span>
+                    <span className="sm:hidden">Perfil</span>
+                  </a>
+                  <button onClick={() => setShowShareModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white border border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 transition-colors text-xs sm:text-sm font-medium">
+                    <Share2 className="w-4 h-4 text-primary" />
+                    <span>Compartilhar</span>
+                  </button>
+                </>
               )}
               <button onClick={handleLogout}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs sm:text-sm font-medium">
@@ -3314,6 +3322,96 @@ export default function ArtistDashboard() {
                 </a>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {showShareModal && artist && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border/40 rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
+            <button
+              onClick={() => setShowShareModal(false)}
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center mx-auto mb-2">
+                <Share2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-lg text-white">Compartilhar Perfil</h3>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                Divulgue seu link ou baixe o QR Code exclusivo para colocar em banners, flyers ou redes sociais.
+              </p>
+            </div>
+
+            {/* Link Copy block */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-muted-foreground">Seu Link Profissional</label>
+              <div className="flex items-center gap-2 bg-background border border-border rounded-xl px-3 py-1.5">
+                <input
+                  type="text"
+                  readOnly
+                  value={`${window.location.origin}/${artist.slug}`}
+                  className="flex-1 bg-transparent border-0 text-xs text-foreground focus:outline-none focus:ring-0 truncate"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/${artist.slug}`);
+                    alert("Link do perfil copiado para a área de transferência!");
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/95 transition-colors shrink-0"
+                >
+                  Copiar
+                </button>
+              </div>
+            </div>
+
+            {/* QR Code block */}
+            <div className="bg-background border border-border/60 rounded-2xl p-4.5 flex flex-col items-center justify-center space-y-4">
+              <div className="p-3 bg-white rounded-xl shadow-lg">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`${window.location.origin}/${artist.slug}`)}`}
+                  alt="QR Code do Perfil"
+                  className="w-44 h-44 object-contain"
+                />
+              </div>
+              
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(`${window.location.origin}/${artist.slug}`)}`;
+                    const response = await fetch(qrUrl);
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `qrcode-${artist.slug}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                  } catch (err) {
+                    alert("Erro ao baixar o QR Code. Tente salvar a imagem manualmente.");
+                  }
+                }}
+                className="w-full py-2.5 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/95 transition-colors text-xs flex items-center justify-center gap-1.5"
+              >
+                <Download className="w-4 h-4" />
+                Baixar Imagem do QR Code
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowShareModal(false)}
+              className="w-full py-2.5 rounded-xl font-bold bg-zinc-800 text-foreground hover:bg-zinc-700 transition-colors text-xs"
+            >
+              Fechar Janela
+            </button>
           </div>
         </div>
       )}
