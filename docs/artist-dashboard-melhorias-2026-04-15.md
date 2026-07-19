@@ -96,7 +96,7 @@ Novo campo `contato` no formulário de perfil, com placeholder `(21) 99999-9999`
 
 No formulário de perfil, exibe o link público do artista:
 ```
-Seu link: https://94.141.97.95/a/artist-slug
+Seu link: https://2.24.205.194/a/artist-slug
 ```
 
 No header do dashboard, botão "Meu Perfil" que abre o perfil público em nova aba.

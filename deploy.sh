@@ -26,7 +26,7 @@ echo "🔄 Reloading Nginx..."
 nginx -t && systemctl reload nginx
 
 echo "✅ Deploy complete!"
-echo "   https://94.141.97.95"
+echo "   https://2.24.205.194"
 echo ""
 echo "Rotas:"
 echo "  /         → Home (Portal)"

@@ -8,7 +8,7 @@
 
 | Item | Detalhe |
 |------|---------|
-| **URL** | `https://94.141.97.95/admin` |
+| **URL** | `https://2.24.205.194/admin` |
 | **Login** | `admin` / `1234` |
 | **Autenticação** | express-session (cookie-based, 24h) |
 

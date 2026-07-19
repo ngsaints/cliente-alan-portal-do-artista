@@ -14,7 +14,7 @@ Usuário não conseguia fazer login no painel admin (`/admin`) com credenciais `
 **Solução**: Atualizar senha em `settings` para `1234`
 
 ### 2. API Funcionando
-- Login funcionava via curl: `curl -sk -X POST https://94.141.97.95/api/auth/login -d '{"usuario":"admin","senha":"1234"}'`
+- Login funcionava via curl: `curl -sk -X POST https://2.24.205.194/api/auth/login -d '{"usuario":"admin","senha":"1234"}'`
 - Retornava `{"logado":true}`
 - Sessão persistia corretamente
 

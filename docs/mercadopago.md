@@ -67,7 +67,7 @@ Permitir que artistas assinem planos pagos (Básico, Intermediário, Pro, Premiu
 MERCADOPAGO_ACCESS_TOKEN=APP_USR-xxx
 MERCADOPAGO_PUBLIC_KEY=APP_USR-xxx
 MERCADOPAGO_WEBHOOK_SECRET=xxx
-MERCADOPAGO_WEBHOOK_URL=https://94.141.97.95/api/webhooks/mercadopago
+MERCADOPAGO_WEBHOOK_URL=https://2.24.205.194/api/webhooks/mercadopago
 ```
 
 ---

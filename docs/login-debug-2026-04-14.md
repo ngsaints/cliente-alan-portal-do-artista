@@ -23,7 +23,7 @@
 
 ## Soluções Sugeridas
 1. **Limpar cache do navegador**: Ctrl+Shift+R (hard refresh)
-2. **Acessar via HTTPS**: https://94.141.97.95/admin
+2. **Acessar via HTTPS**: https://2.24.205.194/admin
 3. **Desabilitar extensões**: Especialmente relacionadas a i18n/idiomas
 4. **Verificar console**: Para erros adicionais
 5. **Testar credenciais**: Garantir que `admin` e `1234` estão corretos

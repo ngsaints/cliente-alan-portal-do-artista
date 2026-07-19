@@ -80,14 +80,14 @@ Ports: 80 (redirect) -> 443 (SSL)
 # HTTP -> HTTPS redirect
 server {
     listen 80;
-    server_name 94.141.97.95;
+    server_name 2.24.205.194;
     location / { return 301 https://$host$request_uri; }
 }
 
 # HTTPS server
 server {
     listen 443 ssl http2;
-    server_name 94.141.97.95;
+    server_name 2.24.205.194;
 
     ssl_certificate /etc/nginx/ssl/portal.crt;
     ssl_certificate_key /etc/nginx/ssl/portal.key;
@@ -151,7 +151,7 @@ systemctl reload nginx
 - **Certificado**: `/etc/nginx/ssl/portal.crt`
 - **Key**: `/etc/nginx/ssl/portal.key`
 - **Validade**: 10 anos
-- **SAN**: IP 94.141.97.95
+- **SAN**: IP 2.24.205.194
 - **Aviso**: Browser mostra alerta de seguranca
 
 ### Para producao real (Let's Encrypt):
