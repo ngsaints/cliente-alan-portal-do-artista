@@ -295,72 +295,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 9. PLANOS */}
-      <section id="planos" className="py-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-12">
-        <div className="text-center space-y-4">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-            Planos sob medida para o seu sucesso
-          </h2>
-          <p className="text-muted-foreground text-base max-w-xl mx-auto">
-            Escolha o pacote ideal para divulgar suas produções. Ativação instantânea e sem complicação.
-          </p>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-          {plans.length === 0 ? (
-            <div className="col-span-3 text-center py-12 text-muted-foreground">
-              Carregando planos da plataforma...
-            </div>
-          ) : (
-            plans.map((plan) => (
-              <div 
-                key={plan.id}
-                className={`rounded-3xl p-6.5 border flex flex-col justify-between relative transition-all ${plan.cardStyle}`}
-              >
-                {plan.nome === "pro" && (
-                  <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-black tracking-widest uppercase">
-                    ⭐ MAIS POPULAR
-                  </span>
-                )}
-                
-                <div className="space-y-4">
-                  <div>
-                    <span className={`inline-block px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase border ${plan.color}`}>
-                      {plan.label}
-                    </span>
-                    <h3 className="text-xl font-extrabold text-white mt-2.5">{plan.label}</h3>
-                    <p className="text-xs text-muted-foreground/80 mt-1 min-h-[32px]">{plan.tagline}</p>
-                  </div>
-
-                  <div className="flex items-baseline gap-1 py-2 border-y border-border/20">
-                    <span className="text-3xl font-extrabold text-white">
-                      R$ {parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="text-xs text-muted-foreground">/mês</span>
-                  </div>
-
-                  <ul className="space-y-3 pt-2">
-                    {plan.features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-normal">
-                        <CheckCircle2 className="w-4.5 h-4.5 text-primary shrink-0 mt-0.5" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="pt-8">
-                  <Link href={`/cadastro?plano=${plan.id}`}>
-                    <button className="w-full py-3 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-sm transition-all shadow-md">
-                      ASSINAR AGORA
-                    </button>
-                  </Link>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
 
 
       {/* 2.5 ATALHO PERFIS DE ARTISTAS */}
