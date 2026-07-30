@@ -341,37 +341,6 @@ export default function ArtistLogin() {
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Profissão</label>
-            <select
-              value={formData.profissao}
-              onChange={(e) => setFormData({ ...formData, profissao: e.target.value })}
-              className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              {PROFISSOES.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Gênero Musical Principal</label>
-            <select
-              value={formData.genero}
-              onChange={(e) => setFormData({ ...formData, genero: e.target.value })}
-              className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              {genres.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-1">Cidade/Estado</label>
-          <CitySearch value={formData.cidade} onChange={(v) => setFormData({ ...formData, cidade: v })} />
-        </div>
-
         {selectedPlan !== "free" && (
           <div className="pt-2 border-t border-border/40 space-y-3">
             <div>
