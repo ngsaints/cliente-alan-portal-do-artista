@@ -135,7 +135,7 @@ export default function ArtistLogin() {
     }
   };
 
-  const handleNextCadastro = () => {
+  const handleNextCadastro = () => {    
     if (cadastroStep === "planos") {
       setFormData({ ...formData, plano: selectedPlan });
       setCadastroStep(1);
@@ -151,21 +151,25 @@ export default function ArtistLogin() {
         setError("Senha deve ter pelo menos 6 caracteres");
         return;
       }
+      handleSubmitCadastro();
     }
-    setError("");
-    setCadastroStep((s) => (typeof s === "number" ? Math.min(s + 1, 4) : s) as CadastroStep);
   };
 
   const handleBackCadastro = () => {
     setError("");
-    if (typeof cadastroStep === "number" && cadastroStep === 1) {
-      setCadastroStep("planos");
-    } else if (typeof cadastroStep === "number") {
-      setCadastroStep((cadastroStep - 1) as CadastroStep);
-    }
+    setCadastroStep("planos");
   };
 
   const handleSubmitCadastro = async () => {
+    if (!formData.name || !formData.email || !formData.password || !formData.documento) {
+      setError("Preencha todos os campos obrigatórios");
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError("Senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
@@ -207,12 +211,9 @@ export default function ArtistLogin() {
             <h3 className="text-xl font-bold text-foreground">Escolha seu Plano</h3>
           </div>
           
-
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {dbPlans.length === 0 ? <div className="col-span-2 text-center py-8 text-muted-foreground">Carregando planos...</div> : dbPlans.filter(p => p.id !== "free").map((plan) => {
               const isSelected = selectedPlan === plan.id;
-              const isFree = plan.id === "free";
               const isPremium = plan.id === "premium";
               return (
                 <motion.div
@@ -220,390 +221,223 @@ export default function ArtistLogin() {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   onClick={() => setSelectedPlan(plan.id)}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
                     isSelected
-                      ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20"
-                      : "border-border/40 bg-card/50 hover:border-border"
+                      ? "border-primary bg-primary/10 shadow-lg shadow-primary/10"
+                      : "border-border/40 bg-card/60 hover:border-border"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-foreground">{plan.label}</h4>
-                        {isFree && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/20 text-green-400">
-                            GRÁTIS
-                          </span>
-                        )}
-                        {isPremium && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-500/20 text-yellow-400">
-                            30 DIAS GRÁTIS
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-baseline gap-1 mt-1">
-                        <span className="text-xl font-bold text-primary">
-                          R$ {parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </span>
-                        {!isFree && <span className="text-xs text-muted-foreground">/mês</span>}
-                      </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {(plan.features || []).map((f: string, i: number) => (
-                          <span key={i} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary">
-                            {f}
-                          </span>
-                        ))}
-                      </div>
-                      {isSelected && (
-                        <div className="mt-3 p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-[11px] font-extrabold text-emerald-400 flex items-center justify-center gap-1.5 animate-pulse">
-                          <Check className="w-3.5 h-3.5" />
-                          Você está escolhendo esse plano
-                        </div>
-                      )}
+                  {isPremium && (
+                    <div className="absolute top-0 right-0 bg-primary text-primary-foreground font-black text-[9px] px-2.5 py-0.5 rounded-bl-lg uppercase tracking-wider">
+                      Recomendado
+                    </div>
+                  )}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-bold text-foreground text-base">{plan.label}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">{plan.tagline}</p>
                     </div>
                     {isSelected && (
-                      <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-4 h-4 text-white" />
+                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                        <Check className="w-3.5 h-3.5 text-primary-foreground" />
                       </div>
                     )}
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t border-border/30 flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-primary">
+                      R$ {parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-xs text-muted-foreground">/mês</span>
+                  </div>
+
+                  <div className="mt-3 space-y-1.5">
+                    {plan.features.slice(0, 4).map((f: string, i: number) => (
+                      <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span className="truncate">{f}</span>
+                      </div>
+                    ))}
                   </div>
                 </motion.div>
               );
             })}
           </div>
-
-          {dbPlans.length > 0 && dbPlans.some(p => p.id === "free") && (
-            <div className="text-center pt-2">
-              <p className="text-xs text-muted-foreground">
-                Quer começar com recursos limitados?{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPlan("free");
-                    setFormData({ ...formData, plano: "free" });
-                    setCadastroStep(1);
-                    setError("");
-                  }}
-                  className="text-primary hover:text-primary/80 hover:underline font-bold transition-all"
-                >
-                  Experimente o plano Gratuito
-                </button>
-              </p>
-            </div>
-          )}
         </div>
       );
     }
 
-    const step = cadastroStep as number;
+    return (
+      <div className="space-y-4">
+        <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <User className="w-5 h-5 text-primary" />
+          Seus Dados de Cadastro
+        </h3>
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">Nome do Artista / Nome *</label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            placeholder="Seu nome artístico ou completo"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">Email *</label>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            required
+            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            placeholder="seu@email.com"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">CPF / CNPJ *</label>
+          <input
+            type="text"
+            value={formData.documento}
+            onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
+            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            placeholder="000.000.000-00"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">Telefone / WhatsApp</label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="tel"
+              value={formData.contato}
+              onChange={(e) => setFormData({ ...formData, contato: e.target.value })}
+              className="w-full bg-background border border-border rounded-lg px-4 py-3 pl-10 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">Senha *</label>
+          <div className="relative" style={{ position: 'relative' }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              required
+              className="w-full bg-background border border-border rounded-lg px-4 py-3 pr-12 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-muted-foreground hover:text-foreground"
+              style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Profissão</label>
+            <select
+              value={formData.profissao}
+              onChange={(e) => setFormData({ ...formData, profissao: e.target.value })}
+              className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              {PROFISSOES.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Gênero Musical Principal</label>
+            <select
+              value={formData.genero}
+              onChange={(e) => setFormData({ ...formData, genero: e.target.value })}
+              className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              {genres.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">Cidade/Estado</label>
+          <CitySearch value={formData.cidade} onChange={(v) => setFormData({ ...formData, cidade: v })} />
+        </div>
 
-    switch (step) {
-      case 1:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
-              Dados Básicos
-            </h3>
+        {selectedPlan !== "free" && (
+          <div className="pt-2 border-t border-border/40 space-y-3">
             <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Nome do Artista *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Seu nome artístico"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Email *</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="seu@email.com"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">CPF / CNPJ *</label>
-              <input
-                type="text"
-                value={formData.documento}
-                onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="000.000.000-00"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Telefone / WhatsApp</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Cupom de Desconto
+              </label>
+              <div className="flex gap-2">
                 <input
-                  type="tel"
-                  value={formData.contato}
-                  onChange={(e) => setFormData({ ...formData, contato: e.target.value })}
-                  className="w-full bg-background border border-border rounded-lg px-4 py-3 pl-10 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Senha *</label>
-              <div className="relative" style={{ position: 'relative' }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  className="w-full bg-background border border-border rounded-lg px-4 py-3 pr-12 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="••••••••"
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
+                  placeholder="Insira seu cupom"
+                  className="flex-1 px-4 py-2 bg-input border border-border rounded-xl text-foreground text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary uppercase"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-muted-foreground hover:text-foreground"
-                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  onClick={handleValidateCoupon}
+                  disabled={!couponCode || validatingCoupon}
+                  className="px-4 py-2 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                </button>
+              </div>
+              {couponError && (
+                <p className="text-xs text-red-400 mt-1">{couponError}</p>
+              )}
+              {couponResult && (
+                <p className="text-xs text-green-400 mt-1">
+                  Cupom aplicado! Desconto de {couponResult.discountType === "percentage" ? `${couponResult.discountValue}%` : `R$ ${parseFloat(couponResult.discountValue).toFixed(2)}`}
+                </p>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-border/40 space-y-2">
+              <label className="block text-xs font-medium text-muted-foreground">
+                Forma de Pagamento
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, billingType: "CREDIT_CARD" })}
+                  className={`flex-1 py-2 px-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                    formData.billingType === "CREDIT_CARD"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  Cartão de Crédito
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, billingType: "PIX" })}
+                  className={`flex-1 py-2 px-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                    formData.billingType === "PIX"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <span className="font-bold">PIX</span>
                 </button>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Profissão</label>
-              <select
-                value={formData.profissao}
-                onChange={(e) => setFormData({ ...formData, profissao: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                {PROFISSOES.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </div>
           </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-primary" />
-              Localização
-            </h3>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Cidade/Estado</label>
-              <CitySearch value={formData.cidade} onChange={(v) => setFormData({ ...formData, cidade: v })} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Gênero Musical Principal</label>
-              <select
-                value={formData.genero}
-                onChange={(e) => setFormData({ ...formData, genero: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                {genres.map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Image className="w-5 h-5 text-primary" />
-              Fotos do Perfil
-            </h3>
-
-            {cropingCapa ? (
-              <ImageCrop
-                imageFile={cropingCapa}
-                onCropComplete={(file) => {
-                  setFormData({ ...formData, capaFile: file });
-                  setCroppingCapa(null);
-                  const url = URL.createObjectURL(file);
-                  setCapaPreview(url);
-                }}
-                onCancel={() => setCroppingCapa(null)}
-                outputWidth={400}
-                outputHeight={400}
-              />
-            ) : (
-              <>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-sm font-medium text-muted-foreground">Foto de Perfil</label>
-                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Info className="w-3 h-3" />
-                      Ideal: 400x400px
-                    </span>
-                  </div>
-                  {capaPreview ? (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
-                      <img src={capaPreview} alt="Preview" className="w-16 h-16 rounded-full object-cover border-2 border-primary/30" />
-                      <div className="flex-1">
-                        <p className="text-sm text-foreground font-medium">Foto selecionada</p>
-                        <button
-                          onClick={() => { setFormData({ ...formData, capaFile: null }); setCapaPreview(""); }}
-                          className="text-xs text-red-400 hover:text-red-300"
-                        >
-                          Remover
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => setCroppingCapa(formData.capaFile!)}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Ajustar
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
-                      <Image className="w-6 h-6 text-muted-foreground mb-1" />
-                      <span className="text-xs text-muted-foreground">Clique para selecionar</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) setCroppingCapa(file);
-                        }}
-                      />
-                    </label>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-sm font-medium text-muted-foreground">Banner do Perfil</label>
-                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Info className="w-3 h-3" />
-                      Ideal: 1200x400px
-                    </span>
-                  </div>
-                  {bannerPreview ? (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
-                      <img src={bannerPreview} alt="Preview" className="w-24 h-10 rounded-lg object-cover border border-primary/30" />
-                      <div className="flex-1">
-                        <p className="text-sm text-foreground font-medium">Banner selecionado</p>
-                        <button
-                          onClick={() => { setFormData({ ...formData, bannerFile: null }); setBannerPreview(""); }}
-                          className="text-xs text-red-400 hover:text-red-300"
-                        >
-                          Remover
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
-                      <Image className="w-6 h-6 text-muted-foreground mb-1" />
-                      <span className="text-xs text-muted-foreground">Clique para selecionar</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          setFormData({ ...formData, bannerFile: file });
-                          if (file) setBannerPreview(URL.createObjectURL(file));
-                        }}
-                      />
-                    </label>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Star className="w-5 h-5 text-primary" />
-              Confirmar Plano
-            </h3>
-            <div className="p-4 rounded-xl border border-primary/30 bg-primary/5">
-              <div className="flex items-center gap-2 mb-2">
-                <h4 className="font-bold text-foreground">
-                  {dbPlans.find(p => p.id === formData.plano)?.label || "Gratuito"}
-                </h4>
-                {formData.plano === "free" && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/20 text-green-400">GRÁTIS</span>
-                )}
-              </div>
-              <div className="flex items-baseline gap-1">
-                {couponResult ? (
-                  <>
-                    <span className="text-2xl font-bold text-green-400">
-                      R$ {parseFloat(couponResult.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="text-sm text-muted-foreground line-through">
-                      R$ {parseFloat(couponResult.originalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-2xl font-bold text-primary">
-                    R$ {parseFloat(dbPlans.find(p => p.id === formData.plano)?.preco || "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </span>
-                )}
-                {formData.plano !== "free" && <span className="text-xs text-muted-foreground">/mês</span>}
-              </div>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {(dbPlans.find(p => p.id === formData.plano)?.features || []).map((f: string, i: number) => (
-                  <span key={i} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary">{f}</span>
-                ))}
-              </div>
-            </div>
-
-            {formData.plano !== "free" && (
-              <div className="pt-2 border-t border-border/40">
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                  Cupom de Desconto
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
-                    placeholder="Insira seu cupom"
-                    className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary uppercase"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleValidateCoupon}
-                    disabled={!couponCode || validatingCoupon}
-                    className="px-4 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
-                  >
-                    {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
-                  </button>
-                </div>
-                {couponError && (
-                  <p className="text-xs text-red-400 mt-1">{couponError}</p>
-                )}
-                {couponResult && (
-                  <p className="text-xs text-green-400 mt-1">
-                    Cupom aplicado! Desconto de {couponResult.discountType === "percentage" ? `${couponResult.discountValue}%` : `R$ ${parseFloat(couponResult.discountValue).toFixed(2)}`}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <p className="text-sm text-muted-foreground">
-              Revise seus dados e confirme o cadastro.
-            </p>
-          </div>
-        );
-      default:
-        return null;
-    }
+        )}
+      </div>
+    );
   };
 
   if (checking) {
@@ -721,7 +555,7 @@ export default function ArtistLogin() {
                       onClick={() => { setActiveTab("cadastro"); setCadastroStep("planos"); setError(""); }}
                       className="text-primary hover:underline font-bold"
                     >
-                      Cadastre-se grátis
+                      Cadastre-se
                     </button>
                   </p>
                 </div>
@@ -736,7 +570,7 @@ export default function ArtistLogin() {
               <div className="bg-card border border-border/40 rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h1 className="text-2xl font-extrabold text-foreground">
-                    {cadastroStep === "planos" ? "Comece Grátis" : "Cadastro"}
+                    {cadastroStep === "planos" ? "Escolha seu Plano" : "Assinatura do Portal"}
                   </h1>
                   <button
                     onClick={() => { setActiveTab("login"); setError(""); }}
@@ -750,7 +584,7 @@ export default function ArtistLogin() {
                 <p className="text-sm text-muted-foreground mb-4">
                   {cadastroStep === "planos"
                     ? "Escolha o plano ideal para sua carreira"
-                    : `Passo ${cadastroStep} de 4`}
+                    : "Preencha seus dados para finalizar"}
                 </p>
 
                 {error && (
@@ -794,18 +628,11 @@ export default function ArtistLogin() {
                         return `Continuar com o plano ${planLabel} (${planPrice})`;
                       })()}
                     </button>
-                  ) : (cadastroStep as number) < 4 ? (
-                    <button
-                      onClick={handleNextCadastro}
-                      className="flex-1 py-3 rounded-xl font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                    >
-                      Continuar
-                    </button>
                   ) : (
                     <button
                       onClick={handleSubmitCadastro}
                       disabled={loading}
-                      className="flex-1 py-3 rounded-xl font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="flex-1 py-3 rounded-xl font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
                       {loading ? (
                         <>

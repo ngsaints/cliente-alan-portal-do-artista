@@ -181,15 +181,10 @@ export default function Landing() {
 
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
               <button 
-                onClick={() => {
-                  const element = document.getElementById("planos");
-                  if (element) {
-                    element.scrollIntoView({ behavior: "smooth" });
-                  }
-                }}
-                className="w-full sm:w-auto px-10 py-4.5 rounded-full bg-primary text-primary-foreground font-extrabold text-lg hover:bg-primary/95 transition-all shadow-[0_8px_30px_rgba(245,197,24,0.3)] hover:-translate-y-0.5 active:translate-y-0"
+                onClick={() => setLocation("/cadastro")}
+                className="w-full sm:w-auto px-10 py-4.5 rounded-full bg-primary text-primary-foreground font-extrabold text-lg hover:bg-primary/95 transition-all shadow-[0_8px_30px_rgba(245,197,24,0.3)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
               >
-                {settings.landingHeroCta}
+                ASSINE AGORA
               </button>
             </div>
 
@@ -732,15 +727,10 @@ export default function Landing() {
 
           <div className="pt-4">
             <button 
-              onClick={() => {
-                const element = document.getElementById("planos");
-                if (element) {
-                  element.scrollIntoView({ behavior: "smooth" });
-                }
-              }}
-              className="px-12 py-5 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-black text-lg transition-all shadow-[0_8px_30px_rgba(245,197,24,0.35)] hover:-translate-y-0.5 active:translate-y-0"
+              onClick={() => setLocation("/cadastro")}
+              className="px-12 py-5 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-black text-lg transition-all shadow-[0_8px_30px_rgba(245,197,24,0.35)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
             >
-              QUERO COMEÇAR AGORA
+              ASSINE AGORA
             </button>
           </div>
           

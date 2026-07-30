@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
-import { Sparkles, User, MapPin, Image, Star, Eye, EyeOff, Check, Loader2, X, Phone, CreditCard } from "lucide-react";
+import { Sparkles, User, MapPin, Star, Eye, EyeOff, Check, Loader2, X, Phone, CreditCard } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useGenres } from "@/hooks/useGenres";
 import { buildPlanFeatures } from "@/lib/utils";
@@ -20,11 +20,10 @@ interface Plan {
 
 const PROFISSOES = ["Cantor", "Compositor", "Banda", "Grupo", "Dupla", "Outro"];
 
-
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2;
 
 export default function Cadastro() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const search = useSearch();
   const preselectedPlan = new URLSearchParams(search).get("plano") || "free";
   const [step, setStep] = useState<Step>(1);
@@ -100,26 +99,25 @@ export default function Cadastro() {
   }, []);
 
   const handleNext = () => {
-    if (step === 1) {
-      if (!formData.name || !formData.email || !formData.password || !formData.documento) {
-        setError("Preencha todos os campos obrigatórios (Nome, Email, Senha e CPF/CNPJ)");
-        return;
-      }
-      if (formData.password.length < 6) {
-        setError("Senha deve ter pelo menos 6 caracteres");
-        return;
-      }
-    }
     setError("");
-    setStep((s) => (Math.min(s + 1, 4) as Step));
+    setStep(2);
   };
 
   const handleBack = () => {
     setError("");
-    setStep((s) => (Math.max(s - 1, 1) as Step));
+    setStep(1);
   };
 
   const handleSubmit = async () => {
+    if (!formData.name || !formData.email || !formData.password || !formData.documento) {
+      setError("Preencha todos os campos obrigatórios (Nome, Email, Senha e CPF/CNPJ)");
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError("Senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -170,149 +168,6 @@ export default function Cadastro() {
   const renderStep = () => {
     switch (step) {
       case 1:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
-              Dados Básicos
-            </h3>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Nome do Artista *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Seu nome artístico"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Email *</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="seu@email.com"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Telefone / WhatsApp</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="tel"
-                  value={formData.contato}
-                  onChange={(e) => setFormData({ ...formData, contato: e.target.value })}
-                  className="w-full bg-background border border-border rounded-lg px-4 py-3 pl-10 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">CPF ou CNPJ (Obrigatório para faturamento) *</label>
-              <input
-                type="text"
-                value={formData.documento}
-                onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
-                required
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Ex: 000.000.000-00 ou 00.000.000/0000-00"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Senha *</label>
-              <div className="relative" style={{ position: 'relative' }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  className="w-full bg-background border border-border rounded-lg px-4 py-3 pr-12 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-muted-foreground hover:text-foreground"
-                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Profissão</label>
-              <select
-                value={formData.profissao}
-                onChange={(e) => setFormData({ ...formData, profissao: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                {PROFISSOES.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-primary" />
-              Localização
-            </h3>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Cidade/Estado</label>
-              <CitySearch value={formData.cidade} onChange={(v) => setFormData({ ...formData, cidade: v })} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Gênero Musical Principal</label>
-              <select
-                value={formData.genero}
-                onChange={(e) => setFormData({ ...formData, genero: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                {genres.map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Image className="w-5 h-5 text-primary" />
-              Fotos do Perfil
-            </h3>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Foto de Perfil</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFormData({ ...formData, capaFile: e.target.files?.[0] || null })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Banner do Perfil</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFormData({ ...formData, bannerFile: e.target.files?.[0] || null })}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
-              />
-            </div>
-          </div>
-        );
-
-      case 4:
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -387,7 +242,7 @@ export default function Cadastro() {
               })}
             </div>
 
-            {/* Coupon Code */}
+            {/* Coupon Code & Payment Choice */}
             {formData.plano !== "free" && (
               <div className="space-y-4">
                 <div className="pt-2 border-t border-border/40">
@@ -455,6 +310,113 @@ export default function Cadastro() {
             )}
           </div>
         );
+
+      case 2:
+        return (
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <User className="w-5 h-5 text-primary" />
+              Seus Dados de Cadastro
+            </h3>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Nome do Artista / Nome *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Seu nome artístico ou completo"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Email *</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="seu@email.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Telefone / WhatsApp</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="tel"
+                  value={formData.contato}
+                  onChange={(e) => setFormData({ ...formData, contato: e.target.value })}
+                  className="w-full bg-background border border-border rounded-lg px-4 py-3 pl-10 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">CPF ou CNPJ (Obrigatório para faturamento) *</label>
+              <input
+                type="text"
+                value={formData.documento}
+                onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
+                required
+                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Ex: 000.000.000-00 ou 00.000.000/0000-00"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Senha *</label>
+              <div className="relative" style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  className="w-full bg-background border border-border rounded-lg px-4 py-3 pr-12 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-muted-foreground hover:text-foreground"
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Profissão</label>
+                <select
+                  value={formData.profissao}
+                  onChange={(e) => setFormData({ ...formData, profissao: e.target.value })}
+                  className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  {PROFISSOES.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Gênero Musical Principal</label>
+                <select
+                  value={formData.genero}
+                  onChange={(e) => setFormData({ ...formData, genero: e.target.value })}
+                  className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  {genres.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Cidade/Estado</label>
+              <CitySearch value={formData.cidade} onChange={(v) => setFormData({ ...formData, cidade: v })} />
+            </div>
+          </div>
+        );
     }
   };
 
@@ -474,16 +436,16 @@ export default function Cadastro() {
               Portal do Artista
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-foreground">
-              Cadastre-se
+              Assinatura do Portal
             </h1>
             <p className="text-muted-foreground mt-2">
-              Passo {step} de 4
+              Passo {step} de 2
             </p>
           </motion.div>
 
-          {/* Progress bar */}
+          {/* Progress bar (2 steps) */}
           <div className="flex gap-2 mb-8">
-            {[1, 2, 3, 4].map((s) => (
+            {[1, 2].map((s) => (
               <div
                 key={s}
                 className={`flex-1 h-2 rounded-full transition-all ${
@@ -517,12 +479,12 @@ export default function Cadastro() {
                   Voltar
                 </button>
               )}
-              {step < 4 ? (
+              {step < 2 ? (
                 <button
                   onClick={handleNext}
                   className="flex-1 py-3 rounded-xl font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                 >
-                  Continuar
+                  Continuar para Seus Dados
                 </button>
               ) : (
                 <button

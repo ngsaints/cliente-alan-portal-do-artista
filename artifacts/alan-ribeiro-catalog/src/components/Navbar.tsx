@@ -62,24 +62,24 @@ export function Navbar() {
             ))}
             {!artistLoggedIn && (
               <Link
-                href="/artista/login?tab=cadastro"
+                href="/cadastro"
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
               >
                 <Zap className="w-4 h-4" />
-                Comece Grátis
+                Assine Agora
               </Link>
             )}
           </div>
 
-          {/* Mobile: Comece Grátis + hamburger */}
+          {/* Mobile: Assine Agora + hamburger */}
           <div className="flex sm:hidden items-center gap-2">
             {!artistLoggedIn && (
               <Link
-                href="/artista/login?tab=cadastro"
+                href="/cadastro"
                 className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-black bg-primary hover:bg-primary/90 transition-colors"
               >
                 <Zap className="w-3.5 h-3.5" />
-                Grátis
+                Assine
               </Link>
             )}
             <button
@@ -139,12 +139,12 @@ export function Navbar() {
               <div className="p-4 border-t border-border/50">
                 {!artistLoggedIn && (
                   <Link
-                    href="/artista/login?tab=cadastro"
+                    href="/cadastro"
                     onClick={() => setOpen(false)}
                     className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
                   >
                     <Zap className="w-4 h-4" />
-                    Comece Grátis
+                    Assine Agora
                   </Link>
                 )}
               </div>
