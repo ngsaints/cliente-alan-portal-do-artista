@@ -198,18 +198,73 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="lg:col-span-5 relative flex justify-center">
+          <div className="lg:col-span-5 relative flex flex-col items-center gap-6 max-w-sm sm:max-w-md mx-auto w-full">
             <div className="absolute inset-0 bg-primary/10 rounded-full blur-3xl -z-10" />
-            <div className="relative border border-border/40 rounded-3xl overflow-hidden bg-card/60 backdrop-blur-md max-w-sm sm:max-w-md w-full shadow-2xl p-6 space-y-4">
+
+            {/* Destaque do Plano (Acima do Vídeo) */}
+            {(() => {
+              const featured = plans.find(p => p.nome === "premium" || p.nome === "pro") || plans[0] || {
+                id: "premium",
+                label: "Premium",
+                tagline: "Para quem quer viver da música.",
+                preco: "25.00",
+                color: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+                features: [
+                  "50 Músicas no catálogo",
+                  "100% de personalização visual",
+                  "Player de áudio customizável",
+                  "Banner de perfil personalizado",
+                  "Foto de perfil customizável"
+                ]
+              };
+
+              return (
+                <div className="relative border border-primary/40 rounded-3xl overflow-hidden bg-card/90 backdrop-blur-md w-full shadow-2xl p-6 space-y-4">
+                  <div>
+                    <span className="px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider inline-block border border-amber-500/30 mb-2">
+                      PREMIUM
+                    </span>
+                    <h3 className="text-2xl font-extrabold text-white">{featured.label}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">{featured.tagline}</p>
+                  </div>
+
+                  <div className="flex items-baseline gap-1 py-1 border-y border-border/20">
+                    <span className="text-3xl font-extrabold text-white">
+                      R$ {parseFloat(featured.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-xs text-muted-foreground">/mês</span>
+                  </div>
+
+                  <ul className="space-y-2.5 pt-1">
+                    {featured.features.map((f, i) => (
+                      <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                        <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() => setLocation(`/cadastro?plano=${featured.id}`)}
+                    className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-sm transition-all shadow-lg shadow-primary/20 cursor-pointer uppercase tracking-wider"
+                  >
+                    ASSINAR AGORA
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Vídeo do Hero (Abaixo do Card do Plano) */}
+            <div className="relative border border-border/40 rounded-3xl overflow-hidden bg-card/60 backdrop-blur-md w-full shadow-2xl p-6 space-y-4">
               <div className="flex items-center justify-between pb-4 border-b border-border/20">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-yellow-500" />
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-yellow-500" />
                   <div>
-                    <h3 className="font-bold text-white text-base">Seu Nome Artístico</h3>
+                    <h3 className="font-bold text-white text-sm">Seu Nome Artístico</h3>
                     <p className="text-xs text-muted-foreground">Compositor / Cantor</p>
                   </div>
                 </div>
-                <div className="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase">
+                <div className="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase">
                   VIP
                 </div>
               </div>
