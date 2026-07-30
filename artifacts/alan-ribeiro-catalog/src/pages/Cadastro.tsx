@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
-import { Sparkles, User, Star, Eye, EyeOff, Check, Loader2, Phone, CreditCard, Lock } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Check, Loader2, Phone, CreditCard, Lock, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
-import { useGenres } from "@/hooks/useGenres";
 import { buildPlanFeatures } from "@/lib/utils";
-import { CitySearch } from "@/components/CitySearch";
 
 interface Plan {
   id: string;
@@ -18,15 +16,12 @@ interface Plan {
   aiCreditsLimit?: number;
 }
 
-const PROFISSOES = ["Cantor", "Compositor", "Banda", "Grupo", "Dupla", "Outro"];
-
 export default function Cadastro() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const rawPlanParam = new URLSearchParams(search).get("plano");
   const selectedPlanId = rawPlanParam && rawPlanParam !== "free" ? rawPlanParam : "premium";
 
-  const { genres } = useGenres();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -104,7 +99,7 @@ export default function Cadastro() {
       return;
     }
     if (formData.password.length < 6) {
-      setError("Senha deve ter pelo menos 6 caracteres");
+      setError("A senha deve ter pelo menos 6 caracteres");
       return;
     }
 
@@ -133,19 +128,18 @@ export default function Cadastro() {
       const result = await res.json();
 
       if (!res.ok) {
-        throw new Error(result.error || "Erro ao cadastrar");
+        throw new Error(result.error || "Erro ao efetuar cadastro");
       }
 
-      // Redireciona imediatamente para o checkout do Asaas na mesma página
+      // Redireciona diretamente para a fatura/checkout do Asaas na mesma aba
       if (result.invoiceUrl) {
         window.location.href = result.invoiceUrl;
         return;
       }
 
-      // Se for gratuito ou sem invoiceUrl, vai pro dashboard
       setLocation("/artista/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao cadastrar");
+      setError(err instanceof Error ? err.message : "Erro ao efetuar cadastro");
       setLoading(false);
     }
   };
@@ -161,36 +155,36 @@ export default function Cadastro() {
       <Navbar />
 
       <section className="pt-24 pb-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-xl mx-auto">
+        <div className="max-w-md mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-6"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-3">
-              <Sparkles className="w-4 h-4" />
-              Portal do Artista
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
+              Ativação Instantânea
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-foreground">
-              Finalize sua Assinatura
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
+              Assinatura do Portal
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Preencha seus dados para prosseguir diretamente ao pagamento seguro.
+              Preencha os dados abaixo para gerar sua assinatura.
             </p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card border border-border/40 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl"
+            className="bg-card border border-border/40 rounded-3xl p-6 sm:p-7 space-y-5 shadow-2xl backdrop-blur-md"
           >
             {/* Box do Plano Selecionado */}
-            <div className="p-4 rounded-xl border border-primary/40 bg-primary/10 flex items-center justify-between">
+            <div className="p-4 rounded-2xl border border-primary/40 bg-primary/10 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-primary px-2 py-0.5 rounded bg-primary/20">
-                  Plano Selecionado
+                  Plano Escolhido
                 </span>
-                <h3 className="text-xl font-black text-white mt-1">{activePlanObj.label}</h3>
+                <h3 className="text-xl font-extrabold text-white mt-1">{activePlanObj.label}</h3>
               </div>
               <div className="text-right">
                 <span className="text-2xl font-black text-primary">
@@ -201,71 +195,81 @@ export default function Cadastro() {
             </div>
 
             {error && (
-              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-medium">
+              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Nome do Artista / Nome Completo *</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Seu Nome ou Nome Artístico *
+                </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Seu nome artístico ou completo"
+                  className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Ex: Alan Ribeiro"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">E-mail *</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  E-mail *
+                </label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="seu@email.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">CPF ou CNPJ (Obrigatório para emissão de cobrança) *</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  CPF ou CNPJ (Obrigatório Asaas) *
+                </label>
                 <input
                   type="text"
                   value={formData.documento}
                   onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
                   required
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Telefone / WhatsApp</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Telefone / WhatsApp
+                </label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="tel"
                     value={formData.contato}
                     onChange={(e) => setFormData({ ...formData, contato: e.target.value })}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-3 pl-10 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 pl-10 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="(00) 00000-0000"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Senha de Acesso *</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Crie uma Senha *
+                </label>
                 <div className="relative" style={{ position: 'relative' }}>
                   <input
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
-                    className="w-full bg-background border border-border rounded-xl px-4 py-3 pr-12 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 pr-12 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="••••••••"
                   />
                   <button
@@ -274,47 +278,15 @@ export default function Cadastro() {
                     className="text-muted-foreground hover:text-foreground"
                     style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Profissão</label>
-                  <select
-                    value={formData.profissao}
-                    onChange={(e) => setFormData({ ...formData, profissao: e.target.value })}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    {PROFISSOES.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Gênero Musical Principal</label>
-                  <select
-                    value={formData.genero}
-                    onChange={(e) => setFormData({ ...formData, genero: e.target.value })}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    {genres.map((g) => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Cidade/Estado</label>
-                <CitySearch value={formData.cidade} onChange={(v) => setFormData({ ...formData, cidade: v })} />
-              </div>
-
               {/* Cupom de Desconto */}
-              <div className="pt-3 border-t border-border/40 space-y-2">
+              <div className="pt-3 border-t border-border/30 space-y-2">
                 <label className="block text-xs font-medium text-muted-foreground">
-                  Possui Cupom de Desconto?
+                  Tem um Cupom de Desconto?
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -322,15 +294,15 @@ export default function Cadastro() {
                     value={couponCode}
                     onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
                     placeholder="Insira seu cupom"
-                    className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm font-mono focus:border-primary uppercase"
+                    className="flex-1 px-4 py-2 bg-input border border-border rounded-xl text-foreground text-xs font-mono focus:border-primary uppercase"
                   />
                   <button
                     type="button"
                     onClick={handleValidateCoupon}
                     disabled={!couponCode || validatingCoupon}
-                    className="px-4 py-2.5 bg-primary/20 text-primary hover:bg-primary/30 font-bold rounded-xl transition-all disabled:opacity-50 text-sm border border-primary/30"
+                    className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 font-bold rounded-xl transition-all disabled:opacity-50 text-xs border border-primary/30"
                   >
-                    {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                    {validatingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Aplicar"}
                   </button>
                 </div>
                 {couponError && <p className="text-xs text-red-400 mt-1">{couponError}</p>}
@@ -342,15 +314,15 @@ export default function Cadastro() {
               </div>
 
               {/* Escolha da Forma de Pagamento */}
-              <div className="pt-3 border-t border-border/40 space-y-2">
+              <div className="pt-3 border-t border-border/30 space-y-2">
                 <label className="block text-xs font-medium text-muted-foreground">
-                  Forma de Pagamento Preferida
+                  Forma de Pagamento
                 </label>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, billingType: "CREDIT_CARD" })}
-                    className={`flex-1 py-3 px-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       formData.billingType === "CREDIT_CARD"
                         ? "border-primary bg-primary/10 text-primary shadow-sm"
                         : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
@@ -362,13 +334,13 @@ export default function Cadastro() {
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, billingType: "PIX" })}
-                    className={`flex-1 py-3 px-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       formData.billingType === "PIX"
                         ? "border-primary bg-primary/10 text-primary shadow-sm"
                         : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    <span className="font-bold">PIX</span>
+                    <span className="font-extrabold">PIX</span>
                   </button>
                 </div>
               </div>
@@ -376,20 +348,25 @@ export default function Cadastro() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 mt-6 rounded-xl font-extrabold text-base bg-primary text-primary-foreground hover:bg-primary/95 transition-all shadow-[0_8px_30px_rgba(245,197,24,0.3)] flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer uppercase tracking-wider"
+                className="w-full py-4 mt-4 rounded-xl font-black text-sm bg-primary text-primary-foreground hover:bg-primary/95 transition-all shadow-[0_8px_30px_rgba(245,197,24,0.35)] flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer uppercase tracking-wider"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Processando e abrindo checkout...
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Abrindo checkout seguro...
                   </>
                 ) : (
                   <>
-                    <Lock className="w-5 h-5" />
-                    IR PARA O PAGAMENTO SEGURO
+                    <Lock className="w-4 h-4" />
+                    FINALIZAR ASSINATURA AGORA
                   </>
                 )}
               </button>
+
+              <div className="pt-2 flex items-center justify-center gap-2 text-[11px] text-muted-foreground/80">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Pagamento 100% seguro processado pelo Asaas</span>
+              </div>
             </form>
           </motion.div>
         </div>
