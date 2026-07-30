@@ -192,7 +192,8 @@ export default function ArtistLogin() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Erro ao cadastrar");
       if (result.invoiceUrl) {
-        window.open(result.invoiceUrl, "_blank");
+        window.location.href = result.invoiceUrl;
+        return;
       }
       setLocation("/artista/dashboard");
     } catch (err) {

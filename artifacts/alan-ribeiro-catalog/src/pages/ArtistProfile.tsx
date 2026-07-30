@@ -141,7 +141,7 @@ export default function ArtistProfile() {
       if (data.activatedDirectly) {
         alert("Plano ativado com sucesso!");
       } else if (data.invoiceUrl) {
-        window.open(data.invoiceUrl, "_blank");
+        window.location.href = data.invoiceUrl;
       } else if (data.error) {
         alert(data.error);
       }
