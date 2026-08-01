@@ -382,6 +382,8 @@ export default function ArtistDashboard() {
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSong, setEditingSong] = useState<any | null>(null);
+  const [instagramShareModal, setInstagramShareModal] = useState<{ open: boolean; songTitle: string } | null>(null);
+  const [copiedCaption, setCopiedCaption] = useState(false);
   const [newSong, setNewSong] = useState({
     titulo: "", descricao: "", genero: "Sertanejo", subgenero: "",
     compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false",
@@ -401,6 +403,7 @@ export default function ArtistDashboard() {
     spotify: "",
     contato: "",
     documento: "",
+    biografia: "",
   });
 
   const [editCustom, setEditCustom] = useState({
@@ -717,6 +720,7 @@ export default function ArtistDashboard() {
         spotify: a.spotify || "",
         contato: a.contato || "",
         documento: a.documento || "",
+        biografia: a.biografia || "",
       });
       setEditCustom({
         fonte: a.fonte || "Arial",
@@ -1073,6 +1077,9 @@ export default function ArtistDashboard() {
         body: formData,
       });
       if (res.ok) {
+        if (!isEditing) {
+          setInstagramShareModal({ open: true, songTitle: newSong.titulo });
+        }
         setShowAddForm(false);
         setEditingSong(null);
         setNewSong({ titulo: "", descricao: "", genero: "Sertanejo", subgenero: "", compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false", isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "", isPrivate: "false" });
@@ -2164,10 +2171,38 @@ export default function ArtistDashboard() {
                         onChange={(e) => setEditProfile({ ...editProfile, documento: e.target.value })}
                         placeholder="CPF ou CNPJ"
                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
-                      />
                     </div>
-
                   </div>
+
+                  {/* Nova Seção: Biografia Oficial */}
+                  <div className="pt-4 border-t border-border/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-bold text-foreground">
+                        Biografia Oficial do Artista *
+                      </label>
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                        Fonte Única (Perfil & Press Kit)
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Escreva a história e trajetória da sua carreira. Esta biografia será utilizada automaticamente no seu perfil público, no Press Kit online e no PDF do Press Kit.
+                    </p>
+                    <textarea
+                      rows={6}
+                      maxLength={5000}
+                      value={editProfile.biografia}
+                      onChange={(e) => setEditProfile({ ...editProfile, biografia: e.target.value })}
+                      placeholder="Ex: Nascido em Maricá, Alan Ribeiro iniciou sua trajetória na música aos 12 anos. Com forte influência do sertanejo e da MPB, já compôs mais de 50 canções gravadas por diversos artistas do cenário nacional..."
+                      className="w-full bg-background border border-border rounded-xl p-3.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 leading-relaxed font-sans"
+                    />
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                      <span>Suporta quebra de linha.</span>
+                      <span className={editProfile.biografia.length >= 4800 ? "text-amber-400 font-bold" : ""}>
+                        {editProfile.biografia.length} / 5.000 caracteres
+                      </span>
+                    </div>
+                  </div>
+
                   {artist?.slug && (
                     <div className="flex items-center gap-2 p-3 bg-background/50 rounded-lg border border-border/30">
                       <Link2 className="w-4 h-4 text-muted-foreground" />
@@ -3707,6 +3742,44 @@ function GalleryTab({ artistId }: { artistId: string }) {
         )}
       </div>
 
+      {/* Dicas Inteligentes para Galeria (Exibidas quando tem menos de 4 fotos) */}
+      {(!gallery || photos.length < 4) && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-amber-500/10 to-primary/10 border border-primary/30 space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+            <div>
+              <h4 className="font-extrabold text-foreground text-sm">Dicas Inteligentes para Fortalecer seu Perfil</h4>
+              <p className="text-xs text-muted-foreground">Momentos reais da sua carreira aumentam sua credibilidade com contratantes.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              { icon: "🎙️", title: "Estúdio", desc: "Gravou uma música em estúdio? Compartilhe esse momento." },
+              { icon: "🎸", title: "Palco & Shows", desc: "Fez uma apresentação? Mostre fotos do palco." },
+              { icon: "🎪", title: "Eventos", desc: "Participou de um evento? Compartilhe esse registro." },
+              { icon: "🎬", title: "Videoclipe", desc: "Gravou um videoclipe? Publique os bastidores." },
+              { icon: "🤝", title: "Conexões", desc: "Encontrou outros artistas ou produtores? Compartilhe essas conexões." },
+              { icon: "⭐", title: "Prova Social", desc: "Registros reais reforçam sua reputação profissional." },
+            ].map((tip, idx) => (
+              <div key={idx} className="p-3.5 rounded-xl bg-card/80 border border-border/40 space-y-1.5 flex flex-col justify-between hover:border-primary/40 transition-colors">
+                <div>
+                  <span className="text-lg">{tip.icon}</span>
+                  <h5 className="font-bold text-xs text-foreground mt-1">{tip.title}</h5>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">{tip.desc}</p>
+                </div>
+                <button
+                  onClick={() => setShowAdd(true)}
+                  className="mt-2 text-[11px] font-bold text-primary hover:underline flex items-center gap-1 self-start"
+                >
+                  <Plus className="w-3 h-3" /> Postar foto
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {!gallery ? (
         <div className="text-center py-12 bg-card border border-dashed border-border/40 rounded-xl">
           <Image className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -3818,6 +3891,74 @@ function GalleryTab({ artistId }: { artistId: string }) {
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Adicionar"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {instagramShareModal?.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="bg-card border border-border/60 rounded-3xl p-6 sm:p-7 max-w-md w-full space-y-5 shadow-2xl relative">
+            <button
+              onClick={() => setInstagramShareModal(null)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 via-pink-600 to-yellow-500 flex items-center justify-center mx-auto shadow-lg">
+                <Instagram className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-black text-foreground">
+                Música Cadastrada! 🎉
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                "{instagramShareModal.songTitle}" já está disponível no seu portal. Compartilhe no Instagram para divulgar agora!
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-background/80 border border-border/50 space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-primary block">
+                Legenda Pronta para Instagram:
+              </span>
+              <p className="text-xs text-foreground/90 font-mono leading-relaxed bg-input/40 p-3 rounded-xl border border-border/40 select-all">
+                {`Ouça minha nova música "${instagramShareModal.songTitle}" no Portal do Artista! 🎵\n\nLink no meu perfil: ${window.location.origin}/${artist?.slug}`}
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
+              <button
+                onClick={() => {
+                  const text = `Ouça minha nova música "${instagramShareModal.songTitle}" no Portal do Artista! 🎵\n\nLink no meu perfil: ${window.location.origin}/${artist?.slug}`;
+                  navigator.clipboard.writeText(text);
+                  setCopiedCaption(true);
+                  setTimeout(() => setCopiedCaption(false), 2500);
+                }}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-sm flex items-center justify-center gap-2 hover:opacity-95 transition-all shadow-md cursor-pointer"
+              >
+                {copiedCaption ? (
+                  <>
+                    <CheckCircle className="w-4.5 h-4.5" />
+                    Texto e Link Copiados!
+                  </>
+                ) : (
+                  <>
+                    <Instagram className="w-4.5 h-4.5" />
+                    Copiar Legenda e Link da Música
+                  </>
+                )}
+              </button>
+
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 rounded-xl border border-border bg-card text-foreground font-bold text-xs flex items-center justify-center gap-2 hover:bg-input transition-colors block text-center"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Abrir Aplicativo do Instagram
+              </a>
             </div>
           </div>
         </div>

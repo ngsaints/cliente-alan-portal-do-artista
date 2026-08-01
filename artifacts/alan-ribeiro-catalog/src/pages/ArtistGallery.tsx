@@ -53,19 +53,47 @@ export default function ArtistGallery() {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="pt-24 pb-8 px-4">
-          <div className="max-w-6xl mx-auto">
-            <Link href={`/${slug}`} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+        <div className="pt-24 pb-16 px-4">
+          <div className="max-w-4xl mx-auto space-y-8">
+            <Link href={`/${slug}`} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4" />
               Voltar ao perfil
             </Link>
-            <div className="text-center py-20">
-              <Image className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-foreground mb-2">Galeria de Fotos</h1>
-              <p className="text-muted-foreground">Nenhuma foto na galeria ainda.</p>
+            
+            <div className="text-center py-10 bg-card/60 border border-border/40 rounded-3xl p-8 space-y-4">
+              <Image className="w-14 h-14 text-muted-foreground mx-auto opacity-60" />
+              <h1 className="text-2xl font-bold text-foreground">Galeria de Fotos do Artista</h1>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                Este artista ainda não adicionou fotos na sua galeria oficial.
+              </p>
+            </div>
+
+            {/* Dicas Inteligentes Inspiracionais */}
+            <div className="p-6 rounded-3xl bg-card/40 border border-border/30 space-y-4">
+              <h3 className="font-extrabold text-foreground text-sm flex items-center gap-2">
+                ✨ Ideias de fotos que aumentam o interesse de contratantes:
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                <div className="p-3.5 rounded-xl bg-background border border-border/40 space-y-1">
+                  <span className="text-lg">🎙️</span>
+                  <p className="font-bold text-foreground">Estúdio & Gravações</p>
+                  <p className="text-muted-foreground text-[11px]">Bastidores de produção e gravação de voz.</p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-background border border-border/40 space-y-1">
+                  <span className="text-lg">🎸</span>
+                  <p className="font-bold text-foreground">Palco & Concertos</p>
+                  <p className="text-muted-foreground text-[11px]">Momentos ao vivo e interação com o público.</p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-background border border-border/40 space-y-1">
+                  <span className="text-lg">🤝</span>
+                  <p className="font-bold text-foreground">Feats & Parcerias</p>
+                  <p className="text-muted-foreground text-[11px]">Encontros com outros artistas e produtores.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }

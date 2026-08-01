@@ -16,6 +16,7 @@ export const artistsTable = pgTable("artists", {
   spotify: text("spotify"),
   capaUrl: text("capa_url"),
   bannerUrl: text("banner_url"),
+  biografia: text("biografia"),
 
   // Localização
   cidade: text("cidade"), // ex: Maricá, RJ

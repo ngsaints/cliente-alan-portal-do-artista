@@ -422,6 +422,7 @@ router.get("/artists/status", async (req, res): Promise<void> => {
         slug: artist.slug,
         capaUrl: artist.capaUrl,
         bannerUrl: artist.bannerUrl,
+        biografia: artist.biografia,
         fonte: artist.fonte,
         cor: artist.cor,
         layout: artist.layout,
@@ -466,7 +467,7 @@ router.put(
     }
 
     try {
-      const { name, profissao, cidade, instagram, tiktok, spotify, contato, documento, fonte, cor, layout, player, vipSenha, playerGradient, playerCor, cardStyle } = req.body;
+      const { name, profissao, cidade, instagram, tiktok, spotify, contato, documento, biografia, fonte, cor, layout, player, vipSenha, playerGradient, playerCor, cardStyle } = req.body;
 
       const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, req.session.artistId));
       if (artists.length === 0) {
@@ -525,6 +526,7 @@ router.put(
           spotify: spotify ?? current.spotify,
           contato: contato ?? current.contato,
           documento: documento !== undefined ? documento : current.documento,
+          biografia: biografia !== undefined ? biografia : current.biografia,
           fonte: finalFonte,
           cor: finalCor,
           layout: finalLayout,
@@ -550,6 +552,7 @@ router.put(
         spotify: updated.spotify,
         contato: updated.contato,
         documento: updated.documento,
+        biografia: updated.biografia,
         slug: updated.slug,
         capaUrl: updated.capaUrl,
         bannerUrl: updated.bannerUrl,
@@ -738,6 +741,7 @@ router.get("/artists/:identifier", async (req, res): Promise<void> => {
       contato: artist.contato,
       cidade: artist.cidade,
       genero: artist.genero,
+      biografia: artist.biografia,
       instagram: artist.instagram,
       tiktok: artist.tiktok,
       spotify: artist.spotify,
@@ -911,6 +915,90 @@ Fale de forma simples, motivadora, orientada a resultados e forneça dicas extre
   } catch (error) {
     console.error("Error running AI mentor query:", error);
     res.status(500).json({ error: "Erro ao processar consulta com o mentor." });
+  }
+});
+
+// GET /showcase/artists-vitrine - Vitrine dinâmica de artistas (apenas com foto de capa)
+router.get("/showcase/artists-vitrine", async (_req, res): Promise<void> => {
+  try {
+    const allPublic = await db
+      .select({
+        id: artistsTable.id,
+        name: artistsTable.name,
+        slug: artistsTable.slug,
+        profissao: artistsTable.profissao,
+        cidade: artistsTable.cidade,
+        genero: artistsTable.genero,
+        capaUrl: artistsTable.capaUrl,
+        bannerUrl: artistsTable.bannerUrl,
+        biografia: artistsTable.biografia,
+        plano: artistsTable.plano,
+      })
+      .from(artistsTable)
+      .where(sql`${artistsTable.capaUrl} IS NOT NULL AND ${artistsTable.capaUrl} != '' AND ${artistsTable.planoAtivo} = true`);
+
+    // Embaralhamento dinâmico baseado no dia/hora para distribuição justa
+    const shuffled = [...allPublic].sort(() => Math.random() - 0.5);
+
+    res.json(shuffled);
+  } catch (error) {
+    console.error("Error fetching vitrine artists:", error);
+    res.status(500).json({ error: "Erro ao buscar vitrine" });
+  }
+});
+
+// GET /activity-feed - Feed de atividades recentes
+router.get("/activity-feed", async (_req, res): Promise<void> => {
+  try {
+    const { songsTable } = await import("@workspace/db");
+
+    const recentArtists = await db
+      .select({
+        id: artistsTable.id,
+        name: artistsTable.name,
+        slug: artistsTable.slug,
+        capaUrl: artistsTable.capaUrl,
+        createdAt: artistsTable.createdAt,
+      })
+      .from(artistsTable)
+      .where(eq(artistsTable.planoAtivo, true))
+      .orderBy(sql`${artistsTable.createdAt} DESC`)
+      .limit(5);
+
+    const recentSongs = await db
+      .select({
+        id: songsTable.id,
+        titulo: songsTable.titulo,
+        capaUrl: songsTable.capaUrl,
+        artistaId: songsTable.artistaId,
+        createdAt: songsTable.createdAt,
+      })
+      .from(songsTable)
+      .orderBy(sql`${songsTable.createdAt} DESC`)
+      .limit(5);
+
+    const feed = [
+      ...recentArtists.map(a => ({
+        type: "ARTIST_JOINED",
+        title: `${a.name} criou perfil no portal`,
+        subtitle: a.slug ? `portaldoartista.com/a/${a.slug}` : "Novo artista",
+        time: a.createdAt,
+        avatar: a.capaUrl,
+        slug: a.slug,
+      })),
+      ...recentSongs.map(s => ({
+        type: "SONG_PUBLISHED",
+        title: `Nova música: "${s.titulo}"`,
+        subtitle: "Lançamento recente",
+        time: s.createdAt,
+        avatar: s.capaUrl,
+      }))
+    ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
+
+    res.json(feed);
+  } catch (error) {
+    console.error("Error fetching activity feed:", error);
+    res.status(500).json({ error: "Erro ao buscar feed" });
   }
 });
 

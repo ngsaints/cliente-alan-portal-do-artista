@@ -41,6 +41,7 @@ export default function ArtistProfile() {
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const { genres } = useGenres();
   const [plansModalOpen, setPlansModalOpen] = useState(false);
+  const [showPressKitModal, setShowPressKitModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [interestModalOpen, setInterestModalOpen] = useState(false);
   const [selectedSong, setSelectedSong] = useState<{ id: number; titulo: string } | null>(null);
@@ -331,6 +332,13 @@ export default function ArtistProfile() {
             Planos
           </button>
           <button
+            onClick={() => setShowPressKitModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-colors shadow-sm cursor-pointer"
+          >
+            <Disc3 className="w-4 h-4" />
+            Press Kit (PDF)
+          </button>
+          <button
             onClick={handleCopyLink}
             className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-card text-muted-foreground border border-border hover:border-primary/50 hover:text-foreground transition-colors"
           >
@@ -514,6 +522,19 @@ export default function ArtistProfile() {
               </div>
             </Link>
           </div>
+
+          {/* Biografia Oficial do Artista */}
+          {artist.biografia && artist.biografia.trim() !== "" && (
+            <div className="mt-6 p-6 rounded-2xl bg-card/60 border border-border/40 space-y-3 backdrop-blur-sm shadow-lg">
+              <h3 className="text-lg font-extrabold text-foreground flex items-center gap-2 border-b border-border/20 pb-3">
+                <Disc3 className="w-5 h-5 text-primary" />
+                Biografia
+              </h3>
+              <p className="text-sm text-foreground/90 leading-relaxed white-space-pre-line font-sans">
+                {artist.biografia}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -731,6 +752,92 @@ export default function ArtistProfile() {
             className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl cursor-default"
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {showPressKitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 sm:p-6 overflow-y-auto backdrop-blur-md">
+          <div className="bg-card border border-border/80 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border/40 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                  <Disc3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-foreground">Press Kit Digital</h2>
+                  <p className="text-xs text-muted-foreground">Documento de apresentação oficial do artista</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-primary text-primary-foreground font-bold text-xs rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Imprimir / PDF
+                </button>
+                <button
+                  onClick={() => setShowPressKitModal(false)}
+                  className="p-2 text-muted-foreground hover:text-foreground rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Press Kit Document */}
+            <div id="press-kit-printable" className="bg-background border border-border/60 rounded-2xl p-6 sm:p-8 space-y-6 text-foreground font-sans">
+              <div className="flex flex-col sm:flex-row items-center gap-6 border-b border-border/40 pb-6">
+                {artist.capaUrl ? (
+                  <img src={artist.capaUrl} alt={artist.name} className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border-2 border-primary/40 shadow-md" />
+                ) : (
+                  <div className="w-28 h-28 rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-primary/40">
+                    <Music className="w-12 h-12 text-primary" />
+                  </div>
+                )}
+                <div className="text-center sm:text-left space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                    Press Kit Oficial
+                  </span>
+                  <h1 className="text-3xl font-black tracking-tight text-white mt-1">{artist.name}</h1>
+                  <p className="text-sm font-semibold text-primary">{artist.profissao} {artist.genero ? `• ${artist.genero}` : ""}</p>
+                  <p className="text-xs text-muted-foreground">{artist.cidade}</p>
+                </div>
+              </div>
+
+              {/* Biografia */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground border-b border-border/30 pb-1">
+                  Biografia Oficial
+                </h3>
+                <p className="text-sm text-foreground/90 leading-relaxed white-space-pre-line font-sans">
+                  {artist.biografia && artist.biografia.trim() !== "" 
+                    ? artist.biografia 
+                    : `${artist.name} é um artista atuante no cenário musical nacional, com trabalho focado no gênero ${artist.genero || "musical"}.`}
+                </p>
+              </div>
+
+              {/* Ficha de Contatos */}
+              <div className="space-y-2 pt-2 border-t border-border/40">
+                <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground border-b border-border/30 pb-1">
+                  Contatos & Mídias
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  {artist.contato && <div><span className="text-muted-foreground">WhatsApp/Shows:</span> <strong className="text-foreground">{artist.contato}</strong></div>}
+                  {artist.email && <div><span className="text-muted-foreground">E-mail:</span> <strong className="text-foreground">{artist.email}</strong></div>}
+                  {artist.instagram && <div><span className="text-muted-foreground">Instagram:</span> <strong className="text-pink-400">@{artist.instagram}</strong></div>}
+                  {artist.cidade && <div><span className="text-muted-foreground">Localização:</span> <strong className="text-foreground">{artist.cidade}</strong></div>}
+                </div>
+              </div>
+
+              {/* Rodapé do PDF */}
+              <div className="pt-4 border-t border-border/30 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Portal do Artista © 2026</span>
+                <span className="text-primary font-bold">portaldoartista.com/a/{artist.slug || slug}</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
