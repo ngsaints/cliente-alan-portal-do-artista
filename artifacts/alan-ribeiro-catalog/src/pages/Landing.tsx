@@ -6,7 +6,7 @@ import {
   Users, Star, Check, Globe, FileText, 
   PieChart, Smartphone, Laptop, LayoutDashboard, Headphones,
   Mic, Music2, DollarSign, Lock, Calendar, QrCode, TrendingUp,
-  Building2, Download, Share2, ShieldCheck
+  Building2, Download, Share2, ShieldCheck, HelpCircle, Heart
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
