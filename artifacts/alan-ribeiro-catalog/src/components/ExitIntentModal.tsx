@@ -48,25 +48,43 @@ export function ExitIntentModal() {
     // Do NOT trigger inside admin pages
     if (window.location.pathname.startsWith("/admin")) return;
 
-    // Don't trigger if already submitted or shown in this session
-    const hasSubmitted = localStorage.getItem("portal_exit_feedback_submitted");
-    const hasShownSession = sessionStorage.getItem("portal_exit_modal_shown");
-    if (hasSubmitted || hasShownSession) return;
+    // Check test mode flag in URL
+    const isTestMode = window.location.search.includes("test_exit_modal=true");
+
+    // Don't trigger if already submitted or shown in this session (unless in test mode)
+    if (!isTestMode) {
+      const hasSubmitted = localStorage.getItem("portal_exit_feedback_submitted");
+      const hasShownSession = sessionStorage.getItem("portal_exit_modal_shown");
+      if (hasSubmitted || hasShownSession) return;
+    }
 
     const triggerModal = () => {
-      if (sessionStorage.getItem("portal_exit_modal_shown")) return;
+      if (!isTestMode && sessionStorage.getItem("portal_exit_modal_shown")) return;
       sessionStorage.setItem("portal_exit_modal_shown", "true");
       setIsOpen(true);
     };
 
-    // Detect Desktop Mouse Leaving top of viewport or window
+    // 1. Mouse movement upwards towards browser chrome (Desktop - smooth 60px threshold)
+    let lastY = 9999;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (e.clientY <= 60 && e.clientY < lastY) {
+        triggerModal();
+      }
+      lastY = e.clientY;
+    };
+
     const handleMouseLeave = (e: MouseEvent) => {
-      if (e.clientY <= 20 || e.relatedTarget === null) {
+      if (e.clientY <= 60 || e.relatedTarget === null) {
         triggerModal();
       }
     };
 
-    // Detect Mobile/Tablet Visibility Change (minimizing, switching apps/tabs)
+    // 2. Window Blur (Desktop - when user clicks outside browser or switches tabs)
+    const handleWindowBlur = () => {
+      triggerModal();
+    };
+
+    // 3. Mobile/Tablet Visibility Change
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
         sessionStorage.setItem("portal_exit_pending_feedback", "true");
@@ -78,20 +96,42 @@ export function ExitIntentModal() {
       }
     };
 
-    // Listen for manual test triggers
-    const handleCustomTrigger = () => {
-      setIsOpen(true);
+    // 4. Idle Timer (45 seconds of inactivity)
+    let idleTimer: any = setTimeout(() => {
+      triggerModal();
+    }, 45_000);
+
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        triggerModal();
+      }, 45_000);
     };
 
+    // Listeners
+    document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseleave", handleMouseLeave);
     document.addEventListener("mouseout", handleMouseLeave);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("scroll", resetIdleTimer, { passive: true });
+    window.addEventListener("click", resetIdleTimer);
+
+    // Manual custom trigger
+    const handleCustomTrigger = () => {
+      setIsOpen(true);
+    };
     window.addEventListener("triggerExitFeedbackModal", handleCustomTrigger);
 
     return () => {
+      clearTimeout(idleTimer);
+      document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseleave", handleMouseLeave);
       document.removeEventListener("mouseout", handleMouseLeave);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("scroll", resetIdleTimer);
+      window.removeEventListener("click", resetIdleTimer);
       window.removeEventListener("triggerExitFeedbackModal", handleCustomTrigger);
     };
   }, [settings]);
