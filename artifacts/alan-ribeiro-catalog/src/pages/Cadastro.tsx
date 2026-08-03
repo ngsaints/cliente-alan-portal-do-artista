@@ -161,6 +161,7 @@ export default function Cadastro() {
     id: isFreePlan ? "free" : "premium",
     label: isFreePlan ? "Gratuito" : "Premium",
     preco: isFreePlan ? "0.00" : "25.00",
+    limiteMusicas: isFreePlan ? 4 : 50,
   };
 
   return (
