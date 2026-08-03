@@ -18,7 +18,7 @@ import {
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
-  Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight,
+  Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight, Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
