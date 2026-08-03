@@ -149,12 +149,6 @@ export function ExitIntentModal() {
     window.addEventListener("scroll", resetIdleTimer, { passive: true });
     window.addEventListener("click", resetIdleTimer);
 
-    // Manual custom trigger
-    const handleCustomTrigger = () => {
-      setIsOpen(true);
-    };
-    window.addEventListener("triggerExitFeedbackModal", handleCustomTrigger);
-
     return () => {
       clearTimeout(idleTimer);
       document.removeEventListener("mousemove", handleMouseMove);
@@ -164,7 +158,6 @@ export function ExitIntentModal() {
       window.removeEventListener("blur", handleWindowBlur);
       window.removeEventListener("scroll", resetIdleTimer);
       window.removeEventListener("click", resetIdleTimer);
-      window.removeEventListener("triggerExitFeedbackModal", handleCustomTrigger);
     };
   }, [settings, location, artistLoggedIn]);
 
