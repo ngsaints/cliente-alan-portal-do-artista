@@ -142,17 +142,77 @@ export default function Landing() {
             </div>
           </motion.div>
 
-          {/* Lado Direito: Mockup Real do Portal Funcionando (Celular + Computador) */}
+          {/* Lado Direito: Card do Plano em Destaque (Definido pelo Admin) + Mockup do Portal */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="lg:col-span-6 relative flex items-center justify-center"
+            className="lg:col-span-6 relative flex flex-col items-center gap-6 max-w-xl mx-auto w-full"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-yellow-500/10 to-transparent rounded-full blur-3xl -z-10" />
 
+            {/* 🌟 CARD DO PLANO EM DESTAQUE (Gerenciado pelo Admin) */}
+            {(() => {
+              const featured = plans.find((p) => p.nome === heroFeaturedPlan) ||
+                plans.find((p) => p.nome === "premium") ||
+                plans[0] || {
+                  id: "premium",
+                  nome: "premium",
+                  label: "Premium",
+                  preco: "25.00",
+                  tagline: "Para quem quer viver da música.",
+                  features: [
+                    "50 Músicas no catálogo",
+                    "100% de personalização visual",
+                    "Player de áudio customizável",
+                    "Upload de foto e banner",
+                    "Atendimento prioritário"
+                  ]
+                };
+
+              return (
+                <div className="relative border border-primary/50 rounded-3xl overflow-hidden bg-gradient-to-b from-primary/15 via-card/90 to-card/95 backdrop-blur-xl w-full shadow-[0_0_35px_rgba(245,197,24,0.2)] p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-primary text-black font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-md">
+                      ⭐ PLANO EM DESTAQUE
+                    </span>
+                    <span className="text-xs text-muted-foreground font-mono">Recomendado</span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-2xl font-extrabold text-white">{featured.label}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">{featured.tagline || "O plano perfeito para alavancar sua carreira."}</p>
+                  </div>
+
+                  <div className="flex items-baseline gap-1 py-2 border-y border-border/30">
+                    <span className="text-3xl font-black text-primary">
+                      R$ {parseFloat(featured.preco || "25").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-medium">/mês</span>
+                  </div>
+
+                  <ul className="space-y-2 pt-1">
+                    {featured.features.slice(0, 5).map((f, i) => (
+                      <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                        <Check className="w-4 h-4 text-primary shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() => setLocation(`/cadastro?plano=${featured.nome || featured.id}`)}
+                    className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary/95 text-black font-black text-sm transition-all shadow-lg shadow-primary/25 cursor-pointer uppercase tracking-wider flex items-center justify-center gap-2"
+                  >
+                    <Zap className="w-4 h-4 fill-current" />
+                    Assinar Plano {featured.label} Agora
+                  </button>
+                </div>
+              );
+            })()}
+
             {/* Mockup Container */}
-            <div className="relative w-full max-w-xl space-y-4">
+            <div className="relative w-full space-y-4">
               
               {/* Card Simulador Desktop / Tablet */}
               <div className="border border-border/60 rounded-2xl overflow-hidden bg-card/90 backdrop-blur-xl shadow-2xl space-y-0">
