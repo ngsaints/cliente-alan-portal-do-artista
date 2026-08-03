@@ -969,7 +969,7 @@ router.get("/activity-feed", async (_req, res): Promise<void> => {
       .select({
         id: songsTable.id,
         titulo: songsTable.titulo,
-        capaUrl: songsTable.capaUrl,
+        capaPath: songsTable.capaPath,
         artistaId: songsTable.artistaId,
         createdAt: songsTable.createdAt,
       })
@@ -991,7 +991,7 @@ router.get("/activity-feed", async (_req, res): Promise<void> => {
         title: `Nova música: "${s.titulo}"`,
         subtitle: "Lançamento recente",
         time: s.createdAt,
-        avatar: s.capaUrl,
+        avatar: s.capaPath,
       }))
     ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
 

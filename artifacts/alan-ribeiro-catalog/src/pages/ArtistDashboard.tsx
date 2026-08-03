@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingUpDown, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
   ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle, Share2,
-  Bot, Sparkles, Zap, Download, ChevronLeft, ChevronRight
+  Bot, Sparkles, Zap, Download, ChevronLeft, ChevronRight, CheckCircle, Instagram
 } from "lucide-react";
 import {
   Command,
@@ -2234,6 +2234,7 @@ export default function ArtistDashboard() {
                         onChange={(e) => setEditProfile({ ...editProfile, documento: e.target.value })}
                         placeholder="CPF ou CNPJ"
                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                      />
                     </div>
                   </div>
 
@@ -3513,6 +3514,74 @@ export default function ArtistDashboard() {
           </div>
         </div>
       )}
+
+      {instagramShareModal?.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="bg-card border border-border/60 rounded-3xl p-6 sm:p-7 max-w-md w-full space-y-5 shadow-2xl relative">
+            <button
+              onClick={() => setInstagramShareModal(null)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 via-pink-600 to-yellow-500 flex items-center justify-center mx-auto shadow-lg">
+                <Instagram className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-black text-foreground">
+                Música Cadastrada! 🎉
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                "{instagramShareModal.songTitle}" já está disponível no seu portal. Compartilhe no Instagram para divulgar agora!
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-background/80 border border-border/50 space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-primary block">
+                Legenda Pronta para Instagram:
+              </span>
+              <p className="text-xs text-foreground/90 font-mono leading-relaxed bg-input/40 p-3 rounded-xl border border-border/40 select-all">
+                {`Ouça minha nova música "${instagramShareModal.songTitle}" no Portal do Artista! 🎵\n\nLink no meu perfil: ${window.location.origin}/${artist?.slug}`}
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
+              <button
+                onClick={() => {
+                  const text = `Ouça minha nova música "${instagramShareModal.songTitle}" no Portal do Artista! 🎵\n\nLink no meu perfil: ${window.location.origin}/${artist?.slug}`;
+                  navigator.clipboard.writeText(text);
+                  setCopiedCaption(true);
+                  setTimeout(() => setCopiedCaption(false), 2500);
+                }}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-sm flex items-center justify-center gap-2 hover:opacity-95 transition-all shadow-md cursor-pointer"
+              >
+                {copiedCaption ? (
+                  <>
+                    <CheckCircle className="w-4.5 h-4.5" />
+                    Texto e Link Copiados!
+                  </>
+                ) : (
+                  <>
+                    <Instagram className="w-4.5 h-4.5" />
+                    Copiar Legenda e Link da Música
+                  </>
+                )}
+              </button>
+
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 rounded-xl border border-border bg-card text-foreground font-bold text-xs flex items-center justify-center gap-2 hover:bg-input transition-colors block text-center"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Abrir Aplicativo do Instagram
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 </div>
   );
 }
@@ -3954,74 +4023,6 @@ function GalleryTab({ artistId }: { artistId: string }) {
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Adicionar"}
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {instagramShareModal?.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="bg-card border border-border/60 rounded-3xl p-6 sm:p-7 max-w-md w-full space-y-5 shadow-2xl relative">
-            <button
-              onClick={() => setInstagramShareModal(null)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 via-pink-600 to-yellow-500 flex items-center justify-center mx-auto shadow-lg">
-                <Instagram className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-black text-foreground">
-                Música Cadastrada! 🎉
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                "{instagramShareModal.songTitle}" já está disponível no seu portal. Compartilhe no Instagram para divulgar agora!
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-background/80 border border-border/50 space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-primary block">
-                Legenda Pronta para Instagram:
-              </span>
-              <p className="text-xs text-foreground/90 font-mono leading-relaxed bg-input/40 p-3 rounded-xl border border-border/40 select-all">
-                {`Ouça minha nova música "${instagramShareModal.songTitle}" no Portal do Artista! 🎵\n\nLink no meu perfil: ${window.location.origin}/${artist?.slug}`}
-              </p>
-            </div>
-
-            <div className="space-y-2.5">
-              <button
-                onClick={() => {
-                  const text = `Ouça minha nova música "${instagramShareModal.songTitle}" no Portal do Artista! 🎵\n\nLink no meu perfil: ${window.location.origin}/${artist?.slug}`;
-                  navigator.clipboard.writeText(text);
-                  setCopiedCaption(true);
-                  setTimeout(() => setCopiedCaption(false), 2500);
-                }}
-                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-sm flex items-center justify-center gap-2 hover:opacity-95 transition-all shadow-md cursor-pointer"
-              >
-                {copiedCaption ? (
-                  <>
-                    <CheckCircle className="w-4.5 h-4.5" />
-                    Texto e Link Copiados!
-                  </>
-                ) : (
-                  <>
-                    <Instagram className="w-4.5 h-4.5" />
-                    Copiar Legenda e Link da Música
-                  </>
-                )}
-              </button>
-
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 px-4 rounded-xl border border-border bg-card text-foreground font-bold text-xs flex items-center justify-center gap-2 hover:bg-input transition-colors block text-center"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Abrir Aplicativo do Instagram
-              </a>
             </div>
           </div>
         </div>

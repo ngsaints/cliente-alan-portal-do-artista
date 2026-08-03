@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Eye, EyeOff, Loader2, User, MapPin, Image, Star, Check, X, Phone, Zap, ArrowLeft, Info, Crown, AlertTriangle } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Loader2, User, MapPin, Image, Star, Check, X, Phone, Zap, ArrowLeft, Info, Crown, AlertTriangle, CreditCard } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useGenres } from "@/hooks/useGenres";
 import { ImageCrop } from "@/components/ImageCrop";
@@ -48,6 +48,7 @@ export default function ArtistLogin() {
     capaFile: null as File | null,
     bannerFile: null as File | null,
     plano: "premium",
+    billingType: "PIX",
   });
   const [couponCode, setCouponCode] = useState("");
   const [couponResult, setCouponResult] = useState<{ discountType: string; discountValue: string; discountAmount: string; finalPrice: string; originalPrice: string } | null>(null);
