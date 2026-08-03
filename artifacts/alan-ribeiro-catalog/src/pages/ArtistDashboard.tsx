@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { 
@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingUpDown, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
   ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle, Share2,
-  Bot, Sparkles, Zap, Download
+  Bot, Sparkles, Zap, Download, ChevronLeft, ChevronRight
 } from "lucide-react";
 import {
   Command,
@@ -368,7 +368,19 @@ export default function ArtistDashboard() {
   const [location, setLocation] = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<TabId>("dashboard");
+  const artistTabBarRef = useRef<HTMLDivElement>(null);
+
+  const handleArtistScrollLeft = () => {
+    if (artistTabBarRef.current) {
+      artistTabBarRef.current.scrollBy({ left: -260, behavior: "smooth" });
+    }
+  };
+
+  const handleArtistScrollRight = () => {
+    if (artistTabBarRef.current) {
+      artistTabBarRef.current.scrollBy({ left: 260, behavior: "smooth" });
+    }
+  };
   const [artist, setArtist] = useState<ArtistProfile | null>(null);
   const [stats, setStats] = useState<ArtistStats>({ totalSongs: 0, totalPlays: 0, totalLikes: 0, vipContent: 0 });
   const [songs, setSongs] = useState<any[]>([]);
@@ -1269,22 +1281,55 @@ export default function ArtistDashboard() {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1.5 mb-4 overflow-x-auto sm:overflow-visible sm:flex-wrap" style={{scrollbarWidth:"none",msOverflowStyle:"none",WebkitOverflowScrolling:"touch"}}>
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 sm:shrink transition-all ${
-                  activeTab === tab.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-muted-foreground border border-border hover:border-primary/50"
-                }`}
-              >
-                <tab.icon className="w-3.5 h-3.5 shrink-0" />
-                {tab.label}
-              </button>
-            ))}
+          {/* Tabs bar com setas interativas e rolagem animada */}
+          <div className="relative mb-6 flex items-center group/artisttabbar">
+            <button
+              type="button"
+              onClick={handleArtistScrollLeft}
+              className="absolute left-0 z-20 w-7 h-7 rounded-full bg-black/90 border border-primary/40 text-primary flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
+              title="Rolar para a esquerda"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background via-background/80 to-transparent z-10" />
+
+            <div
+              ref={artistTabBarRef}
+              className="flex gap-1.5 overflow-x-auto py-2 px-7 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none] touch-pan-x scroll-smooth w-full"
+            >
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={(e) => {
+                      setActiveTab(tab.id);
+                      e.currentTarget.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+                    }}
+                    className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-primary text-black shadow-[0_0_15px_rgba(245,197,24,0.3)] scale-[1.02]"
+                        : "bg-card text-muted-foreground border border-border/60 hover:text-white hover:border-primary/50"
+                    }`}
+                  >
+                    <tab.icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-black" : "text-primary/70"}`} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background via-background/80 to-transparent z-10" />
+
+            <button
+              type="button"
+              onClick={handleArtistScrollRight}
+              className="absolute right-0 z-20 w-7 h-7 rounded-full bg-black/90 border border-primary/40 text-primary flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
+              title="Rolar para a direita"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* CRM Card */}
@@ -1653,37 +1698,55 @@ export default function ArtistDashboard() {
                   </div>
                 )}
 
-                {/* Métricas */}
+                {/* Métricas do Artista com Elevação 3D */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-card border border-border/40 rounded-xl p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Music className="w-4 h-4 text-primary" />
-                      <span className="text-xs text-muted-foreground">Músicas</span>
+                  <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-primary/40 rounded-2xl p-5 shadow-lg group transition-all">
+                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 rounded-full blur-xl group-hover:bg-primary/20 transition-all pointer-events-none" />
+                    <div className="flex items-center justify-between mb-2 relative z-10">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Músicas</span>
+                      <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
+                        <Music className="w-4 h-4" />
+                      </div>
                     </div>
-                    <p className="text-2xl font-bold text-foreground">{stats.totalSongs}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Limite: {artist?.limiteMusicas}</p>
-                  </div>
-                  <div className="bg-card border border-border/40 rounded-xl p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="w-4 h-4 text-green-500" />
-                      <span className="text-xs text-muted-foreground">Plays</span>
+                    <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{stats.totalSongs}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Limite do Plano: {artist?.limiteMusicas}</p>
+                  </motion.div>
+
+                  <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-emerald-500/40 rounded-2xl p-5 shadow-lg group transition-all">
+                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
+                    <div className="flex items-center justify-between mb-2 relative z-10">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Reproduções</span>
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
                     </div>
-                    <p className="text-2xl font-bold text-foreground">{stats.totalPlays}</p>
-                  </div>
-                  <div className="bg-card border border-border/40 rounded-xl p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Heart className="w-4 h-4 text-red-500" />
-                      <span className="text-xs text-muted-foreground">Likes</span>
+                    <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{stats.totalPlays}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Plays acumulados</p>
+                  </motion.div>
+
+                  <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-red-500/40 rounded-2xl p-5 shadow-lg group transition-all">
+                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-red-500/10 rounded-full blur-xl group-hover:bg-red-500/20 transition-all pointer-events-none" />
+                    <div className="flex items-center justify-between mb-2 relative z-10">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Curtidas</span>
+                      <div className="w-8 h-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400">
+                        <Heart className="w-4 h-4" />
+                      </div>
                     </div>
-                    <p className="text-2xl font-bold text-foreground">{stats.totalLikes}</p>
-                  </div>
-                  <div className="bg-card border border-border/40 rounded-xl p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Crown className="w-4 h-4 text-yellow-500" />
-                      <span className="text-xs text-muted-foreground">VIP</span>
+                    <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{stats.totalLikes}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Favoritadas por ouvintes</p>
+                  </motion.div>
+
+                  <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-yellow-500/40 rounded-2xl p-5 shadow-lg group transition-all">
+                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-yellow-500/10 rounded-full blur-xl group-hover:bg-yellow-500/20 transition-all pointer-events-none" />
+                    <div className="flex items-center justify-between mb-2 relative z-10">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Conteúdo VIP</span>
+                      <div className="w-8 h-8 rounded-lg bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
+                        <Crown className="w-4 h-4" />
+                      </div>
                     </div>
-                    <p className="text-2xl font-bold text-foreground">{stats.vipContent}</p>
-                  </div>
+                    <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{stats.vipContent}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Faixas protegidas por senha</p>
+                  </motion.div>
                 </div>
               </div>
             )}
