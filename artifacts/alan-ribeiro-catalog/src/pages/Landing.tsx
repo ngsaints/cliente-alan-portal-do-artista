@@ -26,12 +26,29 @@ export default function Landing() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [heroFeaturedPlan, setHeroFeaturedPlan] = useState<string>("premium");
   const [faqOpen, setFaqOpen] = useState<Record<number, boolean>>({});
+  const [settings, setSettings] = useState({
+    landingVideoUrl: "",
+    landingHeroVideoUrl: "",
+  });
+
+  const getYoutubeEmbedUrl = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11)
+      ? `https://www.youtube.com/embed/${match[2]}`
+      : null;
+  };
 
   useEffect(() => {
     fetch("/api/settings")
       .then((res) => res.json())
       .then((data) => {
         if (data.heroFeaturedPlan) setHeroFeaturedPlan(data.heroFeaturedPlan);
+        setSettings({
+          landingVideoUrl: data.landingVideoUrl || "",
+          landingHeroVideoUrl: data.landingHeroVideoUrl || "",
+        });
       })
       .catch(console.error);
 
@@ -211,7 +228,42 @@ export default function Landing() {
               );
             })()}
 
-            {/* Mockup Container */}
+            {/* Vídeo do Hero (Configurado no Admin) */}
+            <div className="border border-border/40 rounded-3xl overflow-hidden bg-card/70 backdrop-blur-xl w-full shadow-2xl p-5 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-border/20">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                  <span className="text-xs font-bold text-white ml-2">Vídeo de Apresentação</span>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-extrabold uppercase">
+                  PLAY ▶
+                </span>
+              </div>
+
+              {getYoutubeEmbedUrl(settings.landingHeroVideoUrl) ? (
+                <div className="aspect-video w-full rounded-2xl overflow-hidden border border-border/20 shadow-inner">
+                  <iframe
+                    src={getYoutubeEmbedUrl(settings.landingHeroVideoUrl) || undefined}
+                    title="Vídeo do Hero"
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <div className="aspect-video w-full rounded-2xl bg-black/40 border border-border/20 flex flex-col items-center justify-center gap-2 text-center p-4 relative overflow-hidden group">
+                  <Play className="w-10 h-10 text-primary fill-primary/20 group-hover:scale-110 transition-transform cursor-pointer" />
+                  <span className="text-xs text-white/90 font-bold">
+                    Vídeo do Hero (Apresentação)
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Insira o link do YouTube no Painel Admin (Configurações {">"} Portal)
+                  </span>
+                </div>
+              )}
+            </div>
             <div className="relative w-full space-y-4">
               
               {/* Card Simulador Desktop / Tablet */}
@@ -360,6 +412,53 @@ export default function Landing() {
             </div>
 
           </div>
+        </div>
+      </section>
+
+      {/* DEMONSTRAÇÃO EM VÍDEO (Configurável no Admin) */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border/40 bg-gradient-to-b from-background via-card/20 to-background">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+          <div className="space-y-3">
+            <span className="px-3.5 py-1 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-extrabold uppercase tracking-wider">
+              Demonstração em Vídeo
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
+              Veja o Portal do Artista em Ação
+            </h2>
+            <p className="text-muted-foreground text-sm max-w-xl mx-auto">
+              Assista à demonstração e entenda como criar seu perfil, subir suas composições e apresentar seu trabalho com máxima autoridade.
+            </p>
+          </div>
+
+          {getYoutubeEmbedUrl(settings.landingVideoUrl) ? (
+            <div className="relative max-w-3xl mx-auto aspect-video rounded-3xl overflow-hidden bg-black/60 border border-border/40 shadow-2xl">
+              <iframe
+                src={getYoutubeEmbedUrl(settings.landingVideoUrl) || undefined}
+                title="Vídeo de Demonstração"
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div className="relative max-w-3xl mx-auto aspect-video rounded-3xl overflow-hidden bg-black/60 border border-border/40 shadow-2xl flex flex-col items-center justify-center p-8 text-center group">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+              <div className="z-10 flex flex-col items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary/20 border border-primary text-primary flex items-center justify-center group-hover:scale-110 transition-transform cursor-pointer shadow-lg shadow-primary/20">
+                  <Play className="w-6 h-6 fill-current ml-1" />
+                </div>
+                <div>
+                  <p className="font-bold text-white text-base">Vídeo de Demonstração Rápida</p>
+                  <p className="text-xs text-muted-foreground/80 mt-1 max-w-md">
+                    Veja como criar o perfil, adicionar suas primeiras músicas no catálogo e gerenciar seus contatos em segundos.
+                  </p>
+                  <p className="text-[10px] text-primary/70 mt-2 font-mono">
+                    Cadastre o link do vídeo no Painel Admin (Configurações {">"} Portal)
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
