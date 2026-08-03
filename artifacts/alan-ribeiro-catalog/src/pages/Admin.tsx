@@ -5103,6 +5103,19 @@ function ExitFeedbackTab() {
             </p>
           </div>
           <div className="flex items-center gap-3 bg-muted/40 px-4 py-2 rounded-xl border border-border">
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.removeItem("portal_exit_modal_shown");
+                localStorage.removeItem("portal_exit_feedback_submitted");
+                window.dispatchEvent(new CustomEvent("triggerExitFeedbackModal"));
+                toast({ title: "Modal de teste disparado!" });
+              }}
+              className="px-3 py-1 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 text-xs font-bold transition-all cursor-pointer"
+            >
+              Testar Modal Agora
+            </button>
+            <span className="text-border">|</span>
             <span className="text-xs font-bold text-foreground">Status do Recurso:</span>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
             <span className={`text-xs font-black ${enabled ? "text-emerald-400" : "text-muted-foreground"}`}>

@@ -22,6 +22,7 @@ import Cadastro from "@/pages/Cadastro";
 import Planos from "@/pages/Planos";
 import CrmPage from "@/pages/CrmPage";
 import NotFound from "@/pages/not-found";
+import { ExitIntentModal } from "@/components/ExitIntentModal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -174,6 +175,7 @@ function App() {
         <PlayerProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
+            <ExitIntentModal />
           </WouterRouter>
         </PlayerProvider>
         <Toaster />

@@ -45,14 +45,23 @@ export function ExitIntentModal() {
   useEffect(() => {
     if (!settings.enabled) return;
 
+    // Do NOT trigger inside admin pages
+    if (window.location.pathname.startsWith("/admin")) return;
+
     // Don't trigger if already submitted or shown in this session
     const hasSubmitted = localStorage.getItem("portal_exit_feedback_submitted");
     const hasShownSession = sessionStorage.getItem("portal_exit_modal_shown");
     if (hasSubmitted || hasShownSession) return;
 
-    // Detect Desktop Mouse Leaving top of viewport
+    const triggerModal = () => {
+      if (sessionStorage.getItem("portal_exit_modal_shown")) return;
+      sessionStorage.setItem("portal_exit_modal_shown", "true");
+      setIsOpen(true);
+    };
+
+    // Detect Desktop Mouse Leaving top of viewport or window
     const handleMouseLeave = (e: MouseEvent) => {
-      if (e.clientY <= 5) {
+      if (e.clientY <= 20 || e.relatedTarget === null) {
         triggerModal();
       }
     };
@@ -60,7 +69,6 @@ export function ExitIntentModal() {
     // Detect Mobile/Tablet Visibility Change (minimizing, switching apps/tabs)
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        // Save session flag so if they re-open tab, modal will pop up immediately to get feedback
         sessionStorage.setItem("portal_exit_pending_feedback", "true");
       } else if (document.visibilityState === "visible") {
         if (sessionStorage.getItem("portal_exit_pending_feedback") === "true") {
@@ -70,20 +78,23 @@ export function ExitIntentModal() {
       }
     };
 
-    const triggerModal = () => {
-      if (sessionStorage.getItem("portal_exit_modal_shown")) return;
-      sessionStorage.setItem("portal_exit_modal_shown", "true");
+    // Listen for manual test triggers
+    const handleCustomTrigger = () => {
       setIsOpen(true);
     };
 
-    window.addEventListener("mouseleave", handleMouseLeave);
+    document.addEventListener("mouseleave", handleMouseLeave);
+    document.addEventListener("mouseout", handleMouseLeave);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("triggerExitFeedbackModal", handleCustomTrigger);
 
     return () => {
-      window.removeEventListener("mouseleave", handleMouseLeave);
+      document.removeEventListener("mouseleave", handleMouseLeave);
+      document.removeEventListener("mouseout", handleMouseLeave);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("triggerExitFeedbackModal", handleCustomTrigger);
     };
-  }, [settings.enabled]);
+  }, [settings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
