@@ -78,6 +78,14 @@ export interface AsaasCustomer {
   mobilePhone?: string;
 }
 
+function isValidCpfCnpj(val?: string): boolean {
+  if (!val) return false;
+  const digits = val.replace(/\D/g, "");
+  if (digits.length !== 11 && digits.length !== 14) return false;
+  if (/^(\d)\1+$/.test(digits)) return false;
+  return true;
+}
+
 export async function findOrCreateCustomer(
   name: string,
   email: string,
@@ -98,7 +106,9 @@ export async function findOrCreateCustomer(
     name,
     email,
   };
-  if (cleanCpfCnpj) body.cpfCnpj = cleanCpfCnpj;
+  if (cleanCpfCnpj && isValidCpfCnpj(cleanCpfCnpj)) {
+    body.cpfCnpj = cleanCpfCnpj;
+  }
   if (phone) body.mobilePhone = phone;
 
   return asaasFetch<AsaasCustomer>("/customers", {

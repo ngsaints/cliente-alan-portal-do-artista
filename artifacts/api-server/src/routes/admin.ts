@@ -650,25 +650,37 @@ router.put("/admin/plans/:id", async (req, res): Promise<void> => {
       canUploadBanner, canUploadProfilePhoto, aiCreditsLimit
     } = req.body;
 
+    const parseBool = (val: any, defaultVal: boolean): boolean => {
+      if (val === undefined || val === null || val === "") return defaultVal;
+      if (typeof val === "boolean") return val;
+      return val === "true" || val === 1 || val === "1";
+    };
+
+    const parseNum = (val: any, defaultVal: number): number => {
+      if (val === undefined || val === null || val === "") return defaultVal;
+      const parsed = parseInt(String(val), 10);
+      return isNaN(parsed) ? defaultVal : parsed;
+    };
+
     const updated = await db
       .update(plansTable)
       .set({
-        nome,
-        label,
-        preco,
-        limiteMusicas,
-        personalizacaoPercent,
-        descricao,
-        fraseEfeito,
-        ativo,
-        canCustomizeFont,
-        canCustomizeBackground,
-        canCustomizeTextColor,
-        canCustomizePlayerStyle,
-        canCustomizePlayerColor,
-        canUploadBanner,
-        canUploadProfilePhoto,
-        aiCreditsLimit: aiCreditsLimit !== undefined ? parseInt(aiCreditsLimit) : 10,
+        nome: nome ? String(nome).trim() : undefined,
+        label: label ? String(label).trim() : undefined,
+        preco: preco !== undefined ? String(preco) : undefined,
+        limiteMusicas: limiteMusicas !== undefined ? String(limiteMusicas) : undefined,
+        personalizacaoPercent: personalizacaoPercent !== undefined ? String(personalizacaoPercent) : undefined,
+        descricao: descricao !== undefined ? String(descricao) : undefined,
+        fraseEfeito: fraseEfeito !== undefined ? String(fraseEfeito) : undefined,
+        ativo: ativo !== undefined ? parseBool(ativo, true) : undefined,
+        canCustomizeFont: canCustomizeFont !== undefined ? parseBool(canCustomizeFont, true) : undefined,
+        canCustomizeBackground: canCustomizeBackground !== undefined ? parseBool(canCustomizeBackground, true) : undefined,
+        canCustomizeTextColor: canCustomizeTextColor !== undefined ? parseBool(canCustomizeTextColor, true) : undefined,
+        canCustomizePlayerStyle: canCustomizePlayerStyle !== undefined ? parseBool(canCustomizePlayerStyle, true) : undefined,
+        canCustomizePlayerColor: canCustomizePlayerColor !== undefined ? parseBool(canCustomizePlayerColor, true) : undefined,
+        canUploadBanner: canUploadBanner !== undefined ? parseBool(canUploadBanner, false) : undefined,
+        canUploadProfilePhoto: canUploadProfilePhoto !== undefined ? parseBool(canUploadProfilePhoto, false) : undefined,
+        aiCreditsLimit: parseNum(aiCreditsLimit, 10),
       })
       .where(eq(plansTable.id, parseInt(id)))
       .returning();
@@ -708,27 +720,41 @@ router.post("/admin/plans", async (req, res): Promise<void> => {
       canUploadBanner, canUploadProfilePhoto, aiCreditsLimit
     } = req.body;
 
+    const parseBool = (val: any, defaultVal: boolean): boolean => {
+      if (val === undefined || val === null || val === "") return defaultVal;
+      if (typeof val === "boolean") return val;
+      return val === "true" || val === 1 || val === "1";
+    };
+
+    const parseNum = (val: any, defaultVal: number): number => {
+      if (val === undefined || val === null || val === "") return defaultVal;
+      const parsed = parseInt(String(val), 10);
+      return isNaN(parsed) ? defaultVal : parsed;
+    };
+
     const created = await db
       .insert(plansTable)
       .values({
-        nome,
-        label,
-        preco,
-        limiteMusicas,
-        personalizacaoPercent: personalizacaoPercent || 0,
-        descricao,
-        fraseEfeito,
-        ativo: ativo ?? true,
-        canCustomizeFont: canCustomizeFont ?? true,
-        canCustomizeBackground: canCustomizeBackground ?? true,
-        canCustomizeTextColor: canCustomizeTextColor ?? true,
-        canCustomizePlayerStyle: canCustomizePlayerStyle ?? true,
-        canCustomizePlayerColor: canCustomizePlayerColor ?? true,
-        canUploadBanner: canUploadBanner ?? false,
-        canUploadProfilePhoto: canUploadProfilePhoto ?? false,
-        aiCreditsLimit: aiCreditsLimit !== undefined ? parseInt(aiCreditsLimit) : 10,
+        nome: String(nome).trim(),
+        label: String(label).trim(),
+        preco: String(preco ?? "0"),
+        limiteMusicas: String(limiteMusicas ?? "10"),
+        personalizacaoPercent: String(personalizacaoPercent ?? "0"),
+        descricao: descricao ? String(descricao) : null,
+        fraseEfeito: fraseEfeito ? String(fraseEfeito) : null,
+        ativo: parseBool(ativo, true),
+        canCustomizeFont: parseBool(canCustomizeFont, true),
+        canCustomizeBackground: parseBool(canCustomizeBackground, true),
+        canCustomizeTextColor: parseBool(parseBool(canCustomizeTextColor, true), true),
+        canCustomizePlayerStyle: parseBool(canCustomizePlayerStyle, true),
+        canCustomizePlayerColor: parseBool(canCustomizePlayerColor, true),
+        canUploadBanner: parseBool(canUploadBanner, false),
+        canUploadProfilePhoto: parseBool(canUploadProfilePhoto, false),
+        aiCreditsLimit: parseNum(aiCreditsLimit, 10),
       })
       .returning();
+
+    res.status(201).json(created[0]);
 
     res.status(201).json(created[0]);
   } catch (error) {
