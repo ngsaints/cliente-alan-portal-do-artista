@@ -445,18 +445,22 @@ export default function Landing() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-          {/* 1. Página personalizada de artista (Réplica do ArtistProfile) */}
-          <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-primary/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
+          {/* 1. Página personalizada de artista */}
+          <motion.div
+            whileHover={{ y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="p-7 rounded-3xl bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/60 hover:border-primary/40 transition-all flex flex-col justify-between space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative group"
+          >
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
+                <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shadow-md">
                   <Mic className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white group-hover:text-primary transition-colors">
+                  <h3 className="text-xl font-extrabold text-white group-hover:text-primary transition-colors tracking-tight">
                     Página Personalizada de Artista
                   </h3>
-                  <p className="text-xs text-muted-foreground">Seu perfil oficial completo com link exclusivo</p>
+                  <p className="text-xs text-muted-foreground font-medium">Seu perfil oficial completo com link exclusivo</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -464,14 +468,22 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Componente Real 1: Perfil do Artista */}
-            <div className="rounded-2xl bg-black/80 border border-border/40 overflow-hidden shadow-lg space-y-0">
-              <div className="bg-black/90 px-3.5 py-2 border-b border-border/30 flex items-center justify-between text-[11px] font-mono">
-                <span className="text-primary font-bold truncate">portaldoartista.com/alan-ribeiro</span>
-                <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-extrabold text-[9px] uppercase">COPIAR LINK</span>
+            {/* MOCKUP MAC BROWSER FRAME */}
+            <div className="relative w-full rounded-2xl overflow-hidden bg-black/90 border border-border/60 shadow-2xl group-hover:border-primary/40 transition-all">
+              <div className="bg-black/90 px-4 py-2 border-b border-border/30 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                </div>
+                <div className="px-3 py-0.5 rounded-full bg-input text-[10px] text-primary font-mono border border-border/40 truncate max-w-[210px]">
+                  portaldoartista.com/alan-ribeiro
+                </div>
+                <Laptop className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
-              <div className="p-4 space-y-3">
-                <div className="flex items-center gap-3">
+
+              <div className="p-4 space-y-3 bg-gradient-to-b from-zinc-950 to-black">
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-primary/15 via-yellow-500/5 to-transparent border border-primary/30 flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-yellow-500 p-0.5 shrink-0 shadow-lg shadow-primary/20">
                     <div className="w-full h-full rounded-full bg-background flex items-center justify-center font-extrabold text-primary text-xs">
                       AR
@@ -479,40 +491,50 @@ export default function Landing() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <h4 className="font-extrabold text-white text-sm truncate">Alan Ribeiro</h4>
+                      <h4 className="font-extrabold text-white text-xs truncate">Alan Ribeiro</h4>
                       <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-primary text-black">OFICIAL</span>
                     </div>
-                    <p className="text-xs text-primary font-bold">Compositor & Produtor Musical</p>
+                    <p className="text-[11px] text-primary font-bold">Compositor & Produtor Musical</p>
                     <p className="text-[10px] text-muted-foreground truncate">Maricá, RJ • Sertanejo, Pop e MPB</p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold">
                     WhatsApp Comercial
                   </span>
-                  <span className="px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">
+                  <span className="px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
                     Instagram
                   </span>
-                  <span className="px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 text-[10px] font-bold">
+                  <span className="px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 text-[9px] font-bold">
                     Spotify
                   </span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* 2. Catálogo musical profissional (Réplica do MusicCard) */}
-          <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
+            {/* FLOATING 3D MICRO BADGE */}
+            <div className="absolute -bottom-3 right-6 px-3.5 py-1.5 rounded-xl bg-card border border-primary/40 shadow-2xl flex items-center gap-2 backdrop-blur-md">
+              <Globe className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[10px] font-bold text-white">Link Único Ativo</span>
+            </div>
+          </motion.div>
+
+          {/* 2. Catálogo musical profissional */}
+          <motion.div
+            whileHover={{ y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="p-7 rounded-3xl bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/60 hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative group"
+          >
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-md">
                   <Music2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white group-hover:text-amber-400 transition-colors">
+                  <h3 className="text-xl font-extrabold text-white group-hover:text-amber-400 transition-colors tracking-tight">
                     Catálogo Musical Profissional
                   </h3>
-                  <p className="text-xs text-muted-foreground">Até 50 músicas com Tom, BPM e QR Code</p>
+                  <p className="text-xs text-muted-foreground font-medium">Até 50 músicas com Tom, BPM e QR Code</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -520,52 +542,72 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Componente Real 2: MusicCard */}
-            <div className="p-4 rounded-2xl bg-black/80 border border-border/40 space-y-3 shadow-lg">
-              <div className="flex items-center justify-between pb-2 border-b border-border/20 text-xs">
-                <span className="font-bold text-white">Catálogo de Composição (50 Músicas)</span>
-                <span className="text-amber-400 font-mono text-[10px]">Player Ativo</span>
-              </div>
-              <div className="p-3 rounded-xl bg-card/80 border border-border/40 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs shrink-0 border border-amber-500/30">
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-xs text-white truncate">Seu Próximo Sucesso.mp3</p>
-                      <p className="text-[10px] text-muted-foreground truncate">Alan Ribeiro • Sertanejo</p>
-                    </div>
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[9px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
-                    LIBERADA
-                  </span>
+            {/* MOCKUP MAC BROWSER FRAME */}
+            <div className="relative w-full rounded-2xl overflow-hidden bg-black/90 border border-border/60 shadow-2xl group-hover:border-amber-500/40 transition-all">
+              <div className="bg-black/90 px-4 py-2 border-b border-border/30 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1.5 border-t border-border/20">
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold">Tom: G</span>
-                    <span className="px-1.5 py-0.5 rounded bg-card border border-border font-bold">BPM: 120</span>
+                <div className="px-3 py-0.5 rounded-full bg-input text-[10px] text-amber-400 font-mono border border-border/40 truncate max-w-[210px]">
+                  portaldoartista.com/artista/catalogo
+                </div>
+                <Laptop className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
+
+              <div className="p-4 space-y-3 bg-gradient-to-b from-zinc-950 to-black">
+                <div className="p-3 rounded-xl bg-card/80 border border-border/40 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs shrink-0 border border-amber-500/30">
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-xs text-white truncate">Seu Próximo Sucesso.mp3</p>
+                        <p className="text-[10px] text-muted-foreground truncate">Alan Ribeiro • Sertanejo</p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[9px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                      LIBERADA
+                    </span>
                   </div>
-                  <span className="text-amber-400 font-extrabold flex items-center gap-1 cursor-pointer">
-                    <QrCode className="w-3 h-3" /> Gerar QR Code
-                  </span>
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1.5 border-t border-border/20">
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold">Tom: G</span>
+                      <span className="px-1.5 py-0.5 rounded bg-card border border-border font-bold">BPM: 120</span>
+                    </div>
+                    <span className="text-amber-400 font-extrabold flex items-center gap-1 cursor-pointer">
+                      <QrCode className="w-3 h-3" /> QR Code
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* 3. Gestão financeira da carreira (Réplica do FinanceiroSpreadsheet) */}
-          <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
+            {/* FLOATING 3D MICRO BADGE */}
+            <div className="absolute -bottom-3 right-6 px-3.5 py-1.5 rounded-xl bg-card border border-amber-500/40 shadow-2xl flex items-center gap-2 backdrop-blur-md">
+              <Headphones className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[10px] font-bold text-white">Player Integrado</span>
+            </div>
+          </motion.div>
+
+          {/* 3. Gestão financeira da carreira */}
+          <motion.div
+            whileHover={{ y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="p-7 rounded-3xl bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/60 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative group"
+          >
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-md">
                   <DollarSign className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white group-hover:text-emerald-400 transition-colors">
+                  <h3 className="text-xl font-extrabold text-white group-hover:text-emerald-400 transition-colors tracking-tight">
                     Gestão Financeira da Carreira
                   </h3>
-                  <p className="text-xs text-muted-foreground">Controle de receitas, custos e saldo líquido</p>
+                  <p className="text-xs text-muted-foreground font-medium">Controle de receitas, custos e saldo líquido</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -573,41 +615,65 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Componente Real 3: Planilha Financeira */}
-            <div className="p-4 rounded-2xl bg-black/80 border border-border/40 space-y-3 shadow-lg">
-              <div className="flex items-center justify-between pb-2 border-b border-border/20 text-xs">
-                <span className="font-bold text-white">Fluxo de Caixa & Lançamentos</span>
-                <span className="text-emerald-400 font-bold text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded">+ Lançamento</span>
+            {/* MOCKUP MAC BROWSER FRAME */}
+            <div className="relative w-full rounded-2xl overflow-hidden bg-black/90 border border-border/60 shadow-2xl group-hover:border-emerald-500/40 transition-all">
+              <div className="bg-black/90 px-4 py-2 border-b border-border/30 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                </div>
+                <div className="px-3 py-0.5 rounded-full bg-input text-[10px] text-emerald-400 font-mono border border-border/40 truncate max-w-[210px]">
+                  portaldoartista.com/artista/crm?tab=financeiro
+                </div>
+                <Laptop className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <p className="text-muted-foreground">Receitas</p>
-                  <p className="font-extrabold text-emerald-400 text-xs mt-0.5">R$ 14.850</p>
+
+              <div className="p-4 space-y-3 bg-gradient-to-b from-zinc-950 to-black">
+                <div className="flex items-center justify-between pb-1 border-b border-border/20 text-xs">
+                  <span className="font-bold text-white">Fluxo de Caixa</span>
+                  <span className="text-emerald-400 font-bold text-[9px] bg-emerald-500/10 px-2 py-0.5 rounded">+ Lançamento</span>
                 </div>
-                <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20">
-                  <p className="text-muted-foreground">Despesas</p>
-                  <p className="font-extrabold text-red-400 text-xs mt-0.5">R$ 3.200</p>
-                </div>
-                <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
-                  <p className="text-muted-foreground">Saldo Líquido</p>
-                  <p className="font-extrabold text-primary text-xs mt-0.5">R$ 11.650</p>
+                <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                  <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                    <p className="text-muted-foreground">Receitas</p>
+                    <p className="font-extrabold text-emerald-400 text-xs mt-0.5">R$ 14.850</p>
+                  </div>
+                  <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20">
+                    <p className="text-muted-foreground">Despesas</p>
+                    <p className="font-extrabold text-red-400 text-xs mt-0.5">R$ 3.200</p>
+                  </div>
+                  <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
+                    <p className="text-muted-foreground">Saldo Líquido</p>
+                    <p className="font-extrabold text-primary text-xs mt-0.5">R$ 11.650</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* 4. Administração de músicas (Réplica do LiberacoesTab) */}
-          <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-purple-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
+            {/* FLOATING 3D MICRO BADGE */}
+            <div className="absolute -bottom-3 right-6 px-3.5 py-1.5 rounded-xl bg-card border border-emerald-500/40 shadow-2xl flex items-center gap-2 backdrop-blur-md">
+              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[10px] font-bold text-white">Relatório em Tempo Real</span>
+            </div>
+          </motion.div>
+
+          {/* 4. Administração de músicas */}
+          <motion.div
+            whileHover={{ y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="p-7 rounded-3xl bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/60 hover:border-purple-500/40 transition-all flex flex-col justify-between space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative group"
+          >
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-md">
                   <PieChart className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white group-hover:text-purple-400 transition-colors">
+                  <h3 className="text-xl font-extrabold text-white group-hover:text-purple-400 transition-colors tracking-tight">
                     Administração de Músicas
                   </h3>
-                  <p className="text-xs text-muted-foreground">Divisão de coautoria e controle de liberações</p>
+                  <p className="text-xs text-muted-foreground font-medium">Divisão de coautoria e controle de liberações</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -615,40 +681,64 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Componente Real 4: Coautoria & Liberações */}
-            <div className="p-4 rounded-2xl bg-black/80 border border-border/40 space-y-2.5 shadow-lg">
-              <div className="flex items-center justify-between pb-2 border-b border-border/20 text-xs">
-                <span className="font-bold text-white">Divisão de Direitos Autorais</span>
-                <span className="text-purple-400 font-extrabold text-[10px]">ECAD / REGISTRADO</span>
+            {/* MOCKUP MAC BROWSER FRAME */}
+            <div className="relative w-full rounded-2xl overflow-hidden bg-black/90 border border-border/60 shadow-2xl group-hover:border-purple-500/40 transition-all">
+              <div className="bg-black/90 px-4 py-2 border-b border-border/30 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                </div>
+                <div className="px-3 py-0.5 rounded-full bg-input text-[10px] text-purple-400 font-mono border border-border/40 truncate max-w-[210px]">
+                  portaldoartista.com/artista/obras
+                </div>
+                <Laptop className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-white font-medium">Você (Compositor Titular)</span>
-                  <span className="font-bold text-primary">50%</span>
+
+              <div className="p-4 space-y-3 bg-gradient-to-b from-zinc-950 to-black">
+                <div className="flex items-center justify-between pb-1 border-b border-border/20 text-xs">
+                  <span className="font-bold text-white">Divisão de Direitos Autorais</span>
+                  <span className="text-purple-400 font-extrabold text-[9px]">ECAD / REGISTRADO</span>
                 </div>
-                <div className="w-full bg-input h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-primary h-full w-1/2" />
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-white font-medium">Coautor / Parceria</span>
-                  <span className="font-bold text-purple-400">50%</span>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-white font-medium">Você (Compositor Titular)</span>
+                    <span className="font-bold text-primary">50%</span>
+                  </div>
+                  <div className="w-full bg-input h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-primary h-full w-1/2" />
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-white font-medium">Coautor / Parceria</span>
+                    <span className="font-bold text-purple-400">50%</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* 5. Área VIP de músicas exclusivas (Réplica do ArtistVip) */}
-          <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-blue-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
+            {/* FLOATING 3D MICRO BADGE */}
+            <div className="absolute -bottom-3 right-6 px-3.5 py-1.5 rounded-xl bg-card border border-purple-500/40 shadow-2xl flex items-center gap-2 backdrop-blur-md">
+              <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+              <span className="text-[10px] font-bold text-white">100% Protegido</span>
+            </div>
+          </motion.div>
+
+          {/* 5. Área VIP de músicas exclusivas */}
+          <motion.div
+            whileHover={{ y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="p-7 rounded-3xl bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/60 hover:border-blue-500/40 transition-all flex flex-col justify-between space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative group"
+          >
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-md">
                   <Lock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white group-hover:text-blue-400 transition-colors">
+                  <h3 className="text-xl font-extrabold text-white group-hover:text-blue-400 transition-colors tracking-tight">
                     Área VIP de Músicas Exclusivas
                   </h3>
-                  <p className="text-xs text-muted-foreground">Audições restritas protegidas por senha</p>
+                  <p className="text-xs text-muted-foreground font-medium">Audições restritas protegidas por senha</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -656,40 +746,64 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Componente Real 5: Tela VIP com Passcode */}
-            <div className="p-4 rounded-2xl bg-black/80 border border-blue-500/30 space-y-3 shadow-lg">
-              <div className="flex items-center justify-between text-xs pb-2 border-b border-border/20">
-                <span className="font-bold text-blue-400 flex items-center gap-1">
-                  <Lock className="w-3.5 h-3.5" /> AUDIÇÃO VIP RESTRITA
-                </span>
-                <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[9px]">SENHA ATIVA</span>
+            {/* MOCKUP MAC BROWSER FRAME */}
+            <div className="relative w-full rounded-2xl overflow-hidden bg-black/90 border border-border/60 shadow-2xl group-hover:border-blue-500/40 transition-all">
+              <div className="bg-black/90 px-4 py-2 border-b border-border/30 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                </div>
+                <div className="px-3 py-0.5 rounded-full bg-input text-[10px] text-blue-400 font-mono border border-border/40 truncate max-w-[210px]">
+                  portaldoartista.com/alan-ribeiro/vip
+                </div>
+                <Laptop className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="password"
-                  readOnly
-                  value="12345678"
-                  className="flex-1 bg-input px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border/40"
-                />
-                <button className="px-3.5 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-400 text-black font-extrabold text-xs uppercase cursor-pointer">
-                  Entrar
-                </button>
+
+              <div className="p-4 space-y-3 bg-gradient-to-b from-zinc-950 to-black">
+                <div className="flex items-center justify-between text-xs pb-1 border-b border-border/20">
+                  <span className="font-bold text-blue-400 flex items-center gap-1 text-[11px]">
+                    <Lock className="w-3.5 h-3.5" /> AUDIÇÃO VIP RESTRITA
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[9px]">SENHA ATIVA</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    readOnly
+                    value="12345678"
+                    className="flex-1 bg-input px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border/40"
+                  />
+                  <button className="px-3.5 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-400 text-black font-extrabold text-xs uppercase cursor-pointer">
+                    Entrar
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* 6. CRM de contatos profissionais (Réplica do ContatosTab) */}
-          <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-indigo-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
+            {/* FLOATING 3D MICRO BADGE */}
+            <div className="absolute -bottom-3 right-6 px-3.5 py-1.5 rounded-xl bg-card border border-blue-500/40 shadow-2xl flex items-center gap-2 backdrop-blur-md">
+              <Lock className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-[10px] font-bold text-white">Acesso Protegido</span>
+            </div>
+          </motion.div>
+
+          {/* 6. CRM de contatos profissionais */}
+          <motion.div
+            whileHover={{ y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="p-7 rounded-3xl bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/60 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative group"
+          >
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-md">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white group-hover:text-indigo-400 transition-colors">
+                  <h3 className="text-xl font-extrabold text-white group-hover:text-indigo-400 transition-colors tracking-tight">
                     CRM de Contatos Profissionais
                   </h3>
-                  <p className="text-xs text-muted-foreground">Networking organizado por categorias</p>
+                  <p className="text-xs text-muted-foreground font-medium">Networking organizado por categorias</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -697,47 +811,71 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Componente Real 6: ContatosTab */}
-            <div className="p-4 rounded-2xl bg-black/80 border border-border/40 space-y-2 shadow-lg">
-              <div className="flex items-center justify-between pb-2 border-b border-border/20 text-xs">
-                <span className="font-bold text-white">Contatos Registrados (48)</span>
-                <span className="text-indigo-400 font-bold text-[10px] bg-indigo-500/10 px-2 py-0.5 rounded">+ Novo Contato</span>
-              </div>
-              <div className="space-y-1.5">
-                <div className="p-2 rounded-xl bg-card/80 border border-border/30 flex items-center justify-between text-xs">
-                  <div>
-                    <p className="font-bold text-white">Rodrigo Silva</p>
-                    <p className="text-[10px] text-muted-foreground">Categoria: Empresário</p>
-                  </div>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-extrabold text-[9px]">
-                    PROPOSTA ENVIADA
-                  </span>
+            {/* MOCKUP MAC BROWSER FRAME */}
+            <div className="relative w-full rounded-2xl overflow-hidden bg-black/90 border border-border/60 shadow-2xl group-hover:border-indigo-500/40 transition-all">
+              <div className="bg-black/90 px-4 py-2 border-b border-border/30 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
                 </div>
-                <div className="p-2 rounded-xl bg-card/80 border border-border/30 flex items-center justify-between text-xs">
-                  <div>
-                    <p className="font-bold text-white">Estúdio Som Livre</p>
-                    <p className="text-[10px] text-muted-foreground">Categoria: Produtor</p>
+                <div className="px-3 py-0.5 rounded-full bg-input text-[10px] text-indigo-400 font-mono border border-border/40 truncate max-w-[210px]">
+                  portaldoartista.com/artista/crm?tab=contatos
+                </div>
+                <Laptop className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
+
+              <div className="p-4 space-y-2 bg-gradient-to-b from-zinc-950 to-black">
+                <div className="flex items-center justify-between pb-1.5 border-b border-border/20 text-xs">
+                  <span className="font-bold text-white">Contatos (48)</span>
+                  <span className="text-indigo-400 font-bold text-[9px] bg-indigo-500/10 px-2 py-0.5 rounded">+ Contato</span>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="p-2 rounded-xl bg-card/80 border border-border/30 flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-bold text-white">Rodrigo Silva</p>
+                      <p className="text-[9px] text-muted-foreground">Empresário</p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-extrabold text-[8px]">
+                      PROPOSTA ENVIADA
+                    </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-extrabold text-[9px]">
-                    EM NEGOCIAÇÃO
-                  </span>
+                  <div className="p-2 rounded-xl bg-card/80 border border-border/30 flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-bold text-white">Estúdio Som Livre</p>
+                      <p className="text-[9px] text-muted-foreground">Produtor</p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-extrabold text-[8px]">
+                      EM NEGOCIAÇÃO
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* 7. Agenda interativa do artista (Réplica da AgendaTab) */}
-          <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-orange-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
+            {/* FLOATING 3D MICRO BADGE */}
+            <div className="absolute -bottom-3 right-6 px-3.5 py-1.5 rounded-xl bg-card border border-indigo-500/40 shadow-2xl flex items-center gap-2 backdrop-blur-md">
+              <Users className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-[10px] font-bold text-white">Networking Organizado</span>
+            </div>
+          </motion.div>
+
+          {/* 7. Agenda interativa do artista */}
+          <motion.div
+            whileHover={{ y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="p-7 rounded-3xl bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/60 hover:border-orange-500/40 transition-all flex flex-col justify-between space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative group"
+          >
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 shadow-md">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white group-hover:text-orange-400 transition-colors">
+                  <h3 className="text-xl font-extrabold text-white group-hover:text-orange-400 transition-colors tracking-tight">
                     Agenda Interativa do Artista
                   </h3>
-                  <p className="text-xs text-muted-foreground">Calendário de compromissos e gravações</p>
+                  <p className="text-xs text-muted-foreground font-medium">Calendário de compromissos e gravações</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -745,37 +883,61 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Componente Real 7: AgendaTab */}
-            <div className="p-4 rounded-2xl bg-black/80 border border-border/40 space-y-2 shadow-lg">
-              <div className="flex items-center justify-between pb-2 border-b border-border/20 text-xs">
-                <span className="font-bold text-white">Compromissos Agendados</span>
-                <span className="text-orange-400 font-bold text-[10px] bg-orange-500/10 px-2 py-0.5 rounded">+ Evento</span>
-              </div>
-              <div className="space-y-1.5 text-xs">
-                <div className="p-2 rounded-xl bg-card/80 border border-border/30 flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 font-extrabold text-[9px]">14 MAI • 19:00</span>
-                  <span className="text-white font-medium truncate">Gravação no Estúdio Central</span>
+            {/* MOCKUP MAC BROWSER FRAME */}
+            <div className="relative w-full rounded-2xl overflow-hidden bg-black/90 border border-border/60 shadow-2xl group-hover:border-orange-500/40 transition-all">
+              <div className="bg-black/90 px-4 py-2 border-b border-border/30 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
                 </div>
-                <div className="p-2 rounded-xl bg-card/80 border border-border/30 flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-extrabold text-[9px]">18 MAI • 21:00</span>
-                  <span className="text-white font-medium truncate">Show ao Vivo - Arena Sertaneja</span>
+                <div className="px-3 py-0.5 rounded-full bg-input text-[10px] text-orange-400 font-mono border border-border/40 truncate max-w-[210px]">
+                  portaldoartista.com/artista/crm?tab=agenda
+                </div>
+                <Laptop className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
+
+              <div className="p-4 space-y-2 bg-gradient-to-b from-zinc-950 to-black">
+                <div className="flex items-center justify-between pb-1.5 border-b border-border/20 text-xs">
+                  <span className="font-bold text-white">Maio 2026 • Compromissos</span>
+                  <span className="text-orange-400 font-bold text-[9px] bg-orange-500/10 px-2 py-0.5 rounded">+ Evento</span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="p-2 rounded-xl bg-card/80 border border-border/30 flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 font-extrabold text-[8px]">14 MAI • 19:00</span>
+                    <span className="text-white font-medium truncate">Gravação no Estúdio Central</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-card/80 border border-border/30 flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-extrabold text-[8px]">18 MAI • 21:00</span>
+                    <span className="text-white font-medium truncate">Show ao Vivo - Arena Sertaneja</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* 8. Press Kit profissional em PDF (Réplica do PressKitModal) */}
-          <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
+            {/* FLOATING 3D MICRO BADGE */}
+            <div className="absolute -bottom-3 right-6 px-3.5 py-1.5 rounded-xl bg-card border border-orange-500/40 shadow-2xl flex items-center gap-2 backdrop-blur-md">
+              <Calendar className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-[10px] font-bold text-white">Agenda Artística</span>
+            </div>
+          </motion.div>
+
+          {/* 8. Press Kit profissional em PDF */}
+          <motion.div
+            whileHover={{ y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="p-7 rounded-3xl bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/60 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative group"
+          >
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-md">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white group-hover:text-emerald-400 transition-colors">
+                  <h3 className="text-xl font-extrabold text-white group-hover:text-emerald-400 transition-colors tracking-tight">
                     Press Kit Profissional em PDF
                   </h3>
-                  <p className="text-xs text-muted-foreground">Documento oficial pronto em PDF para download</p>
+                  <p className="text-xs text-muted-foreground font-medium">Documento oficial pronto em PDF para download</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -783,22 +945,38 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Componente Real 8: PressKitModal */}
-            <div className="p-4 rounded-2xl bg-black/80 border border-emerald-500/30 space-y-3 shadow-lg">
-              <div className="flex items-center justify-between pb-2 border-b border-border/20 text-xs">
-                <span className="font-bold text-white">Press Kit Oficial (PDF)</span>
-                <span className="px-2 py-0.5 rounded bg-emerald-500 text-black font-extrabold text-[9px]">GERADO EM 1 CLIQUE</span>
+            {/* MOCKUP MAC BROWSER FRAME */}
+            <div className="relative w-full rounded-2xl overflow-hidden bg-black/90 border border-border/60 shadow-2xl group-hover:border-emerald-500/40 transition-all">
+              <div className="bg-black/90 px-4 py-2 border-b border-border/30 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                </div>
+                <div className="px-3 py-0.5 rounded-full bg-input text-[10px] text-emerald-400 font-mono border border-border/40 truncate max-w-[210px]">
+                  portaldoartista.com/artista/presskit
+                </div>
+                <Laptop className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
-              <div className="p-2.5 rounded-xl bg-card/80 border border-border/30 space-y-1">
-                <p className="font-bold text-white text-xs">PRESS-KIT-ALAN-RIBEIRO-2026.pdf</p>
-                <p className="text-[10px] text-muted-foreground">Biografia Oficial + Melhores Faixas + Fotos + Contatos de Shows</p>
+
+              <div className="p-4 space-y-3 bg-gradient-to-b from-zinc-950 to-black">
+                <div className="p-2.5 rounded-xl bg-card/80 border border-border/30 space-y-1">
+                  <p className="font-bold text-white text-xs">PRESS-KIT-ALAN-RIBEIRO-2026.pdf</p>
+                  <p className="text-[10px] text-muted-foreground">Biografia Oficial + Melhores Faixas + Fotos + Contatos de Shows</p>
+                </div>
+                <button className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md">
+                  <Download className="w-3.5 h-3.5" />
+                  Exportar PDF do Artista
+                </button>
               </div>
-              <button className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md">
-                <Download className="w-3.5 h-3.5" />
-                Baixar Press Kit em PDF
-              </button>
             </div>
-          </div>
+
+            {/* FLOATING 3D MICRO BADGE */}
+            <div className="absolute -bottom-3 right-6 px-3.5 py-1.5 rounded-xl bg-card border border-emerald-500/40 shadow-2xl flex items-center gap-2 backdrop-blur-md">
+              <FileText className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[10px] font-bold text-white">Gerado em 1 Clique</span>
+            </div>
+          </motion.div>
 
         </div>
       </section>
