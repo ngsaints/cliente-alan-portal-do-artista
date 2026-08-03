@@ -48,13 +48,13 @@ export function Navbar() {
           {/* Desktop links */}
           <div className="hidden sm:flex items-center gap-2">
             {!artistLoggedIn && (
-              <button
-                onClick={() => setPlansModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+              <Link
+                href="/planos"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
               >
                 <Star className="w-4 h-4 text-primary" />
                 Planos
-              </button>
+              </Link>
             )}
             {artistLoggedIn && (
               <Link
@@ -87,26 +87,26 @@ export function Navbar() {
               Vitrine
             </Link>
             {!artistLoggedIn && (
-              <button
-                onClick={() => setPlansModalOpen(true)}
-                className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 cursor-pointer"
+              <Link
+                href="/planos"
+                className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
               >
                 <Zap className="w-4 h-4" />
                 Assine Agora
-              </button>
+              </Link>
             )}
           </div>
 
           {/* Mobile: Assine Agora + hamburger */}
           <div className="flex sm:hidden items-center gap-2">
             {!artistLoggedIn && (
-              <button
-                onClick={() => setPlansModalOpen(true)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-black bg-primary hover:bg-primary/90 transition-colors cursor-pointer"
+              <Link
+                href="/planos"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-black bg-primary hover:bg-primary/90 transition-colors"
               >
                 <Zap className="w-3.5 h-3.5" />
                 Assine
-              </button>
+              </Link>
             )}
             <button
               onClick={() => setOpen(!open)}
@@ -150,13 +150,14 @@ export function Navbar() {
 
               <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
                 {!artistLoggedIn && (
-                  <button
-                    onClick={() => { setOpen(false); setPlansModalOpen(true); }}
-                    className="flex items-center gap-3 w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                  <Link
+                    href="/planos"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   >
                     <Star className="w-5 h-5 text-primary" />
                     Planos
-                  </button>
+                  </Link>
                 )}
                 {artistLoggedIn && (
                   <Link
@@ -196,25 +197,20 @@ export function Navbar() {
 
               <div className="p-4 border-t border-border/50">
                 {!artistLoggedIn && (
-                  <button
-                    onClick={() => { setOpen(false); setPlansModalOpen(true); }}
-                    className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 cursor-pointer"
+                  <Link
+                    href="/planos"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
                   >
                     <Zap className="w-4 h-4" />
                     Assine Agora
-                  </button>
+                  </Link>
                 )}
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
-
-      <PlansModal
-        isOpen={plansModalOpen}
-        onClose={() => setPlansModalOpen(false)}
-        onSelectPlan={handleSelectPlanModal}
-      />
     </>
   );
 }

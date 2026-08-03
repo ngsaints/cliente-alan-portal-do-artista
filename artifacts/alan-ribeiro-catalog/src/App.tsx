@@ -19,6 +19,7 @@ import ArtistForgotPassword from "@/pages/ArtistForgotPassword";
 import ArtistResetPassword from "@/pages/ArtistResetPassword";
 import Demo from "@/pages/Demo";
 import Cadastro from "@/pages/Cadastro";
+import Planos from "@/pages/Planos";
 import CrmPage from "@/pages/CrmPage";
 import NotFound from "@/pages/not-found";
 
@@ -37,6 +38,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/explorar" component={Home} />
+      <Route path="/planos" component={Planos} />
       <Route path="/cadastro" component={Cadastro} />
       <Route path="/artista/login" component={ArtistLogin} />
       <Route path="/artista/forgot" component={ArtistForgotPassword} />
