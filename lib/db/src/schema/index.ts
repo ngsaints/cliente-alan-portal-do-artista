@@ -21,3 +21,4 @@ export * from "./receitas";
 export * from "./eventos";
 export * from "./ajuda";
 export * from "./songComposers";
+export * from "./exitFeedbacks";

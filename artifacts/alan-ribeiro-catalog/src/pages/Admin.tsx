@@ -240,6 +240,7 @@ function AdminDashboard() {
     { id: "plans",     label: "Planos",         icon: Crown          },
     { id: "genres",    label: "Gêneros",        icon: Tag            },
     { id: "interests", label: "Interesses",     icon: MessageSquare  },
+    { id: "exit_feedback", label: "Pesquisa de Saída", icon: LogOut },
     { id: "settings", label: "Configurações", icon: Settings },
     { id: "server_logs", label: "Logs do Servidor", icon: Terminal },
     { id: "banners", label: "Banners", icon: Layout },
@@ -303,6 +304,7 @@ function AdminDashboard() {
           {activeTab === "plans" && <PlansTab />}
           {activeTab === "genres"    && <GenresTab />}
           {activeTab === "interests" && <InterestsTab />}
+          {activeTab === "exit_feedback" && <ExitFeedbackTab />}
           {activeTab === "settings" && <SettingsTab onNavigate={setActiveTab} />}
           {activeTab === "banners" && <BannersTab />}
           {activeTab === "cities" && <CitiesTab />}
@@ -4958,6 +4960,316 @@ function ServerLogsTab() {
           )}
           <div ref={terminalEndRef} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Exit Feedback Tab ────────────────────────────────────────────────────────
+
+interface ExitFeedbackItem {
+  id: number;
+  selectedOption: string;
+  customComment: string | null;
+  pageUrl: string;
+  userDevice: string;
+  createdAt: string;
+}
+
+function ExitFeedbackTab() {
+  const { toast } = useToast();
+  const [feedbacks, setFeedbacks] = useState<ExitFeedbackItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [filterQuery, setFilterQuery] = useState("");
+
+  const [enabled, setEnabled] = useState(true);
+  const [title, setTitle] = useState("Antes de ir embora... O que você achou do Portal do Artista?");
+  const [subtitle, setSubtitle] = useState("Sua opinião rápida é fundamental para melhorarmos a plataforma para músicos e compositores!");
+  const [options, setOptions] = useState<string[]>([
+    "Apenas navegando / curioso",
+    "Gostei, mas estou sem tempo no momento",
+    "Não entendi bem como o Portal funciona",
+    "Achei os planos ou valores altos",
+    "Faltou alguma funcionalidade importante",
+    "Outros (digite abaixo)",
+  ]);
+  const [newOptionText, setNewOptionText] = useState("");
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [resFeedbacks, resSettings] = await Promise.all([
+        fetch("/api/admin/exit-feedbacks").then((r) => r.json()),
+        fetch("/api/exit-feedback/settings").then((r) => r.json()),
+      ]);
+
+      if (Array.isArray(resFeedbacks)) {
+        setFeedbacks(resFeedbacks);
+      }
+
+      if (resSettings) {
+        if (typeof resSettings.enabled === "boolean") setEnabled(resSettings.enabled);
+        if (resSettings.title) setTitle(resSettings.title);
+        if (resSettings.subtitle) setSubtitle(resSettings.subtitle);
+        if (Array.isArray(resSettings.options)) setOptions(resSettings.options);
+      }
+    } catch (err) {
+      console.error("Error loading exit feedback data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const res = await fetch("/api/admin/exit-feedback/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled, title, subtitle, options }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "Configurações salvas com sucesso!" });
+      } else {
+        toast({ title: "Erro ao salvar", description: data.error, variant: "destructive" });
+      }
+    } catch (e) {
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleAddOption = () => {
+    if (!newOptionText.trim()) return;
+    setOptions([...options, newOptionText.trim()]);
+    setNewOptionText("");
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteFeedback = async (id: number) => {
+    try {
+      await fetch(`/api/admin/exit-feedbacks/${id}`, { method: "DELETE" });
+      setFeedbacks(feedbacks.filter((f) => f.id !== id));
+      toast({ title: "Feedback excluído" });
+    } catch (e) {
+      toast({ title: "Erro ao excluir", variant: "destructive" });
+    }
+  };
+
+  const handleClearAllFeedbacks = async () => {
+    if (!confirm("Tem certeza que deseja apagar TODOS os feedbacks de saída gravados?")) return;
+    try {
+      await fetch("/api/admin/exit-feedbacks", { method: "DELETE" });
+      setFeedbacks([]);
+      toast({ title: "Todos os feedbacks foram limpos" });
+    } catch (e) {
+      toast({ title: "Erro ao limpar", variant: "destructive" });
+    }
+  };
+
+  const filteredFeedbacks = feedbacks.filter((f) => {
+    if (!filterQuery) return true;
+    const q = filterQuery.toLowerCase();
+    return (
+      f.selectedOption.toLowerCase().includes(q) ||
+      (f.customComment && f.customComment.toLowerCase().includes(q)) ||
+      f.pageUrl.toLowerCase().includes(q) ||
+      f.userDevice.toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div className="space-y-8">
+      {/* Configuração do Modal */}
+      <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/40">
+          <div>
+            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <LogOut className="w-5 h-5 text-primary" />
+              Configuração da Pesquisa de Saída (Exit-Intent)
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Personalize o modal que é exibido quando o visitante tenta fechar a página (Desktop) ou minimiza/troca de aba (Mobile).
+            </p>
+          </div>
+          <div className="flex items-center gap-3 bg-muted/40 px-4 py-2 rounded-xl border border-border">
+            <span className="text-xs font-bold text-foreground">Status do Recurso:</span>
+            <Switch checked={enabled} onCheckedChange={setEnabled} />
+            <span className={`text-xs font-black ${enabled ? "text-emerald-400" : "text-muted-foreground"}`}>
+              {enabled ? "ATIVADO" : "DESATIVADO"}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold text-muted-foreground block mb-1">Título da Pergunta no Modal</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full bg-input border border-border rounded-xl px-3.5 py-2 text-sm text-foreground outline-none focus:border-primary"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground block mb-1">Subtítulo / Mensagem de Apoio</label>
+              <input
+                type="text"
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+                className="w-full bg-input border border-border rounded-xl px-3.5 py-2 text-sm text-foreground outline-none focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <label className="text-xs font-bold text-muted-foreground block mb-1">Opções de Múltipla Escolha</label>
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {options.map((opt, i) => (
+                <div key={i} className="flex items-center gap-2 bg-input/60 px-3 py-1.5 rounded-xl border border-border/40 text-xs">
+                  <span className="flex-1 text-foreground font-medium">{opt}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveOption(i)}
+                    className="text-muted-foreground hover:text-red-400 transition-colors p-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newOptionText}
+                onChange={(e) => setNewOptionText(e.target.value)}
+                placeholder="Adicionar nova opção..."
+                className="flex-1 bg-input border border-border rounded-xl px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={handleAddOption}
+                className="px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-bold text-xs flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2 border-t border-border/30">
+          <button
+            onClick={handleSaveSettings}
+            disabled={savingSettings}
+            className="px-6 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs uppercase tracking-wider hover:bg-primary/90 transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-primary/20"
+          >
+            {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Salvar Configurações do Modal
+          </button>
+        </div>
+      </div>
+
+      {/* Relatório de Respostas dos Usuários */}
+      <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              Feedbacks e Motivos de Saída ({feedbacks.length})
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Respostas dos usuários gravadas em tempo real antes de abandonarem a página.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="relative min-w-[220px]">
+              <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Filtrar por texto..."
+                value={filterQuery}
+                onChange={(e) => setFilterQuery(e.target.value)}
+                className="w-full bg-input border border-border rounded-xl pl-9 pr-3 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+              />
+            </div>
+            {feedbacks.length > 0 && (
+              <button
+                onClick={handleClearAllFeedbacks}
+                className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Limpar Tudo
+              </button>
+            )}
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground text-xs flex items-center justify-center gap-2">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" /> Carregando feedbacks dos visitantes...
+          </div>
+        ) : filteredFeedbacks.length === 0 ? (
+          <div className="text-center py-12 border border-dashed border-border/60 rounded-2xl text-muted-foreground text-xs">
+            Nenhum feedback registrado no momento.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredFeedbacks.map((item) => {
+              const formattedDate = new Date(item.createdAt).toLocaleString("pt-BR", {
+                dateStyle: "short",
+                timeStyle: "short",
+              });
+              const isMobile = item.userDevice.toLowerCase() === "mobile";
+
+              return (
+                <div
+                  key={item.id}
+                  className="p-4 rounded-2xl bg-black/60 border border-border/50 space-y-3 relative group hover:border-primary/40 transition-all shadow-md"
+                >
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="px-2.5 py-1 rounded-full bg-primary/15 border border-primary/30 text-primary font-bold">
+                      {item.selectedOption}
+                    </span>
+                    <div className="flex items-center gap-2 text-muted-foreground text-[10px]">
+                      <span className="flex items-center gap-1 bg-input px-2 py-0.5 rounded-md border border-border">
+                        {isMobile ? "Mobile" : "Desktop"}
+                      </span>
+                      <span>{formattedDate}</span>
+                      <button
+                        onClick={() => handleDeleteFeedback(item.id)}
+                        className="text-muted-foreground hover:text-red-400 p-1 transition-colors"
+                        title="Deletar feedback"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {item.customComment && (
+                    <div className="p-3 rounded-xl bg-card border border-border/40 text-xs text-foreground leading-relaxed italic">
+                      "{item.customComment}"
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/20 font-mono">
+                    <span>Página: {item.pageUrl}</span>
+                    <span>ID #{item.id}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
