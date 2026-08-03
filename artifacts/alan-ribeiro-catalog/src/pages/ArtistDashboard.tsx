@@ -368,6 +368,7 @@ export default function ArtistDashboard() {
   const [location, setLocation] = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const artistTabBarRef = useRef<HTMLDivElement>(null);
 
   const handleArtistScrollLeft = () => {
@@ -381,8 +382,7 @@ export default function ArtistDashboard() {
       artistTabBarRef.current.scrollBy({ left: 260, behavior: "smooth" });
     }
   };
-  const [artist, setArtist] = useState<ArtistProfile | null>(null);
-  const [stats, setStats] = useState<ArtistStats>({ totalSongs: 0, totalPlays: 0, totalLikes: 0, vipContent: 0 });
+  const [artist, setArtist] = useState<ArtistProfile | null>(null);  const [stats, setStats] = useState<ArtistStats>({ totalSongs: 0, totalPlays: 0, totalLikes: 0, vipContent: 0 });
   const [songs, setSongs] = useState<any[]>([]);
   const [openaiEnabled, setOpenaiEnabled] = useState(false);
   const [supportChannels, setSupportChannels] = useState({ instagram: "", whatsapp: "", email: "" });
