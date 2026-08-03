@@ -83,6 +83,28 @@ router.get("/settings", async (_req, res): Promise<void> => {
     console.error("Error fetching support/openai settings:", err);
   }
 
+  let pixelMetaId: string | null = null;
+  let pixelGoogleId: string | null = null;
+  let pixelTiktokId: string | null = null;
+  let pixelCustomHeadScript: string | null = null;
+  let pixelCustomBodyScript: string | null = null;
+
+  try {
+    const pixelRows = await db
+      .select({ key: appSettingsTable.key, value: appSettingsTable.value })
+      .from(appSettingsTable)
+      .where(eq(appSettingsTable.category, "pixel"));
+    for (const r of pixelRows) {
+      if (r.key === "pixel_meta_id") pixelMetaId = r.value;
+      if (r.key === "pixel_google_id") pixelGoogleId = r.value;
+      if (r.key === "pixel_tiktok_id") pixelTiktokId = r.value;
+      if (r.key === "pixel_custom_head_script") pixelCustomHeadScript = r.value;
+      if (r.key === "pixel_custom_body_script") pixelCustomBodyScript = r.value;
+    }
+  } catch (err) {
+    console.error("Error fetching pixel settings:", err);
+  }
+
   res.json({
     artistName,
     artistPhotoUrl: artistPhotoUrl || null,
@@ -92,6 +114,11 @@ router.get("/settings", async (_req, res): Promise<void> => {
     heroSubtitle: heroSubtitle || null,
     heroCTA: heroCTA || null,
     clarityProjectId,
+    pixelMetaId,
+    pixelGoogleId,
+    pixelTiktokId,
+    pixelCustomHeadScript,
+    pixelCustomBodyScript,
     suporteInstagram: suporteInstagram || "@Portaldoartista.oficial",
     suporteWhatsapp: suporteWhatsapp || "21 99589 7040",
     suporteEmail: suporteEmail || "portaldoartistaoficial@gmail.com",

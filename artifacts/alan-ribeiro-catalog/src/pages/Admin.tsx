@@ -18,7 +18,7 @@ import {
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
-  Mail, Gift, Send, Terminal,
+  Mail, Gift, Send, Terminal, Target,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -114,7 +114,7 @@ interface Coupon {
 }
 
 type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs";
-type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email" | "clarity";
+type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email" | "clarity" | "pixel";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
@@ -1821,6 +1821,7 @@ function SettingsTab({ onNavigate }: { onNavigate?: (tab: MainTab) => void }) {
     { id: "portal", label: "Portal", icon: Globe, color: "text-purple-400" },
     { id: "email", label: "Email", icon: Mail, color: "text-red-400" },
     { id: "clarity", label: "Microsoft Clarity", icon: BarChart3, color: "text-indigo-400" },
+    { id: "pixel", label: "Pixels & Rastreamento", icon: Target, color: "text-emerald-400" },
   ];
 
   return (
@@ -1939,6 +1940,13 @@ const SETTING_LABELS: Record<string, string> = {
   
   // Microsoft Clarity
   clarity_project_id: "ID do Projeto Microsoft Clarity",
+
+  // Pixels & Rastreamento
+  pixel_meta_id: "ID do Meta / Facebook Pixel (ex: 123456789012345)",
+  pixel_google_id: "ID do Google Tag Manager ou Analytics (ex: GTM-XXXXXX ou G-XXXXXX)",
+  pixel_tiktok_id: "ID do TikTok Pixel (ex: C1234567890)",
+  pixel_custom_head_script: "Script de Rastreamento / Pixel Customizado (<head>)",
+  pixel_custom_body_script: "Script de Rastreamento / Pixel Customizado (<body>)",
   
   // Asaas
   asaas_access_token: "Token de Acesso Asaas",
@@ -2189,6 +2197,20 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           </ol>
         </div>
       )}
+      {category === "pixel" && (
+        <div className="bg-gradient-to-r from-emerald-900/30 to-teal-800/10 border border-emerald-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2 text-emerald-400">
+            <HelpCircle className="w-5 h-5" />
+            <h3 className="font-bold text-lg">Como Configurar Pixels de Rastreamento (Meta, Google & TikTok)</h3>
+          </div>
+          <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+            <li><strong>Meta / Facebook Pixel ID</strong>: Cole apenas o ID numérico do seu Pixel (ex: <code className="bg-black/30 px-1 py-0.5 rounded">123456789012345</code>). O portal ativará o evento PageView automaticamente.</li>
+            <li><strong>Google Tag Manager / Analytics ID</strong>: Cole o ID da tag (ex: <code className="bg-black/30 px-1 py-0.5 rounded">G-XXXXXXXXXX</code> ou <code className="bg-black/30 px-1 py-0.5 rounded">GTM-XXXXXXX</code>).</li>
+            <li><strong>TikTok Pixel ID</strong>: Cole o código ID do Pixel TikTok (ex: <code className="bg-black/30 px-1 py-0.5 rounded">C1234567890</code>).</li>
+            <li><strong>Script de Pixel Customizado</strong>: Se sua ferramenta fornecer um código em texto completo (<code className="bg-black/30 px-1 py-0.5 rounded">&lt;script&gt;...&lt;/script&gt;</code>), cole nos campos de Script Customizado (<code className="bg-black/30 px-1 py-0.5 rounded">&lt;head&gt;</code> ou <code className="bg-black/30 px-1 py-0.5 rounded">&lt;body&gt;</code>).</li>
+          </ol>
+        </div>
+      )}
       {category === "portal" && (
         <div className="bg-gradient-to-r from-purple-900/30 to-purple-800/10 border border-purple-500/30 rounded-2xl p-5 space-y-3">
           <div className="flex items-center gap-2 text-purple-400">
@@ -2231,6 +2253,14 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                     : (values[s.key] === "true" ? "Ativada" : "Desativada")}
                 </span>
               </div>
+            ) : s.key.startsWith("pixel_custom_") || s.key.endsWith("_script") ? (
+              <textarea
+                value={values[s.key] ?? ""}
+                onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+                placeholder="Cole o código do script aqui (<script>...</script>)"
+                rows={5}
+                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-xs font-mono"
+              />
             ) : category === "demo" && s.key === "demo_cor" ? (
               <div className="flex gap-2">
                 <input

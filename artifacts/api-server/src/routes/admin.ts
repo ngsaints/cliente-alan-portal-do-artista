@@ -17,6 +17,7 @@ function inferCategory(key: string): string {
   if (key.startsWith("r2_")) return "r2";
   if (key.startsWith("portal_") || key.startsWith("landing_") || key.startsWith("footer_") || key.startsWith("suporte_") || key.startsWith("openai_")) return "portal";
   if (key.startsWith("clarity_")) return "clarity";
+  if (key.startsWith("pixel_")) return "pixel";
   if (key.startsWith("mp_")) return "mercadopago";
   if (key.startsWith("smtp_") || key.startsWith("email_")) return "email";
   return "geral";
@@ -214,6 +215,31 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
           isSecret: "false",
           description: "Microsoft Clarity Project ID para análise de comportamento e mapa de calor."
         });
+      }
+    }
+
+    if (category === "pixel") {
+      const pixelKeys = [
+        { key: "pixel_meta_id", desc: "ID do Meta / Facebook Pixel (ex: 123456789012345)" },
+        { key: "pixel_google_id", desc: "ID do Google Tag Manager ou Google Analytics (ex: GTM-XXXXXX ou G-XXXXXX)" },
+        { key: "pixel_tiktok_id", desc: "ID do TikTok Pixel (ex: C1234567890)" },
+        { key: "pixel_custom_head_script", desc: "Script de Rastreamento / Pixel Customizado (Head)" },
+        { key: "pixel_custom_body_script", desc: "Script de Rastreamento / Pixel Customizado (Body)" },
+      ];
+      for (const item of pixelKeys) {
+        const existing = await db
+          .select()
+          .from(appSettingsTable)
+          .where(eq(appSettingsTable.key, item.key));
+        if (existing.length === 0) {
+          await db.insert(appSettingsTable).values({
+            category: "pixel",
+            key: item.key,
+            value: "",
+            isSecret: "false",
+            description: item.desc
+          });
+        }
       }
     }
 
