@@ -1,20 +1,23 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
-import { Music, Users, Zap, LogIn, LayoutDashboard, Menu, X } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Music, Users, Zap, LayoutDashboard, Menu, X, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { PlansModal } from "@/components/PlansModal";
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const [plansModalOpen, setPlansModalOpen] = useState(false);
   const [artistLoggedIn, setArtistLoggedIn] = useState(false);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (open) {
+    if (open || plansModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [open]);
+  }, [open, plansModalOpen]);
 
   useEffect(() => {
     fetch("/api/artists/status", { credentials: "include" })
@@ -23,17 +26,11 @@ export function Navbar() {
       .catch(() => {});
   }, [open]);
 
-  const artistLink = artistLoggedIn
-    ? { href: "/artista/dashboard", icon: LayoutDashboard, label: "Meu Painel" }
-    : { href: "/cadastro",          icon: Zap,             label: "Planos" };
-
-  const otherLinks = [
-    { href: "/explorar", icon: Music,       label: "Músicas" },
-    { href: "/artistas", icon: Users,       label: "Artistas" },
-    { href: "/demo",     icon: Zap,         label: "Vitrine" },
-  ];
-
-  const allLinks = [artistLink, ...otherLinks];
+  const handleSelectPlanModal = (planId: string) => {
+    setPlansModalOpen(false);
+    setOpen(false);
+    setLocation(`/cadastro?plano=${planId}`);
+  };
 
   return (
     <>
@@ -50,37 +47,66 @@ export function Navbar() {
 
           {/* Desktop links */}
           <div className="hidden sm:flex items-center gap-2">
-            {allLinks.map((l) => (
+            {!artistLoggedIn && (
+              <button
+                onClick={() => setPlansModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+              >
+                <Star className="w-4 h-4 text-primary" />
+                Planos
+              </button>
+            )}
+            {artistLoggedIn && (
               <Link
-                key={l.href}
-                href={l.href}
+                href="/artista/dashboard"
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
               >
-                <l.icon className="w-4 h-4" />
-                {l.label}
+                <LayoutDashboard className="w-4 h-4" />
+                Meu Painel
               </Link>
-            ))}
+            )}
+            <Link
+              href="/explorar"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Music className="w-4 h-4" />
+              Músicas
+            </Link>
+            <Link
+              href="/artistas"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              Artistas
+            </Link>
+            <Link
+              href="/demo"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Zap className="w-4 h-4" />
+              Vitrine
+            </Link>
             {!artistLoggedIn && (
-              <Link
-                href="/cadastro"
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+              <button
+                onClick={() => setPlansModalOpen(true)}
+                className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 cursor-pointer"
               >
                 <Zap className="w-4 h-4" />
                 Assine Agora
-              </Link>
+              </button>
             )}
           </div>
 
           {/* Mobile: Assine Agora + hamburger */}
           <div className="flex sm:hidden items-center gap-2">
             {!artistLoggedIn && (
-              <Link
-                href="/cadastro"
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-black bg-primary hover:bg-primary/90 transition-colors"
+              <button
+                onClick={() => setPlansModalOpen(true)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-black bg-primary hover:bg-primary/90 transition-colors cursor-pointer"
               >
                 <Zap className="w-3.5 h-3.5" />
                 Assine
-              </Link>
+              </button>
             )}
             <button
               onClick={() => setOpen(!open)}
@@ -123,35 +149,72 @@ export function Navbar() {
               </div>
 
               <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-                {allLinks.map((l) => (
+                {!artistLoggedIn && (
+                  <button
+                    onClick={() => { setOpen(false); setPlansModalOpen(true); }}
+                    className="flex items-center gap-3 w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                  >
+                    <Star className="w-5 h-5 text-primary" />
+                    Planos
+                  </button>
+                )}
+                {artistLoggedIn && (
                   <Link
-                    key={l.href}
-                    href={l.href}
+                    href="/artista/dashboard"
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   >
-                    <l.icon className="w-5 h-5" />
-                    {l.label}
+                    <LayoutDashboard className="w-5 h-5" />
+                    Meu Painel
                   </Link>
-                ))}
+                )}
+                <Link
+                  href="/explorar"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <Music className="w-5 h-5" />
+                  Músicas
+                </Link>
+                <Link
+                  href="/artistas"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <Users className="w-5 h-5" />
+                  Artistas
+                </Link>
+                <Link
+                  href="/demo"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <Zap className="w-5 h-5" />
+                  Vitrine
+                </Link>
               </div>
 
               <div className="p-4 border-t border-border/50">
                 {!artistLoggedIn && (
-                  <Link
-                    href="/cadastro"
-                    onClick={() => setOpen(false)}
-                    className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                  <button
+                    onClick={() => { setOpen(false); setPlansModalOpen(true); }}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 cursor-pointer"
                   >
                     <Zap className="w-4 h-4" />
                     Assine Agora
-                  </Link>
+                  </button>
                 )}
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
+
+      <PlansModal
+        isOpen={plansModalOpen}
+        onClose={() => setPlansModalOpen(false)}
+        onSelectPlan={handleSelectPlanModal}
+      />
     </>
   );
 }

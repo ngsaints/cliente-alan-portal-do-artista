@@ -24,9 +24,17 @@ interface Plan {
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [heroFeaturedPlan, setHeroFeaturedPlan] = useState<string>("premium");
   const [faqOpen, setFaqOpen] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.heroFeaturedPlan) setHeroFeaturedPlan(data.heroFeaturedPlan);
+      })
+      .catch(console.error);
+
     fetch("/api/plans")
       .then((res) => res.json())
       .then((data) => {
@@ -116,7 +124,7 @@ export default function Landing() {
 
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
               <button 
-                onClick={() => setLocation("/cadastro?plano=free")}
+                onClick={() => setLocation(`/cadastro?plano=${heroFeaturedPlan}`)}
                 className="w-full sm:w-auto px-9 py-4 rounded-full bg-primary text-primary-foreground font-black text-base hover:bg-primary/95 transition-all shadow-[0_10px_35px_rgba(245,197,24,0.35)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
               >
                 <Zap className="w-5 h-5 fill-current" />
@@ -583,24 +591,69 @@ export default function Landing() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {plans.map((plan) => (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className={`p-7 rounded-3xl border flex flex-col justify-between space-y-6 transition-all ${plan.cardStyle}`}
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${plan.color}`}>
-                      {plan.label}
-                    </span>
-                    {plan.nome === "premium" && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-primary text-black">
-                        ⭐ MAIS POPULAR
+            {plans.map((plan) => {
+              const isFeatured = plan.nome === heroFeaturedPlan;
+              return (
+                <motion.div
+                  key={plan.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className={`p-7 rounded-3xl border flex flex-col justify-between space-y-6 transition-all ${
+                    isFeatured
+                      ? "border-primary bg-gradient-to-b from-primary/10 via-card/80 to-card/90 ring-2 ring-primary/30 shadow-[0_0_35px_rgba(245,197,24,0.2)]"
+                      : "border-border/40 bg-card/40 hover:border-primary/40"
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${plan.color}`}>
+                        {plan.label}
                       </span>
-                    )}
+                      {isFeatured && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-primary text-black">
+                          ⭐ MAIS POPULAR
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-extrabold text-white">
+                          R$ {parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-xs text-muted-foreground">/mês</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{plan.tagline}</p>
+                    </div>
+
+                    <ul className="space-y-2.5 pt-2 border-t border-border/30">
+                      {plan.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <button
+                    onClick={() => setLocation(`/cadastro?plano=${plan.nome}`)}
+                    className={`w-full py-3.5 rounded-full font-extrabold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                      isFeatured
+                        ? "bg-primary text-primary-foreground hover:bg-primary/95 shadow-lg shadow-primary/20"
+                        : "bg-card border border-border/60 text-white hover:border-primary/50 hover:bg-card/80"
+                    }`}
+                  >
+                    Escolher Plano {plan.label}
+                  </button>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* 7. PROVA SOCIAL */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-12">
         <div className="text-center space-y-4">
@@ -712,8 +765,8 @@ export default function Landing() {
 
           <div className="pt-4">
             <button 
-              onClick={() => setLocation("/cadastro")}
-              className="px-12 py-5 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-black text-lg transition-all shadow-[0_8px_30px_rgba(245,197,24,0.35)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+              onClick={() => setLocation(`/cadastro?plano=${heroFeaturedPlan}`)}
+              className="px-12 py-5 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-black text-lg transition-all shadow-[0_8px_30px_rgba(245,197,24,0.35)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer uppercase tracking-wider"
             >
               ASSINE AGORA
             </button>

@@ -47,6 +47,12 @@ export default function Cadastro() {
   });
 
   useEffect(() => {
+    if (rawPlanParam) {
+      setFormData((prev) => ({ ...prev, plano: rawPlanParam }));
+    }
+  }, [rawPlanParam]);
+
+  useEffect(() => {
     fetch("/api/plans")
       .then((res) => res.json())
       .then((data) => {

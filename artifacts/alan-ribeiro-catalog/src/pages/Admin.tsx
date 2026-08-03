@@ -1247,6 +1247,7 @@ function ArtistsTab() {
 function PlansTab() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [heroFeaturedPlan, setHeroFeaturedPlan] = useState<string>("premium");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState<Partial<Plan>>({});
   const [showCreate, setShowCreate] = useState(false);
@@ -1265,9 +1266,31 @@ function PlansTab() {
       .then((r) => r.json())
       .then((d) => setPlans(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false));
+
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.heroFeaturedPlan) setHeroFeaturedPlan(data.heroFeaturedPlan);
+      })
+      .catch(() => {});
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleSetHeroFeaturedPlan = async (planNome: string, planLabel: string) => {
+    const res = await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ hero_featured_plan: planNome }),
+    });
+    if (res.ok) {
+      setHeroFeaturedPlan(planNome);
+      toast({ title: `Plano "${planLabel}" definido como destaque na Página Inicial!` });
+    } else {
+      toast({ title: "Erro ao salvar plano em destaque", variant: "destructive" });
+    }
+  };
 
   const startEdit = (p: Plan) => {
     setEditingId(p.id);
@@ -1477,7 +1500,14 @@ function PlansTab() {
                 <>
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="font-bold text-foreground">{plan.label}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-foreground">{plan.label}</h3>
+                        {heroFeaturedPlan === plan.nome && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            ⭐ Destaque na Inicial
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground uppercase">{plan.nome}</p>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${plan.ativo ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
@@ -1503,6 +1533,19 @@ function PlansTab() {
                     <button onClick={() => startEdit(plan)} className="flex-1 py-2 text-sm font-medium rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors flex items-center justify-center gap-2">
                       <Edit2 className="w-3.5 h-3.5" /> Editar
                     </button>
+                    {heroFeaturedPlan !== plan.nome ? (
+                      <button
+                        onClick={() => handleSetHeroFeaturedPlan(plan.nome, plan.label)}
+                        className="px-3 py-2 text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Definir como o plano em destaque da Página Inicial"
+                      >
+                        ⭐ Destaque
+                      </button>
+                    ) : (
+                      <span className="px-3 py-2 text-xs font-bold text-amber-400 bg-amber-500/20 border border-amber-500/40 rounded-lg flex items-center gap-1">
+                        ✓ Destaque
+                      </span>
+                    )}
                     <button onClick={() => handleDelete(plan.id, plan.nome)} className="px-3 py-2 text-sm text-muted-foreground hover:text-destructive rounded-lg border border-border hover:border-destructive/40 transition-colors">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

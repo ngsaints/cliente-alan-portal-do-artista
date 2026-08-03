@@ -256,6 +256,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "footer_copyright", value: "© 2026 Portaldoartista.com – Todos os direitos reservados.", desc: "Rodapé: Copyright" },
         { key: "landing_video_url", value: "", desc: "Landing: Link do Vídeo (YouTube)" },
         { key: "landing_hero_video_url", value: "", desc: "Landing: Link do Vídeo do Hero (YouTube)" },
+        { key: "hero_featured_plan", value: "premium", desc: "Nome do plano em destaque na Página Inicial (Hero/Oferta)" },
         { key: "landing_hero_title", value: "Sua música pode ser incrível. Mas ela está sendo apresentada como merece?", desc: "Landing: Título Principal" },
         { key: "landing_hero_subtitle", value: "Pare de enviar apenas um MP3. Crie sua página profissional, organize sua carreira e apresente suas músicas como um artista profissional.", desc: "Landing: Subtítulo" },
         { key: "landing_hero_cta", value: "COMEÇAR AGORA", desc: "Landing: Texto do Botão (CTA)" },

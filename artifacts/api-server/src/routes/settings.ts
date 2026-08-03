@@ -61,6 +61,7 @@ router.get("/settings", async (_req, res): Promise<void> => {
   let landingHeroTitle: string | null = null;
   let landingHeroSubtitle: string | null = null;
   let landingHeroCta: string | null = null;
+  let heroFeaturedPlan: string | null = null;
 
   try {
     const rows = await db
@@ -78,6 +79,7 @@ router.get("/settings", async (_req, res): Promise<void> => {
       if (r.key === "landing_hero_title") landingHeroTitle = r.value;
       if (r.key === "landing_hero_subtitle") landingHeroSubtitle = r.value;
       if (r.key === "landing_hero_cta") landingHeroCta = r.value;
+      if (r.key === "hero_featured_plan") heroFeaturedPlan = r.value;
     }
   } catch (err) {
     console.error("Error fetching support/openai settings:", err);
@@ -128,6 +130,7 @@ router.get("/settings", async (_req, res): Promise<void> => {
     landingHeroTitle: landingHeroTitle || "Sua música pode ser incrível. Mas ela está sendo apresentada como merece?",
     landingHeroSubtitle: landingHeroSubtitle || "Pare de enviar apenas um MP3. Crie sua página profissional, organize sua carreira e apresente suas músicas como um artista profissional.",
     landingHeroCta: landingHeroCta || "COMEÇAR AGORA",
+    heroFeaturedPlan: heroFeaturedPlan || "premium",
   });
 });
 
