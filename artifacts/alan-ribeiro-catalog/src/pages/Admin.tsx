@@ -294,23 +294,23 @@ function AdminDashboard() {
       <div className="sticky top-16 z-30 bg-black/95 backdrop-blur-md border-b border-border/60 shadow-xl relative group/tabbar">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative flex items-center">
           
-          {/* Botão de Rolagem Esquerda */}
+          {/* Botão de Rolagem Esquerda (apenas no Desktop) */}
           <button
             type="button"
             onClick={handleScrollLeft}
-            className="absolute left-1 z-20 w-8 h-8 rounded-full bg-black/90 border border-primary/40 text-primary flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
+            className="hidden sm:flex absolute left-1 z-20 w-8 h-8 rounded-full bg-black/90 border border-primary/40 text-primary items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
             title="Rolar para a esquerda"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
           {/* Sombra de desvanecimento à esquerda */}
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black via-black/80 to-transparent z-10" />
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-black via-black/80 to-transparent z-10 hidden sm:block" />
 
           {/* Container de Abas com Rolagem Suave */}
           <div 
             ref={tabBarRef}
-            className="flex gap-1.5 overflow-x-auto py-2.5 px-8 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none] touch-pan-x scroll-smooth w-full"
+            className="flex gap-1.5 overflow-x-auto py-2.5 px-1 sm:px-8 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none] touch-pan-x scroll-smooth w-full"
           >
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -335,13 +335,13 @@ function AdminDashboard() {
           </div>
 
           {/* Sombra de desvanecimento à direita */}
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black via-black/80 to-transparent z-10" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-black via-black/80 to-transparent z-10 hidden sm:block" />
 
-          {/* Botão de Rolagem Direita */}
+          {/* Botão de Rolagem Direita (apenas no Desktop) */}
           <button
             type="button"
             onClick={handleScrollRight}
-            className="absolute right-1 z-20 w-8 h-8 rounded-full bg-black/90 border border-primary/40 text-primary flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
+            className="hidden sm:flex absolute right-1 z-20 w-8 h-8 rounded-full bg-black/90 border border-primary/40 text-primary items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
             title="Rolar para a direita"
           >
             <ChevronRight className="w-4 h-4" />

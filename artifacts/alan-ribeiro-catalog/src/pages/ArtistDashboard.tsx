@@ -1281,22 +1281,22 @@ export default function ArtistDashboard() {
             </div>
           </div>
 
-          {/* Tabs bar com setas interativas e rolagem animada */}
+          {/* Tabs bar com setas interativas (apenas no Desktop) */}
           <div className="relative mb-6 flex items-center group/artisttabbar">
             <button
               type="button"
               onClick={handleArtistScrollLeft}
-              className="absolute left-0 z-20 w-7 h-7 rounded-full bg-black/90 border border-primary/40 text-primary flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
+              className="hidden sm:flex absolute left-0 z-20 w-7 h-7 rounded-full bg-black/90 border border-primary/40 text-primary items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
               title="Rolar para a esquerda"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background via-background/80 to-transparent z-10" />
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background via-background/80 to-transparent z-10 hidden sm:block" />
 
             <div
               ref={artistTabBarRef}
-              className="flex gap-1.5 overflow-x-auto py-2 px-7 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none] touch-pan-x scroll-smooth w-full"
+              className="flex gap-1.5 overflow-x-auto py-2 px-1 sm:px-7 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none] touch-pan-x scroll-smooth w-full"
             >
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
@@ -1320,12 +1320,12 @@ export default function ArtistDashboard() {
               })}
             </div>
 
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background via-background/80 to-transparent z-10" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background via-background/80 to-transparent z-10 hidden sm:block" />
 
             <button
               type="button"
               onClick={handleArtistScrollRight}
-              className="absolute right-0 z-20 w-7 h-7 rounded-full bg-black/90 border border-primary/40 text-primary flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
+              className="hidden sm:flex absolute right-0 z-20 w-7 h-7 rounded-full bg-black/90 border border-primary/40 text-primary items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
               title="Rolar para a direita"
             >
               <ChevronRight className="w-3.5 h-3.5" />
