@@ -113,7 +113,7 @@ interface Coupon {
   createdAt: string;
 }
 
-type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs";
+type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs" | "exit_feedback";
 type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email" | "clarity" | "pixel";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────

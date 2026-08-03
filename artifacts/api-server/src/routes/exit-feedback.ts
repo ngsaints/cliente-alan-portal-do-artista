@@ -23,7 +23,7 @@ router.get("/exit-feedback/settings", async (_req, res): Promise<void> => {
 
     const settingsMap: Record<string, string> = {};
     rows.forEach((r) => {
-      settingsMap[r.key] = r.value;
+      settingsMap[r.key] = r.value || "";
     });
 
     const enabled = settingsMap["exit_modal_enabled"] !== "false";
@@ -83,7 +83,7 @@ router.post("/exit-feedback", async (req, res): Promise<void> => {
 
 // GET /api/admin/exit-feedbacks - Admin view of all feedback submissions
 router.get("/admin/exit-feedbacks", async (req, res): Promise<void> => {
-  if (!req.session.logado || req.session.userRole !== "admin") {
+  if (!req.session.logado || req.session.artistId) {
     res.status(401).json({ error: "Não autorizado" });
     return;
   }
@@ -102,8 +102,8 @@ router.get("/admin/exit-feedbacks", async (req, res): Promise<void> => {
 });
 
 // POST /api/admin/exit-feedback/settings - Save exit feedback modal configuration
-router.post("/api/admin/exit-feedback/settings", async (req, res): Promise<void> => {
-  if (!req.session.logado || req.session.userRole !== "admin") {
+router.post("/admin/exit-feedback/settings", async (req, res): Promise<void> => {
+  if (!req.session.logado || req.session.artistId) {
     res.status(401).json({ error: "Não autorizado" });
     return;
   }
@@ -146,7 +146,7 @@ router.post("/api/admin/exit-feedback/settings", async (req, res): Promise<void>
 
 // DELETE /api/admin/exit-feedbacks/:id - Delete single feedback item
 router.delete("/admin/exit-feedbacks/:id", async (req, res): Promise<void> => {
-  if (!req.session.logado || req.session.userRole !== "admin") {
+  if (!req.session.logado || req.session.artistId) {
     res.status(401).json({ error: "Não autorizado" });
     return;
   }
@@ -163,7 +163,7 @@ router.delete("/admin/exit-feedbacks/:id", async (req, res): Promise<void> => {
 
 // DELETE /api/admin/exit-feedbacks - Delete all feedback items
 router.delete("/admin/exit-feedbacks", async (req, res): Promise<void> => {
-  if (!req.session.logado || req.session.userRole !== "admin") {
+  if (!req.session.logado || req.session.artistId) {
     res.status(401).json({ error: "Não autorizado" });
     return;
   }
