@@ -32,19 +32,32 @@
   </head>
   <body>
     <div id="root">
-      <!-- Fallback de SEO estruturado para robôs de busca do Google (substituído pelo React após carregamento) -->
-      <header style="display: none;">
+      <!-- Conteúdo de fallback para robôs de busca e assistentes como ChatGPT (substituído pelo React ao carregar) -->
+      <header>
         <nav>
-          <a href="/">Início</a>
-          <a href="/artistas">Artistas</a>
-          <a href="/planos">Planos</a>
-          <a href="/cadastro">Cadastro</a>
-          <a href="/login">Login</a>
+          <a href="/">Início</a> |
+          <a href="/explorar">Músicas</a> |
+          <a href="/artistas">Artistas</a> |
+          <a href="/demo">Vitrine</a> |
+          <a href="/cadastro">Cadastro / Planos</a>
         </nav>
       </header>
-      <main style="display: none;">
+      <main>
         <h1>Portal do Artista - Sua Música, Seu Espaço</h1>
-        <p>A plataforma definitiva para cantores, compositores e bandas independentes divulgarem suas músicas, criarem catálogos de alta qualidade, conectarem com fãs e gerenciarem sua carreira musical.</p>
+        <p>A plataforma definitiva para cantores, compositores e bandas independentes divulgarem suas músicas, criarem catálogos de alta qualidade, conectar com contratantes e gerenciar sua carreira musical profissionalmente.</p>
+        
+        <h2>Apresentação Profissional de Carreira Musical</h2>
+        <p>Pare de enviar arquivos MP3 avulsos ou pastas no Google Drive. No Portal do Artista você cria seu site oficial de artista com player de áudio integrado, catálogo de composições organizadas por gênero/BPM/tom, material de divulgação, biografia e links oficiais.</p>
+
+        <h2>Planos Disponíveis</h2>
+        <ul>
+          <li><strong>Plano Gratuito:</strong> Até 4 músicas catalogadas, player integrado e perfil oficial.</li>
+          <li><strong>Plano Básico:</strong> Para quem quer começar a se profissionalizar com limites expandidos.</li>
+          <li><strong>Plano Premium:</strong> Até 50 músicas catalogadas, 100% de personalização visual (player, cores, banner, foto), créditos de IA para auxílio e prioridade de suporte.</li>
+        </ul>
+
+        <h2>Para quem é o Portal?</h2>
+        <p>Cantores, compositores, instrumentistas, bandas, duplas sertanejas, produtores musicais e artistas independentes de todo o Brasil.</p>
       </main>
     </div>
     <script type="module" src="/src/main.tsx"></script>
