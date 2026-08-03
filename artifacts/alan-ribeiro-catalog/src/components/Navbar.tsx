@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Music, Users, Zap, LayoutDashboard, Menu, X, Star } from "lucide-react";
+import { Music, Users, Zap, LayoutDashboard, Menu, X, Star, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlansModal } from "@/components/PlansModal";
 
@@ -56,13 +56,21 @@ export function Navbar() {
                 Planos
               </Link>
             )}
-            {artistLoggedIn && (
+            {artistLoggedIn ? (
               <Link
                 href="/artista/dashboard"
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
               >
-                <LayoutDashboard className="w-4 h-4" />
+                <LayoutDashboard className="w-4 h-4 text-primary" />
                 Meu Painel
+              </Link>
+            ) : (
+              <Link
+                href="/artista/login"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              >
+                <User className="w-4 h-4 text-primary" />
+                Área do Artista
               </Link>
             )}
             <Link
@@ -159,14 +167,23 @@ export function Navbar() {
                     Planos
                   </Link>
                 )}
-                {artistLoggedIn && (
+                {artistLoggedIn ? (
                   <Link
                     href="/artista/dashboard"
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   >
-                    <LayoutDashboard className="w-5 h-5" />
+                    <LayoutDashboard className="w-5 h-5 text-primary" />
                     Meu Painel
+                  </Link>
+                ) : (
+                  <Link
+                    href="/artista/login"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                  >
+                    <User className="w-5 h-5 text-primary" />
+                    Área do Artista (Login)
                   </Link>
                 )}
                 <Link
