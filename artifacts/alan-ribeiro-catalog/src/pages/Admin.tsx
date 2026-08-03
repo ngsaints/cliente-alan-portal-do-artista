@@ -18,7 +18,7 @@ import {
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
-  Mail, Gift, Send, Terminal, Target,
+  Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -224,6 +224,8 @@ function AdminDashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const tabBarRef = useRef<HTMLDivElement>(null);
+
   const handleLogout = () => {
     logout(undefined, {
       onSuccess: () => {
@@ -231,6 +233,18 @@ function AdminDashboard() {
         toast({ title: "Sessão encerrada" });
       },
     });
+  };
+
+  const handleScrollLeft = () => {
+    if (tabBarRef.current) {
+      tabBarRef.current.scrollBy({ left: -280, behavior: "smooth" });
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (tabBarRef.current) {
+      tabBarRef.current.scrollBy({ left: 280, behavior: "smooth" });
+    }
   };
 
   const tabs: { id: MainTab; label: string; icon: React.ElementType }[] = [
@@ -276,16 +290,37 @@ function AdminDashboard() {
         </div>
       </nav>
 
-      {/* Tab bar */}
-      <div className="sticky top-16 z-30 bg-black/90 backdrop-blur-md border-b border-border/60 shadow-xl relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="flex gap-1.5 overflow-x-auto py-2.5 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none] touch-pan-x active:cursor-grabbing">
+      {/* Tab bar com botões de navegação interativos */}
+      <div className="sticky top-16 z-30 bg-black/95 backdrop-blur-md border-b border-border/60 shadow-xl relative group/tabbar">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative flex items-center">
+          
+          {/* Botão de Rolagem Esquerda */}
+          <button
+            type="button"
+            onClick={handleScrollLeft}
+            className="absolute left-1 z-20 w-8 h-8 rounded-full bg-black/90 border border-primary/40 text-primary flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
+            title="Rolar para a esquerda"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {/* Sombra de desvanecimento à esquerda */}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black via-black/80 to-transparent z-10" />
+
+          {/* Container de Abas com Rolagem Suave */}
+          <div 
+            ref={tabBarRef}
+            className="flex gap-1.5 overflow-x-auto py-2.5 px-8 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none] touch-pan-x scroll-smooth w-full"
+          >
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={(e) => {
+                    setActiveTab(tab.id);
+                    e.currentTarget.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+                  }}
                   className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                     isActive
                       ? "bg-primary text-black shadow-[0_0_15px_rgba(245,197,24,0.3)] scale-[1.02]"
@@ -298,8 +333,19 @@ function AdminDashboard() {
               );
             })}
           </div>
-          {/* Subtle fade hint on right edge to show more tabs are scrollable */}
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-black via-black/80 to-transparent z-10 sm:hidden" />
+
+          {/* Sombra de desvanecimento à direita */}
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black via-black/80 to-transparent z-10" />
+
+          {/* Botão de Rolagem Direita */}
+          <button
+            type="button"
+            onClick={handleScrollRight}
+            className="absolute right-1 z-20 w-8 h-8 rounded-full bg-black/90 border border-primary/40 text-primary flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer hover:bg-primary hover:text-black"
+            title="Rolar para a direita"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
