@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
@@ -50,15 +50,13 @@ export default function Demo() {
     const rawVal = demoSettings.demo_banner_url || "";
     if (rawVal) {
       try {
-        if (rawVal.trim().startsWith("[")) {
-          const parsed = JSON.parse(rawVal);
-          if (Array.isArray(parsed)) {
-            setDemoBanners(parsed);
-            return;
-          }
+        const parsed = JSON.parse(rawVal);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setDemoBanners(parsed);
+          return;
         }
       } catch (e) {
-        console.error("Error parsing demo banners:", e);
+        // Se nao for JSON valido, tratar como string unica
       }
       setDemoBanners([{ url: rawVal, link: "" }]);
     } else {
@@ -67,15 +65,12 @@ export default function Demo() {
   }, [demoSettings.demo_banner_url]);
 
   useEffect(() => {
-    if (demoBanners.length <= 1) {
-      setCurrentBannerIndex(0);
-      return;
-    }
-    const timer = setInterval(() => {
+    if (demoBanners.length <= 1) return;
+    const interval = setInterval(() => {
       setCurrentBannerIndex((prev) => (prev + 1) % demoBanners.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [demoBanners]);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [demoBanners.length]);
 
   useSEO({
     title: "Demonstração - Portal do Artista",
@@ -85,21 +80,17 @@ export default function Demo() {
   });
 
   useEffect(() => {
-    fetch("/api/demo-settings")
-      .then(r => r.json())
-      .then(data => setDemoSettings(data))
-      .catch(() => {});
-  }, []);
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => setDemoSettings(data))
+      .catch(console.error);
 
-
-
-  useEffect(() => {
-    fetch("/api/artists/status", { credentials: "include" })
-      .then(r => r.json())
-      .then(data => {
-        if (data.authenticated) {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.logado) {
           setArtistLoggedIn(true);
-          setLoggedInArtistId(data.artist?.id || null);
+          setLoggedInArtistId(data.artistaId || null);
         }
       })
       .catch(() => {});
@@ -182,7 +173,37 @@ export default function Demo() {
     genre: selectedGenre || undefined,
   });
 
-  const artistSongs = (songs || []).filter((s) => !s.isVip && !(s as any).isPrivate);
+  // Intercalar dinamicamente as faixas do Demo entre diferentes artistas
+  const artistSongs = useMemo(() => {
+    const base = (songs || []).filter((s) => !s.isVip && !(s as any).isPrivate);
+    if (base.length === 0) return [];
+
+    const groups: { [key: string]: any[] } = {};
+    for (const song of base) {
+      const key = String((song as any).artistaId ?? (song as any).compositor ?? "outros");
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(song);
+    }
+
+    const keys = Object.keys(groups).sort(() => Math.random() - 0.5);
+    keys.forEach((k) => {
+      groups[k].sort(() => Math.random() - 0.5);
+    });
+
+    const interleaved: any[] = [];
+    let hasMore = true;
+    while (hasMore) {
+      hasMore = false;
+      for (const k of keys) {
+        if (groups[k].length > 0) {
+          interleaved.push(groups[k].shift()!);
+          hasMore = true;
+        }
+      }
+    }
+
+    return interleaved;
+  }, [songs]);
 
   // Handle shared song autoplay, scroll, and highlight
   useEffect(() => {
