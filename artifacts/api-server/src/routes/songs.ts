@@ -71,7 +71,32 @@ router.get("/songs", async (req, res): Promise<void> => {
     rows = rows.filter((s) => s.genero === genre);
   }
 
-  res.json(ListSongsResponse.parse(rows.map(mapSong)));
+  // Intercalação dinâmica por artista (Round-Robin com Shuffle)
+  const artistGroups: { [key: string]: typeof rows } = {};
+  for (const song of rows) {
+    const key = String(song.artistaId ?? song.compositor ?? "outros");
+    if (!artistGroups[key]) artistGroups[key] = [];
+    artistGroups[key].push(song);
+  }
+
+  const keys = Object.keys(artistGroups).sort(() => Math.random() - 0.5);
+  keys.forEach((k) => {
+    artistGroups[k].sort(() => Math.random() - 0.5);
+  });
+
+  const interleaved: typeof rows = [];
+  let hasMore = true;
+  while (hasMore) {
+    hasMore = false;
+    for (const k of keys) {
+      if (artistGroups[k].length > 0) {
+        interleaved.push(artistGroups[k].shift()!);
+        hasMore = true;
+      }
+    }
+  }
+
+  res.json(ListSongsResponse.parse(interleaved.map(mapSong)));
 });
 
 router.post(

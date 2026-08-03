@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useListSongs } from "@workspace/api-client-react";
 import { Navbar } from "@/components/Navbar";
@@ -7,7 +7,7 @@ import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { NotificationBell, type Interest } from "@/components/NotificationBell";
 import { InterestModal } from "@/components/InterestModal";
-import { Disc3, TrendingUp, Star, Sparkles, Search, Music, Users, MapPin, Instagram, Mail, Phone, Activity, Clock, ArrowRight } from "lucide-react";
+import { Disc3, TrendingUp, Star, Sparkles, Search, Music, Users, MapPin, Instagram, Mail, Phone, Activity, Clock, ArrowRight, Shuffle } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
@@ -59,7 +59,7 @@ export default function Home() {
       .then(r => r.json())
       .then(data => { 
         if (Array.isArray(data) && data.length > 0) {
-          setVitrineArtists(data);
+          setVitrineArtists([...data].sort(() => Math.random() - 0.5));
         }
       })
       .catch(() => {});
@@ -74,7 +74,12 @@ export default function Home() {
     setLoadingArtists(true);
     fetch("/api/artists/public")
       .then(r => r.json())
-      .then(data => { setArtists(data); setLoadingArtists(false); })
+      .then(data => {
+        if (Array.isArray(data)) {
+          setArtists([...data].sort(() => Math.random() - 0.5));
+        }
+        setLoadingArtists(false);
+      })
       .catch(() => setLoadingArtists(false));
   }, []);
 
@@ -98,9 +103,52 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const filteredSongs = (songs || []).filter((s) => !(s as any).isVip && !(s as any).isPrivate);
-  const highlights = filteredSongs.filter((s) => (s as any).destaque).slice(0, 5);
-  const trends = filteredSongs.slice(-3).reverse();
+  // Intercalar dinamicamente as músicas entre diferentes artistas (Round-Robin com Shuffle)
+  const filteredSongs = useMemo(() => {
+    const base = (songs || []).filter((s) => !(s as any).isVip && !(s as any).isPrivate);
+    if (base.length === 0) return [];
+
+    // Agrupar faixas por artista
+    const groups: { [key: string]: any[] } = {};
+    for (const song of base) {
+      const key = String(song.artistaId ?? song.compositor ?? "outros");
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(song);
+    }
+
+    // Embaralhar a ordem dos artistas em cada carregamento/F5
+    const keys = Object.keys(groups).sort(() => Math.random() - 0.5);
+
+    // Embaralhar as músicas de cada artista internamente
+    keys.forEach((k) => {
+      groups[k].sort(() => Math.random() - 0.5);
+    });
+
+    // Intercalar Round-Robin entre os artistas
+    const interleaved: any[] = [];
+    let hasMore = true;
+    while (hasMore) {
+      hasMore = false;
+      for (const k of keys) {
+        if (groups[k].length > 0) {
+          interleaved.push(groups[k].shift()!);
+          hasMore = true;
+        }
+      }
+    }
+
+    return interleaved;
+  }, [songs]);
+
+  const highlights = useMemo(() => {
+    const dest = filteredSongs.filter((s) => (s as any).destaque);
+    return dest.length > 0 ? dest.slice(0, 5) : filteredSongs.slice(0, 5);
+  }, [filteredSongs]);
+
+  const trends = useMemo(() => {
+    return filteredSongs.slice(0, 6);
+  }, [filteredSongs]);
+
   const allSongs = filteredSongs;
 
   const handleOpenInterest = (song: { id: number; titulo: string; artistaId?: number | null }) => {
