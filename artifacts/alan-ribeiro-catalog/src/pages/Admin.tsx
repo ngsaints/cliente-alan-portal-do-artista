@@ -277,16 +277,16 @@ function AdminDashboard() {
       </nav>
 
       {/* Tab bar */}
-      <div className="sticky top-16 z-30 bg-black/90 backdrop-blur-md border-b border-border/60 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-1.5 overflow-x-auto py-2.5 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+      <div className="sticky top-16 z-30 bg-black/90 backdrop-blur-md border-b border-border/60 shadow-xl relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="flex gap-1.5 overflow-x-auto py-2.5 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none] touch-pan-x active:cursor-grabbing">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                  className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                     isActive
                       ? "bg-primary text-black shadow-[0_0_15px_rgba(245,197,24,0.3)] scale-[1.02]"
                       : "text-muted-foreground hover:text-white hover:bg-input/60"
@@ -298,6 +298,8 @@ function AdminDashboard() {
               );
             })}
           </div>
+          {/* Subtle fade hint on right edge to show more tabs are scrollable */}
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-black via-black/80 to-transparent z-10 sm:hidden" />
         </div>
       </div>
 
