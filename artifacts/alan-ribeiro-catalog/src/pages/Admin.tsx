@@ -254,19 +254,22 @@ function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background pb-20 w-full overflow-x-hidden">
       {/* Navbar */}
-      <nav className="sticky top-0 z-40 bg-card/80 backdrop-blur-lg border-b border-border">
+      <nav className="sticky top-0 z-40 bg-card/85 backdrop-blur-xl border-b border-border/60 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-primary hover:text-primary/80 font-medium flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="text-primary hover:text-primary/80 font-extrabold text-xs flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 transition-all hover:scale-105">
               <Music className="w-4 h-4" />
               Ver Site
             </Link>
-            <span className="text-border">|</span>
-            <span className="font-display font-bold text-foreground">Painel Administrativo</span>
+            <span className="text-border/60">|</span>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-white text-sm sm:text-base tracking-tight">Painel Administrativo</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-muted-foreground hover:text-destructive transition-colors text-sm font-medium"
+            className="flex items-center gap-2 text-muted-foreground hover:text-red-400 transition-colors text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-red-500/10 cursor-pointer"
           >
             Sair <LogOut className="w-4 h-4" />
           </button>
@@ -274,30 +277,33 @@ function AdminDashboard() {
       </nav>
 
       {/* Tab bar */}
-      <div className="sticky top-16 z-30 bg-card/90 backdrop-blur border-b border-border">
+      <div className="sticky top-16 z-30 bg-black/90 backdrop-blur-md border-b border-border/60 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-1 overflow-x-auto py-2 scrollbar-none">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                  activeTab === tab.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex gap-1.5 overflow-x-auto py-2.5 scrollbar-none">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-primary text-black shadow-[0_0_15px_rgba(245,197,24,0.3)] scale-[1.02]"
+                      : "text-muted-foreground hover:text-white hover:bg-input/60"
+                  }`}
+                >
+                  <tab.icon className={`w-3.5 h-3.5 ${isActive ? "text-black" : "text-primary/70"}`} />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
           {activeTab === "dashboard" && <DashboardTab onNavigate={setActiveTab} />}
           {activeTab === "songs" && <SongsTab />}
           {activeTab === "artists" && <ArtistsTab />}
@@ -319,19 +325,25 @@ function AdminDashboard() {
   );
 }
 
-// ─── StatCard helper ──────────────────────────────────────────────────────────
-
-function StatCard({ label, value, icon: Icon, color = "text-primary" }: {
-  label: string; value: number | string; icon: React.ElementType; color?: string;
+function StatCard({ label, value, icon: Icon, color = "text-primary", subtext }: {
+  label: string; value: number | string; icon: React.ElementType; color?: string; subtext?: string;
 }) {
   return (
-    <div className="bg-card border border-border/50 rounded-2xl p-5">
-      <div className="flex items-center gap-3 mb-3">
-        <Icon className={`w-5 h-5 ${color}`} />
-        <span className="text-sm text-muted-foreground">{label}</span>
+    <motion.div 
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.15 }}
+      className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-primary/40 rounded-2xl p-5 shadow-lg group transition-all"
+    >
+      <div className="absolute -top-12 -right-12 w-28 h-28 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all pointer-events-none" />
+      <div className="flex items-center justify-between mb-3 relative z-10">
+        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+        <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+          <Icon className={`w-5 h-5 ${color}`} />
+        </div>
       </div>
-      <p className="text-4xl font-bold text-foreground">{value}</p>
-    </div>
+      <p className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight relative z-10">{value}</p>
+      {subtext && <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">{subtext}</p>}
+    </motion.div>
   );
 }
 
@@ -375,24 +387,29 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: MainTab) => void }) {
       </div>
 
       {/* Shortcuts */}
-      <div>
-        <h3 className="text-lg font-bold text-foreground mb-4">Atalhos Rápidos</h3>
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          Atalhos Rápidos de Gestão
+        </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
-            { label: "Gerenciar Músicas", tab: "songs" as MainTab, icon: Music, color: "text-primary" },
-            { label: "Gerenciar Artistas", tab: "artists" as MainTab, icon: Users, color: "text-blue-400" },
-            { label: "Ver Interesses", tab: "interests" as MainTab, icon: MessageSquare, color: "text-orange-400" },
-            { label: "Editar Planos", tab: "plans" as MainTab, icon: Crown, color: "text-yellow-400" },
-            { label: "Config. Asaas", tab: "settings" as MainTab, icon: CreditCard, color: "text-emerald-400" },
-            { label: "Config. Storage R2", tab: "settings" as MainTab, icon: Cloud, color: "text-sky-400" },
+            { label: "Gerenciar Músicas", tab: "songs" as MainTab, icon: Music, color: "text-primary", bg: "hover:border-primary/50" },
+            { label: "Gerenciar Artistas", tab: "artists" as MainTab, icon: Users, color: "text-blue-400", bg: "hover:border-blue-500/50" },
+            { label: "Ver Interesses / Leads", tab: "interests" as MainTab, icon: MessageSquare, color: "text-orange-400", bg: "hover:border-orange-500/50" },
+            { label: "Editar Planos de Preço", tab: "plans" as MainTab, icon: Crown, color: "text-yellow-400", bg: "hover:border-yellow-500/50" },
+            { label: "Pesquisa de Saída (Exit)", tab: "exit_feedback" as MainTab, icon: LogOut, color: "text-emerald-400", bg: "hover:border-emerald-500/50" },
+            { label: "Config. do Portal (R2/Asaas)", tab: "settings" as MainTab, icon: Settings, color: "text-sky-400", bg: "hover:border-sky-500/50" },
           ].map((item) => (
             <button
               key={item.label}
               onClick={() => onNavigate(item.tab)}
-              className="flex items-center gap-3 p-4 bg-card border border-border/50 rounded-xl hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
+              className={`flex items-center gap-3 p-4 bg-gradient-to-b from-card/90 to-card/50 border border-border/60 rounded-2xl ${item.bg} hover:bg-input/60 transition-all text-left group cursor-pointer shadow-md`}
             >
-              <item.icon className={`w-5 h-5 ${item.color} shrink-0`} />
-              <span className="text-sm font-medium text-foreground">{item.label}</span>
+              <div className="w-9 h-9 rounded-xl bg-black/60 border border-border/40 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <item.icon className={`w-4 h-4 ${item.color}`} />
+              </div>
+              <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">{item.label}</span>
             </button>
           ))}
         </div>
