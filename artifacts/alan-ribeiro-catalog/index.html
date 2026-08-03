@@ -29,36 +29,72 @@
       "inLanguage": "pt-BR"
     }
     </script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #09090b;
+        color: #ffffff;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      }
+      .seo-fallback {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      .app-loader {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #09090b;
+        gap: 12px;
+      }
+      .spinner {
+        width: 36px;
+        height: 36px;
+        border: 3px solid rgba(245, 197, 24, 0.15);
+        border-top-color: #f5c518;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
     <div id="root">
-      <!-- Conteúdo de fallback para robôs de busca e assistentes como ChatGPT (substituído pelo React ao carregar) -->
-      <header>
-        <nav>
-          <a href="/">Início</a> |
-          <a href="/explorar">Músicas</a> |
-          <a href="/artistas">Artistas</a> |
-          <a href="/demo">Vitrine</a> |
-          <a href="/cadastro">Cadastro / Planos</a>
-        </nav>
-      </header>
-      <main>
-        <h1>Portal do Artista - Sua Música, Seu Espaço</h1>
-        <p>A plataforma definitiva para cantores, compositores e bandas independentes divulgarem suas músicas, criarem catálogos de alta qualidade, conectar com contratantes e gerenciar sua carreira musical profissionalmente.</p>
-        
-        <h2>Apresentação Profissional de Carreira Musical</h2>
-        <p>Pare de enviar arquivos MP3 avulsos ou pastas no Google Drive. No Portal do Artista você cria seu site oficial de artista com player de áudio integrado, catálogo de composições organizadas por gênero/BPM/tom, material de divulgação, biografia e links oficiais.</p>
+      <!-- Loader visual elegante exibido durante o F5 enquanto o React inicializa -->
+      <div class="app-loader">
+        <div class="spinner"></div>
+      </div>
 
-        <h2>Planos Disponíveis</h2>
-        <ul>
-          <li><strong>Plano Gratuito:</strong> Até 4 músicas catalogadas, player integrado e perfil oficial.</li>
-          <li><strong>Plano Básico:</strong> Para quem quer começar a se profissionalizar com limites expandidos.</li>
-          <li><strong>Plano Premium:</strong> Até 50 músicas catalogadas, 100% de personalização visual (player, cores, banner, foto), créditos de IA para auxílio e prioridade de suporte.</li>
-        </ul>
-
-        <h2>Para quem é o Portal?</h2>
-        <p>Cantores, compositores, instrumentistas, bandas, duplas sertanejas, produtores musicais e artistas independentes de todo o Brasil.</p>
-      </main>
+      <!-- Conteúdo estruturado acessível para robôs de busca e ChatGPT -->
+      <div class="seo-fallback">
+        <header>
+          <nav>
+            <a href="/">Início</a>
+            <a href="/explorar">Músicas</a>
+            <a href="/artistas">Artistas</a>
+            <a href="/planos">Planos</a>
+            <a href="/cadastro">Cadastro</a>
+          </nav>
+        </header>
+        <main>
+          <h1>Portal do Artista - Sua Música, Seu Espaço</h1>
+          <p>A plataforma definitiva para cantores, compositores e bandas independentes divulgarem suas músicas, criarem catálogos de alta qualidade e gerenciarem sua carreira musical profissionalmente.</p>
+          <h2>Planos Disponíveis</h2>
+          <p>Plano Gratuito (4 músicas), Plano Básico e Plano Premium (50 músicas, 100% personalizável).</p>
+        </main>
+      </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
