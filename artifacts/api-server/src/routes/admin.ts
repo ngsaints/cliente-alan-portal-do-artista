@@ -335,7 +335,29 @@ router.get("/admin/artists", async (req, res): Promise<void> => {
   }
 
   try {
-    const artists = await db.select().from(artistsTable).orderBy(artistsTable.createdAt);
+    // Sincronizar limites padrões do Free (4) e Premium (50) no plansTable
+    await db.update(plansTable).set({ limiteMusicas: "4" }).where(eq(plansTable.nome, "free"));
+    await db.update(plansTable).set({ limiteMusicas: "50" }).where(eq(plansTable.nome, "premium"));
+
+    // Atualizar artistas no banco que estejam com limites antigos
+    await db.update(artistsTable).set({ limiteMusicas: "4" }).where(eq(artistsTable.plano, "free"));
+    await db.update(artistsTable).set({ limiteMusicas: "50" }).where(eq(artistsTable.plano, "premium"));
+
+    const [artists, allPlans] = await Promise.all([
+      db.select().from(artistsTable).orderBy(artistsTable.createdAt),
+      db.select().from(plansTable),
+    ]);
+
+    const planLimitsMap: Record<string, string> = {
+      free: "4",
+      premium: "50",
+      basico: "20",
+      intermediario: "60",
+      pro: "100",
+    };
+    for (const p of allPlans) {
+      planLimitsMap[p.nome] = String(p.limiteMusicas);
+    }
 
     const artistIds = artists.map(a => a.id);
     const subs = artistIds.length > 0
@@ -365,7 +387,7 @@ router.get("/admin/artists", async (req, res): Promise<void> => {
       plano: a.plano,
       planoAtivo: a.planoAtivo,
       musicaCount: a.musicaCount,
-      limiteMusicas: a.limiteMusicas,
+      limiteMusicas: planLimitsMap[a.plano] || a.limiteMusicas || "4",
       createdAt: a.createdAt,
       couponCode: couponByArtist[String(a.id)] || null,
     })));
@@ -431,15 +453,22 @@ router.put("/admin/artists/:id", async (req, res): Promise<void> => {
     let targetPersonalizacao = personalizacaoPercent;
 
     if (plano) {
+      const defaultLimits: Record<string, string> = {
+        free: "4",
+        premium: "50",
+        basico: "20",
+        intermediario: "60",
+        pro: "100",
+      };
+
       const planRows = await db.select().from(plansTable).where(eq(plansTable.nome, plano));
-      if (planRows.length > 0) {
-        const plan = planRows[0];
-        if (targetLimite === undefined || targetLimite === null) {
-          targetLimite = String(plan.limiteMusicas);
-        }
-        if (targetPersonalizacao === undefined || targetPersonalizacao === null) {
-          targetPersonalizacao = String(plan.personalizacaoPercent);
-        }
+      const plan = planRows[0];
+
+      if (targetLimite === undefined || targetLimite === null) {
+        targetLimite = plan ? String(plan.limiteMusicas) : (defaultLimits[plano] || "4");
+      }
+      if (targetPersonalizacao === undefined || targetPersonalizacao === null) {
+        targetPersonalizacao = plan ? String(plan.personalizacaoPercent) : "100";
       }
     }
 
