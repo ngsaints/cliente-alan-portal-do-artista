@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, X, Send, CheckCircle2, MessageSquare, Smartphone, Laptop, Sparkles } from "lucide-react";
 
@@ -10,6 +11,8 @@ interface ExitSettings {
 }
 
 export function ExitIntentModal() {
+  const [location] = useLocation();
+  const [artistLoggedIn, setArtistLoggedIn] = useState(false);
   const [settings, setSettings] = useState<ExitSettings>({
     enabled: true,
     title: "Antes de ir embora... O que você achou do Portal do Artista?",
@@ -30,6 +33,18 @@ export function ExitIntentModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // Check if artist is logged in
+  useEffect(() => {
+    fetch("/api/artists/status", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.loggedIn === true) {
+          setArtistLoggedIn(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Fetch exit intent settings from server
   useEffect(() => {
     fetch("/api/exit-feedback/settings")
@@ -43,10 +58,27 @@ export function ExitIntentModal() {
   }, []);
 
   useEffect(() => {
-    if (!settings.enabled) return;
+    // 1. Manual custom trigger (always available, e.g. for testing in Admin)
+    const handleCustomTrigger = () => {
+      setIsOpen(true);
+    };
+    window.addEventListener("triggerExitFeedbackModal", handleCustomTrigger);
 
-    // Do NOT trigger inside admin pages
-    if (window.location.pathname.startsWith("/admin")) return;
+    if (!settings.enabled) {
+      return () => window.removeEventListener("triggerExitFeedbackModal", handleCustomTrigger);
+    }
+
+    // 2. Do NOT trigger if artist is logged in
+    if (artistLoggedIn) {
+      return () => window.removeEventListener("triggerExitFeedbackModal", handleCustomTrigger);
+    }
+
+    // 3. Do NOT trigger on routes other than "/" and "/explorar"
+    const normalizedPath = location.split("?")[0];
+    const isAllowedRoute = normalizedPath === "/" || normalizedPath === "" || normalizedPath === "/explorar";
+    if (!isAllowedRoute) {
+      return () => window.removeEventListener("triggerExitFeedbackModal", handleCustomTrigger);
+    }
 
     // Check test mode flag in URL
     const isTestMode = window.location.search.includes("test_exit_modal=true");
@@ -134,7 +166,7 @@ export function ExitIntentModal() {
       window.removeEventListener("click", resetIdleTimer);
       window.removeEventListener("triggerExitFeedbackModal", handleCustomTrigger);
     };
-  }, [settings]);
+  }, [settings, location, artistLoggedIn]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
