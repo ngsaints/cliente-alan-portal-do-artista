@@ -445,7 +445,7 @@ export default function Landing() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-          {/* 1. 🎤 Página personalizada de artista (Réplica do ArtistProfile) */}
+          {/* 1. Página personalizada de artista (Réplica do ArtistProfile) */}
           <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-primary/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -454,7 +454,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-white group-hover:text-primary transition-colors">
-                    🎤 Página Personalizada de Artista
+                    Página Personalizada de Artista
                   </h3>
                   <p className="text-xs text-muted-foreground">Seu perfil oficial completo com link exclusivo</p>
                 </div>
@@ -483,7 +483,7 @@ export default function Landing() {
                       <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-primary text-black">OFICIAL</span>
                     </div>
                     <p className="text-xs text-primary font-bold">Compositor & Produtor Musical</p>
-                    <p className="text-[10px] text-muted-foreground truncate">📍 Maricá, RJ • Sertanejo, Pop e MPB</p>
+                    <p className="text-[10px] text-muted-foreground truncate">Maricá, RJ • Sertanejo, Pop e MPB</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-1">
@@ -501,7 +501,7 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* 2. 🎵 Catálogo musical profissional (Réplica do MusicCard) */}
+          {/* 2. Catálogo musical profissional (Réplica do MusicCard) */}
           <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -510,7 +510,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-white group-hover:text-amber-400 transition-colors">
-                    🎵 Catálogo Musical Profissional
+                    Catálogo Musical Profissional
                   </h3>
                   <p className="text-xs text-muted-foreground">Até 50 músicas com Tom, BPM e QR Code</p>
                 </div>
@@ -524,13 +524,13 @@ export default function Landing() {
             <div className="p-4 rounded-2xl bg-black/80 border border-border/40 space-y-3 shadow-lg">
               <div className="flex items-center justify-between pb-2 border-b border-border/20 text-xs">
                 <span className="font-bold text-white">Catálogo de Composição (50 Músicas)</span>
-                <span className="text-amber-400 font-mono text-[10px]">Player Ativo ▶</span>
+                <span className="text-amber-400 font-mono text-[10px]">Player Ativo</span>
               </div>
               <div className="p-3 rounded-xl bg-card/80 border border-border/40 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs shrink-0 border border-amber-500/30">
-                      ▶
+                      <Play className="w-3.5 h-3.5 fill-current" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-xs text-white truncate">Seu Próximo Sucesso.mp3</p>
@@ -554,7 +554,7 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* 3. 💰 Gestão financeira da carreira (Réplica do FinanceiroSpreadsheet) */}
+          {/* 3. Gestão financeira da carreira (Réplica do FinanceiroSpreadsheet) */}
           <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -563,7 +563,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-white group-hover:text-emerald-400 transition-colors">
-                    💰 Gestão Financeira da Carreira
+                    Gestão Financeira da Carreira
                   </h3>
                   <p className="text-xs text-muted-foreground">Controle de receitas, custos e saldo líquido</p>
                 </div>
@@ -596,7 +596,7 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* 4. 🎼 Administração de músicas (Réplica do LiberacoesTab) */}
+          {/* 4. Administração de músicas (Réplica do LiberacoesTab) */}
           <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-purple-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -605,7 +605,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-white group-hover:text-purple-400 transition-colors">
-                    🎼 Administração de Músicas
+                    Administração de Músicas
                   </h3>
                   <p className="text-xs text-muted-foreground">Divisão de coautoria e controle de liberações</p>
                 </div>
@@ -637,7 +637,7 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* 5. 🔒 Área VIP de músicas exclusivas (Réplica do ArtistVip) */}
+          {/* 5. Área VIP de músicas exclusivas (Réplica do ArtistVip) */}
           <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-blue-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -646,7 +646,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-white group-hover:text-blue-400 transition-colors">
-                    🔒 Área VIP de Músicas Exclusivas
+                    Área VIP de Músicas Exclusivas
                   </h3>
                   <p className="text-xs text-muted-foreground">Audições restritas protegidas por senha</p>
                 </div>
@@ -678,7 +678,7 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* 6. 🤝 CRM de contatos profissionais (Réplica do ContatosTab) */}
+          {/* 6. CRM de contatos profissionais (Réplica do ContatosTab) */}
           <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-indigo-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -687,7 +687,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-white group-hover:text-indigo-400 transition-colors">
-                    🤝 CRM de Contatos Profissionais
+                    CRM de Contatos Profissionais
                   </h3>
                   <p className="text-xs text-muted-foreground">Networking organizado por categorias</p>
                 </div>
@@ -726,7 +726,7 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* 7. 📅 Agenda interativa do artista (Réplica da AgendaTab) */}
+          {/* 7. Agenda interativa do artista (Réplica da AgendaTab) */}
           <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-orange-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -735,7 +735,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-white group-hover:text-orange-400 transition-colors">
-                    📅 Agenda Interativa do Artista
+                    Agenda Interativa do Artista
                   </h3>
                   <p className="text-xs text-muted-foreground">Calendário de compromissos e gravações</p>
                 </div>
@@ -754,17 +754,17 @@ export default function Landing() {
               <div className="space-y-1.5 text-xs">
                 <div className="p-2 rounded-xl bg-card/80 border border-border/30 flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 font-extrabold text-[9px]">14 MAI • 19:00</span>
-                  <span className="text-white font-medium truncate">🎙️ Gravação no Estúdio Central</span>
+                  <span className="text-white font-medium truncate">Gravação no Estúdio Central</span>
                 </div>
                 <div className="p-2 rounded-xl bg-card/80 border border-border/30 flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-extrabold text-[9px]">18 MAI • 21:00</span>
-                  <span className="text-white font-medium truncate">🎸 Show ao Vivo - Arena Sertaneja</span>
+                  <span className="text-white font-medium truncate">Show ao Vivo - Arena Sertaneja</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 8. 📄 Press Kit profissional em PDF (Réplica do PressKitModal) */}
+          {/* 8. Press Kit profissional em PDF (Réplica do PressKitModal) */}
           <div className="p-6 rounded-3xl bg-card/60 border border-border/50 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-5 shadow-2xl group">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -773,7 +773,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-white group-hover:text-emerald-400 transition-colors">
-                    📄 Press Kit Profissional em PDF
+                    Press Kit Profissional em PDF
                   </h3>
                   <p className="text-xs text-muted-foreground">Documento oficial pronto em PDF para download</p>
                 </div>
