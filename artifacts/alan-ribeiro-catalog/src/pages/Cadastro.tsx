@@ -191,13 +191,57 @@ export default function Cadastro() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-card border border-border/40 rounded-3xl p-6 sm:p-7 space-y-5 shadow-2xl backdrop-blur-md"
           >
+            {/* Seletor de Planos na Página de Cadastro */}
+            {dbPlans.length > 0 && (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Selecione o Plano Desejado:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {dbPlans.map((p) => {
+                    const isSelected = formData.plano === p.nome;
+                    const isFree = p.nome === "free";
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, plano: p.nome }));
+                          setCouponResult(null);
+                          setCouponError("");
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? "border-primary bg-primary/15 ring-2 ring-primary/30"
+                            : "border-border/40 bg-background/50 hover:border-primary/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-foreground">{p.label}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
+                        </div>
+                        <span className="text-xs font-bold text-primary block mt-1">
+                          {isFree ? "Grátis" : `R$ ${parseFloat(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Box do Plano Selecionado */}
             <div className="p-4 rounded-2xl border border-primary/40 bg-primary/10 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-primary px-2 py-0.5 rounded bg-primary/20">
-                  Plano Escolhido
+                  Plano Selecionado
                 </span>
                 <h3 className="text-xl font-extrabold text-white mt-1">{activePlanObj.label}</h3>
+                {activePlanObj.limiteMusicas > 0 && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Até {activePlanObj.limiteMusicas} músicas catalogadas
+                  </p>
+                )}
               </div>
               <div className="text-right">
                 <span className="text-2xl font-black text-primary">
