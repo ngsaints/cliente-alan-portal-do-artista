@@ -63,11 +63,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
   }, [isOpen]);
 
   const handleSelectPlan = (planId: string) => {
-    if (selectedPlan === planId) return;
-    setSelectedPlan(planId);
-    setCouponCode("");
-    setCouponResult(null);
-    setCouponError("");
+    onSelectPlan?.(planId);
   };
 
   const handleValidateCoupon = async () => {

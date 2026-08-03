@@ -152,7 +152,7 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
               <Link
-                href="/artista/login?tab=cadastro"
+                href="/cadastro?plano=free"
                 className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:scale-105"
               >
                 <Star className="w-5 h-5" />
@@ -421,7 +421,7 @@ export default function Home() {
             )}
 
             <div className="pt-2 border-t border-border/30">
-              <Link href="/artista/login?tab=cadastro" className="w-full py-2.5 px-3 rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 font-bold text-xs flex items-center justify-center gap-2 transition-all">
+              <Link href="/cadastro?plano=free" className="w-full py-2.5 px-3 rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 font-bold text-xs flex items-center justify-center gap-2 transition-all">
                 <Star className="w-3.5 h-3.5" />
                 Divulgar Minha Música
               </Link>

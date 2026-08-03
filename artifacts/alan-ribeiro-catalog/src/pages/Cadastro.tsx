@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
-import { Sparkles, Eye, EyeOff, Check, Loader2, Phone, CreditCard, Lock, ShieldCheck } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Check, Loader2, Phone, CreditCard, Lock, ShieldCheck, UserCheck } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { buildPlanFeatures } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export default function Cadastro() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const rawPlanParam = new URLSearchParams(search).get("plano");
-  const selectedPlanId = rawPlanParam && rawPlanParam !== "free" ? rawPlanParam : "premium";
+  const selectedPlanId = rawPlanParam || "free";
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -66,6 +66,8 @@ export default function Cadastro() {
       .catch((err) => console.error("Erro ao carregar planos no cadastro:", err));
   }, []);
 
+  const isFreePlan = formData.plano === "free";
+
   const handleValidateCoupon = async () => {
     if (!couponCode || !formData.plano) return;
     setValidatingCoupon(true);
@@ -94,8 +96,12 @@ export default function Cadastro() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.password || !formData.documento) {
-      setError("Preencha todos os campos obrigatórios (Nome, Email, Senha e CPF/CNPJ)");
+    if (!formData.name || !formData.email || !formData.password) {
+      setError("Preencha todos os campos obrigatórios (Nome, Email e Senha)");
+      return;
+    }
+    if (!isFreePlan && !formData.documento) {
+      setError("CPF/CNPJ é obrigatório para assinaturas pagas");
       return;
     }
     if (formData.password.length < 6) {
@@ -115,7 +121,7 @@ export default function Cadastro() {
           data.append(key, value);
         }
       });
-      if (couponCode && couponResult) {
+      if (couponCode && couponResult && !isFreePlan) {
         data.append("couponCode", couponCode);
       }
 
@@ -131,12 +137,13 @@ export default function Cadastro() {
         throw new Error(result.error || "Erro ao efetuar cadastro");
       }
 
-      // Redireciona diretamente para a fatura/checkout do Asaas na mesma aba
-      if (result.invoiceUrl) {
+      // Se for plano pago e retornou fatura do Asaas, redireciona para o Asaas
+      if (result.invoiceUrl && !isFreePlan) {
         window.location.href = result.invoiceUrl;
         return;
       }
 
+      // Plano free ou ativado diretamente: vai direto para o dashboard
       setLocation("/artista/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao efetuar cadastro");
@@ -145,9 +152,9 @@ export default function Cadastro() {
   };
 
   const activePlanObj = dbPlans.find(p => p.id === formData.plano) || {
-    id: "premium",
-    label: "Premium",
-    preco: "25.00",
+    id: isFreePlan ? "free" : "premium",
+    label: isFreePlan ? "Gratuito" : "Premium",
+    preco: isFreePlan ? "0.00" : "25.00",
   };
 
   return (
@@ -166,10 +173,10 @@ export default function Cadastro() {
               Ativação Instantânea
             </div>
             <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
-              Assinatura do Portal
+              {isFreePlan ? "Cadastro Gratuito do Artista" : "Assinatura do Portal"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Preencha os dados abaixo para gerar sua assinatura.
+              {isFreePlan ? "Crie sua conta em 1 minuto e comece já." : "Preencha os dados abaixo para gerar sua assinatura."}
             </p>
           </motion.div>
 
@@ -188,9 +195,9 @@ export default function Cadastro() {
               </div>
               <div className="text-right">
                 <span className="text-2xl font-black text-primary">
-                  R$ {couponResult ? parseFloat(couponResult.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : parseFloat(activePlanObj.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {isFreePlan ? "GRÁTIS" : `R$ ${couponResult ? parseFloat(couponResult.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : parseFloat(activePlanObj.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                 </span>
-                <span className="text-xs text-muted-foreground block">/mês</span>
+                {!isFreePlan && <span className="text-xs text-muted-foreground block">/mês</span>}
               </div>
             </div>
 
@@ -231,13 +238,13 @@ export default function Cadastro() {
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                  CPF ou CNPJ (Obrigatório Asaas) *
+                  {isFreePlan ? "CPF ou CNPJ (Opcional)" : "CPF ou CNPJ (Obrigatório Asaas) *"}
                 </label>
                 <input
                   type="text"
                   value={formData.documento}
                   onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
-                  required
+                  required={!isFreePlan}
                   className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 />
@@ -283,67 +290,70 @@ export default function Cadastro() {
                 </div>
               </div>
 
-              {/* Cupom de Desconto */}
-              <div className="pt-3 border-t border-border/30 space-y-2">
-                <label className="block text-xs font-medium text-muted-foreground">
-                  Tem um Cupom de Desconto?
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
-                    placeholder="Insira seu cupom"
-                    className="flex-1 px-4 py-2 bg-input border border-border rounded-xl text-foreground text-xs font-mono focus:border-primary uppercase"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleValidateCoupon}
-                    disabled={!couponCode || validatingCoupon}
-                    className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 font-bold rounded-xl transition-all disabled:opacity-50 text-xs border border-primary/30"
-                  >
-                    {validatingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Aplicar"}
-                  </button>
-                </div>
-                {couponError && <p className="text-xs text-red-400 mt-1">{couponError}</p>}
-                {couponResult && (
-                  <p className="text-xs text-green-400 mt-1 font-semibold">
-                    Cupom aplicado! Desconto de {couponResult.discountType === "percentage" ? `${couponResult.discountValue}%` : `R$ ${parseFloat(couponResult.discountValue).toFixed(2)}`}
-                  </p>
-                )}
-              </div>
+              {/* Cupom e Forma de Pagamento (Exibidos APENAS para planos pagos) */}
+              {!isFreePlan && (
+                <>
+                  <div className="pt-3 border-t border-border/30 space-y-2">
+                    <label className="block text-xs font-medium text-muted-foreground">
+                      Tem um Cupom de Desconto?
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
+                        placeholder="Insira seu cupom"
+                        className="flex-1 px-4 py-2 bg-input border border-border rounded-xl text-foreground text-xs font-mono focus:border-primary uppercase"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleValidateCoupon}
+                        disabled={!couponCode || validatingCoupon}
+                        className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 font-bold rounded-xl transition-all disabled:opacity-50 text-xs border border-primary/30"
+                      >
+                        {validatingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Aplicar"}
+                      </button>
+                    </div>
+                    {couponError && <p className="text-xs text-red-400 mt-1">{couponError}</p>}
+                    {couponResult && (
+                      <p className="text-xs text-green-400 mt-1 font-semibold">
+                        Cupom aplicado! Desconto de {couponResult.discountType === "percentage" ? `${couponResult.discountValue}%` : `R$ ${parseFloat(couponResult.discountValue).toFixed(2)}`}
+                      </p>
+                    )}
+                  </div>
 
-              {/* Escolha da Forma de Pagamento */}
-              <div className="pt-3 border-t border-border/30 space-y-2">
-                <label className="block text-xs font-medium text-muted-foreground">
-                  Forma de Pagamento
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, billingType: "CREDIT_CARD" })}
-                    className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                      formData.billingType === "CREDIT_CARD"
-                        ? "border-primary bg-primary/10 text-primary shadow-sm"
-                        : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    Cartão de Crédito
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, billingType: "PIX" })}
-                    className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                      formData.billingType === "PIX"
-                        ? "border-primary bg-primary/10 text-primary shadow-sm"
-                        : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <span className="font-extrabold">PIX</span>
-                  </button>
-                </div>
-              </div>
+                  <div className="pt-3 border-t border-border/30 space-y-2">
+                    <label className="block text-xs font-medium text-muted-foreground">
+                      Forma de Pagamento
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, billingType: "CREDIT_CARD" })}
+                        className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                          formData.billingType === "CREDIT_CARD"
+                            ? "border-primary bg-primary/10 text-primary shadow-sm"
+                            : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Cartão de Crédito
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, billingType: "PIX" })}
+                        className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                          formData.billingType === "PIX"
+                            ? "border-primary bg-primary/10 text-primary shadow-sm"
+                            : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <span className="font-extrabold">PIX</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <button
                 type="submit"
@@ -353,7 +363,12 @@ export default function Cadastro() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Abrindo checkout seguro...
+                    {isFreePlan ? "Criando sua conta..." : "Abrindo checkout seguro..."}
+                  </>
+                ) : isFreePlan ? (
+                  <>
+                    <UserCheck className="w-4 h-4" />
+                    CRIAR MINHA CONTA GRATUITA
                   </>
                 ) : (
                   <>
@@ -365,7 +380,9 @@ export default function Cadastro() {
 
               <div className="pt-2 flex items-center justify-center gap-2 text-[11px] text-muted-foreground/80">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Pagamento 100% seguro processado pelo Asaas</span>
+                <span>
+                  {isFreePlan ? "Acesso instantâneo sem necessidade de cartão" : "Pagamento 100% seguro processado pelo Asaas"}
+                </span>
               </div>
             </form>
           </motion.div>

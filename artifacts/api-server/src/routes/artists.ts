@@ -77,8 +77,8 @@ router.post(
     try {
       const { name, email, documento, contato, password, profissao, genero, cidade, instagram, tiktok, spotify, plano, couponCode, billingType } = req.body;
 
-      if (!name || !email || !password || !documento) {
-        res.status(400).json({ error: "Nome, email, senha e CPF/CNPJ são obrigatórios" });
+      if (!name || !email || !password || (!documento && plano !== "free")) {
+        res.status(400).json({ error: "Nome, email, senha (e CPF/CNPJ para planos pagos) são obrigatórios" });
         return;
       }
 

@@ -25,7 +25,7 @@ export function Navbar() {
 
   const artistLink = artistLoggedIn
     ? { href: "/artista/dashboard", icon: LayoutDashboard, label: "Meu Painel" }
-    : { href: "/artista/login",    icon: LogIn,           label: "Login Artista" };
+    : { href: "/cadastro",          icon: Zap,             label: "Planos" };
 
   const otherLinks = [
     { href: "/explorar", icon: Music,       label: "Músicas" },

@@ -427,15 +427,31 @@ router.put("/admin/artists/:id", async (req, res): Promise<void> => {
     const { id } = req.params;
     const { plano, planoAtivo, limiteMusicas, personalizacaoPercent } = req.body;
 
+    let targetLimite = limiteMusicas;
+    let targetPersonalizacao = personalizacaoPercent;
+
+    if (plano) {
+      const planRows = await db.select().from(plansTable).where(eq(plansTable.nome, plano));
+      if (planRows.length > 0) {
+        const plan = planRows[0];
+        if (targetLimite === undefined || targetLimite === null) {
+          targetLimite = String(plan.limiteMusicas);
+        }
+        if (targetPersonalizacao === undefined || targetPersonalizacao === null) {
+          targetPersonalizacao = String(plan.personalizacaoPercent);
+        }
+      }
+    }
+
+    const updatePayload: Record<string, any> = { updatedAt: new Date() };
+    if (plano !== undefined) updatePayload.plano = plano;
+    if (planoAtivo !== undefined) updatePayload.planoAtivo = planoAtivo;
+    if (targetLimite !== undefined) updatePayload.limiteMusicas = String(targetLimite);
+    if (targetPersonalizacao !== undefined) updatePayload.personalizacaoPercent = String(targetPersonalizacao);
+
     const [updated] = await db
       .update(artistsTable)
-      .set({
-        plano: plano,
-        planoAtivo: planoAtivo,
-        limiteMusicas: limiteMusicas,
-        personalizacaoPercent: personalizacaoPercent,
-        updatedAt: new Date(),
-      })
+      .set(updatePayload)
       .where(eq(artistsTable.id, parseInt(id)))
       .returning();
 
@@ -444,6 +460,8 @@ router.put("/admin/artists/:id", async (req, res): Promise<void> => {
       name: updated.name,
       plano: updated.plano,
       planoAtivo: updated.planoAtivo,
+      limiteMusicas: updated.limiteMusicas,
+      personalizacaoPercent: updated.personalizacaoPercent,
     });
   } catch (error) {
     console.error("Error updating artist:", error);
@@ -597,6 +615,13 @@ router.put("/admin/plans/:id", async (req, res): Promise<void> => {
     if (!updated.length) {
       res.status(404).json({ error: "Plano não encontrado" });
       return;
+    }
+
+    if (nome && (limiteMusicas !== undefined || personalizacaoPercent !== undefined)) {
+      const syncPayload: Record<string, any> = {};
+      if (limiteMusicas !== undefined) syncPayload.limiteMusicas = String(limiteMusicas);
+      if (personalizacaoPercent !== undefined) syncPayload.personalizacaoPercent = String(personalizacaoPercent);
+      await db.update(artistsTable).set(syncPayload).where(eq(artistsTable.plano, nome));
     }
 
     res.json(updated[0]);
