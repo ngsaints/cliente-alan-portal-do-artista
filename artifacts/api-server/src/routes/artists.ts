@@ -183,10 +183,10 @@ router.post(
           spotify: spotify || null,
           capaUrl,
           bannerUrl,
-          plano: selectedPlano,
-          planoAtivo: !isPaid || paidPlanActivatedDirectly,
-          limiteMusicas: (isPaid && !paidPlanActivatedDirectly) ? "0" : limiteMusicas,
-          personalizacaoPercent: (isPaid && !paidPlanActivatedDirectly) ? "0" : personalizacaoPercent,
+          plano: (isPaid && !paidPlanActivatedDirectly) ? "free" : selectedPlano,
+          planoAtivo: true,
+          limiteMusicas: (isPaid && !paidPlanActivatedDirectly) ? "4" : limiteMusicas,
+          personalizacaoPercent: (isPaid && !paidPlanActivatedDirectly) ? "10" : personalizacaoPercent,
           musicaCount: "0",
         })
         .returning();

@@ -56,8 +56,8 @@ router.get("/admin/stats", async (_req, res): Promise<void> => {
     const [availSongs, vipSongs, freeArtists, paidArtists] = await Promise.all([
       db.select().from(songsTable).where(eq(songsTable.status, "Disponível")),
       db.select().from(songsTable).where(eq(songsTable.isVip, true)),
-      db.select().from(artistsTable).where(eq(artistsTable.plano, FREE_PLAN)),
-      db.select().from(artistsTable).where(sql`${artistsTable.plano} != ${FREE_PLAN}`),
+      db.select().from(artistsTable).where(sql`${artistsTable.plano} = ${FREE_PLAN} OR ${artistsTable.planoAtivo} = false`),
+      db.select().from(artistsTable).where(sql`${artistsTable.plano} != ${FREE_PLAN} AND ${artistsTable.planoAtivo} = true`),
     ]);
 
     res.json({
@@ -368,6 +368,11 @@ router.get("/admin/artists", async (req, res): Promise<void> => {
     // Atualizar artistas no banco que estejam com limites antigos
     await db.update(artistsTable).set({ limiteMusicas: "4" }).where(eq(artistsTable.plano, "free"));
     await db.update(artistsTable).set({ limiteMusicas: "50" }).where(eq(artistsTable.plano, "premium"));
+
+    // Limpar checkouts não pagos/abandonados (planoAtivo = false) revertendo para o plano Free ativo
+    await db.update(artistsTable)
+      .set({ plano: "free", planoAtivo: true, limiteMusicas: "4", personalizacaoPercent: "10" })
+      .where(eq(artistsTable.planoAtivo, false));
 
     const [artists, allPlans] = await Promise.all([
       db.select().from(artistsTable).orderBy(artistsTable.createdAt),
