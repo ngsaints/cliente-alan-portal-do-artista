@@ -4,7 +4,9 @@ import { motion } from "framer-motion";
 import { 
   Sparkles, CheckCircle2, XCircle, Zap, Play, ChevronDown, 
   Users, Star, Check, Globe, FileText, 
-  PieChart, Smartphone, Laptop, LayoutDashboard, Headphones
+  PieChart, Smartphone, Laptop, LayoutDashboard, Headphones,
+  Mic, Music2, DollarSign, Lock, Calendar, QrCode, TrendingUp,
+  Building2, Download, Share2, ShieldCheck
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -427,196 +429,323 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 3. APRESENTAR OS BENEFÍCIOS DO ASSINANTE (COM IMAGENS/MOCKUPS) */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-20">
+      {/* 3. APRESENTAR OS 8 SERVIÇOS DO ASSINANTE PREMIUM (COM MOCKUPS DA PLATAFORMA) */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-16">
         <div className="text-center space-y-3">
           <span className="px-3.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
-            Tudo o Que Você Ganha
+            Ecossistema Completo
           </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-            Uma plataforma completa para sua carreira
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+            O que o assinante <span className="text-primary">Premium</span> recebe
           </h2>
-          <p className="text-muted-foreground text-sm max-w-xl mx-auto">
-            Conheça em detalhes os 5 pilares do seu Portal do Artista.
+          <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto">
+            Interfaces modernas, ferramentas integradas e visualização em tempo real das suas produções.
           </p>
         </div>
 
-        <div className="space-y-16">
-          
-          {/* Benefício 1: Seu site profissional de artista */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            <div className="lg:col-span-6 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
-                <Globe className="w-6 h-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+          {/* 1. 🎤 Página personalizada de artista */}
+          <div className="p-7 rounded-3xl bg-card/50 border border-border/40 hover:border-primary/40 transition-all flex flex-col justify-between space-y-6 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
+                  <Mic className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white group-hover:text-primary transition-colors">
+                    🎤 Página Personalizada de Artista
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Identidade visual e link exclusivo</p>
+                </div>
               </div>
-              <h3 className="text-2xl font-extrabold text-white">Seu site profissional de artista</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Tenha uma página exclusiva e elegante para apresentar sua história, suas músicas, suas redes sociais e seus contatos de shows e produções.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Seu perfil profissional com sua identidade, informações biográficas, contatos comerciais e link exclusivo de compartilhamento.
               </p>
-              <ul className="space-y-2 text-xs text-foreground">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Perfil totalmente personalizável</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Integração com redes sociais e contatos diretos</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Biografia oficial padronizada em toda a plataforma</li>
-              </ul>
             </div>
-            <div className="lg:col-span-6 p-6 rounded-3xl bg-card border border-border/40 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/30 pb-3">
-                <span className="font-bold text-white">Preview do Perfil Público</span>
-                <span className="text-primary font-mono text-[11px]">portaldoartista.com/seu-slug</span>
+
+            {/* Mockup Real 1 */}
+            <div className="p-4 rounded-2xl bg-black/60 border border-border/30 space-y-3">
+              <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground border-b border-border/20 pb-2">
+                <span className="text-primary truncate">portaldoartista.com/alan-ribeiro</span>
+                <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-bold text-[9px]">COPIAR LINK</span>
               </div>
-              <div className="h-44 rounded-2xl bg-gradient-to-r from-zinc-900 to-black p-5 flex flex-col justify-between border border-border/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary flex items-center justify-center font-bold text-primary">
-                    ART
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-yellow-500 p-0.5 shrink-0">
+                  <div className="w-full h-full rounded-full bg-black flex items-center justify-center font-bold text-primary text-xs">
+                    AR
                   </div>
-                  <div>
-                    <h4 className="font-extrabold text-white text-sm">Seu Perfil de Artista</h4>
-                    <p className="text-[11px] text-muted-foreground">Biografia, Fotos, Redes & Contato</p>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-white text-xs truncate">Alan Ribeiro</span>
+                    <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-primary text-black">OFICIAL</span>
                   </div>
-                </div>
-                <div className="p-3 rounded-xl bg-card/60 border border-border/30 text-xs text-muted-foreground italic">
-                  "Minha biografia e apresentação oficial disponíveis 24 horas para contratantes."
+                  <p className="text-[10px] text-muted-foreground truncate">Compositor & Produtor • 50M+ views</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Benefício 2: Seu catálogo musical profissional */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            <div className="lg:col-span-6 lg:order-2 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                <Headphones className="w-6 h-6" />
+          {/* 2. 🎵 Catálogo musical profissional */}
+          <div className="p-7 rounded-3xl bg-card/50 border border-border/40 hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-6 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <Music2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white group-hover:text-amber-400 transition-colors">
+                    🎵 Catálogo Musical Profissional
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Até 50 músicas com QR Code e Player</p>
+                </div>
               </div>
-              <h3 className="text-2xl font-extrabold text-white">Seu catálogo musical profissional</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Organize todas as suas composições de forma clara e atrativa: capas, áudio em alta qualidade, letra, tom, gênero e detalhes da obra.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Até 50 músicas organizadas por estilo, tom e BPM, com links individuais, player integrado e QR Code exclusivo para divulgação.
               </p>
-              <ul className="space-y-2 text-xs text-foreground">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-400" /> Player contínuo com busca rápida</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-400" /> Visualização de letras e cifras integradas</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-400" /> Tags de tom, BPM e status de liberação</li>
-              </ul>
             </div>
-            <div className="lg:col-span-6 lg:order-1 p-6 rounded-3xl bg-card border border-border/40 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/30 pb-3">
-                <span className="font-bold text-white">Gestor de Catálogo</span>
-                <span className="text-amber-400 font-mono text-[11px]">Player Ativo</span>
+
+            {/* Mockup Real 2 */}
+            <div className="p-4 rounded-2xl bg-black/60 border border-border/30 space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs">▶</div>
+                  <span className="font-bold text-white text-xs truncate">Seu Próximo Hit.mp3</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <QrCode className="w-4 h-4 text-amber-400" />
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">QR CODE</span>
+                </div>
               </div>
-              <div className="space-y-2">
-                {[1, 2].map((n) => (
-                  <div key={n} className="p-3 rounded-xl bg-background border border-border/30 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs">
-                        ▶
-                      </div>
-                      <div>
-                        <p className="font-bold text-xs text-white">Composição #{n} — Inédita</p>
-                        <p className="text-[10px] text-muted-foreground">Sertanejo • Letra e Áudio inclusos</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded bg-primary/10">Disponível</span>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/20">
+                <span>Tom: G • BPM: 128 • Sertanejo</span>
+                <span className="text-emerald-400 font-extrabold">STATUS: LIBERADA</span>
               </div>
             </div>
           </div>
 
-          {/* Benefício 3: Gestão de carreira */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            <div className="lg:col-span-6 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                <LayoutDashboard className="w-6 h-6" />
-              </div>
-              <h3 className="text-2xl font-extrabold text-white">Gestão de carreira completa</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Mostre que o Portal é muito mais que um site. Ferramentas integradas para organizar seus contatos, produtores, parceiros e oportunidades.
-              </p>
-              <ul className="space-y-2 text-xs text-foreground">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400" /> Registro de interessados e propostas recebidas</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400" /> Painel de controle de métricas e acessos</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400" /> Centralização dos contatos da sua equipe</li>
-              </ul>
-            </div>
-            <div className="lg:col-span-6 p-6 rounded-3xl bg-card border border-border/40 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/30 pb-3">
-                <span className="font-bold text-white">Painel do Artista (CRM)</span>
-                <span className="text-blue-400 font-mono text-[11px]">Dashboard</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="p-3.5 rounded-xl bg-background border border-border/30">
-                  <p className="text-[10px] text-muted-foreground">Propostas Recebidas</p>
-                  <p className="text-xl font-extrabold text-blue-400 mt-1">12</p>
+          {/* 3. 💰 Gestão financeira da carreira */}
+          <div className="p-7 rounded-3xl bg-card/50 border border-border/40 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-6 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <DollarSign className="w-5 h-5" />
                 </div>
-                <div className="p-3.5 rounded-xl bg-background border border-border/30">
-                  <p className="text-[10px] text-muted-foreground">Produtores Conectados</p>
-                  <p className="text-xl font-extrabold text-primary mt-1">28</p>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white group-hover:text-emerald-400 transition-colors">
+                    💰 Gestão Financeira da Carreira
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Controle de receitas, custos e lucro</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Controle seus custos de produção, investimentos em estúdio, receitas de liberações e lucros líquidos em tempo real.
+              </p>
+            </div>
+
+            {/* Mockup Real 3 */}
+            <div className="p-4 rounded-2xl bg-black/60 border border-border/30 space-y-3">
+              <div className="grid grid-cols-2 gap-2 text-center">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="text-[10px] text-muted-foreground">Receitas do Mês</p>
+                  <p className="text-sm font-extrabold text-emerald-400 mt-0.5">R$ 14.850,00</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                  <p className="text-[10px] text-muted-foreground">Investimentos</p>
+                  <p className="text-sm font-extrabold text-red-400 mt-0.5">R$ 3.200,00</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[11px] px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 font-extrabold">
+                <span>Lucro Líquido do Período:</span>
+                <span>R$ 11.650,00 (+18%)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. 🎼 Administração de músicas */}
+          <div className="p-7 rounded-3xl bg-card/50 border border-border/40 hover:border-purple-500/40 transition-all flex flex-col justify-between space-y-6 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                  <PieChart className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white group-hover:text-purple-400 transition-colors">
+                    🎼 Administração de Músicas
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Controle de coautoria e liberações</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Organize informações estratégicas, controle a divisão percentual de coautoria e gerencie liberações das suas obras com segurança.
+              </p>
+            </div>
+
+            {/* Mockup Real 4 */}
+            <div className="p-4 rounded-2xl bg-black/60 border border-border/30 space-y-2">
+              <div className="flex items-center justify-between text-xs pb-1 border-b border-border/20">
+                <span className="font-bold text-white">Divisão de Direitos Autorais</span>
+                <span className="text-purple-400 font-extrabold text-[10px]">100% REGISTRADO</span>
+              </div>
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">Você (Compositor Principal)</span>
+                  <span className="font-bold text-primary">50%</span>
+                </div>
+                <div className="w-full bg-input h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-primary h-full w-1/2" />
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">Coautor B</span>
+                  <span className="font-bold text-purple-400">50%</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Benefício 4: Gestão das suas músicas & Porcentagens */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            <div className="lg:col-span-6 lg:order-2 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
-                <PieChart className="w-6 h-6" />
+          {/* 5. 🔒 Área VIP de músicas exclusivas */}
+          <div className="p-7 rounded-3xl bg-card/50 border border-border/40 hover:border-blue-500/40 transition-all flex flex-col justify-between space-y-6 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white group-hover:text-blue-400 transition-colors">
+                    🔒 Área VIP de Músicas Exclusivas
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Audições restritas para contratantes</p>
+                </div>
               </div>
-              <h3 className="text-2xl font-extrabold text-white">Gestão e controle das suas músicas</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Controle informações estratégicas sobre as suas obras: porcentagens de divisão, parceiros de composição e histórico das obras.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Compartilhe faixas inéditas e conteúdos especiais com acesso diferenciado via chave de segurança para grandes parceiros.
               </p>
-              <ul className="space-y-2 text-xs text-foreground">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-400" /> Divisão clara de direitos com coautores</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-400" /> Histórico de gravações e liberações</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-400" /> Segurança e organização das suas criações</li>
-              </ul>
             </div>
-            <div className="lg:col-span-6 lg:order-1 p-6 rounded-3xl bg-card border border-border/40 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/30 pb-3">
-                <span className="font-bold text-white">Divisão de Coautoria</span>
-                <span className="text-purple-400 font-mono text-[11px]">100% Organizado</span>
+
+            {/* Mockup Real 5 */}
+            <div className="p-4 rounded-2xl bg-black/60 border border-blue-500/30 space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-blue-400 flex items-center gap-1.5 text-[11px]">
+                  <Lock className="w-3.5 h-3.5" /> AUDIÇÃO VIP RESTRITA
+                </span>
+                <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[9px]">SENHA EXIGIDA</span>
               </div>
-              <div className="p-4 rounded-xl bg-background border border-border/30 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-white">Compositor A (Você)</span>
-                  <span className="font-extrabold text-purple-400">50%</span>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-input px-3 py-1.5 rounded-lg text-[11px] text-muted-foreground font-mono border border-border/40">
+                  ••••••••
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-white">Compositor B</span>
-                  <span className="font-extrabold text-purple-400">50%</span>
-                </div>
+                <span className="px-3 py-1.5 rounded-lg bg-blue-500 text-black font-extrabold text-[10px] uppercase">
+                  Desbloquear
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Benefício 5: Press Kit profissional */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            <div className="lg:col-span-6 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <FileText className="w-6 h-6" />
-              </div>
-              <h3 className="text-2xl font-extrabold text-white">Press Kit profissional instantâneo</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Tenha um material de apresentação impecável e pronto para enviar a cantores, produtores, empresários e escritórios musicais.
-              </p>
-              <ul className="space-y-2 text-xs text-foreground">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Exportação e visualização em PDF pronta para impressão</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Layout elegante com biografia e fotos</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Destaque das melhores faixas do seu portfólio</li>
-              </ul>
-            </div>
-            <div className="lg:col-span-6 p-6 rounded-3xl bg-card border border-border/40 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/30 pb-3">
-                <span className="font-bold text-white">Press Kit Oficial PDF / Online</span>
-                <span className="text-emerald-400 font-mono text-[11px]">Gerado com 1 Clique</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-white text-xs">PRESS KIT — PORTAL DO ARTISTA</span>
-                  <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500 text-black">EXPORTAR PDF</span>
+          {/* 6. 🤝 CRM de contatos profissionais */}
+          <div className="p-7 rounded-3xl bg-card/50 border border-border/40 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-6 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                  <Users className="w-5 h-5" />
                 </div>
-                <p className="text-[11px] text-muted-foreground">Biografia Oficial + Melhores Faixas + Dados de Contato Comercial</p>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white group-hover:text-indigo-400 transition-colors">
+                    🤝 CRM de Contatos Profissionais
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Networking organizado e protegido</p>
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Tenha seu networking de produtores, empresários, contratantes e escritórios musicais centralizado em um só lugar.
+              </p>
+            </div>
+
+            {/* Mockup Real 6 */}
+            <div className="p-4 rounded-2xl bg-black/60 border border-border/30 space-y-2">
+              <div className="flex items-center justify-between text-[11px] p-2 rounded-xl bg-card/60 border border-border/20">
+                <div>
+                  <p className="font-bold text-white text-xs">Rodrigo Silva (Empresário)</p>
+                  <p className="text-[9px] text-muted-foreground">Escritório Musical Sertanejo</p>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-extrabold text-[9px]">
+                  PROPOSTA ENVIADA
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] p-2 rounded-xl bg-card/60 border border-border/20">
+                <div>
+                  <p className="font-bold text-white text-xs">Estúdio Som Livre (Produtor)</p>
+                  <p className="text-[9px] text-muted-foreground">Produção de DVD & Singles</p>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-extrabold text-[9px]">
+                  EM NEGOCIAÇÃO
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 7. 📅 Agenda interativa do artista */}
+          <div className="p-7 rounded-3xl bg-card/50 border border-border/40 hover:border-orange-500/40 transition-all flex flex-col justify-between space-y-6 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white group-hover:text-orange-400 transition-colors">
+                    📅 Agenda Interativa do Artista
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Compromissos, eventos e rotina</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Organize compromissos, reuniões com contratantes, sessões em estúdio, ensaios e eventos sem perder nenhuma oportunidade.
+              </p>
+            </div>
+
+            {/* Mockup Real 7 */}
+            <div className="p-4 rounded-2xl bg-black/60 border border-border/30 space-y-2">
+              <div className="flex items-center gap-2 text-[11px]">
+                <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 font-extrabold text-[9px]">14 MAI • 19:00</span>
+                <span className="text-white font-bold text-xs truncate">🎙️ Gravação no Estúdio Central</span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px]">
+                <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-extrabold text-[9px]">18 MAI • 21:00</span>
+                <span className="text-white font-bold text-xs truncate">🎸 Show ao Vivo - Arena Sertaneja</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 8. 📄 Press Kit profissional em PDF */}
+          <div className="p-7 rounded-3xl bg-card/50 border border-border/40 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-6 shadow-xl group">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white group-hover:text-emerald-400 transition-colors">
+                    📄 Press Kit Profissional em PDF
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Apresentação oficial com 1 clique</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Crie uma apresentação profissional em PDF pronta para ser enviada por WhatsApp ou e-mail a artistas, produtores e parceiros.
+              </p>
+            </div>
+
+            {/* Mockup Real 8 */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-black/80 to-black border border-emerald-500/30 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-white text-xs">PRESS KIT OFICIAL 2026.pdf</span>
+                <span className="px-2 py-0.5 rounded bg-emerald-500 text-black font-extrabold text-[9px]">PRONTO PARA PDF</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Biografia + Melhores Faixas + Fotos em Alta + Contatos de Shows</p>
+              <button className="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md">
+                <Download className="w-3.5 h-3.5" />
+                Exportar PDF do Artista
+              </button>
             </div>
           </div>
 
