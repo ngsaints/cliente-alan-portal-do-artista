@@ -279,7 +279,7 @@ function AdminDashboard() {
       {/* Tab bar */}
       <div className="sticky top-16 z-30 bg-black/90 backdrop-blur-md border-b border-border/60 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-1.5 overflow-x-auto py-2.5 scrollbar-none">
+          <div className="flex gap-1.5 overflow-x-auto py-2.5 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -1589,6 +1589,7 @@ function GenresTab() {
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [adding, setAdding]   = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [editId, setEditId]   = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const { toast } = useToast();
@@ -1661,103 +1662,142 @@ function GenresTab() {
     }
   };
 
+  const filteredRows = rows.filter(r => r.nome.toLowerCase().includes(searchQuery.toLowerCase()));
+  const activeCount = rows.filter(r => r.ativo).length;
+
   return (
-    <div className="space-y-6 max-w-lg">
-      <div>
-        <h2 className="text-2xl font-display font-bold text-foreground">Gêneros Musicais</h2>
-        <p className="text-sm text-muted-foreground">Gerencie os gêneros disponíveis em filtros e cadastros</p>
+    <div className="space-y-6 w-full">
+      {/* Header com Estatísticas e Formulário de Adição */}
+      <div className="bg-card border border-border/70 rounded-2xl p-6 space-y-5 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+              <Tag className="w-5 h-5 text-primary" />
+              Gêneros Musicais ({rows.length})
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Gerencie os gêneros disponíveis para filtros de busca e cadastro de faixas.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold">
+              {activeCount} Ativos
+            </span>
+            <span className="px-3 py-1 rounded-full bg-muted/40 border border-border text-muted-foreground font-bold">
+              {rows.length - activeCount} Inativos
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+          {/* Formulário de Adição */}
+          <form onSubmit={handleAdd} className="flex gap-2">
+            <input
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              placeholder="Adicionar novo gênero (ex: Funk, Sertanejo)..."
+              className="flex-1 px-4 py-2 bg-input border border-border rounded-xl text-foreground text-xs outline-none focus:border-primary transition-all"
+            />
+            <button
+              type="submit"
+              disabled={adding || !newName.trim()}
+              className="px-4 py-2 bg-primary text-black font-extrabold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-xs flex items-center gap-1.5 uppercase tracking-wider cursor-pointer shadow-md shadow-primary/20"
+            >
+              {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              Adicionar
+            </button>
+          </form>
+
+          {/* Busca de Gêneros */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Filtrar gênero..."
+              className="w-full pl-9 pr-3 py-2 bg-input border border-border rounded-xl text-foreground text-xs outline-none focus:border-primary transition-all"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Formulário de adição */}
-      <form onSubmit={handleAdd} className="flex gap-2">
-        <input
-          value={newName}
-          onChange={e => setNewName(e.target.value)}
-          placeholder="Novo gênero... (ex: Funk, Rock)"
-          className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-        />
-        <button
-          type="submit"
-          disabled={adding || !newName.trim()}
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-sm"
-        >
-          {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-          Adicionar
-        </button>
-      </form>
-
-      {/* Lista */}
+      {/* Grid de Gêneros */}
       {loading ? (
-        <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+        <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      ) : filteredRows.length === 0 ? (
+        <div className="p-12 text-center border border-dashed border-border/60 rounded-2xl text-muted-foreground text-xs">
+          {searchQuery ? `Nenhum gênero encontrado para "${searchQuery}".` : "Nenhum gênero cadastrado ainda."}
+        </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          {rows.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">Nenhum gênero cadastrado.</div>
-          ) : (
-            <div className="divide-y divide-border/40">
-              {rows.map(row => (
-                <div key={row.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors group">
-                  <GripVertical className="w-4 h-4 text-border shrink-0" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+          {filteredRows.map(row => (
+            <div
+              key={row.id}
+              className="p-3.5 rounded-2xl bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-primary/40 transition-all flex items-center justify-between gap-3 shadow-md group"
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <GripVertical className="w-3.5 h-3.5 text-border/60 shrink-0 group-hover:text-primary/70 transition-colors" />
 
-                  {/* Nome — inline edit */}
-                  {editId === row.id ? (
-                    <input
-                      autoFocus
-                      value={editName}
-                      onChange={e => setEditName(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") handleSaveName(row.id); if (e.key === "Escape") setEditId(null); }}
-                      className="flex-1 bg-input border border-primary rounded-lg px-3 py-1 text-sm text-foreground focus:outline-none"
-                    />
-                  ) : (
-                    <span className={`flex-1 text-sm font-medium ${row.ativo ? "text-foreground" : "text-muted-foreground line-through"}`}>
-                      {row.nome}
-                    </span>
-                  )}
+                {editId === row.id ? (
+                  <input
+                    autoFocus
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleSaveName(row.id); if (e.key === "Escape") setEditId(null); }}
+                    className="w-full bg-input border border-primary rounded-lg px-2.5 py-1 text-xs text-foreground focus:outline-none"
+                  />
+                ) : (
+                  <span className={`text-xs font-extrabold truncate ${row.ativo ? "text-foreground" : "text-muted-foreground line-through"}`}>
+                    {row.nome}
+                  </span>
+                )}
+              </div>
 
-                  {/* Badge ativo/inativo */}
-                  <button
-                    onClick={() => handleToggle(row)}
-                    className={`px-2 py-0.5 rounded-full text-xs font-bold transition-colors ${
-                      row.ativo
-                        ? "bg-green-500/15 text-green-400 hover:bg-red-500/15 hover:text-red-400"
-                        : "bg-red-500/15 text-red-400 hover:bg-green-500/15 hover:text-green-400"
-                    }`}
-                    title={row.ativo ? "Clique para desativar" : "Clique para ativar"}
-                  >
-                    {row.ativo ? "Ativo" : "Inativo"}
-                  </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => handleToggle(row)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer ${
+                    row.ativo
+                      ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-red-500/15 hover:text-red-400"
+                      : "bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-emerald-500/15 hover:text-emerald-400"
+                  }`}
+                  title={row.ativo ? "Clique para desativar" : "Clique para ativar"}
+                >
+                  {row.ativo ? "Ativo" : "Inativo"}
+                </button>
 
-                  {/* Ações */}
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {editId === row.id ? (
-                      <>
-                        <button onClick={() => handleSaveName(row.id)} className="p-1.5 text-green-400 hover:bg-green-400/10 rounded-lg transition-colors">
-                          <CheckCircle2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => setEditId(null)} className="p-1.5 text-muted-foreground hover:bg-white/5 rounded-lg transition-colors">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button onClick={() => { setEditId(row.id); setEditName(row.nome); }} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(row.id, row.nome)} className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+                {editId === row.id ? (
+                  <>
+                    <button onClick={() => handleSaveName(row.id)} className="p-1 text-emerald-400 hover:bg-emerald-400/10 rounded-md transition-colors">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setEditId(null)} className="p-1 text-muted-foreground hover:bg-white/10 rounded-md transition-colors">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => { setEditId(row.id); setEditName(row.nome); }} className="p-1 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => handleDelete(row.id, row.nome)} className="p-1 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          )}
+          ))}
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        Gêneros inativos ficam ocultos nos filtros e formulários. Músicas existentes com esse gênero não são afetadas.
+      <p className="text-[11px] text-muted-foreground italic">
+        * Gêneros inativos ficam ocultos nos filtros de navegação. Faixas existentes com esse gênero permanecem intactas.
       </p>
     </div>
   );
