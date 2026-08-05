@@ -149,11 +149,7 @@ export function ExitIntentModal() {
     window.addEventListener("scroll", resetIdleTimer, { passive: true });
     window.addEventListener("click", resetIdleTimer);
 
-    // Manual custom trigger
-    const handleCustomTrigger = () => {
-      setIsOpen(true);
-    };
-    window.addEventListener("triggerExitFeedbackModal", handleCustomTrigger);
+
 
     return () => {
       clearTimeout(idleTimer);
