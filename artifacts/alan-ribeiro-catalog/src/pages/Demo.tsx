@@ -80,10 +80,12 @@ export default function Demo() {
   });
 
   useEffect(() => {
-    fetch("/api/settings")
-      .then((res) => res.json())
-      .then((data) => setDemoSettings(data))
-      .catch(console.error);
+    Promise.all([
+      fetch("/api/settings").then((res) => res.json()).catch(() => ({})),
+      fetch("/api/demo-settings").then((res) => res.json()).catch(() => ({})),
+    ]).then(([settingsData, demoData]) => {
+      setDemoSettings({ ...settingsData, ...demoData });
+    }).catch(console.error);
 
     fetch("/api/auth/me")
       .then((r) => r.json())
