@@ -29,6 +29,7 @@ import financeiroRouter from "./financeiro";
 import songComposersRouter from "./song-composers";
 
 import exitFeedbackRouter from "./exit-feedback";
+import articlesRouter from "./articles";
 
 const router: IRouter = Router();
 
@@ -61,5 +62,6 @@ router.use(liberacoesRouter);
 router.use(financeiroRouter);
 router.use(songComposersRouter);
 router.use(exitFeedbackRouter);
+router.use(articlesRouter);
 
 export default router;

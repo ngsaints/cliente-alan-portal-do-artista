@@ -18,7 +18,7 @@ import {
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
-  Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight,
+  Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight, BookOpen, FileText, Sparkles, Star,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -113,7 +113,7 @@ interface Coupon {
   createdAt: string;
 }
 
-type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs";
+type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "articles" | "exit_feedback" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs";
 type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email" | "clarity" | "pixel";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -254,6 +254,7 @@ function AdminDashboard() {
     { id: "plans",     label: "Planos",         icon: Crown          },
     { id: "genres",    label: "Gêneros",        icon: Tag            },
     { id: "interests", label: "Interesses",     icon: MessageSquare  },
+    { id: "articles",  label: "Artigos / Blog", icon: BookOpen        },
     { id: "exit_feedback", label: "Pesquisa de Saída", icon: LogOut },
     { id: "settings", label: "Configurações", icon: Settings },
     { id: "server_logs", label: "Logs do Servidor", icon: Terminal },
@@ -358,6 +359,7 @@ function AdminDashboard() {
           {activeTab === "plans" && <PlansTab />}
           {activeTab === "genres"    && <GenresTab />}
           {activeTab === "interests" && <InterestsTab />}
+          {activeTab === "articles" && <ArticlesTab />}
           {activeTab === "exit_feedback" && <ExitFeedbackTab />}
           {activeTab === "settings" && <SettingsTab onNavigate={setActiveTab} />}
           {activeTab === "banners" && <BannersTab />}
@@ -1219,6 +1221,29 @@ function ArtistsTab() {
                           </>
                         ) : (
                           <>
+                            <button
+                              onClick={async () => {
+                                const nextVal = !a.canPostArticles;
+                                const res = await fetch(`/api/artists/${a.id}/article-permission`, {
+                                  method: "PUT",
+                                  headers: { "Content-Type": "application/json" },
+                                  credentials: "include",
+                                  body: JSON.stringify({ canPostArticles: nextVal }),
+                                });
+                                if (res.ok) {
+                                  toast({ title: nextVal ? `Permissão de artigos concedida a ${a.name}!` : `Permissão de artigos revogada de ${a.name}` });
+                                  load();
+                                }
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                a.canPostArticles
+                                  ? "text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+                                  : "text-muted-foreground hover:text-emerald-400 hover:bg-emerald-400/10"
+                              }`}
+                              title={a.canPostArticles ? "Permissão para publicar artigos ATIVA (clique para revogar)" : "Conceder permissão para publicar artigos"}
+                            >
+                              <BookOpen className="w-4 h-4" />
+                            </button>
                             <button onClick={() => handleOpenGrant(a)} className="p-1.5 text-muted-foreground hover:text-violet-400 hover:bg-violet-400/10 rounded-lg transition-colors" title="Conceder plano">
                               <Gift className="w-4 h-4" />
                             </button>
@@ -5389,6 +5414,537 @@ function ExitFeedbackTab() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Articles / Blog Tab ──────────────────────────────────────────────────────
+
+function ArticlesTab() {
+  const [articles, setArticles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  // Form State
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [excerpt, setExcerpt] = useState("");
+  const [content, setContent] = useState("");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [category, setCategory] = useState("Carreira");
+  const [keywords, setKeywords] = useState("");
+  const [status, setStatus] = useState("published");
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [authorName, setAuthorName] = useState("Redação Portal do Artista");
+
+  const loadArticles = () => {
+    setLoading(true);
+    fetch("/api/articles/admin/all", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setArticles(Array.isArray(data) ? data : []))
+      .catch(() => setArticles([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadArticles();
+  }, []);
+
+  const handleOpenCreate = () => {
+    setEditingArticle(null);
+    setTitle("");
+    setSlug("");
+    setExcerpt("");
+    setContent("");
+    setCoverUrl("");
+    setCategory("Carreira");
+    setKeywords("");
+    setStatus("published");
+    setIsFeatured(false);
+    setAuthorName("Redação Portal do Artista");
+    setModalOpen(true);
+  };
+
+  const handleOpenEdit = (art: any) => {
+    setEditingArticle(art);
+    setTitle(art.title || "");
+    setSlug(art.slug || "");
+    setExcerpt(art.excerpt || "");
+    setContent(art.content || "");
+    setCoverUrl(art.coverUrl || "");
+    setCategory(art.category || "Carreira");
+    setKeywords(art.keywords || "");
+    setStatus(art.status || "published");
+    setIsFeatured(art.isFeatured === true);
+    setAuthorName(art.authorName || "Redação Portal do Artista");
+    setModalOpen(true);
+  };
+
+  // Auto-generate slug from title
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    if (!editingArticle) {
+      const generated = val
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "");
+      setSlug(generated);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !content.trim()) {
+      toast({ title: "Título e Conteúdo são obrigatórios", variant: "destructive" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const url = editingArticle ? `/api/articles/${editingArticle.id}` : "/api/articles";
+      const method = editingArticle ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title,
+          slug,
+          excerpt,
+          content,
+          coverUrl,
+          category,
+          keywords,
+          status,
+          isFeatured,
+          authorName,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: editingArticle ? "Artigo atualizado!" : "Artigo publicado com sucesso!" });
+        setModalOpen(false);
+        loadArticles();
+      } else {
+        toast({ title: data.error || "Erro ao salvar artigo", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro na requisição", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: number, artTitle: string) => {
+    if (!window.confirm(`Deseja excluir o artigo "${artTitle}"?`)) return;
+    try {
+      const res = await fetch(`/api/articles/${id}`, { method: "DELETE", credentials: "include" });
+      if (res.ok) {
+        toast({ title: "Artigo excluído" });
+        loadArticles();
+      } else {
+        toast({ title: "Erro ao excluir artigo", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro de conexão", variant: "destructive" });
+    }
+  };
+
+  const handleToggleFeatured = async (art: any) => {
+    try {
+      const res = await fetch(`/api/articles/${art.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isFeatured: !art.isFeatured }),
+      });
+      if (res.ok) {
+        toast({ title: !art.isFeatured ? "Artigo marcado como Destaque" : "Removido do Destaque" });
+        loadArticles();
+      }
+    } catch (err) {
+      toast({ title: "Erro ao atualizar destaque", variant: "destructive" });
+    }
+  };
+
+  // Seed demo article if no articles exist
+  const handleSeedDemoArticle = async () => {
+    const demoArticle = {
+      title: "Nome artístico também precisa ser registrado como marca?",
+      slug: "nome-artistico-tambem-precisa-ser-registrado-como-marca",
+      excerpt: "Entenda por que proteger seu nome artístico no INPI é indispensável para evitar que terceiros roubem sua identidade musical e suas redes.",
+      category: "Marca & Registro",
+      keywords: "nome artistico, registro de marca, inpi, direitos autorais, musica, propriedade intelectual",
+      coverUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1200&auto=format&fit=crop",
+      authorName: "Equipe Jurídica Portal do Artista",
+      isFeatured: true,
+      status: "published",
+      content: `
+        <h2>Por que o Nome Artístico é o Maior Patrimônio do Músico?</h2>
+        <p>No mercado da música, o seu nome artístico (ou o nome da sua banda) é a sua marca comercial. É por meio dele que contratantes encontram seus shows, os fãs buscam suas músicas nas plataformas digitais (Spotify, Deezer, Apple Music) e parceiros fecham patrocínios.</p>
+        <p>Muitos artistas acreditam que registrar músicas no ECAD ou na Biblioteca Nacional garante a proteção do nome. <strong>Isso é um grande equívoco!</strong></p>
+        
+        <h3>Diferença entre Direito Autoral e Registro de Marca</h3>
+        <ul>
+          <li><strong>Direito Autoral (Música / Composição):</strong> Protege a obra musical, a letra e a melodia contra cópias.</li>
+          <li><strong>Registro de Marca (INPI):</strong> Protege o NOME ou LOGOTIPO do artista ou banda comercialmente na classe de serviços de entretenimento e música.</li>
+        </ul>
+
+        <h3>O que acontece se outra pessoa registrar seu nome primeiro?</h3>
+        <p>No Brasil, a propriedade da marca pertence a quem registra primeiro no <strong>INPI (Instituto Nacional da Propriedade Industrial)</strong>. Se alguém registrar seu nome artístico antes de você, essa pessoa poderá:</p>
+        <ol>
+          <li>Notificar extrajudicialmente você para parar de usar o nome imediatamente;</li>
+          <li>Solicitar a derrubada das suas redes sociais e canal do YouTube;</li>
+          <li>Exigir indenização financeira pelo uso indevido da marca.</li>
+        </ol>
+
+        <blockquote style="background: rgba(245, 197, 24, 0.1); border-left: 4px solid #f5c518; padding: 1rem; margin: 1.5rem 0; font-style: italic;">
+          "Quem não registra não é dono. Na música, perder o nome artístico significa perder anos de reputação e engajamento acumulados com o público."
+        </blockquote>
+
+        <h3>Como Funciona o Processo de Registro?</h3>
+        <p>O processo envolve pesquisa de anterioridade no banco do INPI, protocolo do pedido sob a classe NCL 41 (Serviços de Entretenimento e Shows), acompanhamento das fases de oposição e emissão do Certificado de Registro válido por 10 anos em todo o território nacional.</p>
+        <p>No <strong>Portal do Artista</strong>, oferecemos orientação completa e assessoria especializada para garantir a proteção legal do seu nome artístico e da sua carreira.</p>
+      `,
+    };
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(demoArticle),
+      });
+      if (res.ok) {
+        toast({ title: "Artigo demonstrativo criado com sucesso!" });
+        loadArticles();
+      } else {
+        const d = await res.json();
+        toast({ title: d.error || "Erro ao criar artigo de demonstração", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro na requisição", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border/60 p-6 rounded-2xl shadow-xl">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-primary" />
+            Gestão de Artigos & Blog SEO
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Publique artigos otimizados para atrair tráfego orgânico do Google para o Portal do Artista.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {articles.length === 0 && (
+            <button
+              onClick={handleSeedDemoArticle}
+              disabled={saving}
+              className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Sparkles className="w-4 h-4" /> Gerar Artigo Demo
+            </button>
+          )}
+          <button
+            onClick={handleOpenCreate}
+            className="px-4 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 cursor-pointer flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Novo Artigo
+          </button>
+        </div>
+      </div>
+
+      {/* Lista de Artigos Cadastrados */}
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : articles.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground bg-card border border-dashed border-border rounded-2xl space-y-4">
+          <BookOpen className="w-12 h-12 mx-auto opacity-30 text-primary" />
+          <div>
+            <h3 className="text-base font-bold text-white">Nenhum artigo publicado ainda</h3>
+            <p className="text-xs text-muted-foreground mt-1">Clique em "Novo Artigo" ou "Gerar Artigo Demo" acima para publicar o primeiro conteúdo SEO.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-border bg-background/50">
+                <tr>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Capa / Título</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Categoria</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Visualizações</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Status</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Destaque</th>
+                  <th className="text-right px-4 py-3 text-muted-foreground font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {articles.map((art) => (
+                  <tr key={art.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={art.coverUrl || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=300&auto=format&fit=crop"}
+                          alt={art.title}
+                          className="w-12 h-12 rounded-lg object-cover border border-border/60 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <a
+                            href={`/artigos/${art.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-bold text-white hover:text-primary transition-colors flex items-center gap-1 text-sm leading-snug line-clamp-1"
+                          >
+                            {art.title} <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
+                          </a>
+                          <span className="text-[11px] text-muted-foreground font-mono">/artigos/{art.slug}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase bg-primary/10 text-primary border border-primary/20">
+                        {art.category}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground font-semibold">
+                      <span className="flex items-center gap-1 text-xs">
+                        <Eye className="w-3.5 h-3.5 text-primary" /> {art.views || 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          art.status === "published"
+                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                            : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                        }`}
+                      >
+                        {art.status === "published" ? "Publicado" : "Rascunho"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleToggleFeatured(art)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          art.isFeatured
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                            : "bg-zinc-800 text-zinc-500 hover:text-zinc-300 border border-zinc-700"
+                        }`}
+                      >
+                        {art.isFeatured ? "★ Destaque" : "Normal"}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleOpenEdit(art)}
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title="Editar Artigo"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(art.id, art.title)}
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                          title="Excluir Artigo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Criação / Edição de Artigo */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-card border border-border rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-border/50 pb-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                {editingArticle ? "Editar Artigo SEO" : "Novo Artigo SEO"}
+              </h3>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="p-1.5 text-muted-foreground hover:text-white rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Título */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-muted-foreground">Título do Artigo *</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    placeholder="Ex: Nome artístico também precisa ser registrado como marca?"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/60"
+                    required
+                  />
+                </div>
+
+                {/* Slug */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">Slug da URL *</label>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    placeholder="nome-artistico-tambem-precisa-ser-registrado-como-marca"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary/60"
+                    required
+                  />
+                </div>
+
+                {/* Categoria */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">Categoria</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/60"
+                  >
+                    <option value="Direitos Autorais">Direitos Autorais</option>
+                    <option value="Marca & Registro">Marca & Registro</option>
+                    <option value="Marketing Musical">Marketing Musical</option>
+                    <option value="Carreira">Carreira</option>
+                    <option value="Mercado">Mercado</option>
+                  </select>
+                </div>
+
+                {/* URL da Imagem de Capa */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-muted-foreground">URL da Imagem de Capa</label>
+                  <input
+                    type="text"
+                    value={coverUrl}
+                    onChange={(e) => setCoverUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/... ou URL da imagem"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/60"
+                  />
+                </div>
+
+                {/* Resumo SEO (Excerpt) */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-muted-foreground">Resumo / Meta Description SEO</label>
+                  <textarea
+                    value={excerpt}
+                    onChange={(e) => setExcerpt(e.target.value)}
+                    rows={2}
+                    placeholder="Breve resumo atraente de 1 a 2 frases para aparecer no Google e redes sociais..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-foreground focus:outline-none focus:border-primary/60"
+                  />
+                </div>
+
+                {/* Conteúdo HTML / Rich Text */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-muted-foreground">Conteúdo Completo (HTML / Texto Otimizado) *</label>
+                  <textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    rows={12}
+                    placeholder="<h2>Título da Seção</h2><p>Escreva o conteúdo do artigo com parágrafos, listas e destaques...</p>"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary/60 leading-relaxed"
+                    required
+                  />
+                </div>
+
+                {/* Palavras-chave SEO */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">Palavras-chave SEO (separadas por vírgula)</label>
+                  <input
+                    type="text"
+                    value={keywords}
+                    onChange={(e) => setKeywords(e.target.value)}
+                    placeholder="nome artistico, inpi, marca, direitos autorais"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-foreground focus:outline-none focus:border-primary/60"
+                  />
+                </div>
+
+                {/* Autor */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">Nome do Autor</label>
+                  <input
+                    type="text"
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    placeholder="Redação Portal do Artista"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/60"
+                  />
+                </div>
+
+                {/* Toggles Status e Destaque */}
+                <div className="flex items-center gap-6 md:col-span-2 pt-2 border-t border-border/40">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
+                    <input
+                      type="checkbox"
+                      checked={status === "published"}
+                      onChange={(e) => setStatus(e.target.checked ? "published" : "draft")}
+                      className="accent-primary w-4 h-4"
+                    />
+                    Publicar imediatamente
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-400">
+                    <input
+                      type="checkbox"
+                      checked={isFeatured}
+                      onChange={(e) => setIsFeatured(e.target.checked)}
+                      className="accent-amber-400 w-4 h-4"
+                    />
+                    Marcar como Artigo em Destaque
+                  </label>
+                </div>
+              </div>
+
+              {/* Botões do Modal */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/50">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-card border border-border text-xs font-bold text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs hover:bg-primary/90 transition-all shadow-lg cursor-pointer flex items-center gap-2"
+                >
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {editingArticle ? "Salvar Alterações" : "Publicar Artigo"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

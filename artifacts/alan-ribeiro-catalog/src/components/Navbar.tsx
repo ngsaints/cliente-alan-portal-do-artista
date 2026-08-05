@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Music, Users, Zap, LayoutDashboard, Menu, X, Star, User } from "lucide-react";
+import { Music, Users, Zap, LayoutDashboard, Menu, X, Star, User, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlansModal } from "@/components/PlansModal";
 
@@ -86,6 +86,13 @@ export function Navbar() {
             >
               <Users className="w-4 h-4" />
               Artistas
+            </Link>
+            <Link
+              href="/artigos"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            >
+              <BookOpen className="w-4 h-4 text-primary" />
+              Artigos
             </Link>
             <Link
               href="/demo"
@@ -201,6 +208,14 @@ export function Navbar() {
                 >
                   <Users className="w-5 h-5" />
                   Artistas
+                </Link>
+                <Link
+                  href="/artigos"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <BookOpen className="w-5 h-5 text-primary" />
+                  Artigos
                 </Link>
                 <Link
                   href="/demo"

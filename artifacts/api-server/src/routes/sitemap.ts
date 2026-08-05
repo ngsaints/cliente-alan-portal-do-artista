@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, artistsTable } from "@workspace/db";
+import { db, artistsTable, articlesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
@@ -12,8 +12,14 @@ router.get("/sitemap.xml", async (_req, res): Promise<void> => {
       updatedAt: artistsTable.updatedAt,
     }).from(artistsTable).where(eq(artistsTable.planoAtivo, true));
 
+    const articles = await db.select({
+      slug: articlesTable.slug,
+      updatedAt: articlesTable.updatedAt,
+    }).from(articlesTable).where(eq(articlesTable.status, "published"));
+
     const staticPages = [
       { url: "/", priority: "1.0", changefreq: "daily" },
+      { url: "/artigos", priority: "0.9", changefreq: "daily" },
       { url: "/artistas", priority: "0.9", changefreq: "daily" },
       { url: "/vip", priority: "0.7", changefreq: "weekly" },
       { url: "/demo", priority: "0.6", changefreq: "monthly" },
@@ -31,6 +37,17 @@ router.get("/sitemap.xml", async (_req, res): Promise<void> => {
       xml += `    <lastmod>${now}</lastmod>\n`;
       xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
       xml += `    <priority>${page.priority}</priority>\n`;
+      xml += '  </url>\n';
+    }
+
+    // Article pages
+    for (const article of articles) {
+      const lastmod = article.updatedAt ? new Date(article.updatedAt).toISOString().split("T")[0] : now.split("T")[0];
+      xml += '  <url>\n';
+      xml += `    <loc>${BASE_URL}/artigos/${article.slug}</loc>\n`;
+      xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += '    <changefreq>weekly</changefreq>\n';
+      xml += '    <priority>0.8</priority>\n';
       xml += '  </url>\n';
     }
 

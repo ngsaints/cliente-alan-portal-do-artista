@@ -46,6 +46,9 @@ export const artistsTable = pgTable("artists", {
   aiQueriesCount: integer("ai_queries_count").notNull().default(0),
   aiQueriesResetAt: timestamp("ai_queries_reset_at", { withTimezone: true }).notNull().defaultNow(),
 
+  // Permissões Especiais
+  canPostArticles: boolean("can_post_articles").notNull().default(false),
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
