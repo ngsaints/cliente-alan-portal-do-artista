@@ -1,6 +1,29 @@
 import { Router, type IRouter } from "express";
+import multer from "multer";
+import sharp from "sharp";
+import path from "path";
+import fs from "fs";
 import { db, articlesTable, artistsTable } from "@workspace/db";
 import { eq, desc, and, like, or, sql } from "drizzle-orm";
+import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+});
+
+async function saveArticleCover(buffer: Buffer, originalName: string): Promise<string> {
+  const jpgBuffer = await sharp(buffer).jpeg({ quality: 85, mozjpeg: true }).toBuffer();
+  if (r2Enabled) {
+    const key = generateR2Key("articles", originalName.replace(/\.\w+$/, ".jpg"));
+    return uploadToR2(jpgBuffer, key, "image/jpeg");
+  }
+  const dir = path.join(process.cwd(), "uploads/articles");
+  fs.mkdirSync(dir, { recursive: true });
+  const filename = `${Date.now()}_${originalName.replace(/[^a-zA-Z0-9.-]/g, "_").replace(/\.\w+$/, ".jpg")}`;
+  fs.writeFileSync(path.join(dir, filename), jpgBuffer);
+  return `/api/uploads/articles/${filename}`;
+}
 
 const router: IRouter = Router();
 
@@ -10,6 +33,27 @@ function calculateReadingTime(text: string): number {
   const words = text.replace(/<[^>]*>/g, " ").trim().split(/\s+/).length;
   return Math.max(1, Math.ceil(words / 200));
 }
+
+// 0. POST /api/articles/upload-cover - Upload Cover Image (R2 / Local Disk)
+router.post("/articles/upload-cover", upload.single("cover"), async (req, res): Promise<void> => {
+  if (!req.session?.isAdmin && !req.session?.artistId) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
+
+  if (!req.file) {
+    res.status(400).json({ error: "Nenhuma imagem enviada" });
+    return;
+  }
+
+  try {
+    const coverUrl = await saveArticleCover(req.file.buffer, req.file.originalname);
+    res.json({ url: coverUrl });
+  } catch (error) {
+    console.error("Error uploading article cover image:", error);
+    res.status(500).json({ error: "Erro ao fazer upload da imagem de capa" });
+  }
+});
 
 // 1. GET /api/articles - List published articles
 router.get("/articles", async (req, res): Promise<void> => {
