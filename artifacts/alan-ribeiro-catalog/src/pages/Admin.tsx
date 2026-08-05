@@ -5392,3 +5392,707 @@ function ExitFeedbackTab() {
     </div>
   );
 }
+
+
+// ─── Articles / Blog Tab ──────────────────────────────────────────────────────
+
+function ArticlesTab() {
+  const [articles, setArticles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("Todos");
+  const { toast } = useToast();
+
+  // Form State
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [excerpt, setExcerpt] = useState("");
+  const [content, setContent] = useState("");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [category, setCategory] = useState("Carreira");
+  const [keywords, setKeywords] = useState("");
+  const [status, setStatus] = useState("published");
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [authorName, setAuthorName] = useState("Redação Portal do Artista");
+
+  const loadArticles = () => {
+    setLoading(true);
+    fetch("/api/articles/admin/all", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setArticles(Array.isArray(data) ? data : []))
+      .catch(() => setArticles([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadArticles();
+  }, []);
+
+  const handleOpenCreate = () => {
+    setEditingArticle(null);
+    setTitle("");
+    setSlug("");
+    setExcerpt("");
+    setContent("");
+    setCoverUrl("");
+    setCategory("Carreira");
+    setKeywords("");
+    setStatus("published");
+    setIsFeatured(false);
+    setAuthorName("Redação Portal do Artista");
+    setModalOpen(true);
+  };
+
+  const handleOpenEdit = (art: any) => {
+    setEditingArticle(art);
+    setTitle(art.title || "");
+    setSlug(art.slug || "");
+    setExcerpt(art.excerpt || "");
+    setContent(art.content || "");
+    setCoverUrl(art.coverUrl || "");
+    setCategory(art.category || "Carreira");
+    setKeywords(art.keywords || "");
+    setStatus(art.status || "published");
+    setIsFeatured(art.isFeatured === true);
+    setAuthorName(art.authorName || "Redação Portal do Artista");
+    setModalOpen(true);
+  };
+
+  // Auto-generate slug from title
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    if (!editingArticle) {
+      const generated = val
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "");
+      setSlug(generated);
+    }
+  };
+
+  // Insert HTML formatting tag helpers into content textarea
+  const handleInsertTag = (tagOpen: string, tagClose: string) => {
+    setContent((prev) => `${prev}\n${tagOpen}Texto da seção aqui...${tagClose}\n`);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !content.trim()) {
+      toast({ title: "Título e Conteúdo são obrigatórios", variant: "destructive" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const url = editingArticle ? `/api/articles/${editingArticle.id}` : "/api/articles";
+      const method = editingArticle ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title,
+          slug,
+          excerpt,
+          content,
+          coverUrl,
+          category,
+          keywords,
+          status,
+          isFeatured,
+          authorName,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: editingArticle ? "Artigo atualizado com sucesso!" : "Artigo publicado com sucesso!" });
+        setModalOpen(false);
+        loadArticles();
+      } else {
+        toast({ title: data.error || "Erro ao salvar artigo", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro na requisição", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: number, artTitle: string) => {
+    if (!window.confirm(`Deseja excluir o artigo "${artTitle}"?`)) return;
+    try {
+      const res = await fetch(`/api/articles/${id}`, { method: "DELETE", credentials: "include" });
+      if (res.ok) {
+        toast({ title: "Artigo excluído" });
+        loadArticles();
+      } else {
+        toast({ title: "Erro ao excluir artigo", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro de conexão", variant: "destructive" });
+    }
+  };
+
+  const handleToggleFeatured = async (art: any) => {
+    try {
+      const res = await fetch(`/api/articles/${art.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isFeatured: !art.isFeatured }),
+      });
+      if (res.ok) {
+        toast({ title: !art.isFeatured ? "Artigo marcado como Destaque" : "Removido do Destaque" });
+        loadArticles();
+      }
+    } catch (err) {
+      toast({ title: "Erro ao atualizar destaque", variant: "destructive" });
+    }
+  };
+
+  // Seed demo article if no articles exist
+  const handleSeedDemoArticle = async () => {
+    const demoArticle = {
+      title: "Nome artístico também precisa ser registrado como marca?",
+      slug: "nome-artistico-tambem-precisa-ser-registrado-como-marca",
+      excerpt: "Entenda por que proteger seu nome artístico no INPI é indispensável para evitar que terceiros roubem sua identidade musical e suas redes.",
+      category: "Marca & Registro",
+      keywords: "nome artistico, registro de marca, inpi, direitos autorais, musica, propriedade intelectual",
+      coverUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1200&auto=format&fit=crop",
+      authorName: "Equipe Jurídica Portal do Artista",
+      isFeatured: true,
+      status: "published",
+      content: `
+        <h2>Por que o Nome Artístico é o Maior Patrimônio do Músico?</h2>
+        <p>No mercado da música, o seu nome artístico (ou o nome da sua banda) é a sua marca comercial. É por meio dele que contratantes encontram seus shows, os fãs buscam suas músicas nas plataformas digitais (Spotify, Deezer, Apple Music) e parceiros fecham patrocínios.</p>
+        <p>Muitos artistas acreditam que registrar músicas no ECAD ou na Biblioteca Nacional garante a proteção do nome. <strong>Isso é um grande equívoco!</strong></p>
+        
+        <h3>Diferença entre Direito Autoral e Registro de Marca</h3>
+        <ul>
+          <li><strong>Direito Autoral (Música / Composição):</strong> Protege a obra musical, a letra e a melodia contra cópias.</li>
+          <li><strong>Registro de Marca (INPI):</strong> Protege o NOME ou LOGOTIPO do artista ou banda comercialmente na classe de serviços de entretenimento e música.</li>
+        </ul>
+
+        <h3>O que acontece se outra pessoa registrar seu nome primeiro?</h3>
+        <p>No Brasil, a propriedade da marca pertence a quem registra primeiro no <strong>INPI (Instituto Nacional da Propriedade Industrial)</strong>. Se alguém registrar seu nome artístico antes de você, essa pessoa poderá:</p>
+        <ol>
+          <li>Notificar extrajudicialmente você para parar de usar o nome imediatamente;</li>
+          <li>Solicitar a derrubada das suas redes sociais e canal do YouTube;</li>
+          <li>Exigir indenização financeira pelo uso indevido da marca.</li>
+        </ol>
+
+        <blockquote style="background: rgba(245, 197, 24, 0.1); border-left: 4px solid #f5c518; padding: 1rem; margin: 1.5rem 0; font-style: italic;">
+          "Quem não registra não é dono. Na música, perder o nome artístico significa perder anos de reputação e engajamento acumulados com o público."
+        </blockquote>
+
+        <h3>Como Funciona o Processo de Registro?</h3>
+        <p>O processo envolve pesquisa de anterioridade no banco do INPI, protocolo do pedido sob a classe NCL 41 (Serviços de Entretenimento e Shows), acompanhamento das fases de oposição e emissão do Certificado de Registro válido por 10 anos em todo o território nacional.</p>
+        <p>No <strong>Portal do Artista</strong>, oferecemos orientação completa e assessoria especializada para garantir a proteção legal do seu nome artístico e da sua carreira.</p>
+      `,
+    };
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(demoArticle),
+      });
+      if (res.ok) {
+        toast({ title: "Artigo demonstrativo criado com sucesso!" });
+        loadArticles();
+      } else {
+        const d = await res.json();
+        toast({ title: d.error || "Erro ao criar artigo de demonstração", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro na requisição", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Filter articles for admin table
+  const filteredArticles = articles.filter((art) => {
+    const matchesSearch =
+      art.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      art.slug?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      art.keywords?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCat = filterCategory === "Todos" || art.category === filterCategory;
+    return matchesSearch && matchesCat;
+  });
+
+  const totalViews = articles.reduce((acc, a) => acc + (Number(a.views) || 0), 0);
+  const totalPublished = articles.filter((a) => a.status === "published").length;
+  const totalDrafts = articles.filter((a) => a.status === "draft").length;
+
+  return (
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-card via-card/90 to-background border border-border/70 p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 space-y-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary text-[11px] font-extrabold uppercase tracking-wider">
+            <BookOpen className="w-3.5 h-3.5" /> Portal Blog & Content Engine
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Gestão de Artigos & SEO
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Publique artigos estratégicos na URL <code className="text-primary font-mono bg-black/60 px-2 py-0.5 rounded border border-primary/30">portaldoartista.com/artigos/[slug]</code> para dominar as buscas do Google.
+          </p>
+        </div>
+
+        <div className="relative z-10 flex items-center gap-2.5">
+          {articles.length === 0 && (
+            <button
+              onClick={handleSeedDemoArticle}
+              disabled={saving}
+              className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 shadow-lg"
+            >
+              <Sparkles className="w-4 h-4" /> Gerar Artigo Demo
+            </button>
+          )}
+          <button
+            onClick={handleOpenCreate}
+            className="px-5 py-3 rounded-2xl bg-primary text-black font-extrabold text-xs sm:text-sm hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 hover:scale-105 cursor-pointer flex items-center gap-2"
+          >
+            <Plus className="w-4.5 h-4.5" /> Publicar Novo Artigo
+          </button>
+        </div>
+      </div>
+
+      {/* Cards de Métricas em 3D Glassmorphism */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-primary/40 rounded-2xl p-5 shadow-lg group transition-all">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 rounded-full blur-xl group-hover:bg-primary/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between mb-2 relative z-10">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Total de Artigos</span>
+            <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
+              <BookOpen className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{articles.length}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Conteúdos cadastrados</p>
+        </motion.div>
+
+        <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-emerald-500/40 rounded-2xl p-5 shadow-lg group transition-all">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between mb-2 relative z-10">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Publicados</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-extrabold text-emerald-400 tracking-tight relative z-10">{totalPublished}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Visíveis no portal</p>
+        </motion.div>
+
+        <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-sky-500/40 rounded-2xl p-5 shadow-lg group transition-all">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-sky-500/10 rounded-full blur-xl group-hover:bg-sky-500/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between mb-2 relative z-10">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Visualizações</span>
+            <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400">
+              <Eye className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{totalViews}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Acessos acumulados</p>
+        </motion.div>
+
+        <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-amber-500/40 rounded-2xl p-5 shadow-lg group transition-all">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between mb-2 relative z-10">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Em Rascunho</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <FileText className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-extrabold text-amber-400 tracking-tight relative z-10">{totalDrafts}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Aguardando revisão</p>
+        </motion.div>
+      </div>
+
+      {/* Barra de Pesquisa e Filtros */}
+      <div className="p-4 bg-card border border-border/60 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:w-80">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Filtrar por título, slug ou keyword..."
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-input border border-border/60 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60"
+          />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+          {["Todos", "Direitos Autorais", "Marca & Registro", "Marketing Musical", "Carreira", "Mercado"].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFilterCategory(cat)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                filterCategory === cat
+                  ? "bg-primary text-black shadow-md"
+                  : "bg-background text-muted-foreground hover:text-white border border-border/50"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabela de Artigos */}
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : filteredArticles.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground bg-card border border-dashed border-border rounded-2xl space-y-4">
+          <BookOpen className="w-12 h-12 mx-auto opacity-30 text-primary" />
+          <div>
+            <h3 className="text-base font-bold text-white">Nenhum artigo encontrado</h3>
+            <p className="text-xs text-muted-foreground mt-1">Ajuste os filtros de busca ou crie um novo artigo.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-border bg-black/90">
+                <tr>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Capa / Título & URL</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Categoria</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Views</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Status</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Destaque</th>
+                  <th className="text-right px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {filteredArticles.map((art) => (
+                  <tr key={art.id} className="hover:bg-white/[0.03] transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={art.coverUrl || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=300&auto=format&fit=crop"}
+                          alt={art.title}
+                          className="w-12 h-12 rounded-xl object-cover border border-border/60 shrink-0 shadow-md"
+                        />
+                        <div className="min-w-0">
+                          <a
+                            href={`/artigos/${art.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-bold text-white hover:text-primary transition-colors flex items-center gap-1.5 text-sm leading-snug line-clamp-1 group"
+                          >
+                            <span>{art.title}</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-primary opacity-70 group-hover:opacity-100 shrink-0" />
+                          </a>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <code className="text-[11px] text-primary/80 font-mono">/artigos/{art.slug}</code>
+                            <span className="text-[10px] text-muted-foreground">• Autor: {art.authorName}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase bg-primary/10 text-primary border border-primary/30">
+                        {art.category}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground font-semibold">
+                      <span className="flex items-center gap-1 text-xs text-white font-mono">
+                        <Eye className="w-3.5 h-3.5 text-primary" /> {art.views || 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          art.status === "published"
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        }`}
+                      >
+                        {art.status === "published" ? "Publicado" : "Rascunho"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleToggleFeatured(art)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          art.isFeatured
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
+                            : "bg-zinc-800 text-zinc-500 hover:text-zinc-300 border border-zinc-700"
+                        }`}
+                      >
+                        {art.isFeatured ? "★ Destaque" : "Normal"}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <a
+                          href={`/artigos/${art.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title="Visualizar Artigo ao Vivo"
+                        >
+                          <Globe className="w-4 h-4" />
+                        </a>
+                        <button
+                          onClick={() => handleOpenEdit(art)}
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
+                          title="Editar Artigo"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(art.id, art.title)}
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
+                          title="Excluir Artigo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ultra-Premium de Criação / Edição de Artigo */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-card border border-border rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-border/50 pb-4">
+              <div>
+                <h3 className="text-xl font-extrabold text-white flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-primary" />
+                  {editingArticle ? "Editar Artigo SEO" : "Publicar Novo Artigo SEO"}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure o título, slug da URL, tags de busca e conteúdo com preview do Google em tempo real.
+                </p>
+              </div>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="p-2 text-muted-foreground hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-6">
+              {/* Google Live SERP Snippet Preview Box */}
+              <div className="p-4 rounded-2xl bg-black/60 border border-border/60 space-y-2">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5 text-sky-400">
+                    <Globe className="w-3.5 h-3.5" /> Preview de Resultado no Google
+                  </span>
+                  <span>Google SERP Preview</span>
+                </div>
+                <div className="space-y-1 font-sans">
+                  <div className="text-[12px] text-emerald-400 font-mono truncate">
+                    https://portaldoartista.com › artigos › {slug || "nome-do-artigo"}
+                  </div>
+                  <div className="text-base font-bold text-sky-400 hover:underline cursor-pointer truncate">
+                    {title || "Título do Artigo Aparecerá Aqui | Portal do Artista"}
+                  </div>
+                  <div className="text-xs text-zinc-300 line-clamp-2 leading-relaxed">
+                    {excerpt || "Resumo SEO do artigo aparecerá aqui nas pesquisas do Google para atrair cliques de novos visitantes para a plataforma..."}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Título */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-extrabold text-white flex items-center gap-1">
+                    Título do Artigo <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    placeholder="Ex: Nome artístico também precisa ser registrado como marca?"
+                    className="w-full px-4 py-3 rounded-xl bg-input border border-border text-sm font-bold text-white focus:outline-none focus:border-primary/70 focus:ring-1 focus:ring-primary/40 shadow-inner"
+                    required
+                  />
+                </div>
+
+                {/* Slug da URL */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-extrabold text-white flex items-center gap-1">
+                    Slug da URL <span className="text-primary">*</span>
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value)}
+                      placeholder="nome-artistico-tambem-precisa-ser-registrado-como-marca"
+                      className="w-full pl-3.5 pr-4 py-2.5 rounded-xl bg-input border border-border text-xs text-primary font-mono focus:outline-none focus:border-primary/70"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Categoria */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-extrabold text-white">Categoria do Artigo</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs font-bold text-white focus:outline-none focus:border-primary/70"
+                  >
+                    <option value="Direitos Autorais">Direitos Autorais</option>
+                    <option value="Marca & Registro">Marca & Registro</option>
+                    <option value="Marketing Musical">Marketing Musical</option>
+                    <option value="Carreira">Carreira</option>
+                    <option value="Mercado">Mercado</option>
+                  </select>
+                </div>
+
+                {/* Imagem de Capa URL */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-extrabold text-white">URL da Imagem de Capa</label>
+                  <input
+                    type="text"
+                    value={coverUrl}
+                    onChange={(e) => setCoverUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/... ou URL da imagem"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-white focus:outline-none focus:border-primary/70"
+                  />
+                </div>
+
+                {/* Resumo SEO (Excerpt / Meta Description) */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-extrabold text-white">Resumo SEO / Excerpt (Meta Description)</label>
+                  <textarea
+                    value={excerpt}
+                    onChange={(e) => setExcerpt(e.target.value)}
+                    rows={2}
+                    placeholder="Resumo atraente de 1 a 2 frases para ser exibido nas buscas e redes sociais..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-white focus:outline-none focus:border-primary/70"
+                  />
+                </div>
+
+                {/* Conteúdo Completo HTML com Barra de Ferramentas de Ajuda */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-extrabold text-white flex items-center gap-1">
+                      Conteúdo Completo do Artigo (HTML / Texto Otimizado) <span className="text-primary">*</span>
+                    </label>
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                      <span className="text-muted-foreground font-bold">Inserir tags rápidas:</span>
+                      <button type="button" onClick={() => handleInsertTag("<h2>", "</h2>")} className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-primary/20 text-primary border border-zinc-700 font-mono">
+                        + h2
+                      </button>
+                      <button type="button" onClick={() => handleInsertTag("<h3>", "</h3>")} className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-primary/20 text-primary border border-zinc-700 font-mono">
+                        + h3
+                      </button>
+                      <button type="button" onClick={() => handleInsertTag("<p>", "</p>")} className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-primary/20 text-primary border border-zinc-700 font-mono">
+                        + p
+                      </button>
+                      <button type="button" onClick={() => handleInsertTag("<blockquote>", "</blockquote>")} className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-primary/20 text-primary border border-zinc-700 font-mono">
+                        + quote
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    rows={12}
+                    placeholder="<h2>Título da Seção</h2><p>Escreva o artigo com parágrafos, tópicos e caixas de destaque...</p>"
+                    className="w-full px-4 py-3 rounded-2xl bg-input border border-border text-xs font-mono text-white focus:outline-none focus:border-primary/70 leading-relaxed shadow-inner"
+                    required
+                  />
+                </div>
+
+                {/* Keywords */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-extrabold text-white">Palavras-Chave SEO</label>
+                  <input
+                    type="text"
+                    value={keywords}
+                    onChange={(e) => setKeywords(e.target.value)}
+                    placeholder="nome artistico, marca, inpi, direitos autorais"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-white focus:outline-none focus:border-primary/70"
+                  />
+                </div>
+
+                {/* Nome do Autor */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-extrabold text-white">Nome do Autor</label>
+                  <input
+                    type="text"
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    placeholder="Redação Portal do Artista"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs font-bold text-white focus:outline-none focus:border-primary/70"
+                  />
+                </div>
+
+                {/* Toggles de Status e Destaque */}
+                <div className="flex items-center gap-6 md:col-span-2 pt-3 border-t border-border/50">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-extrabold text-white">
+                    <input
+                      type="checkbox"
+                      checked={status === "published"}
+                      onChange={(e) => setStatus(e.target.checked ? "published" : "draft")}
+                      className="accent-primary w-4 h-4"
+                    />
+                    Publicar Imediatamente
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-extrabold text-amber-300">
+                    <input
+                      type="checkbox"
+                      checked={isFeatured}
+                      onChange={(e) => setIsFeatured(e.target.checked)}
+                      className="accent-amber-400 w-4 h-4"
+                    />
+                    Marcar como Artigo em Destaque
+                  </label>
+                </div>
+              </div>
+
+              {/* Botões do Modal */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/50">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-card border border-border text-xs font-bold text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-7 py-3 rounded-2xl bg-primary text-black font-extrabold text-xs sm:text-sm hover:bg-primary/90 transition-all shadow-xl hover:scale-105 cursor-pointer flex items-center gap-2"
+                >
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {editingArticle ? "Salvar Alterações" : "Publicar Artigo"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
