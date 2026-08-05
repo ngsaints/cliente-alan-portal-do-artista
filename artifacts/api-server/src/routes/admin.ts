@@ -109,6 +109,8 @@ router.put("/admin/settings", upload.fields([
   { name: "demo_capa_url", maxCount: 1 },
   { name: "demo_banner_url", maxCount: 10 },
   { name: "demo_banner_mobile_url", maxCount: 1 },
+  { name: "demo_banner_desktop_files", maxCount: 10 },
+  { name: "demo_banner_mobile_files", maxCount: 10 },
 ]), async (req, res): Promise<void> => {
   if (!req.session.logado) {
     res.status(401).json({ error: "Não autorizado" });
@@ -141,21 +143,32 @@ router.put("/admin/settings", upload.fields([
         rawMetadata = rawMetadata[rawMetadata.length - 1];
       }
       const metadata = JSON.parse(rawMetadata);
-      const uploadedFiles = files?.["demo_banner_url"] || [];
-      let newFileIdx = 0;
-      const demoBanners: { url: string; link: string }[] = [];
+      const desktopFiles = files?.["demo_banner_desktop_files"] || files?.["demo_banner_url"] || [];
+      const mobileFiles = files?.["demo_banner_mobile_files"] || [];
+
+      let deskIdx = 0;
+      let mobIdx = 0;
+      const demoBanners: { url: string; mobileUrl?: string; link: string }[] = [];
 
       for (const item of metadata) {
-        if (item.isNew) {
-          const file = uploadedFiles[newFileIdx];
-          if (file) {
-            const url = await saveDemoImage(file.buffer, file.originalname);
-            demoBanners.push({ url, link: item.link || "" });
-            newFileIdx++;
-          }
-        } else if (item.url) {
-          demoBanners.push({ url: item.url, link: item.link || "" });
+        let url = item.url || "";
+        let mobileUrl = item.mobileUrl || "";
+
+        if ((item.hasDesktopFile || item.isNew) && desktopFiles[deskIdx]) {
+          url = await saveDemoImage(desktopFiles[deskIdx].buffer, desktopFiles[deskIdx].originalname);
+          deskIdx++;
         }
+
+        if (item.hasMobileFile && mobileFiles[mobIdx]) {
+          mobileUrl = await saveDemoImage(mobileFiles[mobIdx].buffer, mobileFiles[mobIdx].originalname);
+          mobIdx++;
+        }
+
+        demoBanners.push({
+          url,
+          ...(mobileUrl ? { mobileUrl } : {}),
+          link: item.link || "",
+        });
       }
 
       const value = JSON.stringify(demoBanners);
