@@ -2141,7 +2141,8 @@ const SETTING_LABELS: Record<string, string> = {
 
   // Demo
   demo_capa_url: "Foto de perfil",
-  demo_banner_url: "Carrossel de banners",
+  demo_banner_url: "Carrossel de banners (Desktop)",
+  demo_banner_mobile_url: "Banner para Celular / Mobile (Opcional)",
   demo_name: "Nome do artista",
   demo_profissao: "Profissão",
   demo_cidade: "Cidade",
@@ -2159,7 +2160,22 @@ function getSettingLabel(key: string): string {
 
 function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "demo_capa_url") {
-    return "Foto de perfil do artista (redonda).";
+    return "Foto de perfil do artista (redonda). Deixe em branco/remova a imagem para ocultar o avatar.";
+  }
+  if (key === "demo_banner_mobile_url") {
+    return "Banner em formato vertical ou otimizado para celulares/mobile (evita cortes em telas pequenas).";
+  }
+  if (key === "demo_cidade") {
+    return "Cidade do artista. Deixe em branco para ocultar a cidade.";
+  }
+  if (key === "demo_instagram") {
+    return "Usuário do Instagram (sem @). Deixe em branco para ocultar os ícones e cards do Instagram.";
+  }
+  if (key === "demo_tiktok") {
+    return "Usuário do TikTok. Deixe em branco para ocultar o card do TikTok.";
+  }
+  if (key === "demo_spotify") {
+    return "URL do perfil no Spotify. Deixe em branco para ocultar os ícones e cards do Spotify.";
   }
   return defaultDesc;
 }
@@ -2171,7 +2187,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [demoFiles, setDemoFiles] = useState<Record<string, File>>({});
-  const [demoBannersList, setDemoBannersList] = useState<{ id: string; url?: string; file?: File; filePreview?: string; link: string }[]>([]);
+  const [demoBannersList, setDemoBannersList] = useState<{ id: string; url?: string; file?: File; filePreview?: string; mobileUrl?: string; mobileFile?: File; mobileFilePreview?: string; link: string }[]>([]);
   const { toast } = useToast();
 
   const loadSettings = () => {
@@ -2192,12 +2208,17 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           try {
             const parsed = JSON.parse(val);
             if (Array.isArray(parsed)) {
-              setDemoBannersList(parsed.map((b, idx) => ({ id: String(idx), url: b.url, link: b.link || "" })));
+              setDemoBannersList(parsed.map((b: any, idx: number) => ({
+                id: String(idx) + "_" + Math.random().toString(36).substring(7),
+                url: b.url || "",
+                mobileUrl: b.mobileUrl || "",
+                link: b.link || "",
+              })));
             } else {
-              setDemoBannersList(val ? [{ id: "1", url: val, link: "" }] : []);
+              setDemoBannersList(val ? [{ id: "1", url: val, mobileUrl: "", link: "" }] : []);
             }
           } catch {
-            setDemoBannersList(val ? [{ id: "1", url: val, link: "" }] : []);
+            setDemoBannersList(val ? [{ id: "1", url: val, mobileUrl: "", link: "" }] : []);
           }
         }
       })
@@ -2211,12 +2232,12 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
   const handleSave = async () => {
     setSaving(true);
 
-    const isDemoWithFiles = category === "demo" && (Object.keys(demoFiles).length > 0 || demoBannersList.some(b => b.file));
+    const isDemoWithFiles = category === "demo" && (Object.keys(demoFiles).length > 0 || demoBannersList.some(b => b.file || b.mobileFile));
 
     if (category === "demo") {
       const formData = new FormData();
       for (const [key, value] of Object.entries(values)) {
-        if (key === "demo_banner_url" || key === "demo_capa_url" || key === "demo_banners_metadata") continue;
+        if (key === "demo_banner_url" || key === "demo_capa_url" || key === "demo_banner_mobile_url" || key === "demo_banners_metadata") continue;
         formData.append(key, value);
       }
 
@@ -2224,17 +2245,29 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
         formData.append("demo_capa_url", demoFiles["demo_capa_url"]);
       }
 
+      if (demoFiles["demo_banner_mobile_url"]) {
+        formData.append("demo_banner_mobile_url", demoFiles["demo_banner_mobile_url"]);
+      }
+
       const metadata: any[] = [];
-      let newFileCount = 0;
 
       demoBannersList.forEach((item) => {
+        const itemMeta: any = {
+          url: item.url || "",
+          mobileUrl: item.mobileUrl || "",
+          link: item.link || "",
+          hasDesktopFile: !!item.file,
+          hasMobileFile: !!item.mobileFile,
+        };
+
         if (item.file) {
-          metadata.push({ isNew: true, fileIndex: newFileCount, link: item.link });
-          formData.append("demo_banner_url", item.file);
-          newFileCount++;
-        } else if (item.url) {
-          metadata.push({ url: item.url, link: item.link });
+          formData.append("demo_banner_desktop_files", item.file);
         }
+        if (item.mobileFile) {
+          formData.append("demo_banner_mobile_files", item.mobileFile);
+        }
+
+        metadata.push(itemMeta);
       });
 
       formData.append("demo_banners_metadata", JSON.stringify(metadata));
@@ -2454,83 +2487,143 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                 />
               </div>
             ) : category === "demo" && s.key === "demo_banner_url" ? (
-              <div className="space-y-4 bg-background/30 p-4 rounded-2xl border border-border/60">
-                <p className="text-[11px] text-muted-foreground">
-                  Adicione múltiplas imagens para criar um carrossel de publicidade na Página Demo. Cada imagem pode ter um link de redirecionamento.
-                </p>
-                <p className="text-[11px] font-medium text-primary">
-                  Tamanho recomendado: 1200x400px (proporção 3:1) para melhor preenchimento.
-                </p>
+              <div className="space-y-4 bg-background/30 p-5 rounded-2xl border border-border/60">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-foreground text-sm">Carrossel de Banners & Campanhas Demo</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Gerencie suas campanhas de publicidade. Cada campanha agrupa sua arte de Desktop, sua arte de Mobile (para celular) e seu link de ação.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const id = Math.random().toString(36).substring(7);
+                      setDemoBannersList(prev => [...prev, { id, url: "", mobileUrl: "", link: "" }]);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-md shrink-0"
+                  >
+                    <Plus className="w-4 h-4" /> Nova Campanha
+                  </button>
+                </div>
 
                 {/* Banner list */}
-                {demoBannersList.length > 0 && (
-                  <div className="space-y-3">
+                {demoBannersList.length > 0 ? (
+                  <div className="space-y-4">
                     {demoBannersList.map((item, idx) => (
-                      <div key={item.id} className="flex items-center gap-4 bg-card border border-border p-3 rounded-xl">
-                        {/* Thumbnail */}
-                        <div className="w-20 h-10 rounded-lg overflow-hidden border border-border bg-muted flex-shrink-0">
-                          <img
-                            src={item.filePreview || item.url}
-                            alt={`Banner ${idx + 1}`}
-                            className="w-full h-full object-cover"
-                          />
+                      <div key={item.id} className="bg-card border border-border p-4 rounded-2xl space-y-4 shadow-sm relative">
+                        <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                          <span className="font-extrabold text-xs text-primary flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5" /> Campanha / Banner #{idx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDemoBannersList(demoBannersList.filter(b => b.id !== item.id));
+                            }}
+                            className="p-1 hover:bg-destructive/15 text-muted-foreground hover:text-destructive rounded-lg transition-colors text-xs flex items-center gap-1 font-bold"
+                          >
+                            <X className="w-3.5 h-3.5" /> Remover
+                          </button>
                         </div>
 
-                        {/* Link input */}
-                        <div className="flex-1">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* 🖥️ Imagem Desktop */}
+                          <div className="space-y-1.5">
+                            <label className="block text-[11px] font-bold text-foreground flex items-center gap-1">
+                              🖥️ Imagem Desktop <span className="text-[10px] text-muted-foreground font-normal">(widescreen - PC)</span>
+                            </label>
+                            <div className="flex items-center gap-3">
+                              <div className="w-20 h-10 rounded-lg overflow-hidden border border-border bg-black/40 flex-shrink-0 flex items-center justify-center">
+                                {item.filePreview || item.url ? (
+                                  <img src={item.filePreview || item.url} alt="Desktop" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-[9px] text-muted-foreground">Sem Foto</span>
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      const newList = [...demoBannersList];
+                                      newList[idx].file = file;
+                                      newList[idx].filePreview = reader.result as string;
+                                      setDemoBannersList(newList);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                                className="w-full text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
+                              />
+                            </div>
+                          </div>
+
+                          {/* 📱 Imagem Mobile */}
+                          <div className="space-y-1.5">
+                            <label className="block text-[11px] font-bold text-foreground flex items-center gap-1">
+                              📱 Imagem Mobile <span className="text-[10px] text-emerald-400 font-normal">(celular - opcional)</span>
+                            </label>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-border bg-black/40 flex-shrink-0 flex items-center justify-center">
+                                {item.mobileFilePreview || item.mobileUrl ? (
+                                  <img src={item.mobileFilePreview || item.mobileUrl} alt="Mobile" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-[9px] text-muted-foreground text-center">Desktop</span>
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      const newList = [...demoBannersList];
+                                      newList[idx].mobileFile = file;
+                                      newList[idx].mobileFilePreview = reader.result as string;
+                                      setDemoBannersList(newList);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                                className="w-full text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Link Input */}
+                        <div className="space-y-1 pt-1 border-t border-border/30">
+                          <label className="block text-[11px] font-semibold text-muted-foreground">
+                            Link do Botão "Acessar" (Redirecionamento ao clicar no banner)
+                          </label>
                           <input
                             type="text"
-                            placeholder="Link do botão (ex: https://...)"
+                            placeholder="https://suacampanha.com ou whatsapp..."
                             value={item.link}
                             onChange={(e) => {
                               const newList = [...demoBannersList];
                               newList[idx].link = e.target.value;
                               setDemoBannersList(newList);
                             }}
-                            className="w-full px-3 py-1.5 bg-input border border-border rounded-lg text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+                            className="w-full px-3 py-2 bg-input border border-border rounded-xl text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                           />
                         </div>
-
-                        {/* Remove button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDemoBannersList(demoBannersList.filter(b => b.id !== item.id));
-                          }}
-                          className="p-1.5 hover:bg-destructive/15 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
                       </div>
                     ))}
                   </div>
+                ) : (
+                  <div className="text-center py-6 border border-dashed border-border rounded-xl text-xs text-muted-foreground">
+                    Nenhuma campanha cadastrada. Clique no botão "+ Nova Campanha" acima para adicionar.
+                  </div>
                 )}
-
-                {/* Add banner input */}
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      if (file) {
-                        const reader = new FileReader();
-                        const id = Math.random().toString(36).substring(7);
-                        reader.onloadend = () => {
-                          setDemoBannersList(prev => [
-                            ...prev,
-                            { id, file, filePreview: reader.result as string, link: "" }
-                          ]);
-                        };
-                        reader.readAsDataURL(file);
-                        e.target.value = "";
-                      }
-                    }}
-                    className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-foreground text-sm file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
-                  />
-                </div>
               </div>
-            ) : category === "demo" && s.key === "demo_capa_url" ? (
+            ) : category === "demo" && (s.key === "demo_capa_url" || s.key === "demo_banner_mobile_url") ? (
               <div>
                 <input
                   type="file"

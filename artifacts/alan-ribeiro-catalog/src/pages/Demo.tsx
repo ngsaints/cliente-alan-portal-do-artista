@@ -41,7 +41,7 @@ export default function Demo() {
   const [demoSettings, setDemoSettings] = useState<Record<string, string>>({});
   const [artistLoggedIn, setArtistLoggedIn] = useState(false);
   const [loggedInArtistId, setLoggedInArtistId] = useState<number | null>(null);
-  const [demoBanners, setDemoBanners] = useState<{ url: string; link: string }[]>([]);
+  const [demoBanners, setDemoBanners] = useState<{ url: string; mobileUrl?: string; link: string }[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [highlightedSongId, setHighlightedSongId] = useState<number | null>(null);
   const hasAutoPlayed = useRef(false);
@@ -141,17 +141,17 @@ export default function Demo() {
 
   const artist = {
     ...DEMO_ARTIST,
-    ...(demoSettings.demo_name ? { name: demoSettings.demo_name } : {}),
-    ...(demoSettings.demo_profissao ? { profissao: demoSettings.demo_profissao } : {}),
-    ...(demoSettings.demo_cidade ? { cidade: demoSettings.demo_cidade } : {}),
-    ...(demoSettings.demo_contato ? { contato: demoSettings.demo_contato } : {}),
-    ...(demoSettings.demo_email ? { email: demoSettings.demo_email } : {}),
+    ...(demoSettings.demo_name !== undefined ? { name: demoSettings.demo_name } : {}),
+    ...(demoSettings.demo_profissao !== undefined ? { profissao: demoSettings.demo_profissao } : {}),
+    ...(demoSettings.demo_cidade !== undefined ? { cidade: demoSettings.demo_cidade } : {}),
+    ...(demoSettings.demo_contato !== undefined ? { contato: demoSettings.demo_contato } : {}),
+    ...(demoSettings.demo_email !== undefined ? { email: demoSettings.demo_email } : {}),
     ...(demoSettings.demo_instagram !== undefined ? { instagram: demoSettings.demo_instagram } : {}),
     ...(demoSettings.demo_tiktok !== undefined ? { tiktok: demoSettings.demo_tiktok } : {}),
     ...(demoSettings.demo_spotify !== undefined ? { spotify: demoSettings.demo_spotify } : {}),
-    ...(demoSettings.demo_cor ? { cor: demoSettings.demo_cor } : {}),
-    ...(demoSettings.demo_banner_url ? { bannerUrl: demoSettings.demo_banner_url } : {}),
-    ...(demoSettings.demo_capa_url ? { capaUrl: demoSettings.demo_capa_url } : {}),
+    ...(demoSettings.demo_cor !== undefined ? { cor: demoSettings.demo_cor } : {}),
+    ...(demoSettings.demo_banner_url !== undefined ? { bannerUrl: demoSettings.demo_banner_url } : {}),
+    ...(demoSettings.demo_capa_url !== undefined ? { capaUrl: demoSettings.demo_capa_url } : {}),
   };
 
   const currentBanner = demoBanners[currentBannerIndex] || null;
@@ -311,31 +311,67 @@ export default function Demo() {
         </div>
       </div>
 
-      {/* Artist Profile with Banner (Carousel or Static Fallback) */}
+      {/* Artist Profile with Banner (Carousel or Static Fallback with Mobile Support) */}
       <section className="relative h-[320px] md:h-[400px] overflow-hidden">
         {demoBanners.length > 0 ? (
           <div className="absolute inset-0">
-            {demoBanners.map((b, idx) => (
-              <div
-                key={idx}
-                className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
-                  idx === currentBannerIndex ? "opacity-100" : "opacity-0 pointer-events-none"
-                }`}
-                style={{
-                  backgroundImage: b.url ? `url("${b.url}")` : "none",
-                  backgroundColor: artist.cor || "#1a1a2e",
-                }}
-              />
-            ))}
+            {demoBanners.map((b, idx) => {
+              const bgMobile = b.mobileUrl || demoSettings.demo_banner_mobile_url || b.url;
+              const bgDesktop = b.url || demoSettings.demo_banner_mobile_url;
+              return (
+                <div
+                  key={idx}
+                  className={`absolute inset-0 transition-opacity duration-1000 ${
+                    idx === currentBannerIndex ? "opacity-100" : "opacity-0 pointer-events-none"
+                  }`}
+                >
+                  {/* Mobile Banner */}
+                  <div
+                    className="block sm:hidden absolute inset-0 bg-cover bg-center"
+                    style={{
+                      backgroundImage: bgMobile ? `url("${bgMobile}")` : "none",
+                      backgroundColor: artist.cor || "#1a1a2e",
+                    }}
+                  />
+                  {/* Desktop Banner */}
+                  <div
+                    className="hidden sm:block absolute inset-0 bg-cover bg-center"
+                    style={{
+                      backgroundImage: bgDesktop ? `url("${bgDesktop}")` : "none",
+                      backgroundColor: artist.cor || "#1a1a2e",
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
         ) : (
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: artist.bannerUrl ? `url("${artist.bannerUrl}")` : "none",
-              backgroundColor: artist.cor || "#1a1a2e",
-            }}
-          />
+          <>
+            {/* Mobile Static Fallback */}
+            <div
+              className="block sm:hidden absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: demoSettings.demo_banner_mobile_url
+                  ? `url("${demoSettings.demo_banner_mobile_url}")`
+                  : artist.bannerUrl
+                  ? `url("${artist.bannerUrl}")`
+                  : "none",
+                backgroundColor: artist.cor || "#1a1a2e",
+              }}
+            />
+            {/* Desktop Static Fallback */}
+            <div
+              className="hidden sm:block absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: artist.bannerUrl
+                  ? `url("${artist.bannerUrl}")`
+                  : demoSettings.demo_banner_mobile_url
+                  ? `url("${demoSettings.demo_banner_mobile_url}")`
+                  : "none",
+                backgroundColor: artist.cor || "#1a1a2e",
+              }}
+            />
+          </>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
 
@@ -352,13 +388,11 @@ export default function Demo() {
           {/* Left side: Avatar + Info */}
           <div className="flex items-end gap-4 md:gap-6">
             {/* Avatar */}
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center bg-card">
-              {artist.capaUrl ? (
+            {artist.capaUrl ? (
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center bg-card">
                 <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover" />
-              ) : (
-                <Music className="w-12 h-12 text-primary" />
-              )}
-            </div>
+              </div>
+            ) : null}
 
             {/* Info text */}
             <div className="space-y-1">
