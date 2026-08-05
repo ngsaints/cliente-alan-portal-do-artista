@@ -2529,8 +2529,8 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* 🖥️ Imagem Desktop */}
                           <div className="space-y-1.5">
-                            <label className="block text-[11px] font-bold text-foreground flex items-center gap-1">
-                              🖥️ Imagem Desktop <span className="text-[10px] text-muted-foreground font-normal">(widescreen - PC)</span>
+                            <label className="block text-[11px] font-bold text-foreground">
+                              🖥️ Imagem Desktop <span className="text-[10px] text-muted-foreground font-normal">(Recomendado: 1200x400px - Widescreen 3:1)</span>
                             </label>
                             <div className="flex items-center gap-3">
                               <div className="w-20 h-10 rounded-lg overflow-hidden border border-border bg-black/40 flex-shrink-0 flex items-center justify-center">
@@ -2563,8 +2563,8 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
 
                           {/* 📱 Imagem Mobile */}
                           <div className="space-y-1.5">
-                            <label className="block text-[11px] font-bold text-foreground flex items-center gap-1">
-                              📱 Imagem Mobile <span className="text-[10px] text-emerald-400 font-normal">(celular - opcional)</span>
+                            <label className="block text-[11px] font-bold text-foreground">
+                              📱 Imagem Mobile <span className="text-[10px] text-emerald-400 font-normal">(Recomendado: 1080x1080px Quase 1:1 Quadrado ou 4:5)</span>
                             </label>
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-lg overflow-hidden border border-border bg-black/40 flex-shrink-0 flex items-center justify-center">
