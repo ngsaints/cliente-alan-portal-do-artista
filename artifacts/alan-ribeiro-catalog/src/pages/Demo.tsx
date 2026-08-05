@@ -141,17 +141,17 @@ export default function Demo() {
 
   const artist = {
     ...DEMO_ARTIST,
-    ...(demoSettings.demo_name ? { name: demoSettings.demo_name } : {}),
-    ...(demoSettings.demo_profissao ? { profissao: demoSettings.demo_profissao } : {}),
-    ...(demoSettings.demo_cidade ? { cidade: demoSettings.demo_cidade } : {}),
-    ...(demoSettings.demo_contato ? { contato: demoSettings.demo_contato } : {}),
-    ...(demoSettings.demo_email ? { email: demoSettings.demo_email } : {}),
+    ...(demoSettings.demo_name !== undefined ? { name: demoSettings.demo_name } : {}),
+    ...(demoSettings.demo_profissao !== undefined ? { profissao: demoSettings.demo_profissao } : {}),
+    ...(demoSettings.demo_cidade !== undefined ? { cidade: demoSettings.demo_cidade } : {}),
+    ...(demoSettings.demo_contato !== undefined ? { contato: demoSettings.demo_contato } : {}),
+    ...(demoSettings.demo_email !== undefined ? { email: demoSettings.demo_email } : {}),
     ...(demoSettings.demo_instagram !== undefined ? { instagram: demoSettings.demo_instagram } : {}),
     ...(demoSettings.demo_tiktok !== undefined ? { tiktok: demoSettings.demo_tiktok } : {}),
     ...(demoSettings.demo_spotify !== undefined ? { spotify: demoSettings.demo_spotify } : {}),
-    ...(demoSettings.demo_cor ? { cor: demoSettings.demo_cor } : {}),
-    ...(demoSettings.demo_banner_url ? { bannerUrl: demoSettings.demo_banner_url } : {}),
-    ...(demoSettings.demo_capa_url ? { capaUrl: demoSettings.demo_capa_url } : {}),
+    ...(demoSettings.demo_cor !== undefined ? { cor: demoSettings.demo_cor } : {}),
+    ...(demoSettings.demo_banner_url !== undefined ? { bannerUrl: demoSettings.demo_banner_url } : {}),
+    ...(demoSettings.demo_capa_url !== undefined ? { capaUrl: demoSettings.demo_capa_url } : {}),
   };
 
   const currentBanner = demoBanners[currentBannerIndex] || null;
@@ -352,13 +352,11 @@ export default function Demo() {
           {/* Left side: Avatar + Info */}
           <div className="flex items-end gap-4 md:gap-6">
             {/* Avatar */}
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center bg-card">
-              {artist.capaUrl ? (
+            {artist.capaUrl ? (
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center bg-card">
                 <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover" />
-              ) : (
-                <Music className="w-12 h-12 text-primary" />
-              )}
-            </div>
+              </div>
+            ) : null}
 
             {/* Info text */}
             <div className="space-y-1">

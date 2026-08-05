@@ -2158,7 +2158,19 @@ function getSettingLabel(key: string): string {
 
 function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "demo_capa_url") {
-    return "Foto de perfil do artista (redonda).";
+    return "Foto de perfil do artista (redonda). Deixe em branco/remova a imagem para ocultar o avatar.";
+  }
+  if (key === "demo_cidade") {
+    return "Cidade do artista. Deixe em branco para ocultar a cidade.";
+  }
+  if (key === "demo_instagram") {
+    return "Usuário do Instagram (sem @). Deixe em branco para ocultar os ícones e cards do Instagram.";
+  }
+  if (key === "demo_tiktok") {
+    return "Usuário do TikTok. Deixe em branco para ocultar o card do TikTok.";
+  }
+  if (key === "demo_spotify") {
+    return "URL do perfil no Spotify. Deixe em branco para ocultar os ícones e cards do Spotify.";
   }
   return defaultDesc;
 }
