@@ -3,7 +3,7 @@ import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
-import { db, articlesTable, artistsTable } from "@workspace/db";
+import { db, articlesTable, articleCategoriesTable, artistsTable } from "@workspace/db";
 import { eq, desc, and, like, or, sql } from "drizzle-orm";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 
@@ -52,6 +52,75 @@ router.post("/articles/upload-cover", upload.single("cover"), async (req, res): 
   } catch (error) {
     console.error("Error uploading article cover image:", error);
     res.status(500).json({ error: "Erro ao fazer upload da imagem de capa" });
+  }
+});
+
+// 0.1 GET /api/articles/categories - List categories (seeds defaults if empty)
+router.get("/articles/categories", async (_req, res): Promise<void> => {
+  try {
+    let list = await db.select().from(articleCategoriesTable);
+    if (list.length === 0) {
+      const defaults = ["Direitos Autorais", "Marca & Registro", "Marketing Musical", "Carreira", "Mercado"];
+      for (const catName of defaults) {
+        const catSlug = catName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
+        await db.insert(articleCategoriesTable).values({ name: catName, slug: catSlug }).onConflictDoNothing();
+      }
+      list = await db.select().from(articleCategoriesTable);
+    }
+    res.json(list);
+  } catch (error) {
+    console.error("Error fetching article categories:", error);
+    res.status(500).json({ error: "Erro ao buscar categorias de artigos" });
+  }
+});
+
+// 0.2 POST /api/articles/categories - Create new category
+router.post("/articles/categories", async (req, res): Promise<void> => {
+  if (!req.session?.isAdmin && !req.session?.artistId) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
+
+  const { name } = req.body;
+  if (!name || typeof name !== "string" || !name.trim()) {
+    res.status(400).json({ error: "Nome da categoria é obrigatório" });
+    return;
+  }
+
+  try {
+    const catName = name.trim();
+    const catSlug = catName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
+    const [inserted] = await db.insert(articleCategoriesTable).values({ name: catName, slug: catSlug }).returning();
+    res.status(201).json(inserted);
+  } catch (error: any) {
+    console.error("Error creating article category:", error);
+    if (error?.code === "23505") {
+      res.status(400).json({ error: "Essa categoria já existe" });
+      return;
+    }
+    res.status(500).json({ error: "Erro ao criar categoria" });
+  }
+});
+
+// 0.3 DELETE /api/articles/categories/:id - Delete category
+router.delete("/articles/categories/:id", async (req, res): Promise<void> => {
+  if (!req.session?.isAdmin) {
+    res.status(401).json({ error: "Apenas administradores podem excluir categorias" });
+    return;
+  }
+
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "ID inválido" });
+    return;
+  }
+
+  try {
+    await db.delete(articleCategoriesTable).where(eq(articleCategoriesTable.id, id));
+    res.json({ success: true, message: "Categoria excluída com sucesso" });
+  } catch (error) {
+    console.error("Error deleting article category:", error);
+    res.status(500).json({ error: "Erro ao excluir categoria" });
   }
 });
 

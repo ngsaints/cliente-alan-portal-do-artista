@@ -27,6 +27,13 @@ export const articlesTable = pgTable("articles", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const articleCategoriesTable = pgTable("article_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const insertArticleSchema = createInsertSchema(articlesTable).omit({
   id: true,
   views: true,
@@ -36,3 +43,4 @@ export const insertArticleSchema = createInsertSchema(articlesTable).omit({
 
 export type InsertArticle = z.infer<typeof insertArticleSchema>;
 export type Article = typeof articlesTable.$inferSelect;
+export type ArticleCategory = typeof articleCategoriesTable.$inferSelect;

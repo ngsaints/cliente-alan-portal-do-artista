@@ -5422,8 +5422,12 @@ function ExitFeedbackTab() {
 
 function ArticlesTab() {
   const [articles, setArticles] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"list" | "editor">("list");
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [creatingCat, setCreatingCat] = useState(false);
   const [editingArticle, setEditingArticle] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -5452,9 +5456,71 @@ function ArticlesTab() {
       .finally(() => setLoading(false));
   };
 
+  const loadCategories = () => {
+    fetch("/api/articles/categories", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCategories(data);
+          if (data.length > 0 && !category) {
+            setCategory(data[0].name);
+          }
+        }
+      })
+      .catch(() => setCategories([]));
+  };
+
   useEffect(() => {
     loadArticles();
+    loadCategories();
   }, []);
+
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+
+    setCreatingCat(true);
+    try {
+      const res = await fetch("/api/articles/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: newCatName.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: `Categoria "${data.name}" criada com sucesso!` });
+        setNewCatName("");
+        loadCategories();
+      } else {
+        toast({ title: data.error || "Erro ao criar categoria", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro na requisição", variant: "destructive" });
+    } finally {
+      setCreatingCat(false);
+    }
+  };
+
+  const handleDeleteCategory = async (catId: number, catName: string) => {
+    if (!window.confirm(`Tem certeza que deseja excluir a categoria "${catName}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/articles/categories/${catId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        toast({ title: `Categoria "${catName}" excluída com sucesso` });
+        loadCategories();
+      } else {
+        const d = await res.json();
+        toast({ title: d.error || "Erro ao excluir categoria", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro de conexão ao excluir categoria", variant: "destructive" });
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditingArticle(null);
@@ -5463,7 +5529,7 @@ function ArticlesTab() {
     setExcerpt("");
     setContent("");
     setCoverUrl("");
-    setCategory("Carreira");
+    setCategory(categories[0]?.name || "Carreira");
     setKeywords("");
     setStatus("published");
     setIsFeatured(false);
@@ -5478,7 +5544,7 @@ function ArticlesTab() {
     setExcerpt(art.excerpt || "");
     setContent(art.content || "");
     setCoverUrl(art.coverUrl || "");
-    setCategory(art.category || "Carreira");
+    setCategory(art.category || categories[0]?.name || "Carreira");
     setKeywords(art.keywords || "");
     setStatus(art.status || "published");
     setIsFeatured(art.isFeatured === true);
@@ -5644,6 +5710,12 @@ function ArticlesTab() {
         </div>
 
         <div className="relative z-10 flex items-center gap-2.5">
+          <button
+            onClick={() => setCategoryManagerOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-card border border-border/80 text-white font-bold text-xs hover:bg-white/10 transition-all cursor-pointer flex items-center gap-2"
+          >
+            <FolderPlus className="w-4 h-4 text-primary" /> Gerenciar Categorias
+          </button>
           {viewMode === "editor" ? (
             <button
               onClick={() => setViewMode("list")}
@@ -5736,19 +5808,28 @@ function ArticlesTab() {
                 />
               </div>
 
-              {/* Categoria */}
+              {/* Categoria DSNÂMICA */}
               <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-white">Categoria do Artigo</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-extrabold text-white">Categoria do Artigo</label>
+                  <button
+                    type="button"
+                    onClick={() => setCategoryManagerOpen(true)}
+                    className="text-[11px] text-primary hover:underline font-bold"
+                  >
+                    + Gerenciar Categoria
+                  </button>
+                </div>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs font-bold text-white focus:outline-none focus:border-primary/70"
                 >
-                  <option value="Direitos Autorais">Direitos Autorais</option>
-                  <option value="Marca & Registro">Marca & Registro</option>
-                  <option value="Marketing Musical">Marketing Musical</option>
-                  <option value="Carreira">Carreira</option>
-                  <option value="Mercado">Mercado</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -5985,7 +6066,7 @@ function ArticlesTab() {
             </motion.div>
           </div>
 
-          {/* Barra de Pesquisa e Filtros */}
+          {/* Barra de Pesquisa e Filtros DSNÂMICOS */}
           <div className="p-4 bg-card border border-border/60 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="relative w-full sm:w-80">
               <input
@@ -5999,17 +6080,27 @@ function ArticlesTab() {
             </div>
 
             <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
-              {["Todos", "Direitos Autorais", "Marca & Registro", "Marketing Musical", "Carreira", "Mercado"].map((cat) => (
+              <button
+                onClick={() => setFilterCategory("Todos")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  filterCategory === "Todos"
+                    ? "bg-primary text-black shadow-md"
+                    : "bg-background text-muted-foreground hover:text-white border border-border/50"
+                }`}
+              >
+                Todos
+              </button>
+              {categories.map((cat) => (
                 <button
-                  key={cat}
-                  onClick={() => setFilterCategory(cat)}
+                  key={cat.id}
+                  onClick={() => setFilterCategory(cat.name)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                    filterCategory === cat
+                    filterCategory === cat.name
                       ? "bg-primary text-black shadow-md"
                       : "bg-background text-muted-foreground hover:text-white border border-border/50"
                   }`}
                 >
-                  {cat}
+                  {cat.name}
                 </button>
               ))}
             </div>
@@ -6137,6 +6228,86 @@ function ArticlesTab() {
             </div>
           )}
         </>
+      )}
+
+      {/* Modal Gerenciador de Categorias */}
+      {categoryManagerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-3xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-border/50 pb-4">
+              <div>
+                <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                  <FolderPlus className="w-5 h-5 text-primary" /> Gerenciar Categorias de Artigos
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Adicione novas categorias ou exclua categorias existentes.
+                </p>
+              </div>
+              <button
+                onClick={() => setCategoryManagerOpen(false)}
+                className="p-2 text-muted-foreground hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Criar Nova Categoria */}
+            <form onSubmit={handleCreateCategory} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="Ex: Festivais & Eventos"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-input border border-border text-xs text-white font-bold focus:outline-none focus:border-primary"
+                required
+              />
+              <button
+                type="submit"
+                disabled={creatingCat || !newCatName.trim()}
+                className="px-4 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs hover:bg-primary/90 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50"
+              >
+                {creatingCat ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                Adicionar
+              </button>
+            </form>
+
+            {/* Lista de Categorias Atuais com Botão Excluir */}
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <p className="text-[11px] font-extrabold uppercase text-muted-foreground tracking-wider mb-1">
+                Categorias Ativas ({categories.length})
+              </p>
+              {categories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-border/60 hover:border-border transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-primary" />
+                    <span className="text-xs font-bold text-white">{cat.name}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">({cat.slug})</span>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                    className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
+                    title="Excluir Categoria"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setCategoryManagerOpen(false)}
+                className="px-5 py-2 rounded-xl bg-card border border-border text-xs font-bold text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -18,11 +18,10 @@ interface Article {
   isFeatured: boolean;
 }
 
-const CATEGORIES = ["Todos", "Direitos Autorais", "Marca & Registro", "Marketing Musical", "Carreira", "Mercado"];
-
 export default function Articles() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [featuredArticle, setFeaturedArticle] = useState<Article | null>(null);
+  const [categories, setCategories] = useState<string[]>(["Todos", "Direitos Autorais", "Marca & Registro", "Marketing Musical", "Carreira", "Mercado"]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
@@ -31,9 +30,24 @@ export default function Articles() {
     // Dynamic page title for SEO
     document.title = "Artigos & Dicas para Carreira Musical | Portal do Artista";
 
+    fetchCategories();
     fetchFeatured();
     fetchArticles();
   }, [selectedCategory]);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch("/api/articles/categories");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setCategories(["Todos", ...data.map((c: any) => c.name)]);
+        }
+      }
+    } catch (e) {
+      // fallback to defaults
+    }
+  };
 
   const fetchFeatured = async () => {
     try {
@@ -120,7 +134,7 @@ export default function Articles() {
 
           {/* Filtros de Categoria */}
           <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
