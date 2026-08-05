@@ -189,8 +189,49 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/80 pb-32">
       <Navbar />
 
+      {/* BARRA HORIZONTAL DE ATIVIDADES NO MOBILE (Ticker deslizante tipo notícias) */}
+      <div className="block lg:hidden w-full bg-black/90 border-b border-primary/20 backdrop-blur-md pt-20 pb-2.5 px-3 relative z-30">
+        <div className="flex items-center justify-between gap-2 mb-2 px-1">
+          <div className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 text-[10px] font-extrabold uppercase tracking-wider">
+              <Activity className="w-3 h-3 animate-pulse text-primary" /> Ao Vivo
+            </span>
+            <span className="text-xs font-extrabold text-white">Feed de Atividades</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+            Arraste pro lado <ArrowRight className="w-3 h-3 text-primary animate-pulse" />
+          </span>
+        </div>
+
+        {activityFeed.length === 0 ? (
+          <div className="text-xs text-muted-foreground py-1.5 px-2">Carregando novidades recentes...</div>
+        ) : (
+          <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar snap-x snap-mandatory py-1 px-0.5">
+            {activityFeed.map((item, i) => (
+              <Link
+                key={`mob-ticker-${i}`}
+                href={item.slug ? `/${item.slug}` : "/explorar"}
+                className="snap-start shrink-0 flex items-center gap-2.5 bg-card/90 border border-border/70 hover:border-primary/60 rounded-2xl px-3 py-2 shadow-lg active:scale-95 transition-all max-w-[270px]"
+              >
+                {item.avatar ? (
+                  <img src={item.avatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-primary/40 shrink-0 shadow-sm" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shrink-0 font-bold">
+                    <Music className="w-3.5 h-3.5" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="font-extrabold text-xs text-white truncate leading-tight">{item.title}</p>
+                  <p className="text-[10px] text-primary/90 font-mono truncate mt-0.5">{item.subtitle}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Hero */}
-      <section className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <section className="pt-6 sm:pt-20 pb-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent pointer-events-none" />
 
         <div className="max-w-5xl mx-auto text-center relative z-10">
@@ -303,44 +344,6 @@ export default function Home() {
       </section>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-
-        {/* FEED DE ATIVIDADES NO MOBILE (Aparece logo no topo para dispositivos móveis) */}
-        <div className="block lg:hidden bg-card/80 border border-border/60 rounded-3xl p-5 shadow-2xl backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-border/40 pb-3 mb-4">
-            <h3 className="font-extrabold text-foreground text-sm flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary animate-pulse" />
-              Feed de Atividades
-            </h3>
-            <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" /> Ao Vivo
-            </span>
-          </div>
-
-          {activityFeed.length === 0 ? (
-            <div className="text-center py-6 text-xs text-muted-foreground">
-              <Clock className="w-6 h-6 mx-auto mb-2 opacity-40 text-primary" />
-              Carregando novidades recentes...
-            </div>
-          ) : (
-            <div className="space-y-3.5 max-h-80 overflow-y-auto pr-1">
-              {activityFeed.map((item, i) => (
-                <div key={`mob-feed-${i}`} className="flex items-start gap-3 text-xs pb-3 border-b border-border/20 last:border-0 last:pb-0">
-                  {item.avatar ? (
-                    <img src={item.avatar} alt="Avatar" className="w-9 h-9 rounded-full object-cover border border-primary/30 shrink-0 shadow-md" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shrink-0 font-bold">
-                      <Music className="w-4 h-4" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-white leading-snug">{item.title}</p>
-                    <p className="text-[11px] text-primary/80 font-mono mt-0.5">{item.subtitle}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* VITRINE DINÂMICA DE ARTISTAS */}
         {showcaseList.length > 0 && (
