@@ -18,7 +18,8 @@ import {
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
-  Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight, Sparkles,
+Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight, Sparkles,
+  BookOpen, FileText, Star,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -113,7 +114,7 @@ interface Coupon {
   createdAt: string;
 }
 
-type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs" | "exit_feedback";
+type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "articles" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs" | "exit_feedback";
 type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email" | "clarity" | "pixel";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -254,6 +255,7 @@ function AdminDashboard() {
     { id: "plans",     label: "Planos",         icon: Crown          },
     { id: "genres",    label: "Gêneros",        icon: Tag            },
     { id: "interests", label: "Interesses",     icon: MessageSquare  },
+    { id: "articles",  label: "Artigos / Blog", icon: BookOpen        },
     { id: "exit_feedback", label: "Pesquisa de Saída", icon: LogOut },
     { id: "settings", label: "Configurações", icon: Settings },
     { id: "server_logs", label: "Logs do Servidor", icon: Terminal },
@@ -358,6 +360,7 @@ function AdminDashboard() {
           {activeTab === "plans" && <PlansTab />}
           {activeTab === "genres"    && <GenresTab />}
           {activeTab === "interests" && <InterestsTab />}
+          {activeTab === "articles" && <ArticlesTab />}
           {activeTab === "exit_feedback" && <ExitFeedbackTab />}
           {activeTab === "settings" && <SettingsTab onNavigate={setActiveTab} />}
           {activeTab === "banners" && <BannersTab />}
@@ -1219,6 +1222,29 @@ function ArtistsTab() {
                           </>
                         ) : (
                           <>
+                            <button
+                              onClick={async () => {
+                                const nextVal = !a.canPostArticles;
+                                const res = await fetch(`/api/artists/${a.id}/article-permission`, {
+                                  method: "PUT",
+                                  headers: { "Content-Type": "application/json" },
+                                  credentials: "include",
+                                  body: JSON.stringify({ canPostArticles: nextVal }),
+                                });
+                                if (res.ok) {
+                                  toast({ title: nextVal ? `Permissão de artigos concedida a ${a.name}!` : `Permissão de artigos revogada de ${a.name}` });
+                                  load();
+                                }
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                a.canPostArticles
+                                  ? "text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+                                  : "text-muted-foreground hover:text-emerald-400 hover:bg-emerald-400/10"
+                              }`}
+                              title={a.canPostArticles ? "Permissão para publicar artigos ATIVA (clique para revogar)" : "Conceder permissão para publicar artigos"}
+                            >
+                              <BookOpen className="w-4 h-4" />
+                            </button>
                             <button onClick={() => handleOpenGrant(a)} className="p-1.5 text-muted-foreground hover:text-violet-400 hover:bg-violet-400/10 rounded-lg transition-colors" title="Conceder plano">
                               <Gift className="w-4 h-4" />
                             </button>
@@ -5392,7 +5418,6 @@ function ExitFeedbackTab() {
     </div>
   );
 }
-
 
 // ─── Articles / Blog Tab ──────────────────────────────────────────────────────
 

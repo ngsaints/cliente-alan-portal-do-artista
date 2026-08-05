@@ -21,6 +21,8 @@ import Demo from "@/pages/Demo";
 import Cadastro from "@/pages/Cadastro";
 import Planos from "@/pages/Planos";
 import CrmPage from "@/pages/CrmPage";
+import Articles from "@/pages/Articles";
+import ArticleDetail from "@/pages/ArticleDetail";
 import NotFound from "@/pages/not-found";
 import { ExitIntentModal } from "@/components/ExitIntentModal";
 
@@ -39,6 +41,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/explorar" component={Home} />
+      <Route path="/artigos" component={Articles} />
+      <Route path="/artigos/:slug" component={ArticleDetail} />
       <Route path="/planos" component={Planos} />
       <Route path="/cadastro" component={Cadastro} />
       <Route path="/artista/login" component={ArtistLogin} />

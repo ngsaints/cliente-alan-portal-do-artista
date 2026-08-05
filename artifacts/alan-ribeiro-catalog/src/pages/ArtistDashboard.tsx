@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingUpDown, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
   ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle, Share2,
-  Bot, Sparkles, Zap, Download, ChevronLeft, ChevronRight, CheckCircle, Instagram
+Bot, Sparkles, Zap, Download, ChevronLeft, ChevronRight, CheckCircle, Instagram, BookOpen
 } from "lucide-react";
 import {
   Command,
@@ -190,7 +190,7 @@ const PLAYER_COLORS = [
   "#fab1a0", "#74b9ff", "#a855f7",
 ];
 
-type TabId = "dashboard" | "songs" | "playlists" | "gallery" | "profile" | "plano" | "interesses" | "vip" | "mentor";
+type TabId = "dashboard" | "songs" | "playlists" | "gallery" | "profile" | "plano" | "interesses" | "vip" | "mentor" | "artigos";
 
 function PlayerPreviewMini({ style, editCustom }: { style: string; editCustom: any }) {
   const playerCor = editCustom?.playerCor || "#f5c518";
@@ -656,6 +656,7 @@ export default function ArtistDashboard() {
     { id: "vip",            label: "VIP",             icon: Crown          },
     { id: "plano",          label: "Plano",           icon: CreditCard     },
     { id: "interesses",     label: "Interesses",      icon: MessageSquare  },
+    ...(artist?.canPostArticles ? [{ id: "artigos" as TabId, label: "Meus Artigos", icon: BookOpen }] : []),
   ];
 
   useEffect(() => {
