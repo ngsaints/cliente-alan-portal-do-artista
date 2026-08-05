@@ -7,7 +7,7 @@ import { MusicCard } from "@/components/MusicCard";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { NotificationBell, type Interest } from "@/components/NotificationBell";
 import { InterestModal } from "@/components/InterestModal";
-import { Disc3, TrendingUp, Star, Sparkles, Search, Music, Users, MapPin, Instagram, Mail, Phone, Activity, Clock, ArrowRight, Shuffle } from "lucide-react";
+import { Disc3, TrendingUp, Star, Sparkles, Search, Music, Users, MapPin, Instagram, Mail, Phone, Activity, Clock, ArrowRight, Shuffle, BookOpen, ChevronRight } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
@@ -39,6 +39,7 @@ export default function Home() {
   const [artists, setArtists] = useState<any[]>([]);
   const [vitrineArtists, setVitrineArtists] = useState<any[]>([]);
   const [activityFeed, setActivityFeed] = useState<any[]>([]);
+  const [featuredArticles, setFeaturedArticles] = useState<any[]>([]);
   const [loadingArtists, setLoadingArtists] = useState(false);
 
   const { data: songs, isLoading, error } = useListSongs({
@@ -68,6 +69,22 @@ export default function Home() {
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) setActivityFeed(data);
+      })
+      .catch(() => {});
+
+    fetch("/api/articles/featured")
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setFeaturedArticles(data.slice(0, 3));
+        } else {
+          fetch("/api/articles")
+            .then(r => r.json())
+            .then(allArt => {
+              if (Array.isArray(allArt)) setFeaturedArticles(allArt.slice(0, 3));
+            })
+            .catch(() => {});
+        }
       })
       .catch(() => {});
 
@@ -287,6 +304,44 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
 
+        {/* FEED DE ATIVIDADES NO MOBILE (Aparece logo no topo para dispositivos móveis) */}
+        <div className="block lg:hidden bg-card/80 border border-border/60 rounded-3xl p-5 shadow-2xl backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-border/40 pb-3 mb-4">
+            <h3 className="font-extrabold text-foreground text-sm flex items-center gap-2">
+              <Activity className="w-4 h-4 text-primary animate-pulse" />
+              Feed de Atividades
+            </h3>
+            <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" /> Ao Vivo
+            </span>
+          </div>
+
+          {activityFeed.length === 0 ? (
+            <div className="text-center py-6 text-xs text-muted-foreground">
+              <Clock className="w-6 h-6 mx-auto mb-2 opacity-40 text-primary" />
+              Carregando novidades recentes...
+            </div>
+          ) : (
+            <div className="space-y-3.5 max-h-80 overflow-y-auto pr-1">
+              {activityFeed.map((item, i) => (
+                <div key={`mob-feed-${i}`} className="flex items-start gap-3 text-xs pb-3 border-b border-border/20 last:border-0 last:pb-0">
+                  {item.avatar ? (
+                    <img src={item.avatar} alt="Avatar" className="w-9 h-9 rounded-full object-cover border border-primary/30 shrink-0 shadow-md" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shrink-0 font-bold">
+                      <Music className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-white leading-snug">{item.title}</p>
+                    <p className="text-[11px] text-primary/80 font-mono mt-0.5">{item.subtitle}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* VITRINE DINÂMICA DE ARTISTAS */}
         {showcaseList.length > 0 && (
           <section className="space-y-6">
@@ -476,6 +531,69 @@ export default function Home() {
             </div>
           </aside>
         </div>
+
+        {/* SEÇÃO DE ARTIGOS EM DESTAQUE - FIQUE LIGADO! */}
+        {featuredArticles.length > 0 && (
+          <section className="bg-gradient-to-r from-card via-card/90 to-background border border-border/60 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden my-8">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-4 relative z-10">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary text-[11px] font-extrabold uppercase tracking-wider mb-1">
+                  <BookOpen className="w-3.5 h-3.5" /> Dicas de Carreira & Direito Autoral
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  Fique Ligado! 💡
+                </h2>
+              </div>
+
+              <Link href="/artigos" className="inline-flex items-center gap-2 text-xs font-extrabold text-primary hover:underline">
+                Ver Todos os Artigos <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+              {featuredArticles.map((art) => (
+                <motion.div
+                  key={`feat-art-${art.id}`}
+                  whileHover={{ y: -4 }}
+                  className="bg-black/40 border border-border/60 hover:border-primary/40 rounded-2xl overflow-hidden shadow-xl flex flex-col group transition-all"
+                >
+                  <Link href={`/artigos/${art.slug}`} className="block relative aspect-video overflow-hidden">
+                    <img
+                      src={art.coverUrl || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=600&auto=format&fit=crop"}
+                      alt={art.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md text-[10px] font-extrabold uppercase text-primary border border-primary/30">
+                      {art.category}
+                    </div>
+                  </Link>
+
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
+                    <div className="space-y-2">
+                      <Link href={`/artigos/${art.slug}`}>
+                        <h3 className="font-extrabold text-base text-white group-hover:text-primary transition-colors leading-snug line-clamp-2">
+                          {art.title}
+                        </h3>
+                      </Link>
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                        {art.excerpt}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-border/40 text-[11px] text-muted-foreground">
+                      <span className="font-semibold text-white/80">{art.authorName || "Redação Portal do Artista"}</span>
+                      <Link href={`/artigos/${art.slug}`} className="text-primary font-bold hover:underline flex items-center gap-1">
+                        Ler Artigo <ChevronRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       <InterestModal
