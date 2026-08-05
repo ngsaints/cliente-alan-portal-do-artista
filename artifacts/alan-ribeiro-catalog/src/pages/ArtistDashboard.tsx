@@ -2235,6 +2235,7 @@ export default function ArtistDashboard() {
                         onChange={(e) => setEditProfile({ ...editProfile, documento: e.target.value })}
                         placeholder="CPF ou CNPJ"
                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
+                      />
                     </div>
                   </div>
 
