@@ -41,7 +41,7 @@ export default function Demo() {
   const [demoSettings, setDemoSettings] = useState<Record<string, string>>({});
   const [artistLoggedIn, setArtistLoggedIn] = useState(false);
   const [loggedInArtistId, setLoggedInArtistId] = useState<number | null>(null);
-  const [demoBanners, setDemoBanners] = useState<{ url: string; link: string }[]>([]);
+  const [demoBanners, setDemoBanners] = useState<{ url: string; mobileUrl?: string; link: string }[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [highlightedSongId, setHighlightedSongId] = useState<number | null>(null);
   const hasAutoPlayed = useRef(false);
@@ -311,31 +311,67 @@ export default function Demo() {
         </div>
       </div>
 
-      {/* Artist Profile with Banner (Carousel or Static Fallback) */}
+      {/* Artist Profile with Banner (Carousel or Static Fallback with Mobile Support) */}
       <section className="relative h-[320px] md:h-[400px] overflow-hidden">
         {demoBanners.length > 0 ? (
           <div className="absolute inset-0">
-            {demoBanners.map((b, idx) => (
-              <div
-                key={idx}
-                className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
-                  idx === currentBannerIndex ? "opacity-100" : "opacity-0 pointer-events-none"
-                }`}
-                style={{
-                  backgroundImage: b.url ? `url("${b.url}")` : "none",
-                  backgroundColor: artist.cor || "#1a1a2e",
-                }}
-              />
-            ))}
+            {demoBanners.map((b, idx) => {
+              const bgMobile = b.mobileUrl || demoSettings.demo_banner_mobile_url || b.url;
+              const bgDesktop = b.url || demoSettings.demo_banner_mobile_url;
+              return (
+                <div
+                  key={idx}
+                  className={`absolute inset-0 transition-opacity duration-1000 ${
+                    idx === currentBannerIndex ? "opacity-100" : "opacity-0 pointer-events-none"
+                  }`}
+                >
+                  {/* Mobile Banner */}
+                  <div
+                    className="block sm:hidden absolute inset-0 bg-cover bg-center"
+                    style={{
+                      backgroundImage: bgMobile ? `url("${bgMobile}")` : "none",
+                      backgroundColor: artist.cor || "#1a1a2e",
+                    }}
+                  />
+                  {/* Desktop Banner */}
+                  <div
+                    className="hidden sm:block absolute inset-0 bg-cover bg-center"
+                    style={{
+                      backgroundImage: bgDesktop ? `url("${bgDesktop}")` : "none",
+                      backgroundColor: artist.cor || "#1a1a2e",
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
         ) : (
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: artist.bannerUrl ? `url("${artist.bannerUrl}")` : "none",
-              backgroundColor: artist.cor || "#1a1a2e",
-            }}
-          />
+          <>
+            {/* Mobile Static Fallback */}
+            <div
+              className="block sm:hidden absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: demoSettings.demo_banner_mobile_url
+                  ? `url("${demoSettings.demo_banner_mobile_url}")`
+                  : artist.bannerUrl
+                  ? `url("${artist.bannerUrl}")`
+                  : "none",
+                backgroundColor: artist.cor || "#1a1a2e",
+              }}
+            />
+            {/* Desktop Static Fallback */}
+            <div
+              className="hidden sm:block absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: artist.bannerUrl
+                  ? `url("${artist.bannerUrl}")`
+                  : demoSettings.demo_banner_mobile_url
+                  ? `url("${demoSettings.demo_banner_mobile_url}")`
+                  : "none",
+                backgroundColor: artist.cor || "#1a1a2e",
+              }}
+            />
+          </>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
 

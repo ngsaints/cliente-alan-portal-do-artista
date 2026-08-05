@@ -108,6 +108,7 @@ router.get("/admin/settings", async (req, res): Promise<void> => {
 router.put("/admin/settings", upload.fields([
   { name: "demo_capa_url", maxCount: 1 },
   { name: "demo_banner_url", maxCount: 10 },
+  { name: "demo_banner_mobile_url", maxCount: 1 },
 ]), async (req, res): Promise<void> => {
   if (!req.session.logado) {
     res.status(401).json({ error: "Não autorizado" });
@@ -124,6 +125,14 @@ router.put("/admin/settings", upload.fields([
         .insert(appSettingsTable)
         .values({ key: "demo_capa_url", value: url, category: "demo", isSecret: "false", description: "Foto de perfil do artista", updatedAt: new Date() })
         .onConflictDoUpdate({ target: appSettingsTable.key, set: { value: url, description: "Foto de perfil do artista", updatedAt: new Date() } });
+    }
+
+    if (files?.["demo_banner_mobile_url"]?.[0]) {
+      const url = await saveDemoImage(files["demo_banner_mobile_url"][0].buffer, files["demo_banner_mobile_url"][0].originalname);
+      await db
+        .insert(appSettingsTable)
+        .values({ key: "demo_banner_mobile_url", value: url, category: "demo", isSecret: "false", description: "Banner exclusivo para Celular / Mobile", updatedAt: new Date() })
+        .onConflictDoUpdate({ target: appSettingsTable.key, set: { value: url, description: "Banner exclusivo para Celular / Mobile", updatedAt: new Date() } });
     }
 
     if (req.body.demo_banners_metadata) {

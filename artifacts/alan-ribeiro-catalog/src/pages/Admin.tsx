@@ -2140,7 +2140,8 @@ const SETTING_LABELS: Record<string, string> = {
 
   // Demo
   demo_capa_url: "Foto de perfil",
-  demo_banner_url: "Carrossel de banners",
+  demo_banner_url: "Carrossel de banners (Desktop)",
+  demo_banner_mobile_url: "Banner para Celular / Mobile (Opcional)",
   demo_name: "Nome do artista",
   demo_profissao: "Profissão",
   demo_cidade: "Cidade",
@@ -2159,6 +2160,9 @@ function getSettingLabel(key: string): string {
 function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "demo_capa_url") {
     return "Foto de perfil do artista (redonda). Deixe em branco/remova a imagem para ocultar o avatar.";
+  }
+  if (key === "demo_banner_mobile_url") {
+    return "Banner em formato vertical ou otimizado para celulares/mobile (evita cortes em telas pequenas).";
   }
   if (key === "demo_cidade") {
     return "Cidade do artista. Deixe em branco para ocultar a cidade.";
@@ -2227,12 +2231,16 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
     if (category === "demo") {
       const formData = new FormData();
       for (const [key, value] of Object.entries(values)) {
-        if (key === "demo_banner_url" || key === "demo_capa_url" || key === "demo_banners_metadata") continue;
+        if (key === "demo_banner_url" || key === "demo_capa_url" || key === "demo_banner_mobile_url" || key === "demo_banners_metadata") continue;
         formData.append(key, value);
       }
 
       if (demoFiles["demo_capa_url"]) {
         formData.append("demo_capa_url", demoFiles["demo_capa_url"]);
+      }
+
+      if (demoFiles["demo_banner_mobile_url"]) {
+        formData.append("demo_banner_mobile_url", demoFiles["demo_banner_mobile_url"]);
       }
 
       const metadata: any[] = [];
@@ -2541,7 +2549,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                   />
                 </div>
               </div>
-            ) : category === "demo" && s.key === "demo_capa_url" ? (
+            ) : category === "demo" && (s.key === "demo_capa_url" || s.key === "demo_banner_mobile_url") ? (
               <div>
                 <input
                   type="file"
