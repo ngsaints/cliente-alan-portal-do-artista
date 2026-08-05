@@ -5426,6 +5426,8 @@ function ArticlesTab() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("Todos");
   const { toast } = useToast();
 
   // Form State
@@ -5497,6 +5499,11 @@ function ArticlesTab() {
     }
   };
 
+  // Insert HTML formatting tag helpers into content textarea
+  const handleInsertTag = (tagOpen: string, tagClose: string) => {
+    setContent((prev) => `${prev}\n${tagOpen}Texto da seção aqui...${tagClose}\n`);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) {
@@ -5529,7 +5536,7 @@ function ArticlesTab() {
 
       const data = await res.json();
       if (res.ok) {
-        toast({ title: editingArticle ? "Artigo atualizado!" : "Artigo publicado com sucesso!" });
+        toast({ title: editingArticle ? "Artigo atualizado com sucesso!" : "Artigo publicado com sucesso!" });
         setModalOpen(false);
         loadArticles();
       } else {
@@ -5637,94 +5644,198 @@ function ArticlesTab() {
     }
   };
 
+  // Filter articles for admin table
+  const filteredArticles = articles.filter((art) => {
+    const matchesSearch =
+      art.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      art.slug?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      art.keywords?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCat = filterCategory === "Todos" || art.category === filterCategory;
+    return matchesSearch && matchesCat;
+  });
+
+  const totalViews = articles.reduce((acc, a) => acc + (Number(a.views) || 0), 0);
+  const totalPublished = articles.filter((a) => a.status === "published").length;
+  const totalDrafts = articles.filter((a) => a.status === "draft").length;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border/60 p-6 rounded-2xl shadow-xl">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-primary" />
-            Gestão de Artigos & Blog SEO
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-card via-card/90 to-background border border-border/70 p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 space-y-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary text-[11px] font-extrabold uppercase tracking-wider">
+            <BookOpen className="w-3.5 h-3.5" /> Portal Blog & Content Engine
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Gestão de Artigos & SEO
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Publique artigos otimizados para atrair tráfego orgânico do Google para o Portal do Artista.
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Publique artigos estratégicos na URL <code className="text-primary font-mono bg-black/60 px-2 py-0.5 rounded border border-primary/30">portaldoartista.com/artigos/[slug]</code> para dominar as buscas do Google.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="relative z-10 flex items-center gap-2.5">
           {articles.length === 0 && (
             <button
               onClick={handleSeedDemoArticle}
               disabled={saving}
-              className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 shadow-lg"
             >
               <Sparkles className="w-4 h-4" /> Gerar Artigo Demo
             </button>
           )}
           <button
             onClick={handleOpenCreate}
-            className="px-4 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 cursor-pointer flex items-center gap-2"
+            className="px-5 py-3 rounded-2xl bg-primary text-black font-extrabold text-xs sm:text-sm hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 hover:scale-105 cursor-pointer flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" /> Novo Artigo
+            <Plus className="w-4.5 h-4.5" /> Publicar Novo Artigo
           </button>
         </div>
       </div>
 
-      {/* Lista de Artigos Cadastrados */}
+      {/* Cards de Métricas em 3D Glassmorphism */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-primary/40 rounded-2xl p-5 shadow-lg group transition-all">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 rounded-full blur-xl group-hover:bg-primary/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between mb-2 relative z-10">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Total de Artigos</span>
+            <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
+              <BookOpen className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{articles.length}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Conteúdos cadastrados</p>
+        </motion.div>
+
+        <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-emerald-500/40 rounded-2xl p-5 shadow-lg group transition-all">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between mb-2 relative z-10">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Publicados</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-extrabold text-emerald-400 tracking-tight relative z-10">{totalPublished}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Visíveis no portal</p>
+        </motion.div>
+
+        <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-sky-500/40 rounded-2xl p-5 shadow-lg group transition-all">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-sky-500/10 rounded-full blur-xl group-hover:bg-sky-500/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between mb-2 relative z-10">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Visualizações</span>
+            <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400">
+              <Eye className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{totalViews}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Acessos acumulados</p>
+        </motion.div>
+
+        <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-amber-500/40 rounded-2xl p-5 shadow-lg group transition-all">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between mb-2 relative z-10">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Em Rascunho</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <FileText className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-extrabold text-amber-400 tracking-tight relative z-10">{totalDrafts}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Aguardando revisão</p>
+        </motion.div>
+      </div>
+
+      {/* Barra de Pesquisa e Filtros */}
+      <div className="p-4 bg-card border border-border/60 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:w-80">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Filtrar por título, slug ou keyword..."
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-input border border-border/60 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60"
+          />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+          {["Todos", "Direitos Autorais", "Marca & Registro", "Marketing Musical", "Carreira", "Mercado"].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFilterCategory(cat)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                filterCategory === cat
+                  ? "bg-primary text-black shadow-md"
+                  : "bg-background text-muted-foreground hover:text-white border border-border/50"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabela de Artigos */}
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      ) : articles.length === 0 ? (
+      ) : filteredArticles.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground bg-card border border-dashed border-border rounded-2xl space-y-4">
           <BookOpen className="w-12 h-12 mx-auto opacity-30 text-primary" />
           <div>
-            <h3 className="text-base font-bold text-white">Nenhum artigo publicado ainda</h3>
-            <p className="text-xs text-muted-foreground mt-1">Clique em "Novo Artigo" ou "Gerar Artigo Demo" acima para publicar o primeiro conteúdo SEO.</p>
+            <h3 className="text-base font-bold text-white">Nenhum artigo encontrado</h3>
+            <p className="text-xs text-muted-foreground mt-1">Ajuste os filtros de busca ou crie um novo artigo.</p>
           </div>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="border-b border-border bg-background/50">
+              <thead className="border-b border-border bg-black/90">
                 <tr>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Capa / Título</th>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Categoria</th>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Visualizações</th>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Status</th>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Destaque</th>
-                  <th className="text-right px-4 py-3 text-muted-foreground font-medium">Ações</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Capa / Título & URL</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Categoria</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Views</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Status</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Destaque</th>
+                  <th className="text-right px-4 py-3 text-muted-foreground font-extrabold uppercase text-[11px] tracking-wider">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {articles.map((art) => (
-                  <tr key={art.id} className="hover:bg-white/[0.02] transition-colors">
+                {filteredArticles.map((art) => (
+                  <tr key={art.id} className="hover:bg-white/[0.03] transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <img
                           src={art.coverUrl || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=300&auto=format&fit=crop"}
                           alt={art.title}
-                          className="w-12 h-12 rounded-lg object-cover border border-border/60 shrink-0"
+                          className="w-12 h-12 rounded-xl object-cover border border-border/60 shrink-0 shadow-md"
                         />
                         <div className="min-w-0">
                           <a
                             href={`/artigos/${art.slug}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-bold text-white hover:text-primary transition-colors flex items-center gap-1 text-sm leading-snug line-clamp-1"
+                            className="font-bold text-white hover:text-primary transition-colors flex items-center gap-1.5 text-sm leading-snug line-clamp-1 group"
                           >
-                            {art.title} <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
+                            <span>{art.title}</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-primary opacity-70 group-hover:opacity-100 shrink-0" />
                           </a>
-                          <span className="text-[11px] text-muted-foreground font-mono">/artigos/{art.slug}</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <code className="text-[11px] text-primary/80 font-mono">/artigos/{art.slug}</code>
+                            <span className="text-[10px] text-muted-foreground">• Autor: {art.authorName}</span>
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase bg-primary/10 text-primary border border-primary/20">
+                      <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase bg-primary/10 text-primary border border-primary/30">
                         {art.category}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground font-semibold">
-                      <span className="flex items-center gap-1 text-xs">
+                      <span className="flex items-center gap-1 text-xs text-white font-mono">
                         <Eye className="w-3.5 h-3.5 text-primary" /> {art.views || 0}
                       </span>
                     </td>
@@ -5732,8 +5843,8 @@ function ArticlesTab() {
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           art.status === "published"
-                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                            : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                         }`}
                       >
                         {art.status === "published" ? "Publicado" : "Rascunho"}
@@ -5744,7 +5855,7 @@ function ArticlesTab() {
                         onClick={() => handleToggleFeatured(art)}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                           art.isFeatured
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
                             : "bg-zinc-800 text-zinc-500 hover:text-zinc-300 border border-zinc-700"
                         }`}
                       >
@@ -5753,16 +5864,25 @@ function ArticlesTab() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <a
+                          href={`/artigos/${art.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title="Visualizar Artigo ao Vivo"
+                        >
+                          <Globe className="w-4 h-4" />
+                        </a>
                         <button
                           onClick={() => handleOpenEdit(art)}
-                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
                           title="Editar Artigo"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(art.id, art.title)}
-                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
                           title="Excluir Artigo"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -5777,58 +5897,90 @@ function ArticlesTab() {
         </div>
       )}
 
-      {/* Modal de Criação / Edição de Artigo */}
+      {/* Modal Ultra-Premium de Criação / Edição de Artigo */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-border rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-card border border-border rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-primary" />
-                {editingArticle ? "Editar Artigo SEO" : "Novo Artigo SEO"}
-              </h3>
+              <div>
+                <h3 className="text-xl font-extrabold text-white flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-primary" />
+                  {editingArticle ? "Editar Artigo SEO" : "Publicar Novo Artigo SEO"}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure o título, slug da URL, tags de busca e conteúdo com preview do Google em tempo real.
+                </p>
+              </div>
               <button
                 onClick={() => setModalOpen(false)}
-                className="p-1.5 text-muted-foreground hover:text-white rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                className="p-2 text-muted-foreground hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-6">
+              {/* Google Live SERP Snippet Preview Box */}
+              <div className="p-4 rounded-2xl bg-black/60 border border-border/60 space-y-2">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5 text-sky-400">
+                    <Globe className="w-3.5 h-3.5" /> Preview de Resultado no Google
+                  </span>
+                  <span>Google SERP Preview</span>
+                </div>
+                <div className="space-y-1 font-sans">
+                  <div className="text-[12px] text-emerald-400 font-mono truncate">
+                    https://portaldoartista.com › artigos › {slug || "nome-do-artigo"}
+                  </div>
+                  <div className="text-base font-bold text-sky-400 hover:underline cursor-pointer truncate">
+                    {title || "Título do Artigo Aparecerá Aqui | Portal do Artista"}
+                  </div>
+                  <div className="text-xs text-zinc-300 line-clamp-2 leading-relaxed">
+                    {excerpt || "Resumo SEO do artigo aparecerá aqui nas pesquisas do Google para atrair cliques de novos visitantes para a plataforma..."}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Título */}
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-muted-foreground">Título do Artigo *</label>
+                  <label className="text-xs font-extrabold text-white flex items-center gap-1">
+                    Título do Artigo <span className="text-primary">*</span>
+                  </label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => handleTitleChange(e.target.value)}
                     placeholder="Ex: Nome artístico também precisa ser registrado como marca?"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/60"
+                    className="w-full px-4 py-3 rounded-xl bg-input border border-border text-sm font-bold text-white focus:outline-none focus:border-primary/70 focus:ring-1 focus:ring-primary/40 shadow-inner"
                     required
                   />
                 </div>
 
-                {/* Slug */}
+                {/* Slug da URL */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground">Slug da URL *</label>
-                  <input
-                    type="text"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    placeholder="nome-artistico-tambem-precisa-ser-registrado-como-marca"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary/60"
-                    required
-                  />
+                  <label className="text-xs font-extrabold text-white flex items-center gap-1">
+                    Slug da URL <span className="text-primary">*</span>
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value)}
+                      placeholder="nome-artistico-tambem-precisa-ser-registrado-como-marca"
+                      className="w-full pl-3.5 pr-4 py-2.5 rounded-xl bg-input border border-border text-xs text-primary font-mono focus:outline-none focus:border-primary/70"
+                      required
+                    />
+                  </div>
                 </div>
 
                 {/* Categoria */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground">Categoria</label>
+                  <label className="text-xs font-extrabold text-white">Categoria do Artigo</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/60"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs font-bold text-white focus:outline-none focus:border-primary/70"
                   >
                     <option value="Direitos Autorais">Direitos Autorais</option>
                     <option value="Marca & Registro">Marca & Registro</option>
@@ -5838,80 +5990,100 @@ function ArticlesTab() {
                   </select>
                 </div>
 
-                {/* URL da Imagem de Capa */}
+                {/* Imagem de Capa URL */}
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-muted-foreground">URL da Imagem de Capa</label>
+                  <label className="text-xs font-extrabold text-white">URL da Imagem de Capa</label>
                   <input
                     type="text"
                     value={coverUrl}
                     onChange={(e) => setCoverUrl(e.target.value)}
                     placeholder="https://images.unsplash.com/... ou URL da imagem"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/60"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-white focus:outline-none focus:border-primary/70"
                   />
                 </div>
 
-                {/* Resumo SEO (Excerpt) */}
+                {/* Resumo SEO (Excerpt / Meta Description) */}
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-muted-foreground">Resumo / Meta Description SEO</label>
+                  <label className="text-xs font-extrabold text-white">Resumo SEO / Excerpt (Meta Description)</label>
                   <textarea
                     value={excerpt}
                     onChange={(e) => setExcerpt(e.target.value)}
                     rows={2}
-                    placeholder="Breve resumo atraente de 1 a 2 frases para aparecer no Google e redes sociais..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-foreground focus:outline-none focus:border-primary/60"
+                    placeholder="Resumo atraente de 1 a 2 frases para ser exibido nas buscas e redes sociais..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-white focus:outline-none focus:border-primary/70"
                   />
                 </div>
 
-                {/* Conteúdo HTML / Rich Text */}
+                {/* Conteúdo Completo HTML com Barra de Ferramentas de Ajuda */}
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-muted-foreground">Conteúdo Completo (HTML / Texto Otimizado) *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-extrabold text-white flex items-center gap-1">
+                      Conteúdo Completo do Artigo (HTML / Texto Otimizado) <span className="text-primary">*</span>
+                    </label>
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                      <span className="text-muted-foreground font-bold">Inserir tags rápidas:</span>
+                      <button type="button" onClick={() => handleInsertTag("<h2>", "</h2>")} className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-primary/20 text-primary border border-zinc-700 font-mono">
+                        + h2
+                      </button>
+                      <button type="button" onClick={() => handleInsertTag("<h3>", "</h3>")} className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-primary/20 text-primary border border-zinc-700 font-mono">
+                        + h3
+                      </button>
+                      <button type="button" onClick={() => handleInsertTag("<p>", "</p>")} className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-primary/20 text-primary border border-zinc-700 font-mono">
+                        + p
+                      </button>
+                      <button type="button" onClick={() => handleInsertTag("<blockquote>", "</blockquote>")} className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-primary/20 text-primary border border-zinc-700 font-mono">
+                        + quote
+                      </button>
+                    </div>
+                  </div>
+
                   <textarea
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     rows={12}
-                    placeholder="<h2>Título da Seção</h2><p>Escreva o conteúdo do artigo com parágrafos, listas e destaques...</p>"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary/60 leading-relaxed"
+                    placeholder="<h2>Título da Seção</h2><p>Escreva o artigo com parágrafos, tópicos e caixas de destaque...</p>"
+                    className="w-full px-4 py-3 rounded-2xl bg-input border border-border text-xs font-mono text-white focus:outline-none focus:border-primary/70 leading-relaxed shadow-inner"
                     required
                   />
                 </div>
 
-                {/* Palavras-chave SEO */}
+                {/* Keywords */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground">Palavras-chave SEO (separadas por vírgula)</label>
+                  <label className="text-xs font-extrabold text-white">Palavras-Chave SEO</label>
                   <input
                     type="text"
                     value={keywords}
                     onChange={(e) => setKeywords(e.target.value)}
-                    placeholder="nome artistico, inpi, marca, direitos autorais"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-foreground focus:outline-none focus:border-primary/60"
+                    placeholder="nome artistico, marca, inpi, direitos autorais"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs text-white focus:outline-none focus:border-primary/70"
                   />
                 </div>
 
-                {/* Autor */}
+                {/* Nome do Autor */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground">Nome do Autor</label>
+                  <label className="text-xs font-extrabold text-white">Nome do Autor</label>
                   <input
                     type="text"
                     value={authorName}
                     onChange={(e) => setAuthorName(e.target.value)}
                     placeholder="Redação Portal do Artista"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-sm text-foreground focus:outline-none focus:border-primary/60"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-input border border-border text-xs font-bold text-white focus:outline-none focus:border-primary/70"
                   />
                 </div>
 
-                {/* Toggles Status e Destaque */}
-                <div className="flex items-center gap-6 md:col-span-2 pt-2 border-t border-border/40">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
+                {/* Toggles de Status e Destaque */}
+                <div className="flex items-center gap-6 md:col-span-2 pt-3 border-t border-border/50">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-extrabold text-white">
                     <input
                       type="checkbox"
                       checked={status === "published"}
                       onChange={(e) => setStatus(e.target.checked ? "published" : "draft")}
                       className="accent-primary w-4 h-4"
                     />
-                    Publicar imediatamente
+                    Publicar Imediatamente
                   </label>
 
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-400">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-extrabold text-amber-300">
                     <input
                       type="checkbox"
                       checked={isFeatured}
@@ -5928,14 +6100,14 @@ function ArticlesTab() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-card border border-border text-xs font-bold text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-card border border-border text-xs font-bold text-muted-foreground hover:text-white transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs hover:bg-primary/90 transition-all shadow-lg cursor-pointer flex items-center gap-2"
+                  className="px-7 py-3 rounded-2xl bg-primary text-black font-extrabold text-xs sm:text-sm hover:bg-primary/90 transition-all shadow-xl hover:scale-105 cursor-pointer flex items-center gap-2"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   {editingArticle ? "Salvar Alterações" : "Publicar Artigo"}
