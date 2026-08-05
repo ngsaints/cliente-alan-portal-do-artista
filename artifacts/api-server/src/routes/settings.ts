@@ -107,6 +107,19 @@ router.get("/settings", async (_req, res): Promise<void> => {
     console.error("Error fetching pixel settings:", err);
   }
 
+  let demoSettingsObj: Record<string, string> = {};
+  try {
+    const demoRows = await db
+      .select({ key: appSettingsTable.key, value: appSettingsTable.value })
+      .from(appSettingsTable)
+      .where(eq(appSettingsTable.category, "demo"));
+    for (const r of demoRows) {
+      if (r.value) demoSettingsObj[r.key] = r.value;
+    }
+  } catch (err) {
+    console.error("Error fetching demo settings:", err);
+  }
+
   res.json({
     artistName,
     artistPhotoUrl: artistPhotoUrl || null,
@@ -131,6 +144,7 @@ router.get("/settings", async (_req, res): Promise<void> => {
     landingHeroSubtitle: landingHeroSubtitle || "Pare de enviar apenas um MP3. Crie sua página profissional, organize sua carreira e apresente suas músicas como um artista profissional.",
     landingHeroCta: landingHeroCta || "COMEÇAR AGORA",
     heroFeaturedPlan: heroFeaturedPlan || "premium",
+    ...demoSettingsObj,
   });
 });
 

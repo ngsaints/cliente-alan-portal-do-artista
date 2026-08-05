@@ -80,10 +80,12 @@ export default function Demo() {
   });
 
   useEffect(() => {
-    fetch("/api/settings")
-      .then((res) => res.json())
-      .then((data) => setDemoSettings(data))
-      .catch(console.error);
+    Promise.all([
+      fetch("/api/settings").then((res) => res.json()).catch(() => ({})),
+      fetch("/api/demo-settings").then((res) => res.json()).catch(() => ({})),
+    ]).then(([settingsData, demoData]) => {
+      setDemoSettings({ ...settingsData, ...demoData });
+    }).catch(console.error);
 
     fetch("/api/auth/me")
       .then((r) => r.json())
@@ -144,9 +146,9 @@ export default function Demo() {
     ...(demoSettings.demo_cidade ? { cidade: demoSettings.demo_cidade } : {}),
     ...(demoSettings.demo_contato ? { contato: demoSettings.demo_contato } : {}),
     ...(demoSettings.demo_email ? { email: demoSettings.demo_email } : {}),
-    ...(demoSettings.demo_instagram ? { instagram: demoSettings.demo_instagram } : {}),
-    ...(demoSettings.demo_tiktok ? { tiktok: demoSettings.demo_tiktok } : {}),
-    ...(demoSettings.demo_spotify ? { spotify: demoSettings.demo_spotify } : {}),
+    ...(demoSettings.demo_instagram !== undefined ? { instagram: demoSettings.demo_instagram } : {}),
+    ...(demoSettings.demo_tiktok !== undefined ? { tiktok: demoSettings.demo_tiktok } : {}),
+    ...(demoSettings.demo_spotify !== undefined ? { spotify: demoSettings.demo_spotify } : {}),
     ...(demoSettings.demo_cor ? { cor: demoSettings.demo_cor } : {}),
     ...(demoSettings.demo_banner_url ? { bannerUrl: demoSettings.demo_banner_url } : {}),
     ...(demoSettings.demo_capa_url ? { capaUrl: demoSettings.demo_capa_url } : {}),
