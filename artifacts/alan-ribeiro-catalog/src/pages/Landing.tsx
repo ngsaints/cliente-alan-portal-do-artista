@@ -15,6 +15,26 @@ import { Footer } from "@/components/Footer";
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [faqOpen, setFaqOpen] = useState<Record<number, boolean>>({});
+  const [settings, setSettings] = useState({
+    landingHeroMockupUrl: "/images/hero_mockup.jpg",
+    landingFeature01Url: "/images/feature_profile_site_3d.jpg",
+    landingFeature02Url: "/images/catalog_preview.png",
+  });
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data) {
+          setSettings({
+            landingHeroMockupUrl: data.landingHeroMockupUrl || "/images/hero_mockup.jpg",
+            landingFeature01Url: data.landingFeature01Url || "/images/feature_profile_site_3d.jpg",
+            landingFeature02Url: data.landingFeature02Url || "/images/catalog_preview.png",
+          });
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const toggleFaq = (index: number) => {
     setFaqOpen((prev) => ({ ...prev, [index]: !prev[index] }));
@@ -127,7 +147,7 @@ export default function Landing() {
             {/* Render Image Container */}
             <div className="relative w-full max-w-2xl border-2 border-primary/40 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(245,197,24,0.25)] hover:border-primary/70 transition-all group">
               <img 
-                src="/images/hero_mockup.jpg" 
+                src={settings.landingHeroMockupUrl || "/images/hero_mockup.jpg"} 
                 alt="Portal do Artista - Versão Desktop e Mobile" 
                 className="w-full h-auto object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
               />
@@ -240,7 +260,7 @@ export default function Landing() {
           </div>
           <div className="lg:col-span-6 border-2 border-primary/40 rounded-2xl overflow-hidden shadow-[0_0_35px_rgba(245,197,24,0.2)] bg-card/90 backdrop-blur-xl group hover:border-primary/70 transition-all">
             <img 
-              src="/images/feature_profile_site_3d.jpg" 
+              src={settings.landingFeature01Url || "/images/feature_profile_site_3d.jpg"} 
               alt="Preview do Site Profissional do Artista em 3D" 
               className="w-full h-auto object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
             />
@@ -251,7 +271,7 @@ export default function Landing() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-card/30 border border-border/50 rounded-3xl p-6 sm:p-10 shadow-2xl">
           <div className="lg:col-span-6 order-2 lg:order-1 border border-primary/30 rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.6)] bg-card/80 backdrop-blur-xl group hover:border-primary/60 transition-all">
             <img 
-              src="/images/catalog_preview.png" 
+              src={settings.landingFeature02Url || "/images/catalog_preview.png"} 
               alt="Preview do Catálogo de Músicas do Artista" 
               className="w-full h-auto object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
             />
