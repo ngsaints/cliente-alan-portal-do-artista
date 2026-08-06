@@ -229,7 +229,7 @@ export default function Landing() {
           <div className="lg:col-span-6 space-y-4">
             <span className="text-4xl font-black text-primary/40 font-mono">01</span>
             <h3 className="text-2xl sm:text-3xl font-extrabold text-white">Tenha seu site profissional</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground">
               Seu perfil completo para apresentar sua música, fotos, vídeos, agenda e formas de contato de forma profissional.
             </p>
             <ul className="space-y-2 pt-2 text-xs font-bold text-white">
@@ -238,64 +238,28 @@ export default function Landing() {
               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Mostre sua identidade ao mundo</li>
             </ul>
           </div>
-
-          <div className="lg:col-span-6 bg-gradient-to-b from-zinc-900 to-black border border-primary/30 rounded-2xl p-4 shadow-xl space-y-3">
-            <div className="flex items-center justify-between border-b border-border/30 pb-2">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
-                <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
-              </div>
-              <span className="text-[10px] text-primary font-mono bg-black/60 px-3 py-0.5 rounded-full border border-primary/20">
-                portaldoartista.com/alanribeiro
-              </span>
-            </div>
-            <div className="flex items-center gap-3 pt-1">
-              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Alan Ribeiro" className="w-11 h-11 rounded-full border border-primary object-cover shrink-0" />
-              <div>
-                <h4 className="text-xs sm:text-sm font-extrabold text-white">Alan Ribeiro</h4>
-                <p className="text-[11px] text-primary font-medium">Compositor & Produtor Musical • Maricá, RJ</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <div className="bg-primary/10 border border-primary/30 rounded-xl p-2 text-center text-[11px] font-bold text-primary">
-                🎵 Ouvir Músicas
-              </div>
-              <div className="bg-card border border-border/60 rounded-xl p-2 text-center text-[11px] font-bold text-white">
-                💬 Falar no WhatsApp
-              </div>
-            </div>
+          <div className="lg:col-span-6 border-2 border-primary/40 rounded-2xl overflow-hidden shadow-[0_0_35px_rgba(245,197,24,0.2)] bg-card/90 backdrop-blur-xl group hover:border-primary/70 transition-all">
+            <img 
+              src="/images/feature_profile_site_3d.jpg" 
+              alt="Preview do Site Profissional do Artista em 3D" 
+              className="w-full h-auto object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
+            />
           </div>
         </div>
 
         {/* Feature 02 */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-card/30 border border-border/50 rounded-3xl p-6 sm:p-10 shadow-2xl">
-          <div className="lg:col-span-6 order-2 lg:order-1 bg-gradient-to-b from-zinc-900 to-black border border-primary/30 rounded-2xl p-4 shadow-xl space-y-2.5">
-            <div className="flex items-center justify-between text-xs border-b border-border/30 pb-2">
-              <span className="font-extrabold text-white">Catálogo de Músicas</span>
-              <span className="text-[10px] text-primary font-mono font-bold">23 Faixas</span>
-            </div>
-            {[
-              { title: "Mulher Bonita", genre: "Sertanejo Vanera", time: "3:28" },
-              { title: "Dez Chansons", genre: "Sertanejo Romântico", time: "2:45" },
-            ].map((song, i) => (
-              <div key={i} className="flex items-center justify-between bg-card/60 border border-border/40 p-2.5 rounded-xl text-xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px]">▶</div>
-                  <div>
-                    <p className="font-bold text-white text-xs">{song.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{song.genre}</p>
-                  </div>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">Tenho Interesse</span>
-              </div>
-            ))}
+          <div className="lg:col-span-6 order-2 lg:order-1 border border-primary/30 rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.6)] bg-card/80 backdrop-blur-xl group hover:border-primary/60 transition-all">
+            <img 
+              src="/images/catalog_preview.png" 
+              alt="Preview do Catálogo de Músicas do Artista" 
+              className="w-full h-auto object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
+            />
           </div>
-
           <div className="lg:col-span-6 order-1 lg:order-2 space-y-4">
             <span className="text-4xl font-black text-primary/40 font-mono">02</span>
             <h3 className="text-2xl sm:text-3xl font-extrabold text-white">Organize todas as suas músicas</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground">
               Até 50 músicas organizadas por estilo, com links individuais e QR Code para divulgação fácil.
             </p>
             <ul className="space-y-2 pt-2 text-xs font-bold text-white">
@@ -311,7 +275,7 @@ export default function Landing() {
           <div className="lg:col-span-6 space-y-4">
             <span className="text-4xl font-black text-primary/40 font-mono">03</span>
             <h3 className="text-2xl sm:text-3xl font-extrabold text-white">Controle receitas e despesas</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground">
               Acompanhe ganhos, despesas e lucro da sua carreira em tempo real com relatórios claros.
             </p>
             <ul className="space-y-2 pt-2 text-xs font-bold text-white">
@@ -320,53 +284,65 @@ export default function Landing() {
               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Decisões com base em dados</li>
             </ul>
           </div>
-
-          <div className="lg:col-span-6 bg-gradient-to-b from-zinc-900 to-black border border-primary/30 rounded-2xl p-5 shadow-xl space-y-4">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl">
-                <p className="text-[10px] text-emerald-400 font-bold">Receitas</p>
-                <p className="text-xs font-black text-white">R$ 12.450</p>
+          <div className="lg:col-span-6 bg-black/80 border border-primary/30 rounded-2xl p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between text-xs border-b border-border/30 pb-3">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase font-mono">Receitas do Mês</p>
+                <p className="text-base font-extrabold text-emerald-400">R$ 12.450,00</p>
               </div>
-              <div className="bg-red-500/10 border border-red-500/30 p-2.5 rounded-xl">
-                <p className="text-[10px] text-red-400 font-bold">Despesas</p>
-                <p className="text-xs font-black text-white">R$ 4.220</p>
-              </div>
-              <div className="bg-primary/10 border border-primary/30 p-2.5 rounded-xl">
-                <p className="text-[10px] text-primary font-bold">Lucro Líquido</p>
-                <p className="text-xs font-black text-primary">+R$ 8.230</p>
+              <div className="text-right">
+                <p className="text-[10px] text-muted-foreground uppercase font-mono">Lucro Líquido</p>
+                <p className="text-base font-extrabold text-primary">+ R$ 8.230,00</p>
               </div>
             </div>
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/30">
-              <span>Relatório Automático Mensal</span>
-              <span className="text-primary font-bold">✓ 100% Organizado</span>
+            <div className="h-36 bg-gradient-to-t from-primary/10 via-black to-black rounded-xl border border-primary/20 p-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Evolução Financeira</span>
+                <span className="text-primary font-bold font-mono">+34.5%</span>
+              </div>
+              <div className="flex items-end justify-between gap-2 h-20 pt-4">
+                {[40, 65, 55, 80, 75, 95, 100].map((h, i) => (
+                  <div key={i} className="w-full bg-primary/20 hover:bg-primary rounded-t-md transition-all relative group" style={{ height: `${h}%` }}>
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black text-primary text-[9px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-mono">
+                      {h}%
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Feature 04 */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-card/30 border border-border/50 rounded-3xl p-6 sm:p-10 shadow-2xl">
-          <div className="lg:col-span-6 order-2 lg:order-1 bg-gradient-to-b from-zinc-900 to-black border border-primary/30 rounded-2xl p-5 shadow-xl space-y-4 text-center">
-            <div className="px-4 py-2 rounded-xl bg-black border border-primary/40 text-primary font-mono text-xs inline-flex items-center gap-2">
+          <div className="lg:col-span-6 order-2 lg:order-1 bg-black/80 border border-primary/30 rounded-2xl p-6 space-y-5 text-center shadow-xl">
+            <div className="px-4 py-2.5 rounded-xl bg-zinc-950 border border-primary/40 text-primary font-mono text-xs inline-flex items-center gap-2 shadow-inner">
               <Globe className="w-3.5 h-3.5" />
               portaldoartista.com/alanribeiro
             </div>
-            <div className="grid grid-cols-3 gap-2 text-xs font-bold pt-1">
-              <div className="bg-card border border-border/50 p-2.5 rounded-xl text-pink-400 flex items-center justify-center gap-1.5">
-                <Instagram className="w-3.5 h-3.5" /> Instagram
+            
+            <div className="flex items-center justify-center gap-4 text-xs font-bold text-white pt-1">
+              <div className="p-3 rounded-2xl bg-card border border-border/60 flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-primary" />
+                <span>QR Code Próprio</span>
               </div>
-              <div className="bg-card border border-border/50 p-2.5 rounded-xl text-emerald-400 flex items-center justify-center gap-1.5">
-                <Phone className="w-3.5 h-3.5" /> WhatsApp
-              </div>
-              <div className="bg-card border border-border/50 p-2.5 rounded-xl text-primary flex items-center justify-center gap-1.5">
-                <QrCode className="w-3.5 h-3.5" /> QR Code
+              <div className="p-3 rounded-2xl bg-card border border-border/60 flex items-center gap-2">
+                <Share2 className="w-5 h-5 text-primary" />
+                <span>Bio Link Único</span>
               </div>
             </div>
-          </div>
 
+            <div className="flex items-center justify-center gap-3 text-muted-foreground pt-2">
+              <span className="p-2 rounded-xl bg-pink-500/10 border border-pink-500/30 text-pink-400"><Instagram className="w-5 h-5" /></span>
+              <span className="p-2 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400"><Phone className="w-5 h-5" /></span>
+              <span className="p-2 rounded-xl bg-primary/10 border border-primary/30 text-primary"><Globe className="w-5 h-5" /></span>
+              <span className="p-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400"><Play className="w-5 h-5" /></span>
+            </div>
+          </div>
           <div className="lg:col-span-6 order-1 lg:order-2 space-y-4">
             <span className="text-4xl font-black text-primary/40 font-mono">04</span>
             <h3 className="text-2xl sm:text-3xl font-extrabold text-white">Compartilhe tudo em um único link</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground">
               Seu link personalizado reúne tudo o que você precisa mostrar para fãs, contratantes e parceiros.
             </p>
             <ul className="space-y-2 pt-2 text-xs font-bold text-white">
