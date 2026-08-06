@@ -36,7 +36,7 @@ function calculateReadingTime(text: string): number {
 
 // 0. POST /api/articles/upload-cover - Upload Cover Image (R2 / Local Disk)
 router.post("/articles/upload-cover", upload.single("cover"), async (req, res): Promise<void> => {
-  if (!req.session?.isAdmin && !req.session?.artistId) {
+  if (!req.session?.logado && !req.session?.isAdmin && !req.session?.artistId) {
     res.status(401).json({ error: "Não autorizado" });
     return;
   }
@@ -76,7 +76,7 @@ router.get("/articles/categories", async (_req, res): Promise<void> => {
 
 // 0.2 POST /api/articles/categories - Create new category
 router.post("/articles/categories", async (req, res): Promise<void> => {
-  if (!req.session?.isAdmin && !req.session?.artistId) {
+  if (!req.session?.logado && !req.session?.isAdmin && !req.session?.artistId) {
     res.status(401).json({ error: "Não autorizado" });
     return;
   }
@@ -104,7 +104,7 @@ router.post("/articles/categories", async (req, res): Promise<void> => {
 
 // 0.3 DELETE /api/articles/categories/:id - Delete category
 router.delete("/articles/categories/:id", async (req, res): Promise<void> => {
-  if (!req.session?.isAdmin) {
+  if (!req.session?.logado && !req.session?.isAdmin) {
     res.status(401).json({ error: "Apenas administradores podem excluir categorias" });
     return;
   }
@@ -191,7 +191,7 @@ router.get("/articles/featured", async (_req, res): Promise<void> => {
 
 // 3. GET /api/articles/admin/all - Get all articles (Admin)
 router.get("/articles/admin/all", async (req, res): Promise<void> => {
-  if (!req.session?.isAdmin) {
+  if (!req.session?.logado && !req.session?.isAdmin) {
     res.status(401).json({ error: "Acesso não autorizado" });
     return;
   }
@@ -240,7 +240,7 @@ router.get("/articles/:slug", async (req, res): Promise<void> => {
 
 // 5. POST /api/articles - Create article (Admin or Artist with permission)
 router.post("/articles", async (req, res): Promise<void> => {
-  const isAdmin = req.session?.isAdmin === true;
+  const isAdmin = req.session?.logado === true || req.session?.isAdmin === true;
   const artistId = req.session?.artistId;
 
   let canPost = isAdmin;
@@ -332,7 +332,7 @@ router.post("/articles", async (req, res): Promise<void> => {
 
 // 6. PUT /api/articles/:id - Update article
 router.put("/articles/:id", async (req, res): Promise<void> => {
-  const isAdmin = req.session?.isAdmin === true;
+  const isAdmin = req.session?.logado === true || req.session?.isAdmin === true;
   const artistId = req.session?.artistId;
 
   if (!isAdmin && !artistId) {
@@ -412,7 +412,7 @@ router.put("/articles/:id", async (req, res): Promise<void> => {
 
 // 7. DELETE /api/articles/:id - Delete article
 router.delete("/articles/:id", async (req, res): Promise<void> => {
-  if (!req.session?.isAdmin) {
+  if (!req.session?.logado && !req.session?.isAdmin) {
     res.status(401).json({ error: "Acesso não autorizado" });
     return;
   }
@@ -434,7 +434,7 @@ router.delete("/articles/:id", async (req, res): Promise<void> => {
 
 // 8. PUT /api/artists/:id/article-permission - Admin toggle artist article publishing permission
 router.put("/artists/:id/article-permission", async (req, res): Promise<void> => {
-  if (!req.session?.isAdmin) {
+  if (!req.session?.logado && !req.session?.isAdmin) {
     res.status(401).json({ error: "Acesso não autorizado" });
     return;
   }
