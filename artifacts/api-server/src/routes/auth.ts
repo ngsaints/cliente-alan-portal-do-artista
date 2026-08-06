@@ -16,6 +16,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
     if (usuario === adminUser && senha === adminPass) {
       req.session.logado = true;
+      req.session.isAdmin = true;
       res.json({ logado: true });
       return;
     }
