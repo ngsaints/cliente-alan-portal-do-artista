@@ -208,7 +208,7 @@ export default function Landing() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
           {[
             { icon: Smartphone, title: "Página Profissional", desc: "Seu site completo com sua identidade, fotos, vídeos e contato." },
             { icon: Headphones, title: "Catálogo Musical", desc: "Organize até 50 músicas com links individuais e QR Code." },
@@ -223,13 +223,15 @@ export default function Landing() {
             return (
               <div 
                 key={idx}
-                className="bg-card/40 border border-border/50 hover:border-primary/50 p-6 rounded-3xl space-y-3 transition-all hover:bg-card/70 hover:-translate-y-1 shadow-lg group"
+                className="bg-card/40 border border-border/50 hover:border-primary/50 p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl space-y-2 sm:space-y-3 transition-all hover:bg-card/70 hover:-translate-y-1 shadow-lg group flex flex-col justify-between"
               >
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-black transition-all">
-                  <Icon className="w-6 h-6" />
+                <div className="space-y-2">
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-black transition-all">
+                    <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
+                  </div>
+                  <h3 className="text-xs sm:text-base font-extrabold text-white leading-tight">{item.title}</h3>
                 </div>
-                <h3 className="text-base font-extrabold text-white">{item.title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
               </div>
             );
           })}
