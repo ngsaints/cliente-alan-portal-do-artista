@@ -401,38 +401,38 @@ export default function Demo() {
         </div>
       </section>
 
-      {/* Contact Cards */}
+      {/* Contact Cards (Telefone/WhatsApp, Email, Instagram apenas) */}
       <section className="px-4 sm:px-6 lg:px-8 mb-8 mt-6">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {artist.contato && (
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card/60 border border-border/50 shadow-sm">
-                <Phone className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground font-medium">Telefone / WhatsApp</p>
-                  <p className="text-sm font-semibold text-foreground break-all">{artist.contato}</p>
+              <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-card/60 border border-border/50 shadow-sm">
+                <Phone className="w-5 h-5 text-green-500 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] text-muted-foreground font-medium">Telefone / WhatsApp</p>
+                  <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{artist.contato}</p>
                 </div>
               </div>
             )}
             {artist.email && (
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card/60 border border-border/50 shadow-sm">
-                <Mail className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground font-medium">Email</p>
-                  <p className="text-sm font-semibold text-foreground break-all">{artist.email}</p>
+              <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-card/60 border border-border/50 shadow-sm">
+                <Mail className="w-5 h-5 text-primary flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] text-muted-foreground font-medium">Email</p>
+                  <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{artist.email}</p>
                 </div>
               </div>
             )}
             {artist.instagram && (
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card/60 border border-border/50 shadow-sm">
-                <Instagram className="w-5 h-5 text-pink-500 flex-shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground font-medium">Instagram</p>
+              <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-card/60 border border-border/50 shadow-sm">
+                <Instagram className="w-5 h-5 text-pink-500 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] text-muted-foreground font-medium">Instagram</p>
                   <a
                     href={`https://instagram.com/${artist.instagram}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-semibold text-pink-500 hover:underline break-all"
+                    className="text-xs sm:text-sm font-semibold text-pink-500 hover:underline truncate block"
                   >
                     @{artist.instagram}
                   </a>
