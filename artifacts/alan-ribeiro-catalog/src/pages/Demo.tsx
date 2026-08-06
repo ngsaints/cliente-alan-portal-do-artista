@@ -402,65 +402,40 @@ export default function Demo() {
       </section>
 
       {/* Contact Cards */}
-      <section className="px-4 sm:px-6 lg:px-8 mb-8">
-        <div className="max-w-3xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <section className="px-4 sm:px-6 lg:px-8 mb-8 mt-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {artist.contato && (
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-card/50 border border-border/40">
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card/60 border border-border/50 shadow-sm">
                 <Phone className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Telefone / WhatsApp</p>
-                  <p className="text-sm text-foreground break-all">{artist.contato}</p>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground font-medium">Telefone / WhatsApp</p>
+                  <p className="text-sm font-semibold text-foreground break-all">{artist.contato}</p>
                 </div>
               </div>
             )}
             {artist.email && (
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-card/50 border border-border/40">
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card/60 border border-border/50 shadow-sm">
                 <Mail className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Email</p>
-                  <p className="text-sm text-foreground break-all">{artist.email}</p>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground font-medium">Email</p>
+                  <p className="text-sm font-semibold text-foreground break-all">{artist.email}</p>
                 </div>
               </div>
             )}
             {artist.instagram && (
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-card/50 border border-border/40">
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card/60 border border-border/50 shadow-sm">
                 <Instagram className="w-5 h-5 text-pink-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Instagram</p>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground font-medium">Instagram</p>
                   <a
                     href={`https://instagram.com/${artist.instagram}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-pink-500 hover:underline break-all"
+                    className="text-sm font-semibold text-pink-500 hover:underline break-all"
                   >
                     @{artist.instagram}
                   </a>
-                </div>
-              </div>
-            )}
-            {artist.spotify && (
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-card/50 border border-border/40">
-                <Globe className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Spotify</p>
-                  <a
-                    href={artist.spotify}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-green-500 hover:underline break-all"
-                  >
-                    Spotify
-                  </a>
-                </div>
-              </div>
-            )}
-            {artist.cidade && (
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-card/50 border border-border/40">
-                <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Cidade</p>
-                  <p className="text-sm text-foreground">{artist.cidade}</p>
                 </div>
               </div>
             )}
