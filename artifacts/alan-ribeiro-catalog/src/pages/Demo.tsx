@@ -276,12 +276,6 @@ export default function Demo() {
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/80 pb-32">
       <Navbar />
 
-      {/* Notification Bell */}
-      <NotificationBell
-        interests={interests}
-        onDelete={(id) => setInterests((prev) => prev.filter((i) => i.id !== id))}
-      />
-
       {/* Top Action Buttons */}
       <div className="pt-20 px-4">
         <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-center gap-2 mb-6">
