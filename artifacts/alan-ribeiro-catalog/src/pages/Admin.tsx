@@ -2109,6 +2109,9 @@ const SETTING_LABELS: Record<string, string> = {
   landing_hero_title: "Landing: Título Principal",
   landing_hero_subtitle: "Landing: Subtítulo",
   landing_hero_cta: "Landing: Texto do Botão (CTA)",
+  landing_hero_mockup_url: "Landing: Imagem 3D Principal (Hero)",
+  landing_feature01_url: "Landing: Imagem 3D Seção 01 (Site Profissional)",
+  landing_feature02_url: "Landing: Imagem 3D Seção 02 (Catálogo de Músicas)",
   footer_founder_description: "Rodapé: Descrição do Autor (Alan Ribeiro)",
   footer_copyright_protection: "Rodapé: Proteção de Direitos Autorais",
   footer_platform_tagline: "Rodapé: Slogan da Plataforma",
@@ -2231,67 +2234,43 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
   const handleSave = async () => {
     setSaving(true);
 
-    const isDemoWithFiles = category === "demo" && (Object.keys(demoFiles).length > 0 || demoBannersList.some(b => b.file || b.mobileFile));
+    const hasFiles = Object.keys(demoFiles).length > 0 || (category === "demo" && demoBannersList.some((b) => b.file || b.mobileFile));
 
-    if (category === "demo") {
+    if (hasFiles || category === "demo") {
       const formData = new FormData();
       for (const [key, value] of Object.entries(values)) {
         if (key === "demo_banner_url" || key === "demo_capa_url" || key === "demo_banner_mobile_url" || key === "demo_banners_metadata") continue;
         formData.append(key, value);
       }
 
-      if (demoFiles["demo_capa_url"]) {
-        formData.append("demo_capa_url", demoFiles["demo_capa_url"]);
-      }
-
-      if (demoFiles["demo_banner_mobile_url"]) {
-        formData.append("demo_banner_mobile_url", demoFiles["demo_banner_mobile_url"]);
-      }
-
-      const metadata: any[] = [];
-
-      demoBannersList.forEach((item) => {
-        const itemMeta: any = {
-          url: item.url || "",
-          mobileUrl: item.mobileUrl || "",
-          link: item.link || "",
-          hasDesktopFile: !!item.file,
-          hasMobileFile: !!item.mobileFile,
-        };
-
-        if (item.file) {
-          formData.append("demo_banner_desktop_files", item.file);
-        }
-        if (item.mobileFile) {
-          formData.append("demo_banner_mobile_files", item.mobileFile);
-        }
-
-        metadata.push(itemMeta);
-      });
-
-      formData.append("demo_banners_metadata", JSON.stringify(metadata));
-
-      const res = await fetch("/api/admin/settings", {
-        method: "PUT",
-        credentials: "include",
-        body: formData,
-      });
-      setSaving(false);
-      if (res.ok) {
-        setDemoFiles({});
-        toast({ title: "Configurações salvas com sucesso!" });
-        loadSettings();
-      } else {
-        toast({ title: "Erro ao salvar configurações", variant: "destructive" });
-      }
-    } else if (isDemoWithFiles) {
-      const formData = new FormData();
-      for (const [key, value] of Object.entries(values)) {
-        formData.append(key, value);
-      }
       for (const [key, file] of Object.entries(demoFiles)) {
         formData.append(key, file);
       }
+
+      if (category === "demo") {
+        const metadata: any[] = [];
+        demoBannersList.forEach((item) => {
+          const itemMeta: any = {
+            url: item.url || "",
+            mobileUrl: item.mobileUrl || "",
+            link: item.link || "",
+            hasDesktopFile: !!item.file,
+            hasMobileFile: !!item.mobileFile,
+          };
+
+          if (item.file) {
+            formData.append("demo_banner_desktop_files", item.file);
+          }
+          if (item.mobileFile) {
+            formData.append("demo_banner_mobile_files", item.mobileFile);
+          }
+
+          metadata.push(itemMeta);
+        });
+
+        formData.append("demo_banners_metadata", JSON.stringify(metadata));
+      }
+
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
         credentials: "include",
@@ -2622,29 +2601,29 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                   </div>
                 )}
               </div>
-            ) : category === "demo" && (s.key === "demo_capa_url" || s.key === "demo_banner_mobile_url") ? (
-              <div>
+            ) : ((category === "demo" && (s.key === "demo_capa_url" || s.key === "demo_banner_mobile_url")) || (s.key.startsWith("landing_") && s.key.endsWith("_url"))) ? (
+              <div className="space-y-3 bg-background/20 p-4 rounded-xl border border-border/50">
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => {
                     const file = e.target.files?.[0] || null;
                     if (file) {
-                      setDemoFiles({ ...demoFiles, [s.key]: file });
+                      setDemoFiles((prev) => ({ ...prev, [s.key]: file }));
                       const reader = new FileReader();
-                      reader.onloadend = () => setValues({ ...values, [s.key]: reader.result as string });
+                      reader.onloadend = () => setValues((prev) => ({ ...prev, [s.key]: reader.result as string }));
                       reader.readAsDataURL(file);
                     }
                   }}
                   className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-foreground text-sm file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
                 />
-                 {values[s.key] && (values[s.key].startsWith("http") || values[s.key].startsWith("data:") || values[s.key].startsWith("/uploads") || values[s.key].startsWith("/")) && (
+                {values[s.key] && (values[s.key].startsWith("http") || values[s.key].startsWith("data:") || values[s.key].startsWith("/uploads") || values[s.key].startsWith("/images") || values[s.key].startsWith("/")) && (
                   <div className="mt-2 relative inline-block">
-                    <img src={values[s.key]} alt={s.key} className="h-24 w-24 object-cover rounded-lg border border-border" />
+                    <img src={values[s.key]} alt={s.key} className="h-28 w-auto max-w-xs object-cover rounded-xl border border-primary/40 shadow-md" />
                     <button
                       type="button"
-                      onClick={() => { setValues({ ...values, [s.key]: "" }); setDemoFiles({ ...demoFiles, [s.key]: undefined as any }); }}
-                      className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center hover:bg-destructive/80"
+                      onClick={() => { setValues((prev) => ({ ...prev, [s.key]: "" })); setDemoFiles((prev) => ({ ...prev, [s.key]: undefined as any })); }}
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center hover:bg-destructive/80 shadow-md"
                     >
                       ×
                     </button>

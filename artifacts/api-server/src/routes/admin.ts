@@ -111,6 +111,9 @@ router.put("/admin/settings", upload.fields([
   { name: "demo_banner_mobile_url", maxCount: 1 },
   { name: "demo_banner_desktop_files", maxCount: 10 },
   { name: "demo_banner_mobile_files", maxCount: 10 },
+  { name: "landing_hero_mockup_url", maxCount: 1 },
+  { name: "landing_feature01_url", maxCount: 1 },
+  { name: "landing_feature02_url", maxCount: 1 },
 ]), async (req, res): Promise<void> => {
   if (!req.session.logado) {
     res.status(401).json({ error: "Não autorizado" });
@@ -119,6 +122,31 @@ router.put("/admin/settings", upload.fields([
 
   try {
     const files = req.files as Record<string, Express.Multer.File[]>;
+
+    // Handle file uploads for Landing Page images
+    if (files?.["landing_hero_mockup_url"]?.[0]) {
+      const url = await saveDemoImage(files["landing_hero_mockup_url"][0].buffer, files["landing_hero_mockup_url"][0].originalname);
+      await db
+        .insert(appSettingsTable)
+        .values({ key: "landing_hero_mockup_url", value: url, category: "portal", isSecret: "false", description: "Imagem 3D Hero da Landing Page", updatedAt: new Date() })
+        .onConflictDoUpdate({ target: appSettingsTable.key, set: { value: url, description: "Imagem 3D Hero da Landing Page", updatedAt: new Date() } });
+    }
+
+    if (files?.["landing_feature01_url"]?.[0]) {
+      const url = await saveDemoImage(files["landing_feature01_url"][0].buffer, files["landing_feature01_url"][0].originalname);
+      await db
+        .insert(appSettingsTable)
+        .values({ key: "landing_feature01_url", value: url, category: "portal", isSecret: "false", description: "Imagem Seção 01 Site Profissional", updatedAt: new Date() })
+        .onConflictDoUpdate({ target: appSettingsTable.key, set: { value: url, description: "Imagem Seção 01 Site Profissional", updatedAt: new Date() } });
+    }
+
+    if (files?.["landing_feature02_url"]?.[0]) {
+      const url = await saveDemoImage(files["landing_feature02_url"][0].buffer, files["landing_feature02_url"][0].originalname);
+      await db
+        .insert(appSettingsTable)
+        .values({ key: "landing_feature02_url", value: url, category: "portal", isSecret: "false", description: "Imagem Seção 02 Catálogo de Músicas", updatedAt: new Date() })
+        .onConflictDoUpdate({ target: appSettingsTable.key, set: { value: url, description: "Imagem Seção 02 Catálogo de Músicas", updatedAt: new Date() } });
+    }
 
     // Handle file uploads (demo images)
     if (files?.["demo_capa_url"]?.[0]) {
