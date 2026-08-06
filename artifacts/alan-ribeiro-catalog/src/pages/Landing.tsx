@@ -115,71 +115,31 @@ export default function Landing() {
             </div>
           </motion.div>
 
-          {/* Lado Direito: Mockup 3D Laptop + Mobile */}
+          {/* Lado Direito: Imagem Render 3D do Laptop + Smartphone */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="lg:col-span-6 relative flex flex-col items-center justify-center"
           >
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-yellow-500/10 to-transparent rounded-full blur-3xl -z-10" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-yellow-500/20 to-transparent rounded-full blur-3xl -z-10" />
 
-            {/* Laptop Container Mockup */}
-            <div className="relative w-full max-w-xl border border-border/60 rounded-3xl overflow-hidden bg-card/90 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] border-primary/30">
-              {/* Laptop Header Bar */}
-              <div className="bg-black/80 px-4 py-3 border-b border-border/40 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                </div>
-                <div className="px-4 py-1 rounded-full bg-black/60 text-xs text-primary font-mono border border-primary/30 flex items-center gap-1.5">
-                  <Globe className="w-3 h-3" />
-                  portaldoartista.com/alanribeiro
-                </div>
-                <Laptop className="w-4 h-4 text-muted-foreground" />
-              </div>
-
-              {/* Inner Portal Preview */}
-              <div className="p-6 bg-gradient-to-b from-black via-zinc-950 to-black space-y-6">
-                <div className="flex items-center justify-between border-b border-border/30 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 border-2 border-primary overflow-hidden flex items-center justify-center text-primary font-bold">
-                      <Music className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-extrabold text-white text-base">ALAN RIBEIRO</h4>
-                      <p className="text-xs text-primary font-medium">Compositor & Produtor Musical</p>
-                    </div>
-                  </div>
-                  <span className="px-3 py-1 rounded-full bg-primary text-black font-extrabold text-[10px] uppercase">
-                    Área VIP
-                  </span>
-                </div>
-
-                {/* Song Grid Mockup */}
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Músicas em Destaque</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {["Cê Deixou Vácuo", "Mandou a Real", "Empate Negativo"].map((song, idx) => (
-                      <div key={idx} className="bg-card/70 border border-border/40 p-2.5 rounded-xl space-y-1 text-center">
-                        <div className="w-full h-14 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                          <Play className="w-5 h-5 fill-current" />
-                        </div>
-                        <p className="text-[11px] font-bold text-white truncate">{song}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            {/* Render Image Container */}
+            <div className="relative w-full max-w-2xl border-2 border-primary/40 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(245,197,24,0.25)] hover:border-primary/70 transition-all group">
+              <img 
+                src="/images/hero_mockup.jpg" 
+                alt="Portal do Artista - Versão Desktop e Mobile" 
+                className="w-full h-auto object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
             </div>
 
             {/* Mobile Float Badge */}
-            <div className="absolute -bottom-6 -right-2 bg-gradient-to-r from-card via-zinc-900 to-card border border-primary/40 rounded-2xl p-3 shadow-2xl flex items-center gap-3">
+            <div className="absolute -bottom-6 -right-2 bg-gradient-to-r from-card via-zinc-900 to-card border border-primary/50 rounded-2xl p-3.5 shadow-2xl flex items-center gap-3 backdrop-blur-xl">
               <Smartphone className="w-6 h-6 text-primary" />
               <div className="text-left">
-                <p className="text-xs font-extrabold text-white">Versão Mobile Perfeita</p>
-                <p className="text-[10px] text-muted-foreground">Otimizada para Celular</p>
+                <p className="text-xs font-extrabold text-white">Versão Mobile & Desktop</p>
+                <p className="text-[10px] text-primary font-medium">100% Responsivo e Otimizado</p>
               </div>
             </div>
           </motion.div>
