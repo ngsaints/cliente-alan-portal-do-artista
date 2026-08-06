@@ -52,30 +52,30 @@ export default function Landing() {
       <Navbar />
 
       {/* 1. HERO SECTION */}
-      <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary/10 via-[#09090b] to-[#09090b]">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <section className="relative pt-24 sm:pt-32 pb-8 sm:pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary/10 via-[#09090b] to-[#09090b]">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
           {/* Lado Esquerdo: Mensagem Hero */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="lg:col-span-6 space-y-6 text-center lg:text-left"
+            className="lg:col-span-6 space-y-5 text-center lg:text-left"
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-extrabold uppercase tracking-wider">
               <Sparkles className="w-4 h-4" />
               Sua Carreira Musical no Próximo Nível
             </div>
             
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
               Sua carreira merece uma <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-yellow-200 to-amber-400">plataforma profissional.</span>
             </h1>
             
-            <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed">
+            <p className="text-sm sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed">
               Crie seu site, organize suas músicas, controle sua carreira e compartilhe tudo em um único link.
             </p>
 
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4">
               <button 
                 onClick={() => setLocation("/cadastro?plano=premium")}
                 className="w-full sm:w-auto px-8 py-4 rounded-full bg-primary text-primary-foreground font-black text-sm sm:text-base hover:bg-primary/95 transition-all shadow-[0_10px_35px_rgba(245,197,24,0.35)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
@@ -98,7 +98,7 @@ export default function Landing() {
             </div>
 
             {/* Avatares Prova Social */}
-            <div className="pt-4 flex items-center justify-center lg:justify-start gap-3 border-t border-border/20">
+            <div className="pt-3 flex items-center justify-center lg:justify-start gap-3 border-t border-border/20">
               <div className="flex -space-x-2">
                 <img className="w-8 h-8 rounded-full border-2 border-[#09090b] object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Artista" />
                 <img className="w-8 h-8 rounded-full border-2 border-[#09090b] object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Artista" />
@@ -135,8 +135,8 @@ export default function Landing() {
             </div>
 
             {/* Mobile Float Badge */}
-            <div className="absolute -bottom-6 -right-2 bg-gradient-to-r from-card via-zinc-900 to-card border border-primary/50 rounded-2xl p-3.5 shadow-2xl flex items-center gap-3 backdrop-blur-xl">
-              <Smartphone className="w-6 h-6 text-primary" />
+            <div className="mt-3 sm:mt-0 sm:absolute sm:-bottom-4 sm:-right-2 bg-gradient-to-r from-card via-zinc-900 to-card border border-primary/50 rounded-2xl p-3 shadow-2xl flex items-center gap-3 backdrop-blur-xl">
+              <Smartphone className="w-5 h-5 text-primary shrink-0" />
               <div className="text-left">
                 <p className="text-xs font-extrabold text-white">Versão Mobile & Desktop</p>
                 <p className="text-[10px] text-primary font-medium">100% Responsivo e Otimizado</p>
