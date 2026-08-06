@@ -383,73 +383,20 @@ export default function Demo() {
           </span>
         </div>
 
-        {/* Artist info overlay */}
-        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6 z-20">
-          {/* Left side: Avatar + Info */}
-          <div className="flex items-end gap-4 md:gap-6">
-            {/* Avatar */}
-            {artist.capaUrl ? (
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center bg-card">
-                <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover" />
-              </div>
-            ) : null}
-
-            {/* Info text */}
-            <div className="space-y-1">
-              <h1 className="text-3xl md:text-5xl font-extrabold text-foreground mb-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
-                {artist.name}
-              </h1>
-              <p className="text-sm md:text-base text-muted-foreground font-medium mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                {artist.profissao}
-              </p>
-              <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-muted-foreground">
-                {artist.cidade && (
-                  <span className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium">
-                    <MapPin className="w-3.5 h-3.5 text-primary" />
-                    {artist.cidade}
-                  </span>
-                )}
-                {artist.instagram && (
-                  <a
-                    href={`https://instagram.com/${artist.instagram}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium hover:text-primary transition-colors"
-                  >
-                    <Instagram className="w-3.5 h-3.5 text-pink-400" />
-                    @{artist.instagram}
-                  </a>
-                )}
-                {artist.spotify && (
-                  <a
-                    href={artist.spotify}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white font-medium hover:text-primary transition-colors"
-                  >
-                    <Globe className="w-3.5 h-3.5 text-green-400" />
-                    Spotify
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Banner CTA button */}
+        {/* Banner CTA button overlay */}
+        <div className="absolute bottom-6 right-6 z-20">
           {currentBanner && currentBanner.link && (
-            <div className="mt-2 md:mt-0">
-              <a
-                href={currentBanner.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-all shadow-lg hover:scale-105"
-              >
-                <span>Acessar</span>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </a>
-            </div>
+            <a
+              href={currentBanner.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-primary-foreground font-extrabold text-sm hover:bg-primary/90 transition-all shadow-xl hover:scale-105"
+            >
+              <span>Acessar</span>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
           )}
         </div>
       </section>
@@ -488,22 +435,6 @@ export default function Demo() {
                     className="text-sm text-pink-500 hover:underline break-all"
                   >
                     @{artist.instagram}
-                  </a>
-                </div>
-              </div>
-            )}
-            {artist.tiktok && (
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-card/50 border border-border/40">
-                <Globe className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">TikTok</p>
-                  <a
-                    href={`https://tiktok.com/@${artist.tiktok}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-white hover:underline break-all"
-                  >
-                    @{artist.tiktok}
                   </a>
                 </div>
               </div>

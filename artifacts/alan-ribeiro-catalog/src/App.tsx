@@ -52,6 +52,7 @@ function Router() {
       <Route path="/artista/crm" component={CrmPage} />
       <Route path="/artistas" component={Artists} />
       <Route path="/admin" component={Admin} />
+      <Route path="/vitrine" component={Demo} />
       <Route path="/demo" component={Demo} />
       <Route path="/:slug" component={ArtistProfile} />
       <Route path="/:slug/galeria" component={ArtistGallery} />
