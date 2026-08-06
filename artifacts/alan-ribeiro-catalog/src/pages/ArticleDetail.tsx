@@ -25,6 +25,56 @@ interface Article {
   publishedAt: string;
 }
 
+function formatArticleContent(rawContent: string): string {
+  if (!rawContent) return "";
+
+  // If content already contains HTML block tags, return it
+  const hasBlockTags = /<(p|h1|h2|h3|h4|ul|ol|li|blockquote|div|table|section)/i.test(rawContent);
+  if (hasBlockTags) {
+    return rawContent;
+  }
+
+  // Convert plain text or markdown to clean HTML
+  const blocks = rawContent.split(/\r?\n\r?\n/).map((b) => b.trim()).filter(Boolean);
+
+  const formattedBlocks = blocks.map((block) => {
+    // Markdown headings
+    if (block.startsWith("### ")) {
+      return `<h3>${block.substring(4)}</h3>`;
+    }
+    if (block.startsWith("## ")) {
+      return `<h2>${block.substring(3)}</h2>`;
+    }
+    if (block.startsWith("# ")) {
+      return `<h1>${block.substring(2)}</h1>`;
+    }
+
+    // Markdown bullet lists
+    if (block.split("\n").every((line) => /^[-*•]\s/.test(line.trim()))) {
+      const items = block
+        .split("\n")
+        .map((line) => `<li>${line.replace(/^[-*•]\s*/, "")}</li>`)
+        .join("");
+      return `<ul>${items}</ul>`;
+    }
+
+    // Numbered lists
+    if (block.split("\n").every((line) => /^\d+\.\s/.test(line.trim()))) {
+      const items = block
+        .split("\n")
+        .map((line) => `<li>${line.replace(/^\d+\.\s*/, "")}</li>`)
+        .join("");
+      return `<ol>${items}</ol>`;
+    }
+
+    // Convert single newlines to <br /> inside a paragraph
+    const formattedParagraph = block.replace(/\r?\n/g, "<br />");
+    return `<p>${formattedParagraph}</p>`;
+  });
+
+  return formattedBlocks.join("\n");
+}
+
 export default function ArticleDetail() {
   const [, params] = useRoute("/artigos/:slug");
   const slug = params?.slug;
@@ -292,10 +342,23 @@ export default function ArticleDetail() {
           )}
 
           {/* Article Body Content */}
-          <div className="py-2">
+          <div className="py-4 border-t border-border/40 mt-6">
             <div
-              className="prose prose-invert prose-yellow max-w-none text-muted-foreground text-sm sm:text-base leading-relaxed space-y-6"
-              dangerouslySetInnerHTML={{ __html: article.content }}
+              className="article-body-content text-slate-200 text-sm sm:text-base leading-relaxed space-y-5
+                [&_h1]:text-2xl [&_h1]:sm:text-3xl [&_h1]:font-extrabold [&_h1]:text-white [&_h1]:mt-8 [&_h1]:mb-4 [&_h1]:tracking-tight
+                [&_h2]:text-xl [&_h2]:sm:text-2xl [&_h2]:font-extrabold [&_h2]:text-white [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:pb-2 [&_h2]:border-b [&_h2]:border-border/40
+                [&_h3]:text-lg [&_h3]:sm:text-xl [&_h3]:font-bold [&_h3]:text-primary [&_h3]:mt-6 [&_h3]:mb-2
+                [&_p]:text-slate-300 [&_p]:leading-relaxed [&_p]:mb-5 [&_p]:text-base
+                [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_ul]:my-5 [&_ul]:text-slate-300
+                [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2 [&_ol]:my-5 [&_ol]:text-slate-300
+                [&_li]:pl-1 [&_li]:leading-relaxed
+                [&_strong]:text-white [&_strong]:font-bold
+                [&_b]:text-white [&_b]:font-bold
+                [&_a]:text-primary [&_a]:underline [&_a]:font-bold [&_a]:hover:text-amber-300
+                [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:bg-primary/5 [&_blockquote]:p-4 [&_blockquote]:rounded-r-2xl [&_blockquote]:my-6 [&_blockquote]:text-amber-200/90 [&_blockquote]:italic
+                [&_img]:rounded-3xl [&_img]:my-8 [&_img]:border [&_img]:border-border/60 [&_img]:shadow-2xl
+                [&_hr]:my-8 [&_hr]:border-border/40"
+              dangerouslySetInnerHTML={{ __html: formatArticleContent(article.content) }}
             />
           </div>
 
