@@ -9,6 +9,10 @@ export const FREE_PLAN = "free";
 export const PLANOS_PAGOS = ["basico", "intermediario", "pro", "premium"] as const;
 
 router.get("/coupons", async (req, res): Promise<void> => {
+  if (!req.session.logado) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
   try {
     const coupons = await db.select().from(couponsTable).orderBy(couponsTable.createdAt);
     res.json(coupons);
