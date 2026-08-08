@@ -1059,9 +1059,10 @@ export default function ArtistDashboard() {
   const handleAddSong = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const isEditing = !!editingSong;
     const tipoMidia = newSong.tipoMidia;
     
-    if (tipoMidia === "audio" && !mp3File) {
+    if (!isEditing && tipoMidia === "audio" && !mp3File) {
       return alert("Para áudio, arquivo MP3 é obrigatório");
     }
     if (tipoMidia === "video" && !newSong.youtubeUrl) {
@@ -1071,8 +1072,14 @@ export default function ArtistDashboard() {
     setUploading(true);
     const formData = new FormData();
     Object.entries(newSong).forEach(([k, v]) => {
-      if (v) formData.append(k, v);
+      if (v !== undefined && v !== null) formData.append(k, v);
     });
+
+    if (newSong.hasPrice === "false") {
+      formData.set("precoX", "");
+      formData.set("precoY", "");
+    }
+
     if (artist) {
       formData.append("artistaId", String(artist.id));
     }
@@ -1080,7 +1087,6 @@ export default function ArtistDashboard() {
     if (mp3File) formData.append("mp3", mp3File);
 
     try {
-      const isEditing = !!editingSong;
       const url = isEditing
         ? `/api/artist/${artist?.id}/songs/${editingSong.id}`
         : `/api/artist/${artist?.id}/songs`;
@@ -1883,8 +1889,8 @@ export default function ArtistDashboard() {
                       <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground">
                         Cancelar
                       </button>
-                      <button type="submit" disabled={uploading || !musicTermsAccepted} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/90 disabled:opacity-50">
-                        {uploading ? "Enviando..." : "Adicionar"}
+                      <button type="submit" disabled={uploading || (!editingSong && !musicTermsAccepted)} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/90 disabled:opacity-50">
+                        {uploading ? "Enviando..." : editingSong ? "Salvar Alterações" : "Adicionar"}
                       </button>
                     </div>
                     <div className="flex items-start gap-2 p-3 bg-muted/30 rounded-lg border border-border/50">
@@ -1944,6 +1950,7 @@ export default function ArtistDashboard() {
                           <button
                             onClick={() => {
                               setEditingSong(song);
+                              setMusicTermsAccepted(true);
                               setNewSong({
                                 titulo: song.titulo || "",
                                 descricao: song.descricao || "",
