@@ -247,13 +247,15 @@ router.put(
   ]),
   async (req, res): Promise<void> => {
     const sessionArtistId = req.session.artistId;
-    if (!sessionArtistId) {
+    const isAdmin = req.session?.logado === true || req.session?.isAdmin === true;
+
+    if (!sessionArtistId && !isAdmin) {
       res.status(401).json({ error: "Não autorizado" });
       return;
     }
 
     const { artistId, songId } = req.params;
-    if (sessionArtistId !== parseInt(artistId as string)) {
+    if (!isAdmin && sessionArtistId !== parseInt(artistId as string)) {
       res.status(403).json({ error: "Você só pode editar músicas do seu próprio perfil" });
       return;
     }
@@ -310,25 +312,25 @@ router.put(
       const [updated] = await db
         .update(songsTable)
         .set({
-          ...(titulo      ? { titulo }                                : {}),
-          ...(descricao   ? { descricao }                            : {}),
-          ...(genero      ? { genero }                               : {}),
-          subgenero:    subgenero  !== undefined ? (subgenero  || null) : undefined,
-          compositor:   compositor !== undefined ? (compositor || null) : undefined,
-          letra:        letra        !== undefined ? (letra        || null) : undefined,
-          edicao:       edicao       !== undefined ? (edicao       || null) : undefined,
+          ...(titulo !== undefined ? { titulo } : {}),
+          ...(descricao !== undefined ? { descricao } : {}),
+          ...(genero !== undefined ? { genero } : {}),
+          subgenero: subgenero !== undefined ? (subgenero || null) : undefined,
+          compositor: compositor !== undefined ? (compositor || null) : undefined,
+          letra: letra !== undefined ? (letra || null) : undefined,
+          edicao: edicao !== undefined ? (edicao || null) : undefined,
           distribuicao: distribuicao !== undefined ? (distribuicao || null) : undefined,
-          associacao:   associacao   !== undefined ? (associacao   || null) : undefined,
-          ...(status      ? { status }                               : {}),
-          precoX:       precoX     !== undefined ? (precoX && precoX !== "" ? precoX.toString() : null) : undefined,
-          precoY:       precoY     !== undefined ? (precoY && precoY !== "" ? precoY.toString() : null) : undefined,
-          ...(tipoMidia   ? { tipoMidia }                            : {}),
-          youtubeUrl:   youtubeUrl !== undefined ? (youtubeUrl || null) : undefined,
-          isVip:        isVip      !== undefined ? vipFlag           : undefined,
-          vipCode:      vipCode    !== undefined ? (vipCode    || null) : undefined,
-          isPrivate:    isPrivate  !== undefined ? privateFlag        : undefined,
-          ...(capaPath    ? { capaPath }                             : {}),
-          ...(mp3Path     ? { mp3Path }                              : {}),
+          associacao: associacao !== undefined ? (associacao || null) : undefined,
+          ...(status ? { status } : {}),
+          precoX: precoX !== undefined ? (precoX && precoX !== "" ? precoX.toString() : null) : undefined,
+          precoY: precoY !== undefined ? (precoY && precoY !== "" ? precoY.toString() : null) : undefined,
+          ...(tipoMidia ? { tipoMidia } : {}),
+          youtubeUrl: youtubeUrl !== undefined ? (youtubeUrl || null) : undefined,
+          isVip: isVip !== undefined ? vipFlag : undefined,
+          vipCode: vipCode !== undefined ? (vipCode || null) : undefined,
+          isPrivate: isPrivate !== undefined ? privateFlag : undefined,
+          ...(capaPath ? { capaPath } : {}),
+          ...(mp3Path ? { mp3Path } : {}),
         })
         .where(eq(songsTable.id, parseInt(songId as string)))
         .returning();
