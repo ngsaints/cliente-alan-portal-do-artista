@@ -44,7 +44,12 @@ async function saveDemoImage(buffer: Buffer, originalName: string): Promise<stri
 const router: IRouter = Router();
 
 // GET /admin/stats - Dashboard statistics
-router.get("/admin/stats", async (_req, res): Promise<void> => {
+router.get("/admin/stats", async (req, res): Promise<void> => {
+  if (!req.session.logado) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
+
   try {
     const [allSongs, allArtists, allInterests, allPlans] = await Promise.all([
       db.select().from(songsTable),
