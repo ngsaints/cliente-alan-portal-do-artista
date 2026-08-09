@@ -16,6 +16,19 @@ const router: IRouter = Router();
 
 const useR2 = !!(process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY);
 
+// Aceita formato brasileiro de preço ("50,00" ou "1.234,50") e normaliza para "50.00"/"1234.50".
+// Retorna null para valores vazios/ausentes (limpa o campo) e a string numérica para valores válidos.
+function normalizePriceInput(v: unknown): string | null {
+  if (v === undefined || v === null) return null;
+  const s = String(v).trim();
+  if (s === "") return null;
+  let n = s;
+  if (s.includes(",")) {
+    n = s.includes(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(",", ".");
+  }
+  return n;
+}
+
 // Get songs for a specific artist
 router.get("/artist/:artistId/songs", async (req, res): Promise<void> => {
   try {
@@ -98,11 +111,13 @@ router.post(
         return;
       }
 
-      if (precoX !== undefined && precoX !== "" && precoX !== null && isNaN(Number(precoX))) {
+      const _precoX = normalizePriceInput(precoX);
+      const _precoY = normalizePriceInput(precoY);
+      if (_precoX !== null && isNaN(Number(_precoX))) {
         res.status(400).json({ error: "precoX deve ser um valor numérico válido" });
         return;
       }
-      if (precoY !== undefined && precoY !== "" && precoY !== null && isNaN(Number(precoY))) {
+      if (_precoY !== null && isNaN(Number(_precoY))) {
         res.status(400).json({ error: "precoY deve ser um valor numérico válido" });
         return;
       }
@@ -193,8 +208,8 @@ router.post(
           distribuicao: distribuicao || null,
           associacao: associacao || null,
           status: status || "Disponível",
-          precoX: (precoX && precoX !== "") ? precoX.toString() : null,
-          precoY: (precoY && precoY !== "") ? precoY.toString() : null,
+          precoX: _precoX,
+          precoY: _precoY,
           capaPath: capaPath || null,
           mp3Path: mp3Path || null,
           youtubeUrl: youtubeUrl || null,
@@ -262,11 +277,13 @@ router.put(
 
     const { titulo, descricao, genero, subgenero, compositor, letra, edicao, distribuicao, associacao, status, precoX, precoY, isVip, tipoMidia, youtubeUrl, vipCode, isPrivate } = req.body;
 
-    if (precoX !== undefined && precoX !== "" && precoX !== null && isNaN(Number(precoX))) {
+    const _precoX = normalizePriceInput(precoX);
+    const _precoY = normalizePriceInput(precoY);
+    if (_precoX !== null && isNaN(Number(_precoX))) {
       res.status(400).json({ error: "precoX deve ser um valor numérico válido" });
       return;
     }
-    if (precoY !== undefined && precoY !== "" && precoY !== null && isNaN(Number(precoY))) {
+    if (_precoY !== null && isNaN(Number(_precoY))) {
       res.status(400).json({ error: "precoY deve ser um valor numérico válido" });
       return;
     }
@@ -322,8 +339,8 @@ router.put(
           distribuicao: distribuicao !== undefined ? (distribuicao || null) : undefined,
           associacao: associacao !== undefined ? (associacao || null) : undefined,
           ...(status ? { status } : {}),
-          precoX: precoX !== undefined ? (precoX && precoX !== "" ? precoX.toString() : null) : undefined,
-          precoY: precoY !== undefined ? (precoY && precoY !== "" ? precoY.toString() : null) : undefined,
+          precoX: precoX !== undefined ? (_precoX !== null ? _precoX : null) : undefined,
+          precoY: precoY !== undefined ? (_precoY !== null ? _precoY : null) : undefined,
           ...(tipoMidia ? { tipoMidia } : {}),
           youtubeUrl: youtubeUrl !== undefined ? (youtubeUrl || null) : undefined,
           isVip: isVip !== undefined ? vipFlag : undefined,

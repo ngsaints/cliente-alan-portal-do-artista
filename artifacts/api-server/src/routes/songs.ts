@@ -28,6 +28,18 @@ async function saveLocal(buffer: Buffer, folder: string, originalname: string): 
   return `/api/uploads/${folder}/${filename}`;
 }
 
+// Aceita formato brasileiro de preço ("50,00" ou "1.234,50") e normaliza para "50.00"/"1234.50".
+function normalizePriceInput(v: unknown): string | null {
+  if (v === undefined || v === null) return null;
+  const s = String(v).trim();
+  if (s === "") return null;
+  let n = s;
+  if (s.includes(",")) {
+    n = s.includes(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(",", ".");
+  }
+  return n;
+}
+
 function mapSong(s: typeof songsTable.$inferSelect) {
   return {
     id: s.id,
@@ -121,11 +133,13 @@ router.post(
       return;
     }
 
-    if (precoX !== undefined && precoX !== "" && precoX !== null && isNaN(Number(precoX))) {
+    const _precoX = normalizePriceInput(precoX);
+    const _precoY = normalizePriceInput(precoY);
+    if (_precoX !== null && isNaN(Number(_precoX))) {
       res.status(400).json({ error: "precoX deve ser um valor numérico válido" });
       return;
     }
-    if (precoY !== undefined && precoY !== "" && precoY !== null && isNaN(Number(precoY))) {
+    if (_precoY !== null && isNaN(Number(_precoY))) {
       res.status(400).json({ error: "precoY deve ser um valor numérico válido" });
       return;
     }
@@ -196,8 +210,8 @@ router.post(
           distribuicao: distribuicao || null,
           associacao: associacao || null,
           status: status || "Disponível",
-          precoX: (precoX && precoX !== "") ? precoX.toString() : null,
-          precoY: (precoY && precoY !== "") ? precoY.toString() : null,
+          precoX: _precoX,
+          precoY: _precoY,
           capaPath,
           mp3Path,
           youtubeUrl: youtubeUrl || null,
@@ -232,11 +246,13 @@ router.put(
     const { titulo, descricao, genero, subgenero, compositor, letra, edicao, distribuicao, associacao, status,
             tipoMidia, youtubeUrl, isVip, vipCode, precoX, precoY } = req.body;
 
-    if (precoX !== undefined && precoX !== "" && precoX !== null && isNaN(Number(precoX))) {
+    const _precoX = normalizePriceInput(precoX);
+    const _precoY = normalizePriceInput(precoY);
+    if (_precoX !== null && isNaN(Number(_precoX))) {
       res.status(400).json({ error: "precoX deve ser um valor numérico válido" });
       return;
     }
-    if (precoY !== undefined && precoY !== "" && precoY !== null && isNaN(Number(precoY))) {
+    if (_precoY !== null && isNaN(Number(_precoY))) {
       res.status(400).json({ error: "precoY deve ser um valor numérico válido" });
       return;
     }
@@ -278,8 +294,8 @@ router.put(
           youtubeUrl:   youtubeUrl !== undefined ? (youtubeUrl || null) : undefined,
           isVip:        isVip      !== undefined ? vipFlag           : undefined,
           vipCode:      vipCode    !== undefined ? (vipCode    || null) : undefined,
-          precoX:       precoX     !== undefined ? (precoX && precoX !== "" ? precoX.toString() : null) : undefined,
-          precoY:       precoY     !== undefined ? (precoY && precoY !== "" ? precoY.toString() : null) : undefined,
+          precoX:       precoX     !== undefined ? (_precoX !== null ? _precoX : null) : undefined,
+          precoY:       precoY     !== undefined ? (_precoY !== null ? _precoY : null) : undefined,
           ...(capaPath    ? { capaPath }                             : {}),
         })
         .where(eq(songsTable.id, parseInt(id as string)))
