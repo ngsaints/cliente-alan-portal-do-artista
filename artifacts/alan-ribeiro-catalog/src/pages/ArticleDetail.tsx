@@ -3,6 +3,7 @@ import { Link, useRoute } from "wouter";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
+import { useSEO } from "@/hooks/useSEO";
 import {
   Clock, Eye, Share2, ArrowLeft, BookOpen, User, Calendar,
   CheckCircle2, Sparkles, Copy, MessageCircle, Twitter, Linkedin, ExternalLink

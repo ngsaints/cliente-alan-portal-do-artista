@@ -26,12 +26,12 @@ export default function ArtistGallery() {
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
-  const galleryTitle = gallery?.title || "Galeria de Fotos";
+  const galleryTitle = gallery?.titulo || "Galeria de Fotos";
   const artistUrl = `https://portaldoartista.com/${slug}`;
 
   useSEO({
     title: `${galleryTitle} | Portal do Artista`,
-    description: gallery?.description || `Confira a galeria oficial de fotos de ${slug} no Portal do Artista.`,
+    description: `Confira a galeria oficial de fotos de ${slug} no Portal do Artista.`,
     canonical: `${artistUrl}/galeria`,
     breadcrumbs: [
       { name: "Início", item: "https://portaldoartista.com/" },
