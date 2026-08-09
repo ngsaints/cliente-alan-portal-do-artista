@@ -11,6 +11,7 @@ Building2, Download, Share2, ShieldCheck, HelpCircle, Heart, Instagram,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -19,6 +20,53 @@ export default function Landing() {
     landingHeroMockupUrl: "/images/hero_mockup.jpg",
     landingFeature01Url: "/images/feature_profile_site_3d.jpg",
     landingFeature02Url: "/images/catalog_preview.png",
+  });
+
+  const faqs = [
+    {
+      q: "Preciso de cartão de crédito para testar?",
+      a: "Não! Você pode se cadastrar e testar a plataforma por 7 dias totalmente grátis sem precisar cadastrar cartão."
+    },
+    {
+      q: "Posso cancelar quando quiser?",
+      a: "Sim! Sem contratos de fidelidade ou burocracia. O cancelamento pode ser feito com 1 clique direto no seu painel."
+    },
+    {
+      q: "Meu perfil aparece nas buscas do Google?",
+      a: "Sim! Todos os perfis criados no Portal do Artista são otimizados para motores de busca (SEO) automaticamente."
+    },
+    {
+      q: "Quantas músicas posso adicionar?",
+      a: "No plano Premium você pode catalogar até 50 músicas completas com áudios, letras, cifras, ficha técnica e links de compartilhamento."
+    },
+    {
+      q: "Como funciona a Área VIP de Músicas?",
+      a: "Na Área VIP você pode proteger faixas com senha exclusiva e disponibilizar conteúdos antecipados para contratantes ou fãs."
+    },
+    {
+      q: "Posso utilizar meu WhatsApp direto na página?",
+      a: "Com certeza! Os botões de contato direcionam o fã ou contratante diretamente para o seu WhatsApp com mensagem personalizada."
+    }
+  ];
+
+  useSEO({
+    title: "Portal do Artista - Plataforma para Compositores e Artistas",
+    description: "Plataforma para compositores e artistas apresentarem, organizarem e divulgarem seus trabalhos musicais. Crie seu site de artista, catálogo musical e press kit em minutos.",
+    canonical: "https://portaldoartista.com/",
+    breadcrumbs: [
+      { name: "Início", item: "https://portaldoartista.com/" }
+    ],
+    jsonLd: {
+      "@type": "FAQPage",
+      "mainEntity": faqs.map(faq => ({
+        "@type": "Question",
+        "name": faq.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.a
+        }
+      }))
+    }
   });
 
   useEffect(() => {

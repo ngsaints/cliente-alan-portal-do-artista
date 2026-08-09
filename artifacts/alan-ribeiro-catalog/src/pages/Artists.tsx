@@ -48,11 +48,22 @@ export default function Artists() {
   const [sectionSubtitle, setSectionSubtitle] = useState("Descubra e acompanhe cantores e compositores de todo o Brasil");
 
   useSEO({
-    title: "Artistas - Portal do Artista",
-    description: "Conheça os artistas do Portal do Artista. Cantores, compositores e bandas independentes de todo o Brasil.",
-    keywords: "artistas, cantores, compositores, bandas, música independente",
+    title: "Compositores e Artistas Independentes | Portal do Artista",
+    description: "Conheça compositores, cantores e bandas independentes cadastrados no Portal do Artista.",
+    keywords: "artistas, cantores, compositores, bandas, música independente, portal do artista",
     ogUrl: "https://portaldoartista.com/artistas",
     canonical: "https://portaldoartista.com/artistas",
+    breadcrumbs: [
+      { name: "Início", item: "https://portaldoartista.com/" },
+      { name: "Artistas", item: "https://portaldoartista.com/artistas" }
+    ],
+    jsonLd: {
+      "@type": "CollectionPage",
+      "@id": "https://portaldoartista.com/artistas#collection",
+      "name": "Compositores e Artistas Independentes",
+      "url": "https://portaldoartista.com/artistas",
+      "description": "Conheça compositores, cantores e bandas independentes cadastrados no Portal do Artista."
+    }
   });
 
   useEffect(() => {

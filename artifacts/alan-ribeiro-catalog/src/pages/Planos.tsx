@@ -5,6 +5,7 @@ import { Sparkles, Check, Zap, Star, ShieldCheck, HelpCircle, ChevronDown, Messa
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { buildPlanFeatures } from "@/lib/utils";
+import { useSEO } from "@/hooks/useSEO";
 
 interface Plan {
   id: string;
@@ -25,6 +26,16 @@ export default function Planos() {
   const [heroFeaturedPlan, setHeroFeaturedPlan] = useState<string>("premium");
   const [faqOpen, setFaqOpen] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
+
+  useSEO({
+    title: "Planos e Preços | Portal do Artista",
+    description: "Conheça os planos do Portal do Artista e escolha a melhor opção para divulgar suas músicas e gerenciar sua carreira artística.",
+    canonical: "https://portaldoartista.com/planos",
+    breadcrumbs: [
+      { name: "Início", item: "https://portaldoartista.com/" },
+      { name: "Planos", item: "https://portaldoartista.com/planos" }
+    ]
+  });
 
   useEffect(() => {
     fetch("/api/settings")

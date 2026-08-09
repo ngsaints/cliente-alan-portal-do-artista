@@ -21,11 +21,15 @@ export default function Home() {
   const [heroSettings, setHeroSettings] = useState<{ title: string | null; subtitle: string | null; cta: string | null }>({ title: null, subtitle: null, cta: null });
   
   useSEO({
-    title: "Portal do Artista - Catálogo de Músicas",
-    description: "Descubra artistas e músicas no Portal do Artista. Escute, curta e conecte-se com talentos da música brasileira.",
-    keywords: "música, catálogo, artistas, músicas brasileiras, portal do artista",
-    ogUrl: "https://portaldoartista.com",
-    canonical: "https://portaldoartista.com",
+    title: "Explorar Músicas e Compositores | Portal do Artista",
+    description: "Plataforma para compositores e artistas apresentarem, organizarem e divulgarem seus trabalhos musicais. Descubra músicas, compositores e lançamentos independentes.",
+    keywords: "música, catálogo musical, compositores, artistas independentes, portal do artista",
+    ogUrl: "https://portaldoartista.com/explorar",
+    canonical: "https://portaldoartista.com/explorar",
+    breadcrumbs: [
+      { name: "Início", item: "https://portaldoartista.com/" },
+      { name: "Explorar", item: "https://portaldoartista.com/explorar" }
+    ]
   });
 
   const [interestModalOpen, setInterestModalOpen] = useState(false);

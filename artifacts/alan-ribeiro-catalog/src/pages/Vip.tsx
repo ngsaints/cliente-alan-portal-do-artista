@@ -12,10 +12,14 @@ export default function Vip() {
   const [verifying, setVerifying] = useState(false);
 
   useSEO({
-    title: "Área VIP - Portal do Artista",
-    description: "Acesse conteúdos exclusivos na Área VIP do Portal do Artista. Músicas e conteúdos especiais para fãs.",
+    title: "Área VIP para Compositores e Músicos | Portal do Artista",
+    description: "Saiba como funciona a Área VIP do Portal do Artista para proteger e compartilhar materiais exclusivos com parceiros, produtores e contratantes.",
     ogUrl: "https://portaldoartista.com/vip",
     canonical: "https://portaldoartista.com/vip",
+    breadcrumbs: [
+      { name: "Início", item: "https://portaldoartista.com/" },
+      { name: "Área VIP", item: "https://portaldoartista.com/vip" }
+    ]
   });
 
   const { data: songs, isLoading } = useListSongs(

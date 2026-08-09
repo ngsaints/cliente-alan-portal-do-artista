@@ -73,10 +73,14 @@ export default function Demo() {
   }, [demoBanners.length]);
 
   useSEO({
-    title: "Demonstração - Portal do Artista",
-    description: "Veja como funciona o perfil de artista no Portal do Artista. Descubra todos os recursos disponíveis para sua carreira musical.",
+    title: "Demonstração da Página do Artista | Portal do Artista",
+    description: "Veja um exemplo completo de como fica o site profissional e catálogo musical de um compositor no Portal do Artista.",
     ogUrl: "https://portaldoartista.com/demo",
     canonical: "https://portaldoartista.com/demo",
+    breadcrumbs: [
+      { name: "Início", item: "https://portaldoartista.com/" },
+      { name: "Demonstração", item: "https://portaldoartista.com/demo" }
+    ]
   });
 
   useEffect(() => {

@@ -153,19 +153,97 @@ export default function ArtistProfile() {
 
   const [interests, setInterests] = useState<any[]>([]);
 
-  useSEO({
-    title: `${artistData?.name || 'Artista'} - Portal do Artista`,
-    description: artistData?.profissao ? `${artistData.name} - ${artistData.profissao}. ${artistData.cidade ? 'De ' + artistData.cidade + '.' : ''} Ouça suas músicas no Portal do Artista.` : "Perfil de artista no Portal do Artista",
-    ogImage: artistData?.capaUrl || undefined,
-    ogUrl: `https://portaldoartista.com/${artistData?.slug || artistId}`,
-    canonical: `https://portaldoartista.com/${artistData?.slug || artistId}`,
-  });
-
   const { data: songs, isLoading } = useListSongs({
     genre: selectedGenre || undefined,
   });
 
   const artistSongs = (songs || []).filter((s) => !s.isVip && !(s as any).isPrivate && (s as any).artistaId == numericArtistId);
+
+  const isGroup = artistData?.profissao && (
+    artistData.profissao.toLowerCase().includes("banda") ||
+    artistData.profissao.toLowerCase().includes("grupo") ||
+    artistData.profissao.toLowerCase().includes("dupla")
+  );
+
+  const artistSocialLinks: string[] = [];
+  if (artistData?.instagram) {
+    artistSocialLinks.push(
+      artistData.instagram.startsWith("http")
+        ? artistData.instagram
+        : `https://www.instagram.com/${artistData.instagram.replace(/^@/, "")}/`
+    );
+  }
+  if (artistData?.spotify) {
+    artistSocialLinks.push(artistData.spotify);
+  }
+  if (artistData?.tiktok) {
+    artistSocialLinks.push(
+      artistData.tiktok.startsWith("http")
+        ? artistData.tiktok
+        : `https://www.tiktok.com/@${artistData.tiktok.replace(/^@/, "")}`
+    );
+  }
+
+  const artistProfileUrl = `https://portaldoartista.com/${artistData?.slug || artistId}`;
+
+  const artistEntitySchema = artistData ? {
+    "@type": isGroup ? ["MusicGroup", "MusicArtist"] : ["Person", "MusicArtist"],
+    "@id": `${artistProfileUrl}#artist`,
+    "name": artistData.name,
+    "url": artistProfileUrl,
+    "image": artistData.capaUrl || undefined,
+    "jobTitle": artistData.profissao || "Compositor e Artista Musical",
+    "description": artistData.biografia || artistData.descricao || `Perfil e catálogo musical de ${artistData.name} no Portal do Artista.`,
+    "sameAs": artistSocialLinks.length > 0 ? artistSocialLinks : undefined,
+    "worksFor": {
+      "@id": "https://portaldoartista.com/#organization"
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": artistProfileUrl
+    }
+  } : undefined;
+
+  const songsSchemas = artistSongs && artistSongs.length > 0 ? artistSongs.map((s) => ({
+    "@type": "MusicRecording",
+    "@id": `${artistProfileUrl}#song-${s.id}`,
+    "name": s.titulo,
+    "url": `${artistProfileUrl}?musica=${s.id}`,
+    "byArtist": {
+      "@id": `${artistProfileUrl}#artist`
+    },
+    "genre": s.genero || undefined,
+    "inLanguage": "pt-BR",
+    "image": s.capaUrl || artistData?.capaUrl || undefined,
+    "description": s.descricao || undefined,
+    "recordingOf": {
+      "@type": "MusicComposition",
+      "name": s.titulo,
+      "composer": {
+        "@id": `${artistProfileUrl}#artist`
+      }
+    }
+  })) : [];
+
+  const artistJsonLd = artistEntitySchema ? [artistEntitySchema, ...songsSchemas] : undefined;
+
+  useSEO({
+    title: artistData?.name
+      ? `${artistData.name} — ${artistData.profissao || "Compositor e Artista"} | Portal do Artista`
+      : "Perfil do Artista | Portal do Artista",
+    description: artistData?.biografia || artistData?.descricao || (artistData?.profissao
+      ? `${artistData.name} - ${artistData.profissao}. ${artistData.cidade ? 'De ' + artistData.cidade + '.' : ''} Ouça o catálogo de músicas no Portal do Artista.`
+      : "Perfil e catálogo musical no Portal do Artista."),
+    ogImage: artistData?.capaUrl || undefined,
+    ogUrl: artistProfileUrl,
+    canonical: artistProfileUrl,
+    breadcrumbs: artistData ? [
+      { name: "Início", item: "https://portaldoartista.com/" },
+      { name: "Artistas", item: "https://portaldoartista.com/artistas" },
+      { name: artistData.name, item: artistProfileUrl }
+    ] : undefined,
+    jsonLd: artistJsonLd
+  });
 
   // Handle shared song autoplay, scroll, and highlight
   useEffect(() => {

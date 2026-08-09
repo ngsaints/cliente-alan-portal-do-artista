@@ -1,16 +1,9 @@
 User-agent: *
 Allow: /
-
-# Sitemap
-Sitemap: https://portaldoartista.com/sitemap.xml
-
-# Crawl delay (optional, be nice to other sites)
-Crawl-delay: 1
-
-# Disallow admin and API paths
-Disallow: /admin/
-Disallow: /api/
+Disallow: /admin
 Disallow: /artista/dashboard
-Disallow: /artista/login
-Disallow: /artista/cadastro
-Disallow: /artista/forgot-password
+Disallow: /artista/crm
+Disallow: /artista/forgot
+Disallow: /artista/reset/
+
+Sitemap: https://portaldoartista.com/sitemap.xml

@@ -22,11 +22,28 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Portal do Artista",
-      "url": "https://portaldoartista.com",
-      "description": "Plataforma para cantores e compositores divulgarem suas músicas e conectarem com fãs.",
-      "inLanguage": "pt-BR"
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://portaldoartista.com/#organization",
+          "name": "Portal do Artista",
+          "url": "https://portaldoartista.com/",
+          "description": "Plataforma para compositores e artistas apresentarem, organizarem e divulgarem seus trabalhos musicais.",
+          "sameAs": [
+            "https://www.instagram.com/Portaldoartista.oficial/"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://portaldoartista.com/#website",
+          "url": "https://portaldoartista.com/",
+          "name": "Portal do Artista",
+          "publisher": {
+            "@id": "https://portaldoartista.com/#organization"
+          },
+          "inLanguage": "pt-BR"
+        }
+      ]
     }
     </script>
     <style>

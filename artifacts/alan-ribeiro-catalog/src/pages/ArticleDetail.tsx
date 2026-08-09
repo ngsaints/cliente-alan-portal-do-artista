@@ -85,6 +85,42 @@ export default function ArticleDetail() {
   const [loading, setLoading] = useState(true);
   const [scrollProgress, setScrollProgress] = useState(0);
 
+  useSEO({
+    title: article ? `${article.metaTitle || article.title} | Portal do Artista` : "Artigo | Portal do Artista",
+    description: article ? (article.metaDescription || article.excerpt) : "Guia e artigos para compositores e músicos no Portal do Artista.",
+    keywords: article?.keywords,
+    ogImage: article?.coverUrl,
+    ogUrl: article ? `https://portaldoartista.com/artigos/${article.slug}` : undefined,
+    canonical: article ? `https://portaldoartista.com/artigos/${article.slug}` : undefined,
+    breadcrumbs: article ? [
+      { name: "Início", item: "https://portaldoartista.com/" },
+      { name: "Academia", item: "https://portaldoartista.com/artigos" },
+      { name: article.title, item: `https://portaldoartista.com/artigos/${article.slug}` }
+    ] : undefined,
+    jsonLd: article ? {
+      "@type": "Article",
+      "@id": `https://portaldoartista.com/artigos/${article.slug}#article`,
+      "headline": article.title,
+      "description": article.metaDescription || article.excerpt,
+      "articleBody": article.content ? article.content.replace(/<[^>]*>?/gm, "") : "",
+      "datePublished": article.publishedAt ? new Date(article.publishedAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      "dateModified": article.publishedAt ? new Date(article.publishedAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      "image": article.coverUrl ? [article.coverUrl] : undefined,
+      "author": {
+        "@type": "Organization",
+        "name": article.authorName || "Portal do Artista",
+        "url": "https://portaldoartista.com/"
+      },
+      "publisher": {
+        "@id": "https://portaldoartista.com/#organization"
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": `https://portaldoartista.com/artigos/${article.slug}`
+      }
+    } : undefined
+  });
+
   // Handle Reading Scroll Progress Bar
   useEffect(() => {
     const handleScroll = () => {
@@ -99,7 +135,7 @@ export default function ArticleDetail() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Fetch Article Data & Update SEO Head Meta Tags + JSON-LD
+  // Fetch Article Data
   useEffect(() => {
     if (!slug) return;
 
@@ -111,68 +147,6 @@ export default function ArticleDetail() {
       })
       .then((data: Article) => {
         setArticle(data);
-
-        // 1. Update Title and Meta Tags
-        const metaTitle = data.metaTitle || data.title;
-        const metaDesc = data.metaDescription || data.excerpt;
-        document.title = `${metaTitle} | Portal do Artista`;
-
-        // Update or create Meta Description
-        let metaDescTag = document.querySelector('meta[name="description"]');
-        if (!metaDescTag) {
-          metaDescTag = document.createElement("meta");
-          metaDescTag.setAttribute("name", "description");
-          document.head.appendChild(metaDescTag);
-        }
-        metaDescTag.setAttribute("content", metaDesc);
-
-        // Update Keywords
-        if (data.keywords) {
-          let metaKeywords = document.querySelector('meta[name="keywords"]');
-          if (!metaKeywords) {
-            metaKeywords = document.createElement("meta");
-            metaKeywords.setAttribute("name", "keywords");
-            document.head.appendChild(metaKeywords);
-          }
-          metaKeywords.setAttribute("content", data.keywords);
-        }
-
-        // 2. Inject JSON-LD Schema.org Structured Data
-        const articleUrl = `https://portaldoartista.com/artigos/${data.slug}`;
-        const jsonLdData = {
-          "@context": "https://schema.org",
-          "@type": "BlogPosting",
-          "headline": data.title,
-          "description": metaDesc,
-          "image": [data.coverUrl || "https://portaldoartista.com/images/default-cover.png"],
-          "datePublished": data.publishedAt,
-          "dateModified": data.publishedAt,
-          "author": {
-            "@type": "Person",
-            "name": data.authorName || "Redação Portal do Artista"
-          },
-          "publisher": {
-            "@type": "Organization",
-            "name": "Portal do Artista",
-            "logo": {
-              "@type": "ImageObject",
-              "url": "https://portaldoartista.com/logo.png"
-            }
-          },
-          "mainEntityOfPage": {
-            "@type": "WebPage",
-            "@id": articleUrl
-          }
-        };
-
-        let scriptTag = document.getElementById("article-schema-jsonld");
-        if (!scriptTag) {
-          scriptTag = document.createElement("script");
-          scriptTag.id = "article-schema-jsonld";
-          scriptTag.setAttribute("type", "application/ld+json");
-          document.head.appendChild(scriptTag);
-        }
-        scriptTag.textContent = JSON.stringify(jsonLdData);
 
         // Fetch Related Articles
         fetch(`/api/articles?category=${encodeURIComponent(data.category)}`)

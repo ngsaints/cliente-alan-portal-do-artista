@@ -26,9 +26,19 @@ export default function ArtistGallery() {
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
+  const galleryTitle = gallery?.title || "Galeria de Fotos";
+  const artistUrl = `https://portaldoartista.com/${slug}`;
+
   useSEO({
-    title: `Galeria de Fotos - Portal do Artista`,
-    description: "Galeria de fotos do artista",
+    title: `${galleryTitle} | Portal do Artista`,
+    description: gallery?.description || `Confira a galeria oficial de fotos de ${slug} no Portal do Artista.`,
+    canonical: `${artistUrl}/galeria`,
+    breadcrumbs: [
+      { name: "Início", item: "https://portaldoartista.com/" },
+      { name: "Artistas", item: "https://portaldoartista.com/artistas" },
+      { name: slug || "Artista", item: artistUrl },
+      { name: "Galeria", item: `${artistUrl}/galeria` }
+    ]
   });
 
   useEffect(() => {

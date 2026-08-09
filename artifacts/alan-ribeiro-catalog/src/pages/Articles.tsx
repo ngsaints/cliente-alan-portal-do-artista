@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
+import { useSEO } from "@/hooks/useSEO";
 import { Search, BookOpen, Clock, Tag, Eye, ChevronRight, Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
 
 interface Article {
@@ -26,10 +27,24 @@ export default function Articles() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
 
-  useEffect(() => {
-    // Dynamic page title for SEO
-    document.title = "Artigos & Dicas para Carreira Musical | Portal do Artista";
+  useSEO({
+    title: "Academia do Artista — Guias e Dicas para Compositores e Músicos | Portal do Artista",
+    description: "Artigos, guias práticos e dicas sobre direitos autorais, divulgação musical, registro de músicas e carreira artística para compositores e músicos.",
+    canonical: "https://portaldoartista.com/artigos",
+    breadcrumbs: [
+      { name: "Início", item: "https://portaldoartista.com/" },
+      { name: "Academia", item: "https://portaldoartista.com/artigos" }
+    ],
+    jsonLd: {
+      "@type": "CollectionPage",
+      "@id": "https://portaldoartista.com/artigos#collection",
+      "name": "Academia do Artista",
+      "url": "https://portaldoartista.com/artigos",
+      "description": "Artigos, guias práticos e dicas sobre direitos autorais, divulgação musical, registro de músicas e carreira artística."
+    }
+  });
 
+  useEffect(() => {
     fetchCategories();
     fetchFeatured();
     fetchArticles();

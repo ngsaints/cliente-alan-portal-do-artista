@@ -5,9 +5,26 @@ import { eq } from "drizzle-orm";
 const router: IRouter = Router();
 const BASE_URL = process.env.PORTAL_URL || "https://portaldoartista.com";
 
+router.get("/robots.txt", (_req, res): void => {
+  const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /artista/dashboard
+Disallow: /artista/crm
+Disallow: /artista/forgot
+Disallow: /artista/reset/
+
+Sitemap: ${BASE_URL}/sitemap.xml
+`;
+
+  res.set("Content-Type", "text/plain");
+  res.send(robotsTxt);
+});
+
 router.get("/sitemap.xml", async (_req, res): Promise<void> => {
   try {
     const artists = await db.select({
+      id: artistsTable.id,
       slug: artistsTable.slug,
       updatedAt: artistsTable.updatedAt,
     }).from(artistsTable).where(eq(artistsTable.planoAtivo, true));
@@ -54,8 +71,9 @@ router.get("/sitemap.xml", async (_req, res): Promise<void> => {
     // Artist pages
     for (const artist of artists) {
       const lastmod = artist.updatedAt ? new Date(artist.updatedAt).toISOString().split("T")[0] : now.split("T")[0];
+      const artistPath = artist.slug ? `/${artist.slug}` : `/artista/${artist.id}`;
       xml += '  <url>\n';
-      xml += `    <loc>${BASE_URL}/a/${artist.slug}</loc>\n`;
+      xml += `    <loc>${BASE_URL}${artistPath}</loc>\n`;
       xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += '    <changefreq>weekly</changefreq>\n';
       xml += '    <priority>0.8</priority>\n';
