@@ -47,6 +47,7 @@ interface Artist {
   cidade: string;
   plano: string;
   planoAtivo: boolean;
+  canPostArticles?: boolean;
   musicaCount: string;
   limiteMusicas: string;
   couponCode: string | null;

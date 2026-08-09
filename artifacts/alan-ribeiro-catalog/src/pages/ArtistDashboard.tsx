@@ -51,6 +51,7 @@ interface ArtistProfile {
   musicaCount: string;
   vipSenha: string;
   planoAtivo?: boolean;
+  canPostArticles?: boolean;
   canCustomizeFont: boolean;
   canCustomizeBackground: boolean;
   canCustomizeTextColor: boolean;
