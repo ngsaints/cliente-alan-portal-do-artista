@@ -16,7 +16,17 @@ import { useSEO } from "@/hooks/useSEO";
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [faqOpen, setFaqOpen] = useState<Record<number, boolean>>({});
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<{
+    landingHeroTitle: string | null;
+    landingHeroSubtitle: string | null;
+    landingHeroCta: string | null;
+    landingHeroMockupUrl: string;
+    landingFeature01Url: string;
+    landingFeature02Url: string;
+  }>({
+    landingHeroTitle: null,
+    landingHeroSubtitle: null,
+    landingHeroCta: null,
     landingHeroMockupUrl: "/images/hero_mockup.jpg",
     landingFeature01Url: "/images/feature_profile_site_3d.jpg",
     landingFeature02Url: "/images/catalog_preview.png",
@@ -49,9 +59,44 @@ export default function Landing() {
     }
   ];
 
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data) {
+          setSettings({
+            landingHeroTitle: data.landingHeroTitle || null,
+            landingHeroSubtitle: data.landingHeroSubtitle || null,
+            landingHeroCta: data.landingHeroCta || null,
+            landingHeroMockupUrl: data.landingHeroMockupUrl || "/images/hero_mockup.jpg",
+            landingFeature01Url: data.landingFeature01Url || "/images/feature_profile_site_3d.jpg",
+            landingFeature02Url: data.landingFeature02Url || "/images/catalog_preview.png",
+          });
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const seoTitle = settings.landingHeroTitle
+    ? `${settings.landingHeroTitle} | Portal do Artista`
+    : "Portal do Artista - Plataforma para Compositores e Artistas";
+
+  const seoDescription = settings.landingHeroSubtitle
+    ? `${settings.landingHeroSubtitle} Portal do Artista — Plataforma para compositores e artistas apresentarem, organizarem e divulgarem seus trabalhos musicais.`
+    : "Plataforma para compositores e artistas apresentarem, organizarem e divulgarem seus trabalhos musicais. Crie seu site de artista, catálogo musical e press kit em minutos.";
+
+  const seoOgImage = settings.landingHeroMockupUrl
+    ? (settings.landingHeroMockupUrl.startsWith("http")
+        ? settings.landingHeroMockupUrl
+        : `https://portaldoartista.com${settings.landingHeroMockupUrl.startsWith("/") ? "" : "/"}${settings.landingHeroMockupUrl}`)
+    : "https://portaldoartista.com/images/hero_mockup.jpg";
+
   useSEO({
-    title: "Portal do Artista - Plataforma para Compositores e Artistas",
-    description: "Plataforma para compositores e artistas apresentarem, organizarem e divulgarem seus trabalhos musicais. Crie seu site de artista, catálogo musical e press kit em minutos.",
+    title: seoTitle,
+    description: seoDescription,
+    keywords: "portal do artista, compositores, cantores, carreira musical, catálogo de músicas, site para artistas, press kit musical",
+    ogImage: seoOgImage,
+    ogUrl: "https://portaldoartista.com/",
     canonical: "https://portaldoartista.com/",
     breadcrumbs: [
       { name: "Início", item: "https://portaldoartista.com/" }
@@ -68,21 +113,6 @@ export default function Landing() {
       }))
     }
   });
-
-  useEffect(() => {
-    fetch("/api/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data) {
-          setSettings({
-            landingHeroMockupUrl: data.landingHeroMockupUrl || "/images/hero_mockup.jpg",
-            landingFeature01Url: data.landingFeature01Url || "/images/feature_profile_site_3d.jpg",
-            landingFeature02Url: data.landingFeature02Url || "/images/catalog_preview.png",
-          });
-        }
-      })
-      .catch(console.error);
-  }, []);
 
   const toggleFaq = (index: number) => {
     setFaqOpen((prev) => ({ ...prev, [index]: !prev[index] }));
@@ -109,11 +139,15 @@ export default function Landing() {
             </div>
             
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
-              Sua carreira merece uma <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-yellow-200 to-amber-400">plataforma profissional.</span>
+              {settings.landingHeroTitle ? (
+                settings.landingHeroTitle
+              ) : (
+                <>Sua carreira merece uma <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-yellow-200 to-amber-400">plataforma profissional.</span></>
+              )}
             </h1>
             
             <p className="text-sm sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Crie seu site, organize suas músicas, controle sua carreira e compartilhe tudo em um único link.
+              {settings.landingHeroSubtitle || "Crie seu site, organize suas músicas, controle sua carreira e compartilhe tudo em um único link."}
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4">
@@ -122,7 +156,7 @@ export default function Landing() {
                 className="w-full sm:w-auto px-8 py-4 rounded-full bg-primary text-primary-foreground font-black text-sm sm:text-base hover:bg-primary/95 transition-all shadow-[0_10px_35px_rgba(245,197,24,0.35)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
               >
                 <Zap className="w-5 h-5 fill-current" />
-                Começar Gratuitamente
+                {settings.landingHeroCta || "Começar Gratuitamente"}
               </button>
 
               <Link
