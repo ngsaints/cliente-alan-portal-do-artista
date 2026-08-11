@@ -67,6 +67,8 @@ router.get("/settings", async (_req, res): Promise<void> => {
   let landingFeature01Url: string | null = null;
   let landingFeature02Url: string | null = null;
 
+  let portalSettingsObj: Record<string, string> = {};
+
   try {
     const rows = await db
       .select({ key: appSettingsTable.key, value: appSettingsTable.value })
@@ -87,6 +89,12 @@ router.get("/settings", async (_req, res): Promise<void> => {
       if (r.key === "landing_hero_mockup_url") landingHeroMockupUrl = r.value;
       if (r.key === "landing_feature01_url") landingFeature01Url = r.value;
       if (r.key === "landing_feature02_url") landingFeature02Url = r.value;
+
+      if (r.value) {
+        portalSettingsObj[r.key] = r.value;
+        const camelKey = r.key.replace(/_([a-z0-9])/g, (_, g) => g.toUpperCase());
+        portalSettingsObj[camelKey] = r.value;
+      }
     }
   } catch (err) {
     console.error("Error fetching support/openai settings:", err);
@@ -154,6 +162,16 @@ router.get("/settings", async (_req, res): Promise<void> => {
     landingHeroMockupUrl: landingHeroMockupUrl || "/images/hero_mockup.jpg",
     landingFeature01Url: landingFeature01Url || "/images/feature_profile_site_3d.jpg",
     landingFeature02Url: landingFeature02Url || "/images/catalog_preview.png",
+    landingStat1Number: portalSettingsObj.landingStat1Number || "Dezenas de",
+    landingStat1Label: portalSettingsObj.landingStat1Label || "Artistas Cadastrados",
+    landingStat2Number: portalSettingsObj.landingStat2Number || "Centenas de",
+    landingStat2Label: portalSettingsObj.landingStat2Label || "Músicas Organizadas",
+    landingStat3Number: portalSettingsObj.landingStat3Number || "Milhares de",
+    landingStat3Label: portalSettingsObj.landingStat3Label || "Visualizações nos Perfis",
+    landingStat4Number: portalSettingsObj.landingStat4Number || "Em Todo",
+    landingStat4Label: portalSettingsObj.landingStat4Label || "o Brasil",
+    landingSocialProofText: portalSettingsObj.landingSocialProofText || "Dezenas de artistas no Portal do Artista",
+    ...portalSettingsObj,
     ...demoSettingsObj,
   });
 });

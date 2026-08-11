@@ -23,6 +23,15 @@ export default function Landing() {
     landingHeroMockupUrl: string;
     landingFeature01Url: string;
     landingFeature02Url: string;
+    landingStat1Number: string;
+    landingStat1Label: string;
+    landingStat2Number: string;
+    landingStat2Label: string;
+    landingStat3Number: string;
+    landingStat3Label: string;
+    landingStat4Number: string;
+    landingStat4Label: string;
+    landingSocialProofText: string;
   }>({
     landingHeroTitle: null,
     landingHeroSubtitle: null,
@@ -30,6 +39,15 @@ export default function Landing() {
     landingHeroMockupUrl: "/images/hero_mockup.jpg",
     landingFeature01Url: "/images/feature_profile_site_3d.jpg",
     landingFeature02Url: "/images/catalog_preview.png",
+    landingStat1Number: "Dezenas de",
+    landingStat1Label: "Artistas Cadastrados",
+    landingStat2Number: "Centenas de",
+    landingStat2Label: "Músicas Organizadas",
+    landingStat3Number: "Milhares de",
+    landingStat3Label: "Visualizações nos Perfis",
+    landingStat4Number: "Em Todo",
+    landingStat4Label: "o Brasil",
+    landingSocialProofText: "Dezenas de artistas no Portal do Artista",
   });
 
   const faqs = [
@@ -71,6 +89,15 @@ export default function Landing() {
             landingHeroMockupUrl: data.landingHeroMockupUrl || "/images/hero_mockup.jpg",
             landingFeature01Url: data.landingFeature01Url || "/images/feature_profile_site_3d.jpg",
             landingFeature02Url: data.landingFeature02Url || "/images/catalog_preview.png",
+            landingStat1Number: data.landingStat1Number || "Dezenas de",
+            landingStat1Label: data.landingStat1Label || "Artistas Cadastrados",
+            landingStat2Number: data.landingStat2Number || "Centenas de",
+            landingStat2Label: data.landingStat2Label || "Músicas Organizadas",
+            landingStat3Number: data.landingStat3Number || "Milhares de",
+            landingStat3Label: data.landingStat3Label || "Visualizações nos Perfis",
+            landingStat4Number: data.landingStat4Number || "Em Todo",
+            landingStat4Label: data.landingStat4Label || "o Brasil",
+            landingSocialProofText: data.landingSocialProofText || "Dezenas de artistas no Portal do Artista",
           });
         }
       })
@@ -185,7 +212,7 @@ export default function Landing() {
                     <Star key={i} className="w-3.5 h-3.5 fill-current" />
                   ))}
                 </div>
-                <span className="text-muted-foreground font-medium">Mais de 3.500 artistas no Portal do Artista</span>
+                <span className="text-muted-foreground font-medium">{settings.landingSocialProofText || "Dezenas de artistas no Portal do Artista"}</span>
               </div>
             </div>
           </motion.div>
@@ -227,27 +254,27 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div className="space-y-1">
             <p className="text-2xl sm:text-3xl font-black text-primary flex items-center justify-center gap-2">
-              <Users className="w-5 h-5" /> + 3,500
+              <Users className="w-5 h-5" /> {settings.landingStat1Number || "Dezenas de"}
             </p>
-            <p className="text-xs text-muted-foreground font-medium">Artistas Cadastrados</p>
+            <p className="text-xs text-muted-foreground font-medium">{settings.landingStat1Label || "Artistas Cadastrados"}</p>
           </div>
           <div className="space-y-1">
             <p className="text-2xl sm:text-3xl font-black text-primary flex items-center justify-center gap-2">
-              <Music2 className="w-5 h-5" /> + 80,000
+              <Music2 className="w-5 h-5" /> {settings.landingStat2Number || "Centenas de"}
             </p>
-            <p className="text-xs text-muted-foreground font-medium">Músicas Organizadas</p>
+            <p className="text-xs text-muted-foreground font-medium">{settings.landingStat2Label || "Músicas Organizadas"}</p>
           </div>
           <div className="space-y-1">
             <p className="text-2xl sm:text-3xl font-black text-primary flex items-center justify-center gap-2">
-              <Eye className="w-5 h-5" /> + 1 Milhão
+              <Eye className="w-5 h-5" /> {settings.landingStat3Number || "Milhares de"}
             </p>
-            <p className="text-xs text-muted-foreground font-medium">Visualizações nos Perfis</p>
+            <p className="text-xs text-muted-foreground font-medium">{settings.landingStat3Label || "Visualizações nos Perfis"}</p>
           </div>
           <div className="space-y-1">
             <p className="text-2xl sm:text-3xl font-black text-primary flex items-center justify-center gap-2">
-              <Globe className="w-5 h-5" /> Em Todo
+              <Globe className="w-5 h-5" /> {settings.landingStat4Number || "Em Todo"}
             </p>
-            <p className="text-xs text-muted-foreground font-medium">o Brasil</p>
+            <p className="text-xs text-muted-foreground font-medium">{settings.landingStat4Label || "o Brasil"}</p>
           </div>
         </div>
       </section>
