@@ -58,8 +58,11 @@ app.use(
 );
 
 import sitemapRouter from "./routes/sitemap";
+import { uploadsHandler } from "./routes/uploadsHandler";
 
-// Serve local uploads
+// Serve local uploads with multi-folder search & image fallback for missing files
+app.use("/api/uploads", uploadsHandler);
+app.use("/uploads", uploadsHandler);
 app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 

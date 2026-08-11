@@ -14,6 +14,7 @@ import { NotificationBell, type Interest } from "@/components/NotificationBell";
 import { InterestModal } from "@/components/InterestModal";
 import { useSEO } from "@/hooks/useSEO";
 import { Footer } from "@/components/Footer";
+import { formatImageUrl } from "@/lib/utils";
 
 
 
@@ -53,6 +54,8 @@ export default function ArtistProfile() {
   const [artistLoggedIn, setArtistLoggedIn] = useState(false);
   const [loggedInArtistId, setLoggedInArtistId] = useState<number | null>(null);
   const numericArtistId = artistData?.id;
+
+  const [profileCapaError, setProfileCapaError] = useState(false);
 
   // Update player colors, style and card style when artist data loads
   useEffect(() => {
@@ -439,10 +442,10 @@ export default function ArtistProfile() {
       <section className="relative h-[300px] md:h-[400px] overflow-hidden">
         <div
           className={`absolute inset-0 bg-cover bg-center ${artist.bannerUrl ? 'cursor-pointer hover:opacity-95 transition-opacity' : ''}`}
-          onClick={() => artist.bannerUrl && setActiveLightboxImage(artist.bannerUrl)}
+          onClick={() => artist.bannerUrl && setActiveLightboxImage(formatImageUrl(artist.bannerUrl))}
           style={{
             backgroundImage: artist.bannerUrl
-              ? `url("${artist.bannerUrl}")`
+              ? `url("${formatImageUrl(artist.bannerUrl)}")`
               : "none",
             backgroundColor: "#1a1a2e",
           }}
@@ -454,11 +457,16 @@ export default function ArtistProfile() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            onClick={() => artist.capaUrl && setActiveLightboxImage(artist.capaUrl)}
-            className={`w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center pointer-events-auto transition-all ${artist.capaUrl ? 'cursor-pointer hover:scale-105 hover:ring-2 hover:ring-primary' : ''}`}
+            onClick={() => artist.capaUrl && !profileCapaError && setActiveLightboxImage(formatImageUrl(artist.capaUrl))}
+            className={`w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-background shadow-2xl flex-shrink-0 bg-primary/20 flex items-center justify-center pointer-events-auto transition-all ${artist.capaUrl && !profileCapaError ? 'cursor-pointer hover:scale-105 hover:ring-2 hover:ring-primary' : ''}`}
           >
-            {artist.capaUrl ? (
-              <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover" />
+            {artist.capaUrl && !profileCapaError ? (
+              <img 
+                src={formatImageUrl(artist.capaUrl)} 
+                alt={artist.name} 
+                className="w-full h-full object-cover" 
+                onError={() => setProfileCapaError(true)}
+              />
             ) : (
               <Music className="w-16 h-16 text-primary" />
             )}
