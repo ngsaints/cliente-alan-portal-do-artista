@@ -7,6 +7,7 @@ import { Music, MapPin, Instagram, Users, Star, ExternalLink, Loader2, Search, X
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
 import { Footer } from "@/components/Footer";
+import { formatImageUrl } from "@/lib/utils";
 import {
   Command,
   CommandInput,
@@ -37,6 +38,7 @@ interface ArtistCard {
 export default function Artists() {
   const [loading, setLoading] = useState(true);
   const [artists, setArtists] = useState<ArtistCard[]>([]);
+  const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
   const [filterGenero, setFilterGenero] = useState("Todos");
   const { genres } = useGenres();
   const GENEROS = ["Todos", ...genres];
@@ -229,11 +231,19 @@ export default function Artists() {
                 <Link href={artist.slug ? `/${artist.slug}` : `/artista/${artist.id}`}>
                   <div className="group bg-card border border-border/40 rounded-2xl overflow-hidden hover:border-primary/50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.8)] hover:-translate-y-1 transition-all duration-300 cursor-pointer h-full flex flex-col">
                     <div className="relative aspect-square overflow-hidden bg-black/50">
-                      {artist.capaUrl ? (
-                        <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      {artist.capaUrl && !imgErrors[artist.id] ? (
+                        <img 
+                          src={formatImageUrl(artist.capaUrl)} 
+                          alt={artist.name} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                          onError={() => setImgErrors(prev => ({ ...prev, [artist.id]: true }))}
+                        />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                          <Users className="w-16 h-16 text-primary/50" />
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-zinc-900 to-black p-4 text-center">
+                          <div className="w-16 h-16 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mb-2 shadow-inner">
+                            <Users className="w-8 h-8 text-primary" />
+                          </div>
+                          <span className="text-xs font-extrabold text-white max-w-[90%] truncate">{artist.name}</span>
                         </div>
                       )}
                       <div className="absolute top-3 right-3">

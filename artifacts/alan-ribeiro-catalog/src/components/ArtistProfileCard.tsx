@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Music, MapPin, Instagram, Mail, Phone, Globe } from "lucide-react";
+import { formatImageUrl } from "@/lib/utils";
 
 interface ArtistProfileCardProps {
   name: string;
@@ -34,7 +36,12 @@ export function ArtistProfileCard({
   layout,
   compact = false,
 }: ArtistProfileCardProps) {
+  const [capaError, setCapaError] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
   const bgStyle = layout || "linear-gradient(135deg, #000, #0a0a0a, #1a1a00)";
+
+  const formattedCapaUrl = formatImageUrl(capaUrl);
+  const formattedBannerUrl = formatImageUrl(bannerUrl);
 
   if (compact) {
     return (
@@ -43,9 +50,9 @@ export function ArtistProfileCard({
         style={{ background: bgStyle }}
       >
         {/* Banner */}
-        {bannerUrl ? (
+        {bannerUrl && !bannerError ? (
           <div className="h-48 md:h-64 overflow-hidden">
-            <img src={bannerUrl} alt="" className="w-full h-full object-cover" />
+            <img src={formattedBannerUrl} alt="" className="w-full h-full object-cover" onError={() => setBannerError(true)} />
           </div>
         ) : (
           <div className="h-32 md:h-40" style={{ background: bgStyle }} />
@@ -55,8 +62,8 @@ export function ArtistProfileCard({
         <div className="px-4 pb-4 -mt-12 relative z-10">
           <div className="flex items-end gap-4">
             <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-background shadow-xl flex-shrink-0 bg-card/50 flex items-center justify-center">
-              {capaUrl ? (
-                <img src={capaUrl} alt={name} className="w-full h-full object-cover" />
+              {capaUrl && !capaError ? (
+                <img src={formattedCapaUrl} alt={name} className="w-full h-full object-cover" onError={() => setCapaError(true)} />
               ) : (
                 <Music className="w-10 h-10 text-primary" />
               )}
@@ -102,10 +109,10 @@ export function ArtistProfileCard({
 
       {/* Banner / Cover */}
       <div className="w-full h-48 md:h-64 rounded-2xl overflow-hidden mb-6 bg-card/30 border border-border/40">
-        {bannerUrl ? (
-          <img src={bannerUrl} alt="" className="w-full h-full object-cover" />
-        ) : capaUrl ? (
-          <img src={capaUrl} alt="" className="w-full h-full object-cover" />
+        {bannerUrl && !bannerError ? (
+          <img src={formattedBannerUrl} alt="" className="w-full h-full object-cover" onError={() => setBannerError(true)} />
+        ) : capaUrl && !capaError ? (
+          <img src={formattedCapaUrl} alt="" className="w-full h-full object-cover" onError={() => setCapaError(true)} />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ background: bgStyle }}>
             <Music className="w-20 h-20 text-primary/30" />
@@ -116,8 +123,8 @@ export function ArtistProfileCard({
       {/* Profile photo */}
       <div className="flex justify-center -mt-16 relative z-10 mb-6">
         <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-background shadow-2xl bg-card/50 flex items-center justify-center">
-          {capaUrl ? (
-            <img src={capaUrl} alt={name} className="w-full h-full object-cover" />
+          {capaUrl && !capaError ? (
+            <img src={formattedCapaUrl} alt={name} className="w-full h-full object-cover" onError={() => setCapaError(true)} />
           ) : (
             <Music className="w-12 h-12 text-primary" />
           )}

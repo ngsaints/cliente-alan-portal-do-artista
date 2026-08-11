@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import { MusicCardIpod } from "@/components/MusicCardIpod";
 import { type CardStyle } from "@/contexts/PlayerContext";
 import { useToast } from "@/hooks/use-toast";
+import { formatImageUrl } from "@/lib/utils";
 
 interface MusicCardProps {
   song: Song;
@@ -168,9 +169,12 @@ export function MusicCard({ song, index, cardStyle = "default", highlighted = fa
           /* ── Áudio: capa + botão play ── */
           <>
             <img
-              src={song.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
+              src={formatImageUrl(song.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)}
               alt={song.titulo}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              onError={(e) => {
+                e.currentTarget.src = `${import.meta.env.BASE_URL}images/default-cover.png`;
+              }}
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
               <button

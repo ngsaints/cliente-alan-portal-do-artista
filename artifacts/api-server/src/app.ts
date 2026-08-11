@@ -61,6 +61,7 @@ import sitemapRouter from "./routes/sitemap";
 
 // Serve local uploads
 app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Serve root sitemap.xml and robots.txt
 app.use(sitemapRouter);

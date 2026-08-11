@@ -616,6 +616,18 @@ router.post("/artists/vip-verify/:artistId", async (req, res): Promise<void> => 
   }
 });
 
+function normalizeBackendImageUrl(url: string | null | undefined): string | null {
+  if (!url || typeof url !== "string" || !url.trim()) return null;
+  const clean = url.trim();
+  if (clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("data:") || clean.startsWith("blob:")) {
+    return clean;
+  }
+  if (clean.startsWith("/api/uploads/")) return clean;
+  if (clean.startsWith("/uploads/")) return `/api${clean}`;
+  if (clean.startsWith("uploads/")) return `/api/${clean}`;
+  return `/api/uploads/${clean.replace(/^\/+/, "")}`;
+}
+
 // GET /artists/public - List public artists
 const getPublicArtists = async (req: any, res: any): Promise<void> => {
   try {
@@ -638,6 +650,12 @@ const getPublicArtists = async (req: any, res: any): Promise<void> => {
       })
       .from(artistsTable)
       .where(eq(artistsTable.planoAtivo, true));
+
+    // Normalize capaUrl for every artist
+    artists = artists.map(a => ({
+      ...a,
+      capaUrl: normalizeBackendImageUrl(a.capaUrl)
+    }));
 
     // Filter by search query (name, cidade, genero)
     if (search && typeof search === "string" && search.trim()) {
@@ -745,8 +763,8 @@ router.get("/artists/:identifier", async (req, res): Promise<void> => {
       instagram: artist.instagram,
       tiktok: artist.tiktok,
       spotify: artist.spotify,
-      capaUrl: artist.capaUrl,
-      bannerUrl: artist.bannerUrl,
+      capaUrl: normalizeBackendImageUrl(artist.capaUrl),
+      bannerUrl: normalizeBackendImageUrl(artist.bannerUrl),
       plano: artist.plano,
       fonte: artist.fonte,
       cor: artist.cor,
