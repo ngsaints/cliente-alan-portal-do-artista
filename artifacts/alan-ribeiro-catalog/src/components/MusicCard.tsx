@@ -167,7 +167,10 @@ export function MusicCard({ song, index, cardStyle = "default", highlighted = fa
           )
         ) : (
           /* ── Áudio: capa + botão play ── */
-          <>
+          <div 
+            className="relative w-full h-full cursor-pointer"
+            onClick={() => (isThisPlaying ? togglePlay() : playSong(song))}
+          >
             <img
               src={formatImageUrl(song.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)}
               alt={song.titulo}
@@ -178,15 +181,18 @@ export function MusicCard({ song, index, cardStyle = "default", highlighted = fa
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
               <button
-                onClick={() => playSong(song)}
-                className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  isThisPlaying ? togglePlay() : playSong(song);
+                }}
+                className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
               >
                 {isThisPlaying
                   ? <Pause className="w-8 h-8 fill-current" />
                   : <Play  className="w-8 h-8 fill-current ml-1" />}
               </button>
             </div>
-          </>
+          </div>
         )}
 
         {/* Badges topo-esquerda */}

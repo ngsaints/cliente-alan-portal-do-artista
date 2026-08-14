@@ -4,6 +4,7 @@ import { Play, Pause, Youtube, ExternalLink, Music, Share2 } from "lucide-react"
 import { type Song } from "@workspace/api-client-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useToast } from "@/hooks/use-toast";
+import { formatImageUrl } from "@/lib/utils";
 
 interface MusicCardIpodProps {
   song: Song;
@@ -174,29 +175,36 @@ export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpo
             )
           ) : (
             /* Cover / Thumbnail */
-            <>
+            <div 
+              className="relative w-full h-full cursor-pointer group/cover"
+              onClick={handleCoverClick}
+            >
               <img
                 src={
                   isVideo && youtubeId
                     ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`
-                    : (song.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`)
+                    : formatImageUrl(song.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)
                 }
                 alt={song.titulo}
-                className="w-full h-full object-cover cursor-pointer"
-                onClick={isVideo && youtubeId ? handlePlayVideo : undefined}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = `${import.meta.env.BASE_URL}images/default-cover.png`;
+                }}
               />
-              {/* Play overlay on hover (desktop) */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
-                <span className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl ${isVideo && youtubeId ? "bg-red-600" : ""}`}
-                  style={isVideo && youtubeId ? {} : { border: `2px solid ${accent}` }}>
+              {/* Play overlay on hover */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/cover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <span className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-transform group-hover/cover:scale-110 ${isVideo && youtubeId ? "bg-red-600" : ""}`}
+                  style={isVideo && youtubeId ? {} : { border: `2px solid ${accent}`, backgroundColor: "rgba(0,0,0,0.6)" }}>
                   {isVideo && youtubeId ? (
                     <Play className="w-7 h-7 ml-1 text-white fill-white" />
+                  ) : isThisPlaying ? (
+                    <Pause className="w-7 h-7" style={{ color: accent, fill: accent }} />
                   ) : (
                     <Play className="w-7 h-7 ml-1" style={{ color: accent, fill: accent }} />
                   )}
                 </span>
               </div>
-            </>
+            </div>
           )}
 
           {/* Badges Overlayed on Top of the Cover */}
@@ -223,7 +231,7 @@ export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpo
         {/* Title & Info Block */}
         <div className="flex items-center justify-between mb-3 min-w-0 gap-2">
           <div className="min-w-0 flex-1 pr-1">
-            <h3 className="font-bold text-lg text-white truncate leading-tight tracking-tight">
+            <h3 className="font-bold text-lg text-white truncate leading-tight tracking-tight cursor-pointer hover:text-primary transition-colors" onClick={handleCoverClick}>
               {song.titulo}
             </h3>
             <p className="text-sm text-white/50 truncate font-medium mt-0.5">
@@ -241,7 +249,7 @@ export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpo
                   description: "Compartilhe esta música com quem quiser.",
                 });
               }}
-              className="p-1.5 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/15 transition-all"
+              className="p-1.5 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/15 transition-all cursor-pointer"
               style={{ border: `1px solid rgba(255,255,255,0.08)` }}
               title="Copiar link da música"
             >
@@ -249,7 +257,7 @@ export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpo
             </button>
             <button
               onClick={handleInterest}
-              className="shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-all hover:scale-102 active:scale-98 shadow-sm"
+              className="shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-all hover:scale-102 active:scale-98 shadow-sm cursor-pointer"
               style={{ background: accent, color: "#121212" }}
             >
               Tenho Interesse
@@ -281,26 +289,38 @@ export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpo
         {/* Click Wheel Section */}
         <div className="flex justify-center mb-2">
           <div
-            className="relative w-36 h-36 rounded-full bg-[#202020] border border-white/10 flex items-center justify-center shadow-2xl"
+            className="relative w-36 h-36 rounded-full bg-[#202020] border border-white/10 flex items-center justify-center shadow-2xl select-none"
             style={{ boxShadow: "inset 0 4px 12px rgba(0,0,0,0.8), 0 4px 10px rgba(0,0,0,0.5)" }}
           >
-            <span className="absolute top-3 text-[10px] font-black text-white/40 tracking-widest cursor-pointer select-none hover:text-white/60">
+            <span
+              onClick={handlePlay}
+              className="absolute top-3 text-[10px] font-black text-white/40 tracking-widest cursor-pointer select-none hover:text-white transition-colors"
+            >
               MENU
             </span>
-            <span className="absolute left-3.5 text-[10px] font-bold text-white/40 cursor-pointer select-none hover:text-white/60">
+            <span
+              onClick={handlePlay}
+              className="absolute left-3.5 text-[10px] font-bold text-white/40 cursor-pointer select-none hover:text-white transition-colors"
+            >
               ◄◄
             </span>
-            <span className="absolute right-3.5 text-[10px] font-bold text-white/40 cursor-pointer select-none hover:text-white/60">
+            <span
+              onClick={handlePlay}
+              className="absolute right-3.5 text-[10px] font-bold text-white/40 cursor-pointer select-none hover:text-white transition-colors"
+            >
               ►►
             </span>
-            <span className="absolute bottom-3 text-[10px] font-bold text-white/40 cursor-pointer select-none hover:text-white/60 flex items-center gap-0.5">
+            <span
+              onClick={handlePlay}
+              className="absolute bottom-3 text-[10px] font-bold text-white/40 cursor-pointer select-none hover:text-white transition-colors flex items-center gap-0.5"
+            >
               ►║
             </span>
 
             {/* Click Wheel Center Action Button */}
             <button
-              onClick={isVideo && youtubeId ? handleCoverClick : handlePlay}
-              className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xl"
+              onClick={handlePlay}
+              className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xl cursor-pointer"
               style={{
                 background: isThisPlaying ? accent : "#161616",
                 border: isThisPlaying ? "none" : "1.5px solid rgba(255,255,255,0.08)",
@@ -318,8 +338,8 @@ export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpo
 
         {/* Mobile footer button */}
         <button
-          onClick={isVideo && youtubeId ? handleCoverClick : handlePlay}
-          className="w-full mt-3 py-2 rounded-xl text-xs font-bold text-center border transition-all hover:bg-white/5 active:scale-[0.98] sm:hidden"
+          onClick={handlePlay}
+          className="w-full mt-3 py-2 rounded-xl text-xs font-bold text-center border transition-all hover:bg-white/5 active:scale-[0.98] sm:hidden cursor-pointer"
           style={{ borderColor: accent, color: accent }}
         >
           {isVideo ? (videoPlaying && !embedError ? "Reproduzindo..." : "▶ Assistir") : (isThisPlaying ? "Pausar" : "Tocar Música")}
