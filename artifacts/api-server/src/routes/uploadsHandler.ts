@@ -19,12 +19,30 @@ export function uploadsHandler(req: Request, res: Response, next: NextFunction):
     rawPath = rawPath.replace("/uploads", "");
   }
 
+  // URL-decode uma vez (nomes com espacos, acentos e mojibake) e, se ainda
+  // nao bater com nenhum arquivo, tenta um segundo decode (duplo-encoded).
+  const candidates = [rawPath];
+  try {
+    const once = decodeURIComponent(rawPath);
+    if (once !== rawPath) candidates.push(once);
+    const twice = decodeURIComponent(once);
+    if (twice !== once) candidates.push(twice);
+  } catch {
+    // caminho com % invalido: mantem apenas o raw
+  }
+
   const sanitizedPath = path.normalize(rawPath).replace(/^(\.\.[\/\\])+/, "");
   const fileName = path.basename(sanitizedPath);
 
   if (!fileName || fileName === "." || fileName === "/") {
     next();
     return;
+  }
+
+  const candidateNames = [sanitizedPath];
+  for (const c of candidates) {
+    const s = path.normalize(c).replace(/^(\.\.[\/\\])+/, "");
+    if (s && s !== sanitizedPath) candidateNames.push(s);
   }
 
   const baseUploadDirs = [
@@ -42,21 +60,26 @@ export function uploadsHandler(req: Request, res: Response, next: NextFunction):
   const subFolders = ["", "covers", "photos", "demo", "gallery", "banners", "articles", "emails", "audio"];
 
   // 1. Check requested path directly in all candidate base directories
-  for (const baseDir of baseUploadDirs) {
-    const fullPath = path.join(baseDir, sanitizedPath);
-    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-      res.sendFile(fullPath);
-      return;
+  for (const candidateName of candidateNames) {
+    for (const baseDir of baseUploadDirs) {
+      const fullPath = path.join(baseDir, candidateName);
+      if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+        res.sendFile(fullPath);
+        return;
+      }
     }
   }
 
   // 2. Check filename in all subfolders in all candidate base directories
-  for (const baseDir of baseUploadDirs) {
-    for (const subFolder of subFolders) {
-      const fullPath = path.join(baseDir, subFolder, fileName);
-      if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-        res.sendFile(fullPath);
-        return;
+  for (const candidateName of candidateNames) {
+    const candidateFile = path.basename(candidateName);
+    for (const baseDir of baseUploadDirs) {
+      for (const subFolder of subFolders) {
+        const fullPath = path.join(baseDir, subFolder, candidateFile);
+        if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+          res.sendFile(fullPath);
+          return;
+        }
       }
     }
   }
