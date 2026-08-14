@@ -96,11 +96,11 @@ export const FeedView: React.FC = () => {
             >
               <div className="w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-[#f5c518]/30 group-hover:border-[#f5c518] transition-all shadow-lg p-0.5 bg-[#181818]">
                 <img
-                  src={artist.fotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80'}
+                  src={artist.fotoUrl || 'https://portaldoartista.com/images/hero_mockup.jpg'}
                   alt={artist.nome}
                   className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-300"
                   onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80';
+                    e.currentTarget.src = 'https://portaldoartista.com/images/hero_mockup.jpg';
                   }}
                 />
               </div>

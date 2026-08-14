@@ -26,7 +26,7 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queue }) => {
           alt={song.titulo}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           onError={(e) => {
-            e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
+            e.currentTarget.src = 'https://portaldoartista.com/images/default-cover.png';
           }}
         />
 
