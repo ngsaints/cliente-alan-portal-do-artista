@@ -149,10 +149,11 @@ export default function Planos() {
                   key={plan.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`p-6 sm:p-7 rounded-3xl border flex flex-col justify-between space-y-6 transition-all relative ${
+                  onClick={() => setLocation(`/cadastro?plano=${plan.nome}`)}
+                  className={`group p-6 sm:p-7 rounded-3xl border flex flex-col justify-between space-y-6 transition-all duration-300 relative cursor-pointer hover:-translate-y-1.5 hover:shadow-2xl ${
                     isFeatured
-                      ? "border-primary bg-gradient-to-b from-primary/20 via-card/90 to-card/95 ring-2 ring-primary/40 shadow-[0_0_35px_rgba(245,197,24,0.25)] lg:-translate-y-2"
-                      : "border-border/40 bg-card/40 hover:border-primary/40"
+                      ? "border-primary bg-gradient-to-b from-primary/20 via-card/90 to-card/95 ring-2 ring-primary/40 shadow-[0_0_35px_rgba(245,197,24,0.25)] lg:-translate-y-2 hover:border-yellow-300"
+                      : "border-border/40 bg-card/40 hover:border-primary/50 hover:bg-card/70"
                   }`}
                 >
                   {isFeatured && (
@@ -171,9 +172,9 @@ export default function Planos() {
                     <div>
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-black text-white">
-                          {isFree ? "GRÁTIS" : `R$ ${parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                          {isFree ? "R$ 0,00" : `R$ ${parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                         </span>
-                        {!isFree && <span className="text-xs text-muted-foreground">/mês</span>}
+                        <span className="text-xs text-muted-foreground">/mês</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1 min-h-[32px]">{plan.tagline}</p>
                     </div>
@@ -189,15 +190,19 @@ export default function Planos() {
                   </div>
 
                   <button
-                    onClick={() => setLocation(`/cadastro?plano=${plan.nome}`)}
-                    className={`w-full py-3.5 rounded-full font-extrabold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLocation(`/cadastro?plano=${plan.nome}`);
+                    }}
+                    className={`w-full py-3.5 rounded-full font-black text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 group-hover:scale-102 ${
                       isFeatured
                         ? "bg-primary text-black hover:bg-primary/95 shadow-lg shadow-primary/20"
                         : "bg-card border border-border/60 text-white hover:border-primary/50 hover:bg-card/80"
                     }`}
                   >
                     <Zap className="w-3.5 h-3.5 fill-current" />
-                    {isFree ? "Experimentar Grátis" : `Assinar ${plan.label}`}
+                    {isFree ? "EXPERIMENTAR GRÁTIS" : `ASSINAR ${plan.label.toUpperCase()}`}
                   </button>
                 </motion.div>
               );
