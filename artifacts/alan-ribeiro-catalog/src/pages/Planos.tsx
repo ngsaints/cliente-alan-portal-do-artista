@@ -165,7 +165,7 @@ export default function Planos() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${plan.color}`}>
-                        {plan.label}
+                        {isFree ? "EXPERIMENTE GRÁTIS" : plan.label}
                       </span>
                     </div>
 
@@ -202,7 +202,7 @@ export default function Planos() {
                     }`}
                   >
                     <Zap className="w-3.5 h-3.5 fill-current" />
-                    {isFree ? "EXPERIMENTAR GRÁTIS" : `ASSINAR ${plan.label.toUpperCase()}`}
+                    {isFree ? "EXPERIMENTE GRÁTIS" : `ASSINAR ${plan.label.replace(/ASSINAR/gi, "").trim().toUpperCase()}`}
                   </button>
                 </motion.div>
               );
