@@ -1,0 +1,53 @@
+name: Build Android APK (Portal do Artista Player)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Configurar Java 17 (JDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Instalar Dependências do App Mobile
+        run: |
+          cd artifacts/player-app-mobile
+          npm install
+
+      - name: Build Web App (Dist)
+        run: |
+          cd artifacts/player-app-mobile
+          npm run build
+
+      - name: Sincronizar Capacitor Android
+        run: |
+          cd artifacts/player-app-mobile
+          npx cap sync android
+
+      - name: Compilar APK Android (Gradle Debug Build)
+        run: |
+          cd artifacts/player-app-mobile/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK para Download (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-do-artista-listener-app-debug.apk
+          path: artifacts/player-app-mobile/android/app/build/outputs/apk/debug/app-debug.apk
