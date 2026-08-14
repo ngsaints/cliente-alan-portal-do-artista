@@ -69,7 +69,7 @@ export default function Artists() {
   });
 
   useEffect(() => {
-    fetch("/api/artists/public")
+    fetch("/api/artists/public", { cache: "no-store" })
       .then(r => r.json())
       .then(data => {
         setArtists(data);

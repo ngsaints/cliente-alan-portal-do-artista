@@ -93,7 +93,7 @@ export default function Home() {
       .catch(() => {});
 
     setLoadingArtists(true);
-    fetch("/api/artists/public")
+    fetch("/api/artists/public", { cache: "no-store" })
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -109,7 +109,7 @@ export default function Home() {
       if (searchQuery.trim().length >= 2) {
         setSearching(true);
         try {
-          const res = await fetch(`/api/artists/public?search=${encodeURIComponent(searchQuery)}`);
+          const res = await fetch(`/api/artists/public?search=${encodeURIComponent(searchQuery)}`, { cache: "no-store" });
           const data = await res.json();
           setSearchResults(data);
         } catch (e) {

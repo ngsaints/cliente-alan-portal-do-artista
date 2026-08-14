@@ -631,6 +631,10 @@ function normalizeBackendImageUrl(url: string | null | undefined): string | null
 // GET /artists/public - List public artists
 const getPublicArtists = async (req: any, res: any): Promise<void> => {
   try {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+
     const { genero, plano, search } = req.query;
     
     let artists = await db
@@ -725,6 +729,10 @@ router.get("/artists/public", getPublicArtists);
 // GET /artists/:identifier - Get artist by ID or slug
 router.get("/artists/:identifier", async (req, res): Promise<void> => {
   try {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+
     const { identifier } = req.params;
     
     // Try to find by ID (number) or slug
