@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useLocation, useSearch } from "wouter";
+import { useLocation, useSearch, Link } from "wouter";
 import { motion } from "framer-motion";
-import { Sparkles, Eye, EyeOff, Check, Loader2, Phone, CreditCard, Lock, ShieldCheck, UserCheck } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Check, Loader2, Phone, CreditCard, Lock, ShieldCheck, UserCheck, Info } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { buildPlanFeatures } from "@/lib/utils";
 
@@ -20,7 +20,8 @@ export default function Cadastro() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const rawPlanParam = new URLSearchParams(search).get("plano");
-  const selectedPlanId = rawPlanParam || "free";
+  // Default to premium if not specified
+  const selectedPlanId = rawPlanParam || "premium";
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -107,7 +108,7 @@ export default function Cadastro() {
       return;
     }
     if (!isFreePlan && !formData.documento) {
-      setError("CPF/CNPJ é obrigatório para assinaturas pagas");
+      setError("CPF ou CNPJ é obrigatório para a assinatura do perfil profissional");
       return;
     }
     if (formData.password.length < 6) {
@@ -159,7 +160,7 @@ export default function Cadastro() {
 
   const activePlanObj = dbPlans.find(p => p.id === formData.plano) || {
     id: isFreePlan ? "free" : "premium",
-    label: isFreePlan ? "Gratuito" : "Premium",
+    label: isFreePlan ? "Gratuito (Experimental)" : "Premium (Profissional)",
     preco: isFreePlan ? "0.00" : "25.00",
     limiteMusicas: isFreePlan ? 4 : 50,
   };
@@ -177,13 +178,13 @@ export default function Cadastro() {
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-3">
               <Sparkles className="w-3.5 h-3.5" />
-              Ativação Instantânea
+              {isFreePlan ? "Plano Experimental" : "Ativação Instantânea"}
             </div>
             <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
-              {isFreePlan ? "Cadastro Gratuito do Artista" : "Assinatura do Portal"}
+              {isFreePlan ? "Cadastro do Plano Gratuito" : "Assinatura do Perfil Profissional"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {isFreePlan ? "Crie sua conta em 1 minuto e comece já." : "Preencha os dados abaixo para gerar sua assinatura."}
+              {isFreePlan ? "Crie sua conta em 1 minuto para conhecer a plataforma." : "Preencha os dados abaixo para ativar sua página e catálogo profissional."}
             </p>
           </motion.div>
 
@@ -192,46 +193,20 @@ export default function Cadastro() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-card border border-border/40 rounded-3xl p-6 sm:p-7 space-y-5 shadow-2xl backdrop-blur-md"
           >
-            {/* Seletor de Planos na Página de Cadastro */}
-            {dbPlans.length > 0 && (
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Selecione o Plano Desejado:
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {dbPlans.map((p) => {
-                    const isSelected = formData.plano === p.nome;
-                    const isFree = p.nome === "free";
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          setFormData((prev) => ({ ...prev, plano: p.nome }));
-                          setCouponResult(null);
-                          setCouponError("");
-                        }}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                          isSelected
-                            ? "border-primary bg-primary/15 ring-2 ring-primary/30"
-                            : "border-border/40 bg-background/50 hover:border-primary/40"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-extrabold text-foreground">{p.label}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
-                        </div>
-                        <span className="text-xs font-bold text-primary block mt-1">
-                          {isFree ? "Grátis" : `R$ ${parseFloat(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`}
-                        </span>
-                      </button>
-                    );
-                  })}
+            {/* Disclaimer para Plano Free */}
+            {isFreePlan && (
+              <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs space-y-1.5 leading-relaxed">
+                <div className="flex items-center gap-2 font-bold text-amber-400 uppercase tracking-wider text-[11px]">
+                  <Info className="w-4 h-4 shrink-0" />
+                  Plano Experimental e Limitado
                 </div>
+                <p>
+                  Este plano é voltado exclusivamente para você testar a experiência e conhecer os recursos (limite de até 4 músicas no catálogo).
+                </p>
               </div>
             )}
 
-            {/* Box do Plano Selecionado */}
+            {/* Box do Plano Selecionado (Dedicado) */}
             <div className="p-4 rounded-2xl border border-primary/40 bg-primary/10 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-primary px-2 py-0.5 rounded bg-primary/20">
@@ -287,9 +262,10 @@ export default function Cadastro() {
                 />
               </div>
 
+              {/* CPF / CNPJ exibido como obrigatório no pago e opcional no free */}
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                  {isFreePlan ? "CPF ou CNPJ (Opcional)" : "CPF ou CNPJ (Obrigatório Asaas) *"}
+                  {isFreePlan ? "CPF ou CNPJ (Opcional)" : "CPF ou CNPJ *"}
                 </label>
                 <input
                   type="text"
@@ -360,7 +336,7 @@ export default function Cadastro() {
                         type="button"
                         onClick={handleValidateCoupon}
                         disabled={!couponCode || validatingCoupon}
-                        className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 font-bold rounded-xl transition-all disabled:opacity-50 text-xs border border-primary/30"
+                        className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 font-bold rounded-xl transition-all disabled:opacity-50 text-xs border border-primary/30 cursor-pointer"
                       >
                         {validatingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Aplicar"}
                       </button>
@@ -436,6 +412,25 @@ export default function Cadastro() {
                 </span>
               </div>
             </form>
+
+            {/* Alternativa Discreta no Rodapé do Formulário */}
+            <div className="pt-4 border-t border-border/30 text-center text-xs text-muted-foreground">
+              {isFreePlan ? (
+                <span>
+                  Quer ativar a conta profissional completa por apenas R$ 25,00/mês?{" "}
+                  <Link href="/cadastro?plano=premium" className="text-primary font-bold hover:underline">
+                    Clique aqui para o Plano Profissional
+                  </Link>
+                </span>
+              ) : (
+                <span>
+                  Quer apenas experimentar a plataforma gratuitamente primeiro?{" "}
+                  <Link href="/cadastro?plano=free" className="text-primary font-bold hover:underline">
+                    Clique aqui para o Plano Gratuito
+                  </Link>
+                </span>
+              )}
+            </div>
           </motion.div>
         </div>
       </section>

@@ -183,7 +183,7 @@ export default function Landing() {
                 className="w-full sm:w-auto px-8 py-4 rounded-full bg-primary text-primary-foreground font-black text-sm sm:text-base hover:bg-primary/95 transition-all shadow-[0_10px_35px_rgba(245,197,24,0.35)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
               >
                 <Zap className="w-5 h-5 fill-current" />
-                {settings.landingHeroCta || "COMEÇAR AGORA"}
+                {settings.landingHeroCta || "COMEÇAR SEU PERFIL AGORA"}
               </button>
 
               <Link
@@ -483,7 +483,7 @@ export default function Landing() {
               onClick={() => setLocation("/cadastro?plano=premium")}
               className="w-full sm:w-auto px-8 py-4 rounded-full bg-primary text-black font-black text-sm hover:bg-primary/90 transition-all shadow-xl uppercase tracking-wider cursor-pointer"
             >
-              COMEÇAR AGORA
+              COMEÇAR SEU PERFIL AGORA
             </button>
           </div>
         </div>
@@ -591,7 +591,7 @@ export default function Landing() {
               className="px-10 py-4.5 rounded-full bg-primary hover:bg-primary/95 text-black font-black text-base shadow-[0_10px_35px_rgba(245,197,24,0.35)] hover:scale-105 transition-all cursor-pointer uppercase tracking-wider inline-flex items-center gap-2"
             >
               <Zap className="w-5 h-5 fill-current" />
-              COMEÇAR AGORA
+              COMEÇAR SEU PERFIL AGORA
             </button>
           </div>
 

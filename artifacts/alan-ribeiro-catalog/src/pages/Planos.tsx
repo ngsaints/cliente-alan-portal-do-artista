@@ -55,7 +55,7 @@ export default function Planos() {
             let cardStyle = "border-border/40 bg-card/40 hover:border-primary/40";
             
             if (p.nome === "free") {
-              tagline = "Experimente grátis a plataforma.";
+              tagline = "Plano experimental e limitado para conhecer a experiência.";
               color = "bg-muted text-muted-foreground border-border";
             } else if (p.nome === "basico") {
               tagline = "Sua jornada profissional começa aqui.";
@@ -197,7 +197,7 @@ export default function Planos() {
                     }`}
                   >
                     <Zap className="w-3.5 h-3.5 fill-current" />
-                    {isFree ? "Começar Grátis" : `Assinar ${plan.label}`}
+                    {isFree ? "Experimentar Grátis" : `Assinar ${plan.label}`}
                   </button>
                 </motion.div>
               );
