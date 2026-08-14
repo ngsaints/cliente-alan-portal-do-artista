@@ -36,7 +36,7 @@ export function MusicCard({ song, index, cardStyle = "default", highlighted = fa
     return <MusicCardIpod song={song} index={index} highlighted={highlighted} />;
   }
 
-  const { currentSong, isPlaying, playSong } = usePlayer();
+  const { currentSong, isPlaying, playSong, togglePlay } = usePlayer();
   const { toast } = useToast();
   const isThisPlaying = currentSong?.id === song.id && isPlaying;
   const disponivel = !song.status || song.status === "Disponível";
