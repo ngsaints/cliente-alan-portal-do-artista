@@ -4,6 +4,7 @@ import { db, songsTable, songLikesTable } from "@workspace/db";
 import { eq, sql, and } from "drizzle-orm";
 import { ListSongsResponse, DeleteSongParams } from "@workspace/api-zod";
 import { uploadToR2, deleteFromR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+import { isValidImage } from "../lib/image-utils.js";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
@@ -164,6 +165,10 @@ router.post(
 
     // Upload da capa (opcional para vídeo com YouTube)
     if (capaFile) {
+      if (!(await isValidImage(capaFile.buffer))) {
+        res.status(400).json({ error: "Imagem de capa inválida — envie um arquivo JPG, PNG ou WebP válido." });
+        return;
+      }
       try {
         if (r2Enabled) {
           const capaKey = generateR2Key("covers", capaFile.originalname);
@@ -261,6 +266,10 @@ router.put(
       // Se uma nova capa foi enviada, faz o upload
       let capaPath: string | undefined = undefined;
       if (req.file) {
+        if (!(await isValidImage(req.file.buffer))) {
+          res.status(400).json({ error: "Imagem de capa inválida — envie um arquivo JPG, PNG ou WebP válido." });
+          return;
+        }
         try {
           if (r2Enabled) {
             const key = generateR2Key("covers", req.file.originalname);

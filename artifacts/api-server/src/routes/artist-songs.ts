@@ -3,6 +3,7 @@ import multer from "multer";
 import { db, songsTable, artistsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { uploadToR2, deleteFromR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
+import { isValidImage } from "../lib/image-utils.js";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
@@ -164,6 +165,10 @@ router.post(
       let mp3Path: string | null = null;
 
       if (capaFile) {
+        if (!(await isValidImage(capaFile.buffer))) {
+          res.status(400).json({ error: "Imagem de capa inválida — envie um arquivo JPG, PNG ou WebP válido." });
+          return;
+        }
         if (r2Enabled) {
           const capaKey = generateR2Key("covers", capaFile.originalname.replace(/\.\w+$/, ".jpg"));
           const capaJpg = await sharp(capaFile.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
@@ -295,6 +300,10 @@ router.put(
 
       let capaPath: string | undefined;
       if (capaFile) {
+        if (!(await isValidImage(capaFile.buffer))) {
+          res.status(400).json({ error: "Imagem de capa inválida — envie um arquivo JPG, PNG ou WebP válido." });
+          return;
+        }
         if (r2Enabled) {
           const key = generateR2Key("covers", capaFile.originalname.replace(/\.\w+$/, ".jpg"));
           const capaJpg = await sharp(capaFile.buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
