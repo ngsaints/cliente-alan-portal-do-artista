@@ -24,7 +24,7 @@ const PAISES = [
 export default function Cadastro() {
   const [, setLocation] = useLocation();
   const search = useSearch();
-  const rawPlanParam = new URLSearchParams(search).get("plano");
+  const rawPlanParam = (new URLSearchParams(search).get("plano") || "").toLowerCase();
   // Default to premium if not specified
   const selectedPlanId = rawPlanParam || "premium";
 
@@ -298,7 +298,7 @@ export default function Cadastro() {
                             : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        🇧🇷 Documento nacional
+                        Documento nacional
                       </button>
                       <button
                         type="button"
@@ -309,7 +309,7 @@ export default function Cadastro() {
                             : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        🌎 Documento internacional
+                        Documento internacional
                       </button>
                     </div>
                   </div>

@@ -76,20 +76,21 @@ router.post(
   async (req, res): Promise<void> => {
     try {
       const { name, email, documento, contato, password, profissao, genero, cidade, instagram, tiktok, spotify, plano, couponCode, billingType, docTipo, docTipoDocumento, docNumero, docPais } = req.body;
+      const normalizedPlano = plano ? String(plano).toLowerCase() : undefined;
 
       if (!name || !email || !password) {
         res.status(400).json({ error: "Nome, email e senha são obrigatórios" });
         return;
       }
 
-      if (plano !== "free" && !documento) {
+      if (normalizedPlano !== "free" && !documento) {
         res.status(400).json({ error: "CPF ou CNPJ é obrigatório para a assinatura do perfil profissional" });
         return;
       }
 
       // Plano free: identificação obrigatória (nacional ou internacional) para responsabilização jurídica.
       // Só exige quando o plano é explicitamente "free" — mantém o comportamento antigo para os demais casos.
-      if (plano === "free") {
+      if (normalizedPlano === "free") {
         if (!docTipo || !docNumero) {
           res.status(400).json({ error: "Informe o tipo de identificação e o número do documento" });
           return;
@@ -113,7 +114,7 @@ router.post(
       // Get plan limits
       let limiteMusicas = "2";
       let personalizacaoPercent = "10";
-      const selectedPlano = plano || "free";
+      const selectedPlano = normalizedPlano || "free";
       
       // Buscar configurações do plano no banco
       const plans = await db.select().from(plansTable).where(eq(plansTable.nome, selectedPlano));
