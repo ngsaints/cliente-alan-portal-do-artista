@@ -9,10 +9,10 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$DIR"
 
 # Busca atualizações silenciosamente do repositório remoto
-git fetch origin master > /dev/null 2>&1
+git fetch origin main > /dev/null 2>&1
 
 LOCAL=$(git rev-parse HEAD)
-REMOTE=$(git rev-parse origin/master)
+REMOTE=$(git rev-parse origin/main)
 
 # Só inicia o processo se houver alterações no repositório remoto
 if [ "$LOCAL" != "$REMOTE" ]; then
@@ -33,7 +33,7 @@ if [ "$LOCAL" != "$REMOTE" ]; then
         echo "❌ [$(date)] ERRO: O deploy falhou na instrução: '$failed_command' com código de saída $exit_code." >> "$LOG_FILE"
         
         # Grava no log de histórico simplificado
-        echo "[$(date)] ERROR - Commit: $(git rev-parse --short origin/master || echo 'unknown') - Falhou no comando '$failed_command' (código: $exit_code)" >> "$HISTORY_FILE"
+        echo "[$(date)] ERROR - Commit: $(git rev-parse --short origin/main || echo 'unknown') - Falhou no comando '$failed_command' (código: $exit_code)" >> "$HISTORY_FILE"
         
         # Cria cópia/link do último deploy com falha
         cp "$LOG_FILE" "$LATEST_LOG" 2>/dev/null || true
@@ -50,7 +50,7 @@ if [ "$LOCAL" != "$REMOTE" ]; then
             
             echo "⬆️ [$(date)] Enviando commit de erro para o repositório remoto..." >> "$LOG_FILE"
             # Tenta dar push. Se falhar por falta de permissão de escrita na Deploy Key, ignora silenciosamente.
-            git push origin master 2>/dev/null || echo "⚠️ [$(date)] Aviso: Sem permissão de escrita no GitHub (push de log ignorado)." >> "$LOG_FILE"
+            git push origin main 2>/dev/null || echo "⚠️ [$(date)] Aviso: Sem permissão de escrita no GitHub (push de log ignorado)." >> "$LOG_FILE"
         fi
         
         exit $exit_code
@@ -73,7 +73,7 @@ if [ "$LOCAL" != "$REMOTE" ]; then
     
     # Puxa as alterações do repositório
     echo "⬇️ Puxando alterações do GitHub..."
-    git pull origin master
+    git pull origin main
     
     # Instala/atualiza dependências usando pnpm
     echo "📦 Instalando/atualizando dependências com pnpm..."
