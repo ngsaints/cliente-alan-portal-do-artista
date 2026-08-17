@@ -219,9 +219,7 @@ export default function Cadastro() {
                   <Info className="w-4 h-4 shrink-0" />
                   Plano Experimental e Limitado
                 </div>
-                <p>
-                  Este plano é voltado exclusivamente para você testar a experiência e conhecer os recursos (limite de até 4 músicas no catálogo).
-                </p>
+                <p>Até 4 músicas no catálogo para testar os recursos.</p>
               </div>
             )}
 
