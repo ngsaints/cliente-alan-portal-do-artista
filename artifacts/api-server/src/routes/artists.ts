@@ -75,11 +75,29 @@ router.post(
   ]),
   async (req, res): Promise<void> => {
     try {
-      const { name, email, documento, contato, password, profissao, genero, cidade, instagram, tiktok, spotify, plano, couponCode, billingType } = req.body;
+      const { name, email, documento, contato, password, profissao, genero, cidade, instagram, tiktok, spotify, plano, couponCode, billingType, docTipo, docTipoDocumento, docNumero, docPais } = req.body;
 
-      if (!name || !email || !password || (!documento && plano !== "free")) {
-        res.status(400).json({ error: "Nome, email, senha (e CPF/CNPJ para planos pagos) são obrigatórios" });
+      if (!name || !email || !password) {
+        res.status(400).json({ error: "Nome, email e senha são obrigatórios" });
         return;
+      }
+
+      if (plano !== "free" && !documento) {
+        res.status(400).json({ error: "CPF ou CNPJ é obrigatório para a assinatura do perfil profissional" });
+        return;
+      }
+
+      // Plano free: identificação obrigatória (nacional ou internacional) para responsabilização jurídica.
+      // Só exige quando o plano é explicitamente "free" — mantém o comportamento antigo para os demais casos.
+      if (plano === "free") {
+        if (!docTipo || !docNumero) {
+          res.status(400).json({ error: "Informe o tipo de identificação e o número do documento" });
+          return;
+        }
+        if (docTipo === "internacional" && !docPais) {
+          res.status(400).json({ error: "Informe o país emissor do documento internacional" });
+          return;
+        }
       }
 
       // Check if artist already exists
@@ -173,6 +191,10 @@ router.post(
           slug,
           email,
           documento,
+          docTipo: docTipo || null,
+          docTipoDocumento: docTipoDocumento || null,
+          docNumero: docNumero || null,
+          docPais: docPais || null,
           password: hashedPassword,
           profissao: profissao || "Cantor",
           genero: genero || null,

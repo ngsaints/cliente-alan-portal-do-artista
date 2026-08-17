@@ -16,6 +16,11 @@ interface Plan {
   aiCreditsLimit?: number;
 }
 
+const PAISES = [
+  "Brasil", "Argentina", "Bolívia", "Chile", "Colômbia", "Cuba", "Equador", "Estados Unidos", "França",
+  "Guiana", "Guiana Francesa", "Itália", "México", "Paraguai", "Peru", "Portugal", "Suíça", "Uruguai", "Venezuela", "Outro",
+] as const;
+
 export default function Cadastro() {
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -45,6 +50,10 @@ export default function Cadastro() {
     bannerFile: null as File | null,
     plano: selectedPlanId,
     billingType: "CREDIT_CARD" as "CREDIT_CARD" | "PIX",
+    docTipo: "nacional" as "nacional" | "internacional",
+    docTipoDocumento: "CPF",
+    docNumero: "",
+    docPais: "Brasil",
   });
 
   useEffect(() => {
@@ -110,6 +119,16 @@ export default function Cadastro() {
     if (!isFreePlan && !formData.documento) {
       setError("CPF ou CNPJ é obrigatório para a assinatura do perfil profissional");
       return;
+    }
+    if (isFreePlan) {
+      if (!formData.docTipo || !formData.docNumero) {
+        setError("Informe o tipo de identificação e o número do documento");
+        return;
+      }
+      if (formData.docTipo === "internacional" && !formData.docPais) {
+        setError("Informe o país emissor do documento internacional");
+        return;
+      }
     }
     if (formData.password.length < 6) {
       setError("A senha deve ter pelo menos 6 caracteres");
@@ -262,20 +281,141 @@ export default function Cadastro() {
                 />
               </div>
 
-              {/* CPF / CNPJ exibido como obrigatório no pago e opcional no free */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                  {isFreePlan ? "CPF ou CNPJ (Opcional)" : "CPF ou CNPJ *"}
-                </label>
-                <input
-                  type="text"
-                  value={formData.documento}
-                  onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
-                  required={!isFreePlan}
-                  className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                />
-              </div>
+              {/* Identificação (free) ou CPF/CNPJ (pago) */}
+              {isFreePlan ? (
+                <div className="pt-2 border-t border-border/30 space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                      Tipo de Identificação *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, docTipo: "nacional", docTipoDocumento: "CPF", docPais: "Brasil" })}
+                        className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                          formData.docTipo === "nacional"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        🇧🇷 Documento nacional
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, docTipo: "internacional", docTipoDocumento: "Passaporte" })}
+                        className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                          formData.docTipo === "internacional"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border/40 bg-input text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        🌎 Documento internacional
+                      </button>
+                    </div>
+                  </div>
+
+                  {formData.docTipo === "nacional" ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">País</label>
+                          <input
+                            type="text"
+                            value="Brasil"
+                            disabled
+                            className="w-full bg-muted/40 border border-border/40 rounded-xl px-4 py-3 text-foreground text-sm opacity-70"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Tipo de documento</label>
+                          <select
+                            value={formData.docTipoDocumento}
+                            onChange={(e) => setFormData({ ...formData, docTipoDocumento: e.target.value })}
+                            className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          >
+                            <option value="CPF">CPF</option>
+                            <option value="CIN">CIN (nova identidade)</option>
+                            <option value="RG">RG</option>
+                            <option value="Outro">Outro</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                          Número do documento *
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.docNumero}
+                          onChange={(e) => setFormData({ ...formData, docNumero: e.target.value })}
+                          placeholder="000.000.000-00"
+                          className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">País emissor *</label>
+                          <select
+                            value={formData.docPais}
+                            onChange={(e) => setFormData({ ...formData, docPais: e.target.value })}
+                            className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          >
+                            {PAISES.map((p) => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Tipo de documento</label>
+                          <select
+                            value={formData.docTipoDocumento}
+                            onChange={(e) => setFormData({ ...formData, docTipoDocumento: e.target.value })}
+                            className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          >
+                            <option value="Passaporte">Passaporte</option>
+                            <option value="Documento nacional">Documento nacional</option>
+                            <option value="Outro">Outro</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                          Número do documento *
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.docNumero}
+                          onChange={(e) => setFormData({ ...formData, docNumero: e.target.value })}
+                          placeholder="Número do documento"
+                          className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground leading-relaxed">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                    Seus dados de identificação são privados e usados apenas para fins de verificação e responsabilização (LGPD). Não são exibidos no perfil público.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                    CPF ou CNPJ *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.documento}
+                    onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
+                    required={!isFreePlan}
+                    className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">

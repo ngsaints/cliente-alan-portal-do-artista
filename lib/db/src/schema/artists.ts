@@ -8,6 +8,10 @@ export const artistsTable = pgTable("artists", {
   slug: varchar("slug", { length: 255 }).unique(), // URL amigável
   email: varchar("email", { length: 255 }).notNull().unique(),
   documento: varchar("documento", { length: 20 }), // CPF ou CNPJ
+  docTipo: varchar("doc_tipo", { length: 20 }), // nacional | internacional
+  docTipoDocumento: varchar("doc_tipo_documento", { length: 50 }), // CPF, CIN, Passaporte, Outro...
+  docNumero: text("doc_numero"), // número do documento de identificação
+  docPais: varchar("doc_pais", { length: 100 }), // país emissor do documento
   password: text("password").notNull(),
   profissao: text("profissao"), // Cantor, Compositor, Banda, Grupo, Dupla
   contato: text("contato"),
