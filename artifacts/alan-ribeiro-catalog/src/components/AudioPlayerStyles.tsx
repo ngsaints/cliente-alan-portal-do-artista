@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, Volume2, VolumeX, X, SkipBack, SkipForward, ListMusic, Disc, Zap, Radio } from "lucide-react";
 import { usePlayer, type PlayerStyle } from "@/contexts/PlayerContext";
+import { formatImageUrl } from "@/lib/utils";
 
 function formatTime(seconds: number) {
   if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
@@ -58,7 +59,7 @@ export function PlayerPadrao() {
             className="w-12 h-12 rounded-lg overflow-hidden shrink-0 shadow-lg border"
             style={{ borderColor: `${playerCor || '#f5c518'}40` }}
           >
-            <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+            <img src={formatImageUrl(currentSong.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)} alt={currentSong.titulo} className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0 flex-1">
             <h4 className="font-bold text-white truncate text-sm">{currentSong.titulo}</h4>
@@ -102,7 +103,7 @@ export function PlayerPadrao() {
             className="w-10 h-10 rounded overflow-hidden shrink-0 border"
             style={{ borderColor: `${playerCor || '#f5c518'}30` }}
           >
-            <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+            <img src={formatImageUrl(currentSong.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)} alt={currentSong.titulo} className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0 flex-1">
             <h4 className="font-bold text-white text-xs truncate leading-snug">{currentSong.titulo}</h4>
@@ -149,7 +150,7 @@ export function PlayerMinimalista() {
       </div>
       <div className="flex items-center justify-between px-2 py-1.5">
         <div className="w-7 h-7 rounded overflow-hidden">
-          <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+          <img src={formatImageUrl(currentSong.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)} alt={currentSong.titulo} className="w-full h-full object-cover" />
         </div>
         <button onClick={togglePlay} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: trackGradient }}>
           {isPlaying ? <Pause className="w-4 h-4 text-black fill-black" /> : <Play className="w-4 h-4 text-black fill-black ml-0.5" />}
@@ -194,7 +195,7 @@ export function PlayerLista() {
         
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-lg overflow-hidden shadow-lg ring-2 ring-white/10">
-            <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+            <img src={formatImageUrl(currentSong.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)} alt={currentSong.titulo} className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0 flex-1 hidden sm:block">
             <h4 className="font-bold text-white truncate text-sm">{currentSong.titulo}</h4>
@@ -242,7 +243,7 @@ export function PlayerWaveform() {
     >
       <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
         <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-lg overflow-hidden shadow-lg ring-2 ring-cyan-500/30">
-          <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+          <img src={formatImageUrl(currentSong.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)} alt={currentSong.titulo} className="w-full h-full object-cover" />
         </div>
         <div className="flex-1 min-w-0 hidden sm:block">
           <h4 className="font-bold text-white truncate text-sm">{currentSong.titulo}</h4>
@@ -308,7 +309,7 @@ export function PlayerModerno() {
 
         <div className="flex items-center gap-2 sm:gap-4 flex-1 max-w-[180px] sm:max-w-md mx-auto">
           <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl overflow-hidden shadow-lg ring-2 ring-white/20" style={{ background: playButtonBg }}>
-            <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+            <img src={formatImageUrl(currentSong.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)} alt={currentSong.titulo} className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0 flex-1 hidden sm:block">
             <h4 className="font-bold text-white truncate text-base">{currentSong.titulo}</h4>
@@ -356,7 +357,7 @@ export function PlayerVintage() {
 
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-full overflow-hidden shadow-lg ring-2 sm:ring-4 ring-amber-700/50">
-            <img src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`} alt={currentSong.titulo} className="w-full h-full object-cover" />
+            <img src={formatImageUrl(currentSong.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)} alt={currentSong.titulo} className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0 flex-1 hidden sm:block">
             <h4 className="font-bold text-amber-100 truncate text-sm sm:text-base">{currentSong.titulo}</h4>
@@ -442,7 +443,7 @@ export function PlayerIpod() {
             }}
           >
             <img
-              src={currentSong.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
+              src={formatImageUrl(currentSong.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)}
               alt={currentSong.titulo}
               className="w-full h-full object-cover"
             />

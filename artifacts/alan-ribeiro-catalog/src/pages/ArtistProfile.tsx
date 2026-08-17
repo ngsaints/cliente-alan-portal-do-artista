@@ -741,7 +741,7 @@ export default function ArtistProfile() {
                         >
                           <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
                           <img
-                            src={song.capaUrl || "/images/default-cover.png"}
+                            src={formatImageUrl(song.capaUrl, "/images/default-cover.png")}
                             alt={song.titulo}
                             className="w-12 h-12 rounded object-cover"
                           />
@@ -876,7 +876,7 @@ export default function ArtistProfile() {
             <div id="press-kit-printable" className="bg-background border border-border/60 rounded-2xl p-6 sm:p-8 space-y-6 text-foreground font-sans">
               <div className="flex flex-col sm:flex-row items-center gap-6 border-b border-border/40 pb-6">
                 {artist.capaUrl ? (
-                  <img src={artist.capaUrl} alt={artist.name} className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border-2 border-primary/40 shadow-md" />
+                  <img src={formatImageUrl(artist.capaUrl)} alt={artist.name} className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border-2 border-primary/40 shadow-md" />
                 ) : (
                   <div className="w-28 h-28 rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-primary/40">
                     <Music className="w-12 h-12 text-primary" />

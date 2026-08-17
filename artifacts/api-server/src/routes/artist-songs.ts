@@ -30,6 +30,56 @@ function normalizePriceInput(v: unknown): string | null {
   return n;
 }
 
+function serializeSong(s: typeof songsTable.$inferSelect) {
+  return {
+    id: s.id,
+    titulo: s.titulo,
+    descricao: s.descricao,
+    genero: s.genero,
+    subgenero: s.subgenero,
+    compositor: s.compositor,
+    letra: s.letra ?? null,
+    edicao: s.edicao ?? null,
+    distribuicao: s.distribuicao ?? null,
+    associacao: s.associacao ?? null,
+    status: s.status,
+    precoX: s.precoX,
+    precoY: s.precoY,
+    isVip: s.isVip,
+    vipCode: s.vipCode ?? null,
+    capaUrl: s.capaPath || null,
+    mp3Url: s.mp3Path || null,
+    youtubeUrl: s.youtubeUrl ?? null,
+    tipoMidia: s.tipoMidia ?? "audio",
+    isPrivate: s.isPrivate ?? false,
+    likes: s.likes ?? "0",
+    plays: s.plays ?? "0",
+    createdAt: s.createdAt,
+  };
+}
+
+// Get songs for the logged-in artist (session-based)
+router.get("/artist-songs", async (req, res): Promise<void> => {
+  try {
+    const sessionArtistId = req.session.artistId;
+    if (!sessionArtistId) {
+      res.status(401).json({ error: "Não autorizado" });
+      return;
+    }
+
+    const rows = await db
+      .select()
+      .from(songsTable)
+      .where(eq(songsTable.artistaId, String(sessionArtistId)))
+      .orderBy(songsTable.createdAt);
+
+    res.json(rows.map(serializeSong));
+  } catch (error) {
+    console.error("Error getting artist songs:", error);
+    res.status(500).json({ error: "Erro ao obter músicas do artista" });
+  }
+});
+
 // Get songs for a specific artist
 router.get("/artist/:artistId/songs", async (req, res): Promise<void> => {
   try {
@@ -52,31 +102,7 @@ router.get("/artist/:artistId/songs", async (req, res): Promise<void> => {
       rows = rows.filter((s) => s.genero === genre);
     }
 
-    res.json(rows.map(s => ({
-      id: s.id,
-      titulo: s.titulo,
-      descricao: s.descricao,
-      genero: s.genero,
-      subgenero: s.subgenero,
-      compositor: s.compositor,
-      letra: s.letra ?? null,
-      edicao: s.edicao ?? null,
-      distribuicao: s.distribuicao ?? null,
-      associacao: s.associacao ?? null,
-      status: s.status,
-      precoX: s.precoX,
-      precoY: s.precoY,
-      isVip: s.isVip,
-      vipCode: s.vipCode ?? null,
-      capaUrl: s.capaPath || null,
-      mp3Url: s.mp3Path || null,
-      youtubeUrl: s.youtubeUrl ?? null,
-      tipoMidia: s.tipoMidia ?? "audio",
-      isPrivate: s.isPrivate ?? false,
-      likes: s.likes ?? "0",
-      plays: s.plays ?? "0",
-      createdAt: s.createdAt,
-    })));
+    res.json(rows.map(serializeSong));
   } catch (error) {
     console.error("Error getting artist songs:", error);
     res.status(500).json({ error: "Erro ao obter músicas do artista" });

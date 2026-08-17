@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { formatImageUrl } from "@/lib/utils";
 import {
   useLogin,
   useLogout,
@@ -574,7 +575,7 @@ function SongsTab() {
                 {/* Capa + título */}
                 <div className="flex items-center gap-3 min-w-0">
                   <img
-                    src={song.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
+                    src={formatImageUrl(song.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)}
                     alt=""
                     className="w-10 h-10 rounded-lg object-cover shrink-0 bg-black/30"
                   />
@@ -3646,7 +3647,7 @@ function PlaylistsTab() {
                 <div className="space-y-2">
                   {selectedPlaylist.songs.map((song: any) => (
                     <div key={song.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
-                      <img src={song.capaUrl || "/images/default-cover.png"} alt="" className="w-10 h-10 rounded object-cover" />
+                      <img src={formatImageUrl(song.capaUrl, "/images/default-cover.png")} alt="" className="w-10 h-10 rounded object-cover" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-foreground text-sm truncate">{song.titulo}</p>
                         <p className="text-xs text-muted-foreground">{song.genero}</p>

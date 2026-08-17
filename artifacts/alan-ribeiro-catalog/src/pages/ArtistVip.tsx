@@ -6,6 +6,7 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { useListSongs } from "@workspace/api-client-react";
 import { Navbar } from "@/components/Navbar";
 import { useSEO } from "@/hooks/useSEO";
+import { formatImageUrl } from "@/lib/utils";
 
 export default function ArtistVip() {
   const { id } = useParams();
@@ -199,7 +200,7 @@ export default function ArtistVip() {
                           />
                         ) : song.capaUrl ? (
                           <img
-                            src={song.capaUrl}
+                            src={formatImageUrl(song.capaUrl)}
                             alt={song.titulo}
                             className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-border"
                           />

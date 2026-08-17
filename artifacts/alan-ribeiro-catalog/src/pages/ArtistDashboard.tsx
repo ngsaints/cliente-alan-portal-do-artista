@@ -21,6 +21,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { useGenres } from "@/hooks/useGenres";
 import { usePlayer, PlayerStyle } from "@/contexts/PlayerContext";
 import { useToast } from "@/hooks/use-toast";
+import { formatImageUrl } from "@/lib/utils";
 
 interface ArtistStats {
   totalSongs: number;
@@ -1618,7 +1619,7 @@ export default function ArtistDashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {songs.slice(0, 6).map((song) => (
                         <div key={song.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-xl border border-border/30 hover:border-primary/30 transition-colors">
-                          <img src={song.capaUrl || "/images/default-cover.png"} alt={song.titulo} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                          <img src={formatImageUrl(song.capaUrl, "/images/default-cover.png")} alt={song.titulo} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-foreground truncate text-sm">{song.titulo}</h4>
                             <p className="text-xs text-muted-foreground">{song.genero}</p>
@@ -1663,7 +1664,7 @@ export default function ArtistDashboard() {
 
                   <div className="flex items-center gap-4">
                     {artist?.capaUrl ? (
-                      <img src={artist.capaUrl} alt={artist.name} className="w-16 h-16 rounded-full object-cover border-2 border-primary/30" />
+                      <img src={formatImageUrl(artist.capaUrl)} alt={artist.name} className="w-16 h-16 rounded-full object-cover border-2 border-primary/30" />
                     ) : (
                       <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/30">
                         <User className="w-8 h-8 text-primary/50" />
@@ -1678,7 +1679,7 @@ export default function ArtistDashboard() {
                       </div>
                     </div>
                     {artist?.bannerUrl && (
-                      <img src={artist.bannerUrl} alt="Banner" className="w-28 h-12 rounded-lg object-cover border border-border hidden sm:block" />
+                      <img src={formatImageUrl(artist.bannerUrl)} alt="Banner" className="w-28 h-12 rounded-lg object-cover border border-border hidden sm:block" />
                     )}
                   </div>
                 </div>
@@ -1913,7 +1914,7 @@ export default function ArtistDashboard() {
                   <div className="space-y-3">
                     {songs.map((song) => (
                       <div key={song.id} className="flex items-center gap-4 bg-card border border-border/40 rounded-xl p-4 group">
-                        <img src={song.capaUrl || "/images/default-cover.png"} alt={song.titulo} className="w-16 h-16 rounded-lg object-cover" />
+                        <img src={formatImageUrl(song.capaUrl, "/images/default-cover.png")} alt={song.titulo} className="w-16 h-16 rounded-lg object-cover" />
                         <div className="flex-1 min-w-0">
                           <h4 className="font-bold text-foreground truncate">{song.titulo}</h4>
                           <p className="text-sm text-muted-foreground">{song.genero} · {song.status}</p>
@@ -2124,7 +2125,7 @@ export default function ArtistDashboard() {
                         {playlistSongs.map((song, index) => (
                           <div key={`${song.id}-${index}`} className="flex items-center gap-3 p-3 bg-background/50 rounded-lg border border-border/30 group">
                             <GripVertical className="w-4 h-4 text-muted-foreground opacity-50" />
-                            <img src={song.capaUrl || "/images/default-cover.png"} alt={song.titulo} className="w-10 h-10 rounded object-cover" />
+                            <img src={formatImageUrl(song.capaUrl, "/images/default-cover.png")} alt={song.titulo} className="w-10 h-10 rounded object-cover" />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-foreground truncate text-sm">{song.titulo}</p>
                               <p className="text-xs text-muted-foreground">{song.genero}</p>
@@ -2159,7 +2160,7 @@ export default function ArtistDashboard() {
                     <div>
                       <label className="block text-sm font-medium text-muted-foreground mb-2">Foto de Perfil</label>
                       {artist?.capaUrl && !profileCapaFile && (
-                        <img src={artist.capaUrl} alt="Foto atual" className="w-24 h-24 rounded-full object-cover mb-3 border-2 border-border" />
+                        <img src={formatImageUrl(artist.capaUrl)} alt="Foto atual" className="w-24 h-24 rounded-full object-cover mb-3 border-2 border-border" />
                       )}
                       <input
                         type="file"
@@ -2174,7 +2175,7 @@ export default function ArtistDashboard() {
                     <div>
                       <label className="block text-sm font-medium text-muted-foreground mb-2">Banner do Perfil</label>
                       {artist?.bannerUrl && !profileBannerFile && (
-                        <img src={artist.bannerUrl} alt="Banner atual" className="w-full h-16 rounded-lg object-cover mb-3 border border-border" />
+                        <img src={formatImageUrl(artist.bannerUrl)} alt="Banner atual" className="w-full h-16 rounded-lg object-cover mb-3 border border-border" />
                       )}
                       <input
                         type="file"
@@ -2786,7 +2787,7 @@ export default function ArtistDashboard() {
                       <div className="absolute top-20 left-4 z-10">
                         <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white/50 shadow-2xl bg-black/30 flex items-center justify-center">
                           {artist?.capaUrl ? (
-                            <img src={artist.capaUrl} alt={artist.name} className="w-full h-full object-cover" />
+                            <img src={formatImageUrl(artist.capaUrl)} alt={artist.name} className="w-full h-full object-cover" />
                           ) : (
                             <Music className="w-8 h-8 text-white/70" />
                           )}
@@ -2832,7 +2833,7 @@ export default function ArtistDashboard() {
                                 {/* Cover Container */}
                                 <div className="relative aspect-square w-full rounded-2xl overflow-hidden mb-4 bg-[#121212] border border-white/5 shadow-md">
                                   {song.capaUrl ? (
-                                    <img src={song.capaUrl} alt={song.titulo} className="w-full h-full object-cover" />
+                                    <img src={formatImageUrl(song.capaUrl)} alt={song.titulo} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-white/5">
                                       <Music className="w-12 h-12 text-white/20" />
@@ -2910,7 +2911,7 @@ export default function ArtistDashboard() {
                                 {/* Thumbnail */}
                                 <div className="relative aspect-square overflow-hidden bg-black/40">
                                   {song.capaUrl ? (
-                                    <img src={song.capaUrl} alt={song.titulo} className="w-full h-full object-cover" />
+                                    <img src={formatImageUrl(song.capaUrl)} alt={song.titulo} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-white/5">
                                       <Music className="w-12 h-12 text-white/20" />
@@ -3058,7 +3059,7 @@ export default function ArtistDashboard() {
                     <div className="space-y-2">
                       {songs.filter(s => s.isVip).map((song) => (
                         <div key={song.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-xl border border-yellow-500/10">
-                          <img src={song.capaUrl || "/images/default-cover.png"} alt={song.titulo} className="w-10 h-10 rounded-lg object-cover" />
+                          <img src={formatImageUrl(song.capaUrl, "/images/default-cover.png")} alt={song.titulo} className="w-10 h-10 rounded-lg object-cover" />
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-foreground truncate text-sm">{song.titulo}</h4>
                             <p className="text-xs text-muted-foreground">{song.genero}</p>

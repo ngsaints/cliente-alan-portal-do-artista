@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Star, Lock, ArrowLeft, Music } from "lucide-react";
 import { useListSongs, getListSongsQueryKey } from "@workspace/api-client-react";
 import { useSEO } from "@/hooks/useSEO";
+import { formatImageUrl } from "@/lib/utils";
 
 export default function Vip() {
   const [senha, setSenha] = useState("");
@@ -186,7 +187,7 @@ export default function Vip() {
                       <div className="flex items-center gap-4 p-4">
                         {song.capaUrl ? (
                           <img
-                            src={song.capaUrl}
+                            src={formatImageUrl(song.capaUrl)}
                             alt={song.titulo}
                             className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-border"
                           />

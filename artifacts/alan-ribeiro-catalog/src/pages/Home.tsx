@@ -13,6 +13,7 @@ import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
 import { CTACarouselBanner } from "@/components/CTACarouselBanner";
 import { Footer } from "@/components/Footer";
+import { formatImageUrl } from "@/lib/utils";
 
 export default function Home() {
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
@@ -302,7 +303,7 @@ export default function Home() {
                       onClick={() => { setSearchQuery(""); setSearchResults([]); }}
                     >
                       <img
-                        src={artist.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
+                        src={formatImageUrl(artist.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)}
                         alt={artist.name}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -376,7 +377,7 @@ export default function Home() {
                   >
                     <div className="relative aspect-square rounded-xl overflow-hidden mb-2 bg-muted/40 border border-primary/20">
                       <img
-                        src={artist.capaUrl}
+                        src={formatImageUrl(artist.capaUrl)}
                         alt={artist.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
@@ -414,7 +415,7 @@ export default function Home() {
                     >
                       <div className="relative aspect-video overflow-hidden">
                         <img
-                          src={song.capaUrl || `${import.meta.env.BASE_URL}images/default-cover.png`}
+                          src={formatImageUrl(song.capaUrl, `${import.meta.env.BASE_URL}images/default-cover.png`)}
                           alt={song.titulo}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
