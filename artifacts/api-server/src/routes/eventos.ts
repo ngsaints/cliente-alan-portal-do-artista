@@ -26,14 +26,14 @@ router.post("/eventos", async (req, res): Promise<void> => {
 router.put("/eventos/:id", async (req, res): Promise<void> => {
   if (!req.session.artistId) { res.status(401).json({ error: "Não autorizado" }); return; }
   const { titulo, descricao, data, horarioInicial, horarioFinal } = req.body;
-  const [row] = await db.update(eventosTable).set({ titulo, descricao, data, horarioInicial, horarioFinal, updatedAt: new Date() }).where(eq(eventosTable.id, parseInt(req.params.id))).returning();
+  const [row] = await db.update(eventosTable).set({ titulo, descricao, data, horarioInicial, horarioFinal, updatedAt: new Date() }).where(and(eq(eventosTable.id, parseInt(req.params.id)), eq(eventosTable.artistaId, req.session.artistId))).returning();
   if (!row) { res.status(404).json({ error: "Evento não encontrado" }); return; }
   res.json(row);
 });
 
 router.delete("/eventos/:id", async (req, res): Promise<void> => {
   if (!req.session.artistId) { res.status(401).json({ error: "Não autorizado" }); return; }
-  await db.delete(eventosTable).where(eq(eventosTable.id, parseInt(req.params.id)));
+  await db.delete(eventosTable).where(and(eq(eventosTable.id, parseInt(req.params.id)), eq(eventosTable.artistaId, req.session.artistId)));
   res.sendStatus(204);
 });
 

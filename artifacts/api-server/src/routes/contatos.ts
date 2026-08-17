@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, contatosTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -21,14 +21,14 @@ router.post("/contatos", async (req, res): Promise<void> => {
 router.put("/contatos/:id", async (req, res): Promise<void> => {
   if (!req.session.artistId) { res.status(401).json({ error: "Não autorizado" }); return; }
   const { nome, categoria, telefone, email, anotacoes } = req.body;
-  const [row] = await db.update(contatosTable).set({ nome, categoria, telefone, email, anotacoes, updatedAt: new Date() }).where(eq(contatosTable.id, parseInt(req.params.id))).returning();
+  const [row] = await db.update(contatosTable).set({ nome, categoria, telefone, email, anotacoes, updatedAt: new Date() }).where(and(eq(contatosTable.id, parseInt(req.params.id)), eq(contatosTable.artistaId, req.session.artistId))).returning();
   if (!row) { res.status(404).json({ error: "Contato não encontrado" }); return; }
   res.json(row);
 });
 
 router.delete("/contatos/:id", async (req, res): Promise<void> => {
   if (!req.session.artistId) { res.status(401).json({ error: "Não autorizado" }); return; }
-  await db.delete(contatosTable).where(eq(contatosTable.id, parseInt(req.params.id)));
+  await db.delete(contatosTable).where(and(eq(contatosTable.id, parseInt(req.params.id)), eq(contatosTable.artistaId, req.session.artistId)));
   res.sendStatus(204);
 });
 

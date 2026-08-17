@@ -190,7 +190,7 @@ export function FinanceiroSpreadsheet({ artistId }: { artistId: number }) {
       {(() => {
         const meses: Record<string, { c: number; r: number }> = {};
         custos.forEach(c => { const m = (c.data || c.createdAt).slice(0,7); if(!meses[m]) meses[m]={c:0,r:0}; meses[m].c += Math.abs(parseFloat(c.valor||"0")); });
-        receitas.forEach(r => { const m = (r.data || r.createdAt).slice(0,7); if(!meses[r.data||r.createdAt]) meses[r.data||r.createdAt]={c:0,r:0}; meses[r.data||r.createdAt].r += Math.abs(parseFloat(r.valor||"0")); });
+        receitas.forEach(r => { const m = (r.data || r.createdAt).slice(0,7); if(!meses[m]) meses[m]={c:0,r:0}; meses[m].r += Math.abs(parseFloat(r.valor||"0")); });
         const sorted = Object.entries(meses).sort((a,b) => b[0].localeCompare(a[0]));
         if (sorted.length === 0) return null;
         return (

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, liberacoesTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -20,15 +20,25 @@ router.post("/liberacoes", async (req, res): Promise<void> => {
 
 router.put("/liberacoes/:id", async (req, res): Promise<void> => {
   if (!req.session.artistId) { res.status(401).json({ error: "Não autorizado" }); return; }
-  const { dataLiberacao } = req.body;
-  const [row] = await db.update(liberacoesTable).set({ dataLiberacao, updatedAt: new Date() }).where(eq(liberacoesTable.id, parseInt(req.params.id))).returning();
+  const { songId, artistaNome, dataInicio, dataLiberacao } = req.body;
+  const [row] = await db
+    .update(liberacoesTable)
+    .set({
+      ...(songId !== undefined ? { songId: parseInt(songId) } : {}),
+      ...(artistaNome !== undefined ? { artistaNome } : {}),
+      ...(dataInicio !== undefined ? { dataInicio } : {}),
+      ...(dataLiberacao !== undefined ? { dataLiberacao } : {}),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(liberacoesTable.id, parseInt(req.params.id)), eq(liberacoesTable.artistaId, req.session.artistId)))
+    .returning();
   if (!row) { res.status(404).json({ error: "Liberação não encontrada" }); return; }
   res.json(row);
 });
 
 router.delete("/liberacoes/:id", async (req, res): Promise<void> => {
   if (!req.session.artistId) { res.status(401).json({ error: "Não autorizado" }); return; }
-  await db.delete(liberacoesTable).where(eq(liberacoesTable.id, parseInt(req.params.id)));
+  await db.delete(liberacoesTable).where(and(eq(liberacoesTable.id, parseInt(req.params.id)), eq(liberacoesTable.artistaId, req.session.artistId)));
   res.sendStatus(204);
 });
 

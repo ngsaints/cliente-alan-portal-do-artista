@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, audicoesTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -20,15 +20,25 @@ router.post("/audicoes", async (req, res): Promise<void> => {
 
 router.put("/audicoes/:id", async (req, res): Promise<void> => {
   if (!req.session.artistId) { res.status(401).json({ error: "Não autorizado" }); return; }
-  const { status } = req.body;
-  const [row] = await db.update(audicoesTable).set({ status, updatedAt: new Date() }).where(eq(audicoesTable.id, parseInt(req.params.id))).returning();
+  const { songId, artistaNome, data, status } = req.body;
+  const [row] = await db
+    .update(audicoesTable)
+    .set({
+      ...(songId !== undefined ? { songId: parseInt(songId) } : {}),
+      ...(artistaNome !== undefined ? { artistaNome } : {}),
+      ...(data !== undefined ? { data } : {}),
+      ...(status !== undefined ? { status } : {}),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(audicoesTable.id, parseInt(req.params.id)), eq(audicoesTable.artistaId, req.session.artistId)))
+    .returning();
   if (!row) { res.status(404).json({ error: "Audição não encontrada" }); return; }
   res.json(row);
 });
 
 router.delete("/audicoes/:id", async (req, res): Promise<void> => {
   if (!req.session.artistId) { res.status(401).json({ error: "Não autorizado" }); return; }
-  await db.delete(audicoesTable).where(eq(audicoesTable.id, parseInt(req.params.id)));
+  await db.delete(audicoesTable).where(and(eq(audicoesTable.id, parseInt(req.params.id)), eq(audicoesTable.artistaId, req.session.artistId)));
   res.sendStatus(204);
 });
 

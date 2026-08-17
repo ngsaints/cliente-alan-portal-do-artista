@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, receitasTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -21,7 +21,7 @@ router.post("/receitas", async (req, res): Promise<void> => {
 
 router.delete("/receitas/:id", async (req, res): Promise<void> => {
   if (!req.session.artistId) { res.status(401).json({ error: "Não autorizado" }); return; }
-  await db.delete(receitasTable).where(eq(receitasTable.id, parseInt(req.params.id)));
+  await db.delete(receitasTable).where(and(eq(receitasTable.id, parseInt(req.params.id)), eq(receitasTable.artistaId, req.session.artistId)));
   res.sendStatus(204);
 });
 
