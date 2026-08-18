@@ -1077,7 +1077,7 @@ export default function ArtistDashboard() {
       if (v !== undefined && v !== null) formData.append(k, v);
     });
 
-    if (newSong.hasPrice === "false") {
+    if (newSong.hasPrice === "false" && !newSong.precoX && !newSong.precoY) {
       formData.set("precoX", "");
       formData.set("precoY", "");
     }
@@ -1962,7 +1962,7 @@ export default function ArtistDashboard() {
                                 status: song.status || "Disponível",
                                 precoX: song.precoX || "",
                                 precoY: song.precoY || "",
-                                hasPrice: song.precoX ? "true" : "false",
+                                hasPrice: (song.precoX || song.precoY) ? "true" : "false",
                                 isVip: song.isVip ? "true" : "false",
                                 tipoMidia: song.tipoMidia || "audio",
                                 youtubeUrl: song.youtubeUrl || "",

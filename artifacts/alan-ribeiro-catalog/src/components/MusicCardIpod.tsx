@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Play, Pause, Youtube, ExternalLink, Music, Share2 } from "lucide-react";
+import { Play, Pause, Music, Youtube, Heart, Share2, Sparkles, User, ExternalLink } from "lucide-react";
 import { type Song } from "@workspace/api-client-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useToast } from "@/hooks/use-toast";
@@ -234,9 +234,22 @@ export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpo
             <h3 className="font-bold text-lg text-white truncate leading-tight tracking-tight cursor-pointer hover:text-primary transition-colors" onClick={handleCoverClick}>
               {song.titulo}
             </h3>
-            <p className="text-sm text-white/50 truncate font-medium mt-0.5">
-              {song.compositor || song.subgenero || "-"}
-            </p>
+            {song.artistaSlug ? (
+              <a
+                href={`/${song.artistaSlug}`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 text-xs text-white/70 hover:text-primary hover:underline transition-colors mt-0.5"
+                title={`Ver perfil de ${song.artistaNome || song.compositor}`}
+              >
+                <User className="w-3 h-3 text-primary" />
+                <span className="truncate max-w-[140px] font-medium">{song.artistaNome || song.compositor}</span>
+                <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+              </a>
+            ) : (
+              <p className="text-xs text-white/50 truncate font-medium mt-0.5">
+                {song.artistaNome || song.compositor || song.subgenero || "-"}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <button

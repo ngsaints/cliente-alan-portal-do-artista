@@ -873,6 +873,31 @@ function SongModal({ mode, song, onClose, onSaved }: SongModalProps) {
               </select>
             </div>
 
+            {/* Valores de Liberação */}
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-secondary/20 rounded-xl border border-border/50">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Valor de Liberação X (Uso Livre)</label>
+                <input
+                  value={form.precoX}
+                  onChange={(e) => set("precoX", e.target.value)}
+                  placeholder="Ex: 50,00"
+                  className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground text-xs focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Valor de Liberação Y (Uso Exclusivo)</label>
+                <input
+                  value={form.precoY}
+                  onChange={(e) => set("precoY", e.target.value)}
+                  placeholder="Ex: 500,00"
+                  className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground text-xs focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground sm:col-span-2">
+                Preencha os valores para aparecerem no card de liberação da música. Deixe em branco se for "A combinar".
+              </p>
+            </div>
+
             {/* Descrição */}
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">Descrição *</label>

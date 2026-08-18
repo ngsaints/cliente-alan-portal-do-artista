@@ -1,4 +1,4 @@
-import { Play, Pause, Music, Youtube, Heart, PlayCircle, ExternalLink, Share2 } from "lucide-react";
+import { Play, Pause, Music, Youtube, Heart, PlayCircle, ExternalLink, Share2, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { type Song } from "@workspace/api-client-react";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -15,10 +15,15 @@ interface MusicCardProps {
   highlighted?: boolean;
 }
 
-function formatPreco(val: string | null | undefined) {
-  if (!val) return null;
-  const n = parseFloat(val);
-  if (isNaN(n)) return null;
+function formatPreco(val: string | number | null | undefined) {
+  if (val === null || val === undefined) return null;
+  let str = String(val).replace(/[R$\s]/g, "").trim();
+  if (str === "" || str === "null" || str === "undefined") return null;
+  if (str.includes(",")) {
+    str = str.replace(/\./g, "").replace(",", ".");
+  }
+  const n = parseFloat(str);
+  if (isNaN(n) || n <= 0) return null;
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
@@ -244,33 +249,59 @@ export function MusicCard({ song, index, cardStyle = "default", highlighted = fa
             </button>
           </div>
         </div>
-        {song.compositor && (
-          <p className="text-xs text-muted-foreground mb-2">Compositor: {song.compositor}</p>
-        )}
+
+        {/* ── Artista e Link para Perfil ── */}
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          {song.artistaSlug ? (
+            <a
+              href={`/${song.artistaSlug}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/90 hover:text-primary bg-secondary/50 hover:bg-secondary border border-border/60 rounded-lg px-2.5 py-1 transition-all group/artist"
+              title={`Ver perfil completo de ${song.artistaNome || song.compositor || "Artista"}`}
+            >
+              <User className="w-3.5 h-3.5 text-primary group-hover/artist:scale-110 transition-transform" />
+              <span className="truncate max-w-[180px] font-bold">{song.artistaNome || song.compositor || "Ver Artista"}</span>
+              <ExternalLink className="w-3 h-3 opacity-60 text-primary" />
+            </a>
+          ) : (song.artistaNome || song.compositor) ? (
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/30 rounded-lg px-2.5 py-1">
+              <User className="w-3.5 h-3.5 text-primary/70" />
+              <span className="truncate max-w-[180px] font-medium">{song.artistaNome || song.compositor}</span>
+            </span>
+          ) : null}
+
+          {song.compositor && song.artistaNome && song.compositor !== song.artistaNome && (
+            <span className="text-[11px] text-muted-foreground truncate">
+              Comp: {song.compositor}
+            </span>
+          )}
+        </div>
+
         <p className="text-sm text-muted-foreground line-clamp-2 flex-1 mb-4">{song.descricao}</p>
 
+        {/* ── Valores de Liberação ── */}
         {(precoX || precoY) ? (
           <div className="flex flex-col sm:flex-row gap-2 mb-4 text-xs">
             {precoX && (
-              <div className="flex-1 bg-secondary/20 border border-border/50 rounded-xl px-3 py-2 text-center">
-                <div className="text-muted-foreground mb-0.5">Valor X · Livre</div>
+              <div className="flex-1 bg-secondary/25 border border-primary/25 rounded-xl px-3 py-2 text-center shadow-sm">
+                <div className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider mb-0.5">Liberação Livre (X)</div>
                 <div className="text-primary font-bold text-sm">{precoX}</div>
               </div>
             )}
             {precoY && (
-              <div className="flex-1 bg-secondary/20 border border-border/50 rounded-xl px-3 py-2 text-center">
-                <div className="text-muted-foreground mb-0.5">Valor Y · Exclusivo</div>
+              <div className="flex-1 bg-secondary/25 border border-primary/25 rounded-xl px-3 py-2 text-center shadow-sm">
+                <div className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider mb-0.5">Liberação Exclusiva (Y)</div>
                 <div className="text-primary font-bold text-sm">{precoY}</div>
               </div>
             )}
           </div>
-        ) : song.compositor ? (
+        ) : (
           <div className="mb-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 text-xs font-bold">
-              A combinar
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-semibold">
+              Valor de Liberação: A combinar
             </span>
           </div>
-        ) : null}
+        )}
 
         {/* ── Botão de ação ── */}
         {isVideo ? (

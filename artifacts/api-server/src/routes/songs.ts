@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import { db, songsTable, songLikesTable } from "@workspace/db";
+import { db, songsTable, artistsTable, songLikesTable } from "@workspace/db";
 import { eq, sql, and } from "drizzle-orm";
 import { ListSongsResponse, DeleteSongParams } from "@workspace/api-zod";
 import { uploadToR2, deleteFromR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
@@ -24,24 +24,25 @@ async function saveLocal(buffer: Buffer, folder: string, originalname: string): 
   const jpgBuffer = await sharp(buffer).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
   const dir = path.join(process.cwd(), "uploads", folder);
   fs.mkdirSync(dir, { recursive: true });
-  const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}_${originalname.replace(/\.\w+$/, ".jpg")}`;
+  const filename = `${Date.now()}_${originalname.replace(/\.\w+$/, ".jpg")}`;
   fs.writeFileSync(path.join(dir, filename), jpgBuffer);
   return `/api/uploads/${folder}/${filename}`;
 }
 
-// Aceita formato brasileiro de preço ("50,00" ou "1.234,50") e normaliza para "50.00"/"1234.50".
+// Aceita formato brasileiro de preço ("50,00", "R$ 50,00", "1.234,50" ou "50.00") e normaliza para "50.00"/"1234.50".
 function normalizePriceInput(v: unknown): string | null {
   if (v === undefined || v === null) return null;
-  const s = String(v).trim();
-  if (s === "") return null;
+  let s = String(v).replace(/[R$\s]/g, "").trim();
+  if (s === "" || s === "null" || s === "undefined") return null;
   let n = s;
   if (s.includes(",")) {
     n = s.includes(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(",", ".");
   }
-  return n;
+  return isNaN(Number(n)) ? null : n;
 }
 
-function mapSong(s: typeof songsTable.$inferSelect) {
+function mapSong(s: typeof songsTable.$inferSelect, artistMap?: Map<string, any>) {
+  const artist = s.artistaId && artistMap ? artistMap.get(String(s.artistaId)) : null;
   return {
     id: s.id,
     titulo: s.titulo,
@@ -63,6 +64,9 @@ function mapSong(s: typeof songsTable.$inferSelect) {
     isVip: s.isVip,
     vipCode: s.vipCode ?? null,
     artistaId: s.artistaId ?? null,
+    artistaNome: artist ? (artist.nomeArtistico || artist.nome) : (s.compositor ?? null),
+    artistaSlug: artist ? (artist.slug || String(artist.id)) : null,
+    artistaFoto: artist ? (artist.foto || artist.capaPath || null) : null,
     likes: s.likes ?? "0",
     plays: s.plays ?? "0",
     createdAt: s.createdAt,
@@ -72,21 +76,27 @@ function mapSong(s: typeof songsTable.$inferSelect) {
 router.get("/songs", async (req, res): Promise<void> => {
   const { genre, vip } = req.query;
 
-  let rows = await db.select().from(songsTable).orderBy(songsTable.createdAt);
+  const [rows, allArtists] = await Promise.all([
+    db.select().from(songsTable).orderBy(songsTable.createdAt),
+    db.select().from(artistsTable)
+  ]);
 
+  const artistMap = new Map<string, any>(allArtists.map((a: any) => [String(a.id), a]));
+
+  let filteredRows = rows;
   if (vip === "true") {
-    rows = rows.filter((s) => s.isVip === true);
+    filteredRows = filteredRows.filter((s) => s.isVip === true);
   } else if (vip === "false") {
-    rows = rows.filter((s) => s.isVip === false);
+    filteredRows = filteredRows.filter((s) => s.isVip === false);
   }
 
   if (genre && genre !== "todos") {
-    rows = rows.filter((s) => s.genero === genre);
+    filteredRows = filteredRows.filter((s) => s.genero === genre);
   }
 
   // Intercalação dinâmica por artista (Round-Robin com Shuffle)
-  const artistGroups: { [key: string]: typeof rows } = {};
-  for (const song of rows) {
+  const artistGroups: { [key: string]: typeof filteredRows } = {};
+  for (const song of filteredRows) {
     const key = String(song.artistaId ?? song.compositor ?? "outros");
     if (!artistGroups[key]) artistGroups[key] = [];
     artistGroups[key].push(song);
@@ -97,7 +107,7 @@ router.get("/songs", async (req, res): Promise<void> => {
     artistGroups[k].sort(() => Math.random() - 0.5);
   });
 
-  const interleaved: typeof rows = [];
+  const interleaved: typeof filteredRows = [];
   let hasMore = true;
   while (hasMore) {
     hasMore = false;
@@ -109,7 +119,7 @@ router.get("/songs", async (req, res): Promise<void> => {
     }
   }
 
-  res.json(ListSongsResponse.parse(interleaved.map(mapSong)));
+  res.json(ListSongsResponse.parse(interleaved.map((s) => mapSong(s, artistMap))));
 });
 
 router.post(

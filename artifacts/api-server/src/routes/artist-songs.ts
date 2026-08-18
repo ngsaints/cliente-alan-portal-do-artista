@@ -17,17 +17,17 @@ const router: IRouter = Router();
 
 const useR2 = !!(process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY);
 
-// Aceita formato brasileiro de preço ("50,00" ou "1.234,50") e normaliza para "50.00"/"1234.50".
+// Aceita formato brasileiro de preço ("50,00", "R$ 50,00", "1.234,50" ou "50.00") e normaliza para "50.00"/"1234.50".
 // Retorna null para valores vazios/ausentes (limpa o campo) e a string numérica para valores válidos.
 function normalizePriceInput(v: unknown): string | null {
   if (v === undefined || v === null) return null;
-  const s = String(v).trim();
-  if (s === "") return null;
+  let s = String(v).replace(/[R$\s]/g, "").trim();
+  if (s === "" || s === "null" || s === "undefined") return null;
   let n = s;
   if (s.includes(",")) {
     n = s.includes(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(",", ".");
   }
-  return n;
+  return isNaN(Number(n)) ? null : n;
 }
 
 function serializeSong(s: typeof songsTable.$inferSelect) {

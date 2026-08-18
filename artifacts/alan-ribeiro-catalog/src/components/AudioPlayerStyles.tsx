@@ -10,6 +10,23 @@ function formatTime(seconds: number) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function ArtistLink({ song, className = "text-white/60 text-xs truncate" }: { song: any; className?: string }) {
+  const name = song.artistaNome || song.compositor || "Artista";
+  if (song.artistaSlug) {
+    return (
+      <a
+        href={`/${song.artistaSlug}`}
+        onClick={(e) => e.stopPropagation()}
+        className={`${className} hover:text-[#f5c518] hover:underline transition-colors block cursor-pointer`}
+        title={`Ver perfil de ${name}`}
+      >
+        {name}
+      </a>
+    );
+  }
+  return <p className={className}>{name}</p>;
+}
+
 export function PlayerPadrao() {
   const { 
     currentSong, isPlaying, togglePlay, progress, duration, seek,
@@ -63,7 +80,7 @@ export function PlayerPadrao() {
           </div>
           <div className="min-w-0 flex-1">
             <h4 className="font-bold text-white truncate text-sm">{currentSong.titulo}</h4>
-            <p className="text-white/60 text-xs truncate">{currentSong.compositor || "Artista"}</p>
+            <ArtistLink song={currentSong} className="text-white/60 text-xs truncate" />
           </div>
         </div>
 
@@ -107,7 +124,7 @@ export function PlayerPadrao() {
           </div>
           <div className="min-w-0 flex-1">
             <h4 className="font-bold text-white text-xs truncate leading-snug">{currentSong.titulo}</h4>
-            <p className="text-white/50 text-[10px] truncate leading-none mt-0.5">{currentSong.compositor || "Artista"}</p>
+            <ArtistLink song={currentSong} className="text-white/50 text-[10px] truncate leading-none mt-0.5" />
           </div>
         </div>
 
@@ -199,7 +216,7 @@ export function PlayerLista() {
           </div>
           <div className="min-w-0 flex-1 hidden sm:block">
             <h4 className="font-bold text-white truncate text-sm">{currentSong.titulo}</h4>
-            <p className="text-white/50 text-xs truncate">{currentSong.compositor || "Artista"}</p>
+            <ArtistLink song={currentSong} className="text-white/50 text-xs truncate" />
           </div>
         </div>
 
@@ -247,7 +264,7 @@ export function PlayerWaveform() {
         </div>
         <div className="flex-1 min-w-0 hidden sm:block">
           <h4 className="font-bold text-white truncate text-sm">{currentSong.titulo}</h4>
-          <p className="text-cyan-300/60 text-xs truncate">{currentSong.compositor || "Artista"}</p>
+          <ArtistLink song={currentSong} className="text-cyan-300/60 text-xs truncate" />
         </div>
         <button onClick={togglePlay} className="w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center hover:scale-105 transition-all" style={{ background: playButtonBg }}>
           {isPlaying ? <Pause className="w-4 h-4 sm:w-6 sm:h-6 text-black fill-black" /> : <Play className="w-4 h-4 sm:w-6 sm:h-6 text-black fill-black ml-0.5" />}
@@ -313,7 +330,7 @@ export function PlayerModerno() {
           </div>
           <div className="min-w-0 flex-1 hidden sm:block">
             <h4 className="font-bold text-white truncate text-base">{currentSong.titulo}</h4>
-            <p className="text-white/60 text-sm truncate">{currentSong.compositor || "Artista"}</p>
+            <ArtistLink song={currentSong} className="text-white/60 text-sm truncate" />
           </div>
         </div>
 
@@ -361,7 +378,7 @@ export function PlayerVintage() {
           </div>
           <div className="min-w-0 flex-1 hidden sm:block">
             <h4 className="font-bold text-amber-100 truncate text-sm sm:text-base">{currentSong.titulo}</h4>
-            <p className="text-amber-300/60 text-xs truncate">{currentSong.compositor || "Artista"}</p>
+            <ArtistLink song={currentSong} className="text-amber-300/60 text-xs truncate" />
           </div>
         </div>
 
@@ -459,7 +476,7 @@ export function PlayerIpod() {
           <h4 className="font-bold text-white truncate text-sm" style={{ fontFamily: "monospace" }}>
             {currentSong.titulo}
           </h4>
-          <p className="text-white/50 text-xs truncate">{currentSong.compositor || "Artista"}</p>
+          <ArtistLink song={currentSong} className="text-white/50 text-xs truncate" />
         </div>
 
         {/* Controls */}

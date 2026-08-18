@@ -64,6 +64,9 @@ export interface Song {
   youtubeUrl?: string | null;
   vipCode?: string | null;
   artistaId?: string | null;
+  artistaNome?: string | null;
+  artistaSlug?: string | null;
+  artistaFoto?: string | null;
   likes?: string;
   plays?: string;
   duracao?: string | null;
