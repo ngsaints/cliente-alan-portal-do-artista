@@ -15,11 +15,12 @@ function inferCategory(key: string): string {
   if (key.startsWith("demo_")) return "demo";
   if (key.startsWith("asaas_")) return "asaas";
   if (key.startsWith("r2_")) return "r2";
-  if (key.startsWith("portal_") || key.startsWith("landing_") || key.startsWith("footer_") || key.startsWith("suporte_") || key.startsWith("openai_")) return "portal";
+  if (key.startsWith("openrouter_") || key.startsWith("replicate_") || key.startsWith("openai_") || key.startsWith("ai_")) return "ai";
+  if (key.startsWith("portal_smtp_") || key.startsWith("smtp_") || key.startsWith("email_") || key.startsWith("resend_")) return "email";
+  if (key.startsWith("portal_") || key.startsWith("landing_") || key.startsWith("footer_") || key.startsWith("suporte_")) return "portal";
   if (key.startsWith("clarity_")) return "clarity";
   if (key.startsWith("pixel_")) return "pixel";
   if (key.startsWith("mp_")) return "mercadopago";
-  if (key.startsWith("smtp_") || key.startsWith("email_")) return "email";
   return "geral";
 }
 
@@ -298,22 +299,68 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
       }
     }
 
+    if (category === "ai") {
+      const aiKeys = [
+        { key: "openrouter_enabled", value: "true", desc: "Ativar Gateway OpenRouter (Texto / Letras / Vivi)", isSecret: "false" },
+        { key: "openrouter_api_key", value: "", desc: "Chave de API OpenRouter", isSecret: "true" },
+        { key: "openrouter_model", value: "openai/gpt-4o-mini", desc: "Modelo Principal do OpenRouter", isSecret: "false" },
+        { key: "replicate_enabled", value: "true", desc: "Ativar Gateway Replicate (MiniMax Music 2.6 - Geração de Demos)", isSecret: "false" },
+        { key: "replicate_api_key", value: "", desc: "Chave de API Replicate (Token)", isSecret: "true" },
+        { key: "replicate_music_model", value: "minimax/music-2.6", desc: "Modelo de Música do Replicate (ex: minimax/music-2.6)", isSecret: "false" },
+        { key: "openai_enabled", value: "false", desc: "Ativar Mentora Virtual (OpenAI Legado)", isSecret: "false" },
+        { key: "openai_api_key", value: "", desc: "OpenAI API Key para a mentora Vivi", isSecret: "true" },
+      ];
+      for (const item of aiKeys) {
+        const existing = await db
+          .select()
+          .from(appSettingsTable)
+          .where(eq(appSettingsTable.key, item.key));
+        if (existing.length === 0) {
+          await db.insert(appSettingsTable).values({
+            category: "ai",
+            key: item.key,
+            value: item.value,
+            isSecret: item.isSecret,
+            description: item.desc
+          });
+        } else if (existing[0].category !== "ai") {
+          await db
+            .update(appSettingsTable)
+            .set({ category: "ai" })
+            .where(eq(appSettingsTable.key, item.key));
+        }
+      }
+    }
+
+    if (category === "email") {
+      // Migrate any portal_smtp_* to email category
+      const smtpKeys = ["portal_smtp_host", "portal_smtp_port", "portal_smtp_user", "portal_smtp_pass"];
+      for (const key of smtpKeys) {
+        await db
+          .update(appSettingsTable)
+          .set({ category: "email" })
+          .where(eq(appSettingsTable.key, key));
+      }
+    }
+
     if (category === "portal") {
-      const keysToEnsure = [
+      // Migrate any AI keys to 'ai' category and SMTP keys to 'email'
+      const aiKeyNames = ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "replicate_enabled", "replicate_api_key", "replicate_music_model", "openai_enabled", "openai_api_key"];
+      for (const key of aiKeyNames) {
+        await db.update(appSettingsTable).set({ category: "ai" }).where(eq(appSettingsTable.key, key));
+      }
+      const smtpKeyNames = ["portal_smtp_host", "portal_smtp_port", "portal_smtp_user", "portal_smtp_pass"];
+      for (const key of smtpKeyNames) {
+        await db.update(appSettingsTable).set({ category: "email" }).where(eq(appSettingsTable.key, key));
+      }
+
+      const keysToEnsure: { key: string; value: string; desc: string; isSecret?: string }[] = [
         { key: "portal_name", value: "Portal do Artista", desc: "Nome do portal" },
         { key: "portal_url", value: "https://portaldoartista.com", desc: "URL do portal" },
         { key: "portal_email", value: "portaldoartistaoficial@gmail.com", desc: "E-mail de contato principal" },
         { key: "suporte_instagram", value: "@Portaldoartista.oficial", desc: "Instagram de suporte e dúvidas" },
         { key: "suporte_whatsapp", value: "21 99589 7040", desc: "WhatsApp de suporte e dúvidas" },
         { key: "suporte_email", value: "portaldoartistaoficial@gmail.com", desc: "E-mail de suporte e dúvidas" },
-        { key: "openai_enabled", value: "false", desc: "Ativar Mentora Virtual (Vivi) para os artistas" },
-        { key: "openai_api_key", value: "", desc: "OpenAI API Key para a mentora Vivi", isSecret: "true" },
-        { key: "openrouter_enabled", value: "true", desc: "Ativar Gateway OpenRouter (Texto / Letras / Vivi)" },
-        { key: "openrouter_api_key", value: "", desc: "Chave de API OpenRouter", isSecret: "true" },
-        { key: "openrouter_model", value: "openai/gpt-4o-mini", desc: "Modelo Principal do OpenRouter" },
-        { key: "replicate_enabled", value: "true", desc: "Ativar Gateway Replicate (MiniMax Music 2.6 - Geração de Demos)" },
-        { key: "replicate_api_key", value: "", desc: "Chave de API Replicate (Token)", isSecret: "true" },
-        { key: "replicate_music_model", value: "minimax/music-2.6", desc: "Modelo de Música do Replicate (ex: minimax/music-2.6)" },
         { key: "footer_copyright", value: "© 2026 Portaldoartista.com – Todos os direitos reservados.", desc: "Rodapé: Copyright" },
         { key: "landing_video_url", value: "", desc: "Landing: Link do Vídeo (YouTube)" },
         { key: "landing_hero_video_url", value: "", desc: "Landing: Link do Vídeo do Hero (YouTube)" },

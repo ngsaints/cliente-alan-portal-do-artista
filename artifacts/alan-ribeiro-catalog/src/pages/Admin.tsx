@@ -21,7 +21,7 @@ import {
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
 Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight, Sparkles,
-  BookOpen, FileText, Star, FolderPlus,
+  BookOpen, FileText, Star, FolderPlus, Lock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -118,7 +118,7 @@ interface Coupon {
 }
 
 type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "articles" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs" | "exit_feedback";
-type SettingsCategory = "asaas" | "r2" | "portal" | "demo" | "email" | "clarity" | "pixel";
+type SettingsCategory = "ai" | "portal" | "asaas" | "r2" | "email" | "demo" | "pixel" | "clarity";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
@@ -2018,41 +2018,56 @@ function InterestsTab() {
 // ─── Tab 6: Configurações ─────────────────────────────────────────────────────
 
 function SettingsTab({ onNavigate }: { onNavigate?: (tab: MainTab) => void }) {
-  const [activeCategory, setActiveCategory] = useState<SettingsCategory>("asaas");
+  const [activeCategory, setActiveCategory] = useState<SettingsCategory>("ai");
 
-  const categories: { id: SettingsCategory; label: string; icon: React.ElementType; color: string }[] = [
-    { id: "demo", label: "Página Demo", icon: Eye, color: "text-yellow-400" },
-    { id: "asaas", label: "Asaas", icon: CreditCard, color: "text-emerald-400" },
+  const categories: { id: SettingsCategory; label: string; icon: React.ElementType; color: string; badge?: string }[] = [
+    { id: "ai", label: "Inteligência Artificial (IA)", icon: Sparkles, color: "text-amber-400", badge: "Novo" },
+    { id: "portal", label: "Geral & Portal", icon: Globe, color: "text-purple-400" },
+    { id: "asaas", label: "Pagamentos Asaas", icon: CreditCard, color: "text-emerald-400" },
     { id: "r2", label: "Cloudflare R2", icon: Cloud, color: "text-sky-400" },
-    { id: "portal", label: "Portal", icon: Globe, color: "text-purple-400" },
-    { id: "email", label: "Email", icon: Mail, color: "text-red-400" },
+    { id: "email", label: "E-mail & SMTP", icon: Mail, color: "text-red-400" },
+    { id: "demo", label: "Página Demo", icon: Eye, color: "text-yellow-400" },
+    { id: "pixel", label: "Pixels & Tags", icon: Target, color: "text-teal-400" },
     { id: "clarity", label: "Microsoft Clarity", icon: BarChart3, color: "text-indigo-400" },
-    { id: "pixel", label: "Pixels & Rastreamento", icon: Target, color: "text-emerald-400" },
   ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-display font-bold text-foreground">Configurações</h2>
-        <p className="text-sm text-muted-foreground">Integrações e dados da plataforma</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-display font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
+            Configurações da Plataforma
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Gerencie os gateways de IA, pagamentos, mídias e dados cadastrais do portal</p>
+        </div>
       </div>
 
       {/* Category tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => setActiveCategory(cat.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap shrink-0 transition-all ${
-              activeCategory === cat.id
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <cat.icon className="w-4 h-4" />
-            {cat.label}
-          </button>
-        ))}
+        {categories.map((cat) => {
+          const isActive = activeCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all duration-200 cursor-pointer ${
+                isActive
+                  ? "bg-gradient-to-r from-primary via-amber-400 to-primary text-black shadow-[0_0_20px_rgba(245,197,24,0.35)] scale-[1.02]"
+                  : "bg-card/80 border border-border/70 text-muted-foreground hover:text-white hover:bg-card hover:border-border hover:scale-[1.01]"
+              }`}
+            >
+              <cat.icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${isActive ? "text-black" : cat.color}`} />
+              <span>{cat.label}</span>
+              {cat.badge && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-extrabold uppercase tracking-wider ${
+                  isActive ? "bg-black/20 text-black" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                }`}>
+                  {cat.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <SettingsCategoryForm key={activeCategory} category={activeCategory} onNavigate={onNavigate} />
@@ -2081,40 +2096,40 @@ function AddSettingForm({ category, onAdd }: { category: SettingsCategory; onAdd
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2.5 bg-card border border-dashed border-border rounded-xl text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all"
+        className="flex items-center gap-2 px-4 py-2.5 bg-card/80 border border-border/80 hover:border-primary/50 text-xs sm:text-sm font-bold text-muted-foreground hover:text-white rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:bg-card/90"
       >
-        <Plus className="w-4 h-4" />
-        Adicionar Chave
+        <Plus className="w-4 h-4 text-primary" />
+        <span>Adicionar Chave</span>
       </button>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-xl border border-border/70 shadow-inner">
       <input
         type="text"
         value={newKey}
         onChange={(e) => setNewKey(e.target.value.toLowerCase().replace(/\s+/g, "_"))}
-        placeholder="chave (ex: resend_api_key)"
-        className="w-44 px-3 py-2 bg-input border border-border rounded-lg text-xs text-foreground font-mono"
+        placeholder="chave (ex: chave_custom)"
+        className="w-40 sm:w-48 px-3 py-1.5 bg-input border border-border rounded-lg text-xs text-foreground font-mono focus:border-primary focus:outline-none"
       />
       <input
         type="text"
         value={newValue}
         onChange={(e) => setNewValue(e.target.value)}
-        placeholder="valor"
-        className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-xs text-foreground"
+        placeholder="valor..."
+        className="w-32 sm:w-44 px-3 py-1.5 bg-input border border-border rounded-lg text-xs text-foreground focus:border-primary focus:outline-none"
       />
       <button
         onClick={() => { if (newKey) { onAdd(newKey, newValue); setOpen(false); setNewKey(""); setNewValue(""); } }}
         disabled={!newKey}
-        className="flex items-center gap-1 px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-bold disabled:opacity-50"
+        className="flex items-center gap-1 px-3 py-1.5 bg-primary text-black rounded-lg text-xs font-extrabold hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer"
       >
-        <Plus className="w-3 h-3" /> OK
+        <Plus className="w-3.5 h-3.5" /> OK
       </button>
       <button
         onClick={() => { setOpen(false); setNewKey(""); setNewValue(""); }}
-        className="p-2 text-muted-foreground hover:text-foreground"
+        className="p-1.5 text-muted-foreground hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
       >
         <X className="w-4 h-4" />
       </button>
@@ -2123,109 +2138,186 @@ function AddSettingForm({ category, onAdd }: { category: SettingsCategory; onAdd
 }
 
 const SETTING_LABELS: Record<string, string> = {
-  // Portal / Geral
-  portal_name: "Nome do portal",
-  portal_url: "URL do portal",
-  portal_email: "E-mail de contato",
-  artist_name: "Nome do artista (Padrão)",
-  vip_password: "Senha da Área VIP",
-  suporte_instagram: "Instagram de Suporte",
-  suporte_whatsapp: "WhatsApp de Suporte",
-  suporte_email: "E-mail de Suporte",
-  openai_enabled: "Ativar Mentora Virtual (Vivi - Legado OpenAI)",
-  openai_api_key: "Chave de API OpenAI (Legado)",
-  openrouter_enabled: "Ativar Gateway OpenRouter (Texto, Letras e Chat Vivi)",
+  // Inteligência Artificial (IA)
+  openrouter_enabled: "Ativar Gateway OpenRouter",
   openrouter_api_key: "Chave de API OpenRouter",
-  openrouter_model: "Modelo Principal do OpenRouter",
-  replicate_enabled: "Ativar Gateway Replicate (MiniMax Music 2.6)",
-  replicate_api_key: "Chave de API Replicate (Token de Acesso)",
-  replicate_music_model: "Modelo de Música do Replicate",
-  footer_copyright: "Rodapé: Copyright",
-  landing_video_url: "Landing: URL do Vídeo (YouTube)",
-  landing_hero_video_url: "Landing: URL do Vídeo do Hero (YouTube)",
-  landing_hero_title: "Landing: Título Principal",
-  landing_hero_subtitle: "Landing: Subtítulo",
-  landing_hero_cta: "Landing: Texto do Botão (CTA)",
-  landing_hero_mockup_url: "Landing: Imagem 3D Principal (Hero)",
-  landing_feature01_url: "Landing: Imagem 3D Seção 01 (Site Profissional)",
-  landing_feature02_url: "Landing: Imagem 3D Seção 02 (Catálogo de Músicas)",
-  landing_stat1_number: "Landing Estatística 1: Número (ex: Dezenas de, +50)",
-  landing_stat1_label: "Landing Estatística 1: Rótulo (ex: Artistas Cadastrados)",
-  landing_stat2_number: "Landing Estatística 2: Número (ex: Centenas de, +500)",
-  landing_stat2_label: "Landing Estatística 2: Rótulo (ex: Músicas Organizadas)",
-  landing_stat3_number: "Landing Estatística 3: Número (ex: Milhares de, +10 Mil)",
-  landing_stat3_label: "Landing Estatística 3: Rótulo (ex: Visualizações nos Perfis)",
-  landing_stat4_number: "Landing Estatística 4: Número (ex: Em Todo)",
-  landing_stat4_label: "Landing Estatística 4: Rótulo (ex: o Brasil)",
-  landing_social_proof_text: "Landing: Prova Social (Abaixo do Hero)",
-  footer_founder_description: "Rodapé: Descrição do Autor (Alan Ribeiro)",
-  footer_copyright_protection: "Rodapé: Proteção de Direitos Autorais",
-  footer_platform_tagline: "Rodapé: Slogan da Plataforma",
-  
-  // Microsoft Clarity
-  clarity_project_id: "ID do Projeto Microsoft Clarity",
+  openrouter_model: "Modelo do OpenRouter",
+  replicate_enabled: "Ativar Gateway Replicate (MiniMax)",
+  replicate_api_key: "Token de Acesso Replicate",
+  replicate_music_model: "Modelo Vocal & Instrumental",
+  openai_enabled: "Ativar OpenAI Legado",
+  openai_api_key: "Chave de API OpenAI",
 
-  // Pixels & Rastreamento
-  pixel_meta_id: "ID do Meta / Facebook Pixel (ex: 123456789012345)",
-  pixel_google_id: "ID do Google Tag Manager ou Analytics (ex: GTM-XXXXXX ou G-XXXXXX)",
-  pixel_tiktok_id: "ID do TikTok Pixel (ex: C1234567890)",
-  pixel_custom_head_script: "Script de Rastreamento / Pixel Customizado (<head>)",
-  pixel_custom_body_script: "Script de Rastreamento / Pixel Customizado (<body>)",
-  
-  // Asaas
-  asaas_access_token: "Token de Acesso Asaas",
-  asaas_sandbox: "Modo de Sandbox Asaas",
+  // Portal / Geral
+  portal_name: "Nome do Portal",
+  portal_url: "URL Base do Portal",
+  portal_email: "E-mail de Contato Principal",
+  artist_name: "Nome do Artista Padrão",
+  vip_password: "Senha da Área VIP",
 
-  // MercadoPago
-  mp_access_token: "Token de Acesso Mercado Pago",
-  mp_public_key: "Chave Pública Mercado Pago",
+  // Suporte & Atendimento
+  suporte_instagram: "Instagram Oficial de Suporte",
+  suporte_whatsapp: "WhatsApp Oficial de Suporte",
+  suporte_email: "E-mail de Atendimento e Dúvidas",
 
-  // E-mail
+  // Servidor SMTP & E-mail
+  portal_smtp_host: "Servidor SMTP",
+  portal_smtp_port: "Porta SMTP",
+  portal_smtp_user: "Usuário SMTP",
+  portal_smtp_pass: "Senha SMTP",
   smtp_host: "Servidor SMTP",
   smtp_port: "Porta SMTP",
   smtp_user: "Usuário SMTP",
   smtp_pass: "Senha SMTP",
+  resend_api_key: "Chave de API Resend",
   email_from: "Remetente de E-mail (from)",
 
+  // Landing Page & Mídia
+  landing_video_url: "URL do Vídeo Institucional (YouTube)",
+  landing_hero_video_url: "URL do Vídeo de Fundo do Hero (YouTube)",
+  landing_hero_title: "Título Principal do Hero",
+  landing_hero_subtitle: "Subtítulo do Hero",
+  landing_hero_cta: "Texto do Botão Principal (CTA)",
+  hero_featured_plan: "Plano em Destaque no Hero",
+  landing_social_proof_text: "Texto de Prova Social",
+  landing_stat1_number: "Estatística 1: Número / Quantidade",
+  landing_stat1_label: "Estatística 1: Rótulo / Descrição",
+  landing_stat2_number: "Estatística 2: Número / Quantidade",
+  landing_stat2_label: "Estatística 2: Rótulo / Descrição",
+  landing_stat3_number: "Estatística 3: Número / Quantidade",
+  landing_stat3_label: "Estatística 3: Rótulo / Descrição",
+  landing_stat4_number: "Estatística 4: Número / Quantidade",
+  landing_stat4_label: "Estatística 4: Rótulo / Descrição",
+  landing_hero_mockup_url: "Imagem 3D Principal (Hero)",
+  landing_feature01_url: "Imagem 3D Seção 01 (Site)",
+  landing_feature02_url: "Imagem 3D Seção 02 (Catálogo)",
+
+  // Rodapé Institucional
+  footer_copyright: "Texto de Copyright",
+  footer_founder_description: "Descrição do Fundador",
+  footer_copyright_protection: "Proteção de Direitos Autorais",
+  footer_platform_tagline: "Slogan da Plataforma",
+
+  // Microsoft Clarity
+  clarity_project_id: "ID do Projeto Microsoft Clarity",
+
+  // Pixels & Rastreamento
+  pixel_meta_id: "ID do Meta / Facebook Pixel",
+  pixel_google_id: "ID do Google Tag Manager / Analytics",
+  pixel_tiktok_id: "ID do TikTok Pixel",
+  pixel_custom_head_script: "Script Customizado (<head>)",
+  pixel_custom_body_script: "Script Customizado (<body>)",
+
+  // Asaas
+  asaas_api_key: "Chave de API Asaas",
+  asaas_access_token: "Token de Acesso Asaas",
+  asaas_sandbox: "Modo Sandbox (Ambiente de Testes)",
+  asaas_webhook_token: "Token Secreto do Webhook",
+
+  // Cloudflare R2
+  r2_account_id: "Account ID Cloudflare",
+  r2_access_key_id: "Access Key ID",
+  r2_secret_access_key: "Secret Access Key",
+  r2_bucket: "Nome do Bucket R2",
+  r2_public_url: "URL Pública do Bucket",
+
   // Demo
-  demo_capa_url: "Foto de perfil",
-  demo_banner_url: "Carrossel de banners (Desktop)",
-  demo_banner_mobile_url: "Banner para Celular / Mobile (Opcional)",
-  demo_name: "Nome do artista",
-  demo_profissao: "Profissão",
+  demo_capa_url: "Foto de Perfil",
+  demo_banner_url: "Carrossel de Banners (Desktop)",
+  demo_banner_mobile_url: "Banner para Celular / Mobile",
+  demo_name: "Nome do Artista",
+  demo_profissao: "Profissão / Estilo",
   demo_cidade: "Cidade",
   demo_contato: "Telefone / WhatsApp",
   demo_email: "E-mail",
   demo_instagram: "Instagram",
   demo_tiktok: "TikTok",
   demo_spotify: "Spotify",
-  demo_cor: "Cor tema",
+  demo_cor: "Cor Tema da Página",
 };
 
 function getSettingLabel(key: string): string {
-  return SETTING_LABELS[key] || key;
+  return SETTING_LABELS[key] || key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 function getSettingDescription(key: string, defaultDesc: string): string {
-  if (key === "demo_capa_url") {
-    return "Foto de perfil do artista (redonda). Deixe em branco/remova a imagem para ocultar o avatar.";
-  }
-  if (key === "demo_banner_mobile_url") {
-    return "Banner em formato vertical ou otimizado para celulares/mobile (evita cortes em telas pequenas).";
-  }
-  if (key === "demo_cidade") {
-    return "Cidade do artista. Deixe em branco para ocultar a cidade.";
-  }
-  if (key === "demo_instagram") {
-    return "Usuário do Instagram (sem @). Deixe em branco para ocultar os ícones e cards do Instagram.";
-  }
-  if (key === "demo_tiktok") {
-    return "Usuário do TikTok. Deixe em branco para ocultar o card do TikTok.";
-  }
-  if (key === "demo_spotify") {
-    return "URL do perfil no Spotify. Deixe em branco para ocultar os ícones e cards do Spotify.";
+  if (key === "demo_capa_url") return "Foto de perfil do artista (redonda). Deixe em branco para ocultar.";
+  if (key === "demo_banner_mobile_url") return "Arte vertical ou otimizada para celulares (proporção 1:1 ou 4:5).";
+  if (key === "demo_cidade") return "Cidade do artista. Deixe em branco para ocultar.";
+  if (key === "demo_instagram") return "Usuário do Instagram (sem @).";
+  if (key === "demo_tiktok") return "Usuário do TikTok.";
+  if (key === "demo_spotify") return "Link completo do perfil no Spotify.";
+  if (key === "openrouter_api_key") return "Chave obtida em openrouter.ai/keys.";
+  if (key === "openrouter_model") return "Modelo utilizado pela Vivi para rimas, métricas e composição.";
+  if (key === "replicate_api_key") return "Token de API obtido em replicate.com/account/api-tokens.";
+  if (key === "replicate_music_model") return "Identificador do modelo na Replicate (padrão: minimax/music-2.6).";
+  if (key === "openrouter_enabled") return "Habilita a IA para chat, análise e composição com a Vivi.";
+  if (key === "replicate_enabled") return "Habilita a geração de músicas cantadas completas no Estúdio Vivi.";
+  if (key === "portal_url") return "URL usada em links de retorno e compartilhamentos (ex: https://portaldoartista.com).";
+  if (key === "vip_password") return "Senha global necessária para acessar composições exclusivas VIP.";
+  if (key === "asaas_sandbox") return "Ative para simular pagamentos em ambiente de testes sem transações reais.";
+
+  const label = getSettingLabel(key).toLowerCase();
+  const desc = (defaultDesc || "").toLowerCase().trim();
+  if (!desc || desc === label || label.includes(desc) || desc.includes(label)) {
+    return "";
   }
   return defaultDesc;
+}
+
+function ModernSwitch({
+  checked,
+  onChange,
+  label,
+  description,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label?: string;
+  description?: string;
+}) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      className="flex items-center justify-between p-4 sm:p-5 rounded-2xl bg-card/60 border border-border/80 hover:border-primary/50 hover:bg-card/90 transition-all duration-200 cursor-pointer group select-none shadow-sm"
+    >
+      <div className="space-y-1 pr-4">
+        {label && (
+          <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+            {label}
+          </p>
+        )}
+        {description && (
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {description}
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <span
+          className={`text-[11px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider transition-colors flex items-center gap-1.5 ${
+            checked
+              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+              : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+          }`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${checked ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"}`} />
+          {checked ? "Ativado" : "Desativado"}
+        </span>
+        <div
+          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+            checked ? "bg-primary shadow-[0_0_12px_rgba(245,197,24,0.4)]" : "bg-zinc-700"
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+              checked ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCategory; onNavigate?: (tab: MainTab) => void }) {
@@ -2245,13 +2337,13 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       .then((d: Setting[]) => {
         setSettings(Array.isArray(d) ? d : []);
         const initial: Record<string, string> = {};
-        (Array.isArray(d) ? d : []).forEach(s => {
+        (Array.isArray(d) ? d : []).forEach((s) => {
           initial[s.key] = s.rawValue || "";
         });
         setValues(initial);
 
         if (category === "demo") {
-          const bannerSetting = (Array.isArray(d) ? d : []).find(s => s.key === "demo_banner_url");
+          const bannerSetting = (Array.isArray(d) ? d : []).find((s) => s.key === "demo_banner_url");
           const val = bannerSetting?.rawValue || "";
           try {
             const parsed = JSON.parse(val);
@@ -2356,7 +2448,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       <div className="text-center py-16 text-muted-foreground bg-card border border-dashed border-border rounded-2xl">
         <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-30" />
         <p>Nenhuma configuração encontrada para esta categoria.</p>
-        <p className="text-xs mt-2 mb-4">Execute o seed ou adicione uma nova chave manualmente.</p>
+        <p className="text-xs mt-2 mb-4">Adicione uma nova chave manualmente abaixo.</p>
         <AddSettingForm category={category} onAdd={(key, value) => {
           const newSetting: Setting = { id: 0, category, key, value, rawValue: value, isSecret: category === "asaas" || key.includes("api_key") || key.includes("secret") || key.includes("token"), description: "", updatedAt: new Date().toISOString() };
           setSettings([newSetting]);
@@ -2366,8 +2458,409 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
     );
   }
 
+  // Renderizador individual de campo
+  const renderField = (s: Setting) => {
+    const isBoolean = s.key === "asaas_sandbox" || s.key === "openai_enabled" || s.key === "openrouter_enabled" || s.key === "replicate_enabled";
+    const isTextarea = s.key.startsWith("pixel_custom_") || s.key.endsWith("_script") || s.key.startsWith("footer_") || s.key === "landing_hero_subtitle";
+    const isColor = category === "demo" && s.key === "demo_cor";
+    const isImageUpload = (category === "demo" && (s.key === "demo_capa_url" || s.key === "demo_banner_mobile_url")) || (s.key.startsWith("landing_") && s.key.endsWith("_url") && !s.key.includes("video"));
+    const isBannerCarousel = category === "demo" && s.key === "demo_banner_url";
+
+    if (isBoolean) {
+      return (
+        <div key={s.key} className="col-span-full">
+          <ModernSwitch
+            checked={values[s.key] === "true"}
+            onChange={(checked) => setValues({ ...values, [s.key]: checked ? "true" : "false" })}
+            label={getSettingLabel(s.key)}
+            description={getSettingDescription(s.key, s.description)}
+          />
+        </div>
+      );
+    }
+
+    if (isBannerCarousel) {
+      return (
+        <div key={s.key} className="col-span-full space-y-4 bg-background/40 p-5 rounded-2xl border border-border/80 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h4 className="font-extrabold text-foreground text-sm flex items-center gap-2">
+                <Layout className="w-4 h-4 text-primary" /> Carrossel de Banners & Campanhas Demo
+              </h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Gerencie suas campanhas publicitárias da página demo (artes desktop, mobile e links de ação).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const id = Math.random().toString(36).substring(7);
+                setDemoBannersList(prev => [...prev, { id, url: "", mobileUrl: "", link: "" }]);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-md shrink-0 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Nova Campanha
+            </button>
+          </div>
+
+          {demoBannersList.length > 0 ? (
+            <div className="space-y-4">
+              {demoBannersList.map((item, idx) => (
+                <div key={item.id} className="bg-card border border-border p-4 rounded-2xl space-y-4 shadow-sm relative">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                    <span className="font-extrabold text-xs text-primary flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" /> Campanha / Banner #{idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setDemoBannersList(demoBannersList.filter(b => b.id !== item.id))}
+                      className="p-1 hover:bg-destructive/15 text-muted-foreground hover:text-destructive rounded-lg transition-colors text-xs flex items-center gap-1 font-bold cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" /> Remover
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-bold text-foreground">
+                        🖥️ Imagem Desktop <span className="text-[10px] text-muted-foreground font-normal">(1200x400px - Widescreen 3:1)</span>
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <div className="w-20 h-10 rounded-lg overflow-hidden border border-border bg-black/40 flex-shrink-0 flex items-center justify-center">
+                          {item.filePreview || item.url ? (
+                            <img src={item.filePreview || item.url} alt="Desktop" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[9px] text-muted-foreground">Sem Foto</span>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const newList = [...demoBannersList];
+                                newList[idx].file = file;
+                                newList[idx].filePreview = reader.result as string;
+                                setDemoBannersList(newList);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="w-full text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-bold text-foreground">
+                        📱 Imagem Mobile <span className="text-[10px] text-emerald-400 font-normal">(1080x1080px ou 4:5)</span>
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-border bg-black/40 flex-shrink-0 flex items-center justify-center">
+                          {item.mobileFilePreview || item.mobileUrl ? (
+                            <img src={item.mobileFilePreview || item.mobileUrl} alt="Mobile" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[9px] text-muted-foreground text-center">Desktop</span>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const newList = [...demoBannersList];
+                                newList[idx].mobileFile = file;
+                                newList[idx].mobileFilePreview = reader.result as string;
+                                setDemoBannersList(newList);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="w-full text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 pt-1 border-t border-border/30">
+                    <label className="block text-[11px] font-semibold text-muted-foreground">
+                      Link de Ação ao Clicar no Banner
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="https://suacampanha.com ou link whatsapp..."
+                      value={item.link}
+                      onChange={(e) => {
+                        const newList = [...demoBannersList];
+                        newList[idx].link = e.target.value;
+                        setDemoBannersList(newList);
+                      }}
+                      className="w-full px-3 py-2 bg-background/60 border border-border rounded-xl text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 border border-dashed border-border rounded-xl text-xs text-muted-foreground">
+              Nenhuma campanha cadastrada. Clique no botão "+ Nova Campanha" para adicionar.
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (isImageUpload) {
+      return (
+        <div key={s.key} className="space-y-2 bg-card/60 p-4 rounded-2xl border border-border/80">
+          <div className="flex items-center justify-between">
+            <label className="text-xs sm:text-sm font-bold text-foreground">{getSettingLabel(s.key)}</label>
+          </div>
+          {getSettingDescription(s.key, s.description) && (
+            <p className="text-[11px] text-muted-foreground">{getSettingDescription(s.key, s.description)}</p>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0] || null;
+              if (file) {
+                setDemoFiles((prev) => ({ ...prev, [s.key]: file }));
+                const reader = new FileReader();
+                reader.onloadend = () => setValues((prev) => ({ ...prev, [s.key]: reader.result as string }));
+                reader.readAsDataURL(file);
+              }
+            }}
+            className="w-full bg-background/60 border border-border rounded-xl px-3.5 py-2 text-foreground text-xs file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
+          />
+          {values[s.key] && (values[s.key].startsWith("http") || values[s.key].startsWith("data:") || values[s.key].startsWith("/uploads") || values[s.key].startsWith("/images") || values[s.key].startsWith("/")) && (
+            <div className="mt-2 relative inline-block">
+              <img src={values[s.key]} alt={s.key} className="h-24 w-auto max-w-xs object-cover rounded-xl border border-primary/40 shadow-md" />
+              <button
+                type="button"
+                onClick={() => { setValues((prev) => ({ ...prev, [s.key]: "" })); setDemoFiles((prev) => ({ ...prev, [s.key]: undefined as any })); }}
+                className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center hover:bg-destructive/80 shadow-md cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (isColor) {
+      return (
+        <div key={s.key} className="space-y-1.5">
+          <label className="text-xs sm:text-sm font-bold text-foreground">{getSettingLabel(s.key)}</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={values[s.key] || "#f5d76e"}
+              onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+              className="w-10 h-10 rounded-xl border border-border cursor-pointer flex-shrink-0 bg-transparent p-0.5"
+            />
+            <input
+              type="text"
+              value={values[s.key] ?? ""}
+              onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+              placeholder="#f5d76e"
+              className="w-36 px-3.5 py-2 bg-background/60 border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm font-mono"
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (isTextarea) {
+      return (
+        <div key={s.key} className="col-span-full space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-xs sm:text-sm font-bold text-foreground">{getSettingLabel(s.key)}</label>
+            {s.isSecret && (
+              <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5" /> Secreto
+              </span>
+            )}
+          </div>
+          {getSettingDescription(s.key, s.description) && (
+            <p className="text-[11px] text-muted-foreground">{getSettingDescription(s.key, s.description)}</p>
+          )}
+          <textarea
+            value={values[s.key] ?? ""}
+            onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+            placeholder={s.key.includes("script") ? "Cole o código do script aqui (<script>...</script>)" : `Conteúdo de ${getSettingLabel(s.key).toLowerCase()}`}
+            rows={s.key.includes("script") ? 4 : 2}
+            className="w-full px-3.5 py-2.5 bg-background/60 border border-border/80 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground text-xs font-mono leading-relaxed"
+          />
+        </div>
+      );
+    }
+
+    // Campo padrão de texto / segredo
+    return (
+      <div key={s.key} className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs sm:text-sm font-bold text-foreground">
+            {getSettingLabel(s.key)}
+          </label>
+          {s.isSecret && (
+            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 flex items-center gap-1">
+              <Lock className="w-2.5 h-2.5" /> Secreto
+            </span>
+          )}
+        </div>
+
+        {getSettingDescription(s.key, s.description) && (
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            {getSettingDescription(s.key, s.description)}
+          </p>
+        )}
+
+        <div className="relative">
+          <input
+            type={s.isSecret && !revealed[s.key] ? "password" : "text"}
+            value={values[s.key] ?? ""}
+            onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+            placeholder={s.isSecret ? "••••••••" : `Informe ${getSettingLabel(s.key).toLowerCase()}`}
+            className="w-full px-3.5 py-2.5 bg-background/60 border border-border/80 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground text-sm transition-all hover:border-border pr-10 font-normal placeholder:text-muted-foreground/40"
+          />
+          {s.isSecret && (
+            <button
+              type="button"
+              onClick={() => setRevealed({ ...revealed, [s.key]: !revealed[s.key] })}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-white/5 transition-colors cursor-pointer"
+              title={revealed[s.key] ? "Ocultar" : "Visualizar"}
+            >
+              {revealed[s.key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          )}
+        </div>
+
+        {s.key === "openrouter_model" && (
+          <div className="flex items-center gap-1.5 flex-wrap pt-1">
+            <span className="text-[10px] text-muted-foreground font-semibold">Atalhos rápidos:</span>
+            {[
+              { id: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
+              { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
+              { id: "deepseek/deepseek-chat", label: "DeepSeek V3" },
+              { id: "anthropic/claude-3.5-sonnet", label: "Claude 3.5" },
+            ].map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setValues({ ...values, [s.key]: m.id })}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                  values[s.key] === m.id
+                    ? "bg-primary text-black border-primary font-extrabold shadow-sm"
+                    : "bg-card border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/40"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Definição de grupos temáticos para layout limpo em cards
+  const groups: { title: string; icon: React.ElementType; description?: string; keys: string[] }[] = (() => {
+    if (category === "ai") {
+      return [
+        {
+          title: "Gateway OpenRouter (Texto, Letras e Chat Vivi)",
+          icon: Sparkles,
+          description: "Conexão com os melhores modelos de IA para mentoria, rimas, reescrita e métrica de composições.",
+          keys: ["openrouter_enabled", "openrouter_api_key", "openrouter_model"],
+        },
+        {
+          title: "Gateway Replicate (MiniMax Music 2.6 - Geração de Demos)",
+          icon: Music,
+          description: "Geração de áudios cantados de alta fidelidade com voz humana e instrumentos a partir da letra.",
+          keys: ["replicate_enabled", "replicate_api_key", "replicate_music_model"],
+        },
+        {
+          title: "OpenAI Legado (Opcional)",
+          icon: Globe,
+          description: "Uso opcional da API direta da OpenAI para a mentora virtual Vivi.",
+          keys: ["openai_enabled", "openai_api_key"],
+        },
+      ];
+    }
+    if (category === "portal") {
+      return [
+        {
+          title: "Identidade & Informações do Portal",
+          icon: Globe,
+          description: "Informações cadastrais e endereço público da plataforma.",
+          keys: ["portal_name", "portal_url", "portal_email", "artist_name", "vip_password"],
+        },
+        {
+          title: "Canais de Atendimento & Suporte Oficial",
+          icon: MessageSquare,
+          description: "Dados de contato visíveis para os artistas tirarem dúvidas e solicitarem ajuda.",
+          keys: ["suporte_whatsapp", "suporte_instagram", "suporte_email"],
+        },
+        {
+          title: "Conteúdo da Landing Page & Mídia",
+          icon: Layout,
+          description: "Vídeos, títulos, estatísticas e textos de conversão da página inicial.",
+          keys: [
+            "landing_video_url", "landing_hero_video_url", "hero_featured_plan",
+            "landing_hero_title", "landing_hero_subtitle", "landing_hero_cta",
+            "landing_social_proof_text",
+            "landing_stat1_number", "landing_stat1_label",
+            "landing_stat2_number", "landing_stat2_label",
+            "landing_stat3_number", "landing_stat3_label",
+            "landing_stat4_number", "landing_stat4_label",
+            "landing_hero_mockup_url", "landing_feature01_url", "landing_feature02_url",
+          ],
+        },
+        {
+          title: "Rodapé Institucional & Direitos Autorais",
+          icon: FileText,
+          description: "Declarações legais e termos exibidos no rodapé do portal.",
+          keys: ["footer_copyright", "footer_founder_description", "footer_copyright_protection", "footer_platform_tagline"],
+        },
+      ];
+    }
+    if (category === "email") {
+      return [
+        {
+          title: "Provedor Resend (Recomendado)",
+          icon: Send,
+          description: "Envio de e-mails transacionais com alta taxa de entrega via Resend API.",
+          keys: ["resend_api_key", "email_from"],
+        },
+        {
+          title: "Servidor SMTP Próprio",
+          icon: Mail,
+          description: "Configurações de envio via SMTP caso não utilize a Resend.",
+          keys: [
+            "smtp_host", "portal_smtp_host",
+            "smtp_port", "portal_smtp_port",
+            "smtp_user", "portal_smtp_user",
+            "smtp_pass", "portal_smtp_pass",
+          ],
+        },
+      ];
+    }
+    return [];
+  })();
+
+  const renderedKeys = new Set<string>();
+
   return (
     <div className="space-y-6">
+      {/* Guia de Ajuda Contextual */}
       {category === "clarity" && (
         <div className="bg-gradient-to-r from-indigo-900/30 to-indigo-800/10 border border-indigo-500/30 rounded-2xl p-5 space-y-3">
           <div className="flex items-center gap-2 text-indigo-400">
@@ -2377,7 +2870,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
             <li>Acesse o painel do <a href="https://clarity.microsoft.com" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline inline-flex items-center gap-1">Microsoft Clarity <ExternalLink className="w-3 h-3" /></a></li>
             <li>Crie um novo projeto ou selecione um existente.</li>
-            <li>Vá em <strong>Settings</strong> &gt; <strong>Overview</strong> e copie a chave do <strong>Project ID</strong> (código com cerca de 10 caracteres).</li>
+            <li>Vá em <strong>Settings</strong> &gt; <strong>Overview</strong> e copie a chave do <strong>Project ID</strong>.</li>
             <li>Cole o ID no campo `clarity_project_id` abaixo e salve.</li>
           </ol>
         </div>
@@ -2390,15 +2883,10 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           </div>
           <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
             <li>Acesse <a href="https://www.asaas.com/config/integrations" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline inline-flex items-center gap-1">Asaas Integrações <ExternalLink className="w-3 h-3" /></a> e copie sua <strong className="text-foreground">API Key</strong></li>
-            <li>Cole a API Key no campo <code className="bg-black/30 px-1 py-0.5 rounded">asaas_api_key</code></li>
-            <li>Marque <code className="bg-black/30 px-1 py-0.5 rounded">asaas_sandbox</code> como <strong className="text-foreground">true</strong> para testes ou <strong className="text-foreground">false</strong> para produção</li>
-            <li>Configure um <strong className="text-foreground">Webhook</strong> no painel Asaas apontando para: <code className="bg-black/30 px-1 py-0.5 rounded">https://SEU_DOMINIO/api/webhooks/asaas</code></li>
-            <li>Defina um token secreto no webhook e cole no campo <code className="bg-black/30 px-1 py-0.5 rounded">asaas_webhook_token</code></li>
+            <li>Cole a chave no campo <code className="bg-black/30 px-1 py-0.5 rounded">asaas_api_key</code></li>
+            <li>Configure o modo Sandbox para testes ou desative para produção</li>
+            <li>Configure um <strong className="text-foreground">Webhook</strong> apontando para: <code className="bg-black/30 px-1 py-0.5 rounded">https://SEU_DOMINIO/api/webhooks/asaas</code></li>
           </ol>
-          <div className="flex items-center gap-2 pt-2 border-t border-emerald-500/20">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span className="text-sm text-emerald-300">Após salvar, artistas poderão assinar planos via PIX, cartão ou boleto</span>
-          </div>
         </div>
       )}
       {category === "r2" && (
@@ -2409,311 +2897,103 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           </div>
           <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
             <li>Acesse <a href="https://dash.cloudflare.com/r2" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline inline-flex items-center gap-1">Cloudflare R2 <ExternalLink className="w-3 h-3" /></a></li>
-            <li>Crie um bucket (ex: <code className="bg-black/30 px-1 py-0.5 rounded">portal-do-artista</code>) e configure como público</li>
-            <li>Gerar API Token em <strong className="text-foreground">Manage R2 API Tokens</strong> com permissão de Leitura e Escrita</li>
-            <li>Cole <strong className="text-foreground">Account ID</strong>, <strong className="text-foreground">Access Key ID</strong> e <strong className="text-foreground">Secret Access Key</strong> nos campos correspondentes</li>
-            <li>Informe o nome do bucket e a <strong className="text-foreground">URL pública</strong> do bucket (ex: <code className="bg-black/30 px-1 py-0.5 rounded">https://seu-bucket.r2.dev</code>)</li>
+            <li>Crie um bucket público (ex: <code className="bg-black/30 px-1 py-0.5 rounded">portal-do-artista</code>)</li>
+            <li>Cole Account ID, Access Key ID, Secret Access Key e a URL pública nos campos correspondentes.</li>
           </ol>
         </div>
       )}
-      {category === "email" && (
-        <div className="bg-gradient-to-r from-red-900/30 to-red-800/10 border border-red-500/30 rounded-2xl p-5 space-y-3">
-          <div className="flex items-center gap-2 text-red-400">
-            <HelpCircle className="w-5 h-5" />
-            <h3 className="font-bold text-lg">Como Configurar o Resend (Email)</h3>
-          </div>
-          <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
-            <li>Acesse <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:underline inline-flex items-center gap-1">Resend API Keys <ExternalLink className="w-3 h-3" /></a> e crie uma nova API Key</li>
-            <li>Cole a API Key no campo <code className="bg-black/30 px-1 py-0.5 rounded">resend_api_key</code></li>
-            <li>Configure o remetente no campo <code className="bg-black/30 px-1 py-0.5 rounded">email_from</code> (ex: <code className="bg-black/30 px-1 py-0.5 rounded">Portal do Artista &lt;contato@seudominio.com&gt;</code>)</li>
-            <li>No painel do Resend, <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:underline inline-flex items-center gap-1">adicione seu domínio <ExternalLink className="w-3 h-3" /></a> e verifique os registros DNS</li>
-          </ol>
-        </div>
-      )}
-      {category === "pixel" && (
-        <div className="bg-gradient-to-r from-emerald-900/30 to-teal-800/10 border border-emerald-500/30 rounded-2xl p-5 space-y-3">
-          <div className="flex items-center gap-2 text-emerald-400">
-            <HelpCircle className="w-5 h-5" />
-            <h3 className="font-bold text-lg">Como Configurar Pixels de Rastreamento (Meta, Google & TikTok)</h3>
-          </div>
-          <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
-            <li><strong>Meta / Facebook Pixel ID</strong>: Cole apenas o ID numérico do seu Pixel (ex: <code className="bg-black/30 px-1 py-0.5 rounded">123456789012345</code>). O portal ativará o evento PageView automaticamente.</li>
-            <li><strong>Google Tag Manager / Analytics ID</strong>: Cole o ID da tag (ex: <code className="bg-black/30 px-1 py-0.5 rounded">G-XXXXXXXXXX</code> ou <code className="bg-black/30 px-1 py-0.5 rounded">GTM-XXXXXXX</code>).</li>
-            <li><strong>TikTok Pixel ID</strong>: Cole o código ID do Pixel TikTok (ex: <code className="bg-black/30 px-1 py-0.5 rounded">C1234567890</code>).</li>
-            <li><strong>Script de Pixel Customizado</strong>: Se sua ferramenta fornecer um código em texto completo (<code className="bg-black/30 px-1 py-0.5 rounded">&lt;script&gt;...&lt;/script&gt;</code>), cole nos campos de Script Customizado (<code className="bg-black/30 px-1 py-0.5 rounded">&lt;head&gt;</code> ou <code className="bg-black/30 px-1 py-0.5 rounded">&lt;body&gt;</code>).</li>
-          </ol>
-        </div>
-      )}
-      {category === "portal" && (
-        <div className="bg-gradient-to-r from-purple-900/30 to-purple-800/10 border border-purple-500/30 rounded-2xl p-5 space-y-3">
-          <div className="flex items-center gap-2 text-purple-400">
-            <HelpCircle className="w-5 h-5" />
-            <h3 className="font-bold text-lg">Configurações Gerais do Portal</h3>
-          </div>
-          <ul className="text-sm text-muted-foreground space-y-2">
-            <li><code className="bg-black/30 px-1 py-0.5 rounded">portal_name</code> — Nome exibido no site</li>
-            <li><code className="bg-black/30 px-1 py-0.5 rounded">portal_url</code> — URL canônica (ex: https://portaldoartista.com)</li>
-            <li><code className="bg-black/30 px-1 py-0.5 rounded">portal_email</code> — Email de contato principal</li>
-            <li><code className="bg-black/30 px-1 py-0.5 rounded">suporte_instagram</code> — Instagram de suporte exibido no rodapé</li>
-            <li><code className="bg-black/30 px-1 py-0.5 rounded">suporte_whatsapp</code> — WhatsApp de contato para suporte e dúvidas</li>
-            <li><code className="bg-black/30 px-1 py-0.5 rounded">suporte_email</code> — E-mail de suporte</li>
-            <li><code className="bg-black/30 px-1 py-0.5 rounded">openai_enabled</code> — Ativa a mentora virtual Vivi para os artistas (true/false)</li>
-            <li><code className="bg-black/30 px-1 py-0.5 rounded">openai_api_key</code> — Chave de API OpenAI para a mentora Vivi</li>
-          </ul>
-        </div>
-      )}
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-        {settings.map((s) => (
-          <div key={s.key}>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-sm font-medium text-foreground">{getSettingLabel(s.key)}</label>
-              {s.isSecret && (
-                <span className="text-xs text-muted-foreground bg-background/80 px-2 py-0.5 rounded-full border border-border">
-                  Secreto
-                </span>
-              )}
-            </div>
-            {s.description && <p className="text-xs text-muted-foreground mb-2">{getSettingDescription(s.key, s.description)}</p>}
-            {s.key === "asaas_sandbox" || s.key === "openai_enabled" || s.key === "openrouter_enabled" || s.key === "replicate_enabled" ? (
-              <div className="flex items-center gap-3">
-                <Switch
-                  checked={values[s.key] === "true"}
-                  onCheckedChange={(checked) => setValues({ ...values, [s.key]: checked ? "true" : "false" })}
-                />
-                <span className="text-sm text-muted-foreground">
-                  {s.key === "asaas_sandbox" 
-                    ? (values[s.key] === "true" ? "Sandbox (testes)" : "Produção")
-                    : (values[s.key] === "true" ? "Ativado" : "Desativado")}
-                </span>
-              </div>
-            ) : s.key.startsWith("pixel_custom_") || s.key.endsWith("_script") ? (
-              <textarea
-                value={values[s.key] ?? ""}
-                onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
-                placeholder="Cole o código do script aqui (<script>...</script>)"
-                rows={5}
-                className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-xs font-mono"
-              />
-            ) : category === "demo" && s.key === "demo_cor" ? (
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={values[s.key] || "#f5d76e"}
-                  onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
-                  className="w-10 h-10 rounded-lg border border-border cursor-pointer flex-shrink-0"
-                />
-                <input
-                  type="text"
-                  value={values[s.key] ?? ""}
-                  onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
-                  placeholder="#f5d76e"
-                  className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm"
-                />
-              </div>
-            ) : category === "demo" && s.key === "demo_banner_url" ? (
-              <div className="space-y-4 bg-background/30 p-5 rounded-2xl border border-border/60">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-extrabold text-foreground text-sm">Carrossel de Banners & Campanhas Demo</h4>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Gerencie suas campanhas de publicidade. Cada campanha agrupa sua arte de Desktop, sua arte de Mobile (para celular) e seu link de ação.
-                    </p>
+
+      {/* Renderização em Cards Agrupados */}
+      {groups.length > 0 ? (
+        <div className="space-y-6">
+          {groups.map((group, gIdx) => {
+            const groupSettings = settings.filter((s) => group.keys.includes(s.key));
+            if (groupSettings.length === 0) return null;
+            groupSettings.forEach((s) => renderedKeys.add(s.key));
+
+            return (
+              <div key={gIdx} className="bg-card/70 backdrop-blur-md border border-border/80 rounded-2xl p-5 sm:p-6 space-y-5 shadow-lg">
+                <div className="flex items-start gap-3 border-b border-border/60 pb-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/25 flex items-center justify-center text-primary shrink-0 mt-0.5">
+                    <group.icon className="w-5 h-5" />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const id = Math.random().toString(36).substring(7);
-                      setDemoBannersList(prev => [...prev, { id, url: "", mobileUrl: "", link: "" }]);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-md shrink-0"
-                  >
-                    <Plus className="w-4 h-4" /> Nova Campanha
-                  </button>
+                  <div>
+                    <h3 className="font-extrabold text-base sm:text-lg text-foreground tracking-tight">
+                      {group.title}
+                    </h3>
+                    {group.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        {group.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Banner list */}
-                {demoBannersList.length > 0 ? (
-                  <div className="space-y-4">
-                    {demoBannersList.map((item, idx) => (
-                      <div key={item.id} className="bg-card border border-border p-4 rounded-2xl space-y-4 shadow-sm relative">
-                        <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                          <span className="font-extrabold text-xs text-primary flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5" /> Campanha / Banner #{idx + 1}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDemoBannersList(demoBannersList.filter(b => b.id !== item.id));
-                            }}
-                            className="p-1 hover:bg-destructive/15 text-muted-foreground hover:text-destructive rounded-lg transition-colors text-xs flex items-center gap-1 font-bold"
-                          >
-                            <X className="w-3.5 h-3.5" /> Remover
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* 🖥️ Imagem Desktop */}
-                          <div className="space-y-1.5">
-                            <label className="block text-[11px] font-bold text-foreground">
-                              🖥️ Imagem Desktop <span className="text-[10px] text-muted-foreground font-normal">(Recomendado: 1200x400px - Widescreen 3:1)</span>
-                            </label>
-                            <div className="flex items-center gap-3">
-                              <div className="w-20 h-10 rounded-lg overflow-hidden border border-border bg-black/40 flex-shrink-0 flex items-center justify-center">
-                                {item.filePreview || item.url ? (
-                                  <img src={item.filePreview || item.url} alt="Desktop" className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-[9px] text-muted-foreground">Sem Foto</span>
-                                )}
-                              </div>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                      const newList = [...demoBannersList];
-                                      newList[idx].file = file;
-                                      newList[idx].filePreview = reader.result as string;
-                                      setDemoBannersList(newList);
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }}
-                                className="w-full text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
-                              />
-                            </div>
-                          </div>
-
-                          {/* 📱 Imagem Mobile */}
-                          <div className="space-y-1.5">
-                            <label className="block text-[11px] font-bold text-foreground">
-                              📱 Imagem Mobile <span className="text-[10px] text-emerald-400 font-normal">(Recomendado: 1080x1080px Quase 1:1 Quadrado ou 4:5)</span>
-                            </label>
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-border bg-black/40 flex-shrink-0 flex items-center justify-center">
-                                {item.mobileFilePreview || item.mobileUrl ? (
-                                  <img src={item.mobileFilePreview || item.mobileUrl} alt="Mobile" className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-[9px] text-muted-foreground text-center">Desktop</span>
-                                )}
-                              </div>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                      const newList = [...demoBannersList];
-                                      newList[idx].mobileFile = file;
-                                      newList[idx].mobileFilePreview = reader.result as string;
-                                      setDemoBannersList(newList);
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }}
-                                className="w-full text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Link Input */}
-                        <div className="space-y-1 pt-1 border-t border-border/30">
-                          <label className="block text-[11px] font-semibold text-muted-foreground">
-                            Link do Botão "Acessar" (Redirecionamento ao clicar no banner)
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="https://suacampanha.com ou whatsapp..."
-                            value={item.link}
-                            onChange={(e) => {
-                              const newList = [...demoBannersList];
-                              newList[idx].link = e.target.value;
-                              setDemoBannersList(newList);
-                            }}
-                            className="w-full px-3 py-2 bg-input border border-border rounded-xl text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 border border-dashed border-border rounded-xl text-xs text-muted-foreground">
-                    Nenhuma campanha cadastrada. Clique no botão "+ Nova Campanha" acima para adicionar.
-                  </div>
-                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                  {groupSettings.map((s) => renderField(s))}
+                </div>
               </div>
-            ) : ((category === "demo" && (s.key === "demo_capa_url" || s.key === "demo_banner_mobile_url")) || (s.key.startsWith("landing_") && s.key.endsWith("_url"))) ? (
-              <div className="space-y-3 bg-background/20 p-4 rounded-xl border border-border/50">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    if (file) {
-                      setDemoFiles((prev) => ({ ...prev, [s.key]: file }));
-                      const reader = new FileReader();
-                      reader.onloadend = () => setValues((prev) => ({ ...prev, [s.key]: reader.result as string }));
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-foreground text-sm file:mr-2 file:py-1 file:px-3 file:rounded-lg file:bg-primary/10 file:text-primary file:border-0 file:cursor-pointer"
-                />
-                {values[s.key] && (values[s.key].startsWith("http") || values[s.key].startsWith("data:") || values[s.key].startsWith("/uploads") || values[s.key].startsWith("/images") || values[s.key].startsWith("/")) && (
-                  <div className="mt-2 relative inline-block">
-                    <img src={values[s.key]} alt={s.key} className="h-28 w-auto max-w-xs object-cover rounded-xl border border-primary/40 shadow-md" />
-                    <button
-                      type="button"
-                      onClick={() => { setValues((prev) => ({ ...prev, [s.key]: "" })); setDemoFiles((prev) => ({ ...prev, [s.key]: undefined as any })); }}
-                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center hover:bg-destructive/80 shadow-md"
-                    >
-                      ×
-                    </button>
-                  </div>
-                )}
+            );
+          })}
+
+          {/* Renderizar quaisquer chaves adicionais que não estavam nos grupos pré-definidos */}
+          {settings.filter((s) => !renderedKeys.has(s.key)).length > 0 && (
+            <div className="bg-card/70 backdrop-blur-md border border-border/80 rounded-2xl p-5 sm:p-6 space-y-5 shadow-lg">
+              <div className="flex items-center gap-3 border-b border-border/60 pb-3.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/25 flex items-center justify-center text-primary shrink-0">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base sm:text-lg text-foreground">Outras Opções</h3>
+                </div>
               </div>
-            ) : (
-              <div className="relative" style={{ position: 'relative' }}>
-                <input
-                  type={s.isSecret && !revealed[s.key] ? "password" : "text"}
-                  value={values[s.key] ?? ""}
-                  onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
-                  placeholder={s.isSecret ? "••••••••" : `Valor de ${s.key}`}
-                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm pr-10"
-                />
-                {s.isSecret && (
-                  <button
-                    type="button"
-                    onClick={() => setRevealed({ ...revealed, [s.key]: !revealed[s.key] })}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                  >
-                    {revealed[s.key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                {settings.filter((s) => !renderedKeys.has(s.key)).map((s) => renderField(s))}
               </div>
-            )}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Renderização padrão para categorias simples (Asaas, R2, Pixel, Demo, Clarity) */
+        <div className="bg-card/70 backdrop-blur-md border border-border/80 rounded-2xl p-5 sm:p-6 space-y-5 shadow-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+            {settings.map((s) => renderField(s))}
           </div>
-        ))}
+        </div>
+      )}
 
-        <div className="pt-2 border-t border-border/50 flex items-center gap-3">
+      {/* Barra de Ação Flutuante para Salvar */}
+      <div className="sticky bottom-4 z-20 bg-card/95 backdrop-blur-xl border border-border/90 rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground hidden sm:flex">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span>Alterações são sincronizadas imediatamente na plataforma.</span>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <AddSettingForm
+            category={category}
+            onAdd={(key, value) => {
+              const newSetting: Setting = {
+                id: 0,
+                category,
+                key,
+                value,
+                rawValue: value,
+                isSecret: key.includes("api_key") || key.includes("secret") || key.includes("token"),
+                description: "",
+                updatedAt: new Date().toISOString(),
+              };
+              setSettings([...settings, newSetting]);
+              setValues({ ...values, [key]: value });
+            }}
+          />
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary via-amber-400 to-primary text-black font-extrabold text-xs sm:text-sm rounded-xl shadow-[0_0_20px_rgba(245,197,24,0.35)] hover:shadow-[0_0_25px_rgba(245,197,24,0.5)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? "Salvando..." : "Salvar Configurações"}
           </button>
-          <AddSettingForm category={category} onAdd={(key, value) => {
-            const newSetting: Setting = { id: 0, category, key, value, rawValue: value, isSecret: key.includes("api_key") || key.includes("secret") || key.includes("token"), description: "", updatedAt: new Date().toISOString() };
-            setSettings([...settings, newSetting]);
-            setValues({ ...values, [key]: value });
-          }} />
         </div>
       </div>
     </div>
