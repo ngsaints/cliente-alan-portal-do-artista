@@ -181,7 +181,7 @@ export default function Demo() {
 
   // Intercalar dinamicamente as faixas do Demo entre diferentes artistas
   const artistSongs = useMemo(() => {
-    const base = (songs || []).filter((s) => !s.isVip && !(s as any).isPrivate);
+    const base = (songs || []).filter((s: any) => !s.isVip && !(s as any).isPrivate);
     if (base.length === 0) return [];
 
     const groups: { [key: string]: any[] } = {};

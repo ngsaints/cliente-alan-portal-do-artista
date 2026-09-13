@@ -168,7 +168,7 @@ export default function ArtistProfile() {
     genre: selectedGenre || undefined,
   });
 
-  const artistSongs = (songs || []).filter((s) => !s.isVip && !(s as any).isPrivate && (s as any).artistaId == numericArtistId);
+  const artistSongs = (songs || []).filter((s: any) => !s.isVip && !(s as any).isPrivate && (s as any).artistaId == numericArtistId);
 
   const isGroup = artistData?.profissao && (
     artistData.profissao.toLowerCase().includes("banda") ||
@@ -215,7 +215,7 @@ export default function ArtistProfile() {
     }
   } : undefined;
 
-  const songsSchemas = artistSongs && artistSongs.length > 0 ? artistSongs.map((s) => ({
+  const songsSchemas = artistSongs && artistSongs.length > 0 ? artistSongs.map((s: any) => ({
     "@type": "MusicRecording",
     "@id": `${artistProfileUrl}#song-${s.id}`,
     "name": s.titulo,
@@ -265,7 +265,7 @@ export default function ArtistProfile() {
     if (songIdParam) {
       const songId = parseInt(songIdParam);
       if (!isNaN(songId)) {
-        const matchedSong = artistSongs.find(s => s.id === songId);
+        const matchedSong = artistSongs.find((s: any) => s.id === songId);
         if (matchedSong) {
           hasAutoPlayed.current = true;
           setHighlightedSongId(songId);
@@ -685,7 +685,7 @@ export default function ArtistProfile() {
 
         {!isLoading && artistSongs.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {artistSongs.map((song, index) => (
+            {artistSongs.map((song: any, index: number) => (
               <MusicCard
                 key={song.id}
                 song={song}

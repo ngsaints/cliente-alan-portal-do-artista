@@ -127,7 +127,7 @@ export default function Home() {
 
   // Intercalar dinamicamente as músicas entre diferentes artistas (Round-Robin com Shuffle)
   const filteredSongs = useMemo(() => {
-    const base = (songs || []).filter((s) => !(s as any).isVip && !(s as any).isPrivate);
+    const base = (songs || []).filter((s: any) => !(s as any).isVip && !(s as any).isPrivate);
     if (base.length === 0) return [];
 
     // Agrupar faixas por artista

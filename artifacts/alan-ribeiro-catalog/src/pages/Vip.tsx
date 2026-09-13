@@ -176,7 +176,7 @@ export default function Vip() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {songs?.map((song, index) => (
+                  {songs?.map((song: any, index: number) => (
                     <motion.div
                       key={song.id}
                       initial={{ opacity: 0, y: 15 }}

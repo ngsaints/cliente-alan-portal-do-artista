@@ -22,7 +22,15 @@ import {
   Radio, 
   ArrowUpRight,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Lightbulb,
+  Share2,
+  Copy,
+  Trash2,
+  QrCode,
+  CreditCard,
+  X,
+  ExternalLink
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -133,6 +141,163 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [selectedTool, setSelectedTool] = useState<string>("chat");
+
+  // Modal Compor do Zero
+  const [isComposeModalOpen, setIsComposeModalOpen] = useState(false);
+  const [composeIdea, setComposeIdea] = useState("");
+  const [isComposing, setIsComposing] = useState(false);
+
+  // Modal Comprar Créditos Extras
+  const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
+  const [creditPackages, setCreditPackages] = useState<any[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
+  const [pixData, setPixData] = useState<{ pixQrCode?: string; pixCopiaECola?: string; paymentId?: string } | null>(null);
+  const [isBuyingCredits, setIsBuyingCredits] = useState(false);
+
+  const formatTime = (secs: number) => {
+    if (isNaN(secs) || secs < 0) return "00:00";
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copiado com sucesso!",
+      description: `${label} copiado para a área de transferência.`,
+    });
+  };
+
+  const handleShareWhatsapp = (demo: DemoItem) => {
+    const text = `🎵 Ouça a nova demo da música "${demo.titulo}" gerada no Portal do Artista:\n${demo.audioUrl || window.location.href}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  const handleDeleteDemo = async (demoId: number) => {
+    if (!confirm("Deseja realmente excluir esta demo musical do seu histórico?")) return;
+    try {
+      const res = await fetch(`/api/ai/music/${demoId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Falha ao excluir demo");
+      setDemos((prev) => prev.filter((d) => d.id !== demoId));
+      if (currentDemo?.id === demoId) {
+        setCurrentDemo(demos.find((d) => d.id !== demoId) || null);
+      }
+      toast({
+        title: "Demo removida",
+        description: "A música foi removida do seu histórico.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao excluir",
+        description: err.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleComposeFromIdea = async () => {
+    if (!composeIdea.trim()) {
+      toast({
+        title: "Informe o tema",
+        description: "Descreva em poucas palavras a história ou sentimento da música.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsComposing(true);
+    try {
+      const res = await fetch("/api/ai/lyrics/compose", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idea: composeIdea.trim(),
+          genre: estilo,
+          mood: clima,
+          bpm,
+          voice: voz,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Falha ao compor letra");
+      }
+
+      const data = await res.json();
+      if (data.title) setTitulo(data.title);
+      if (data.lyrics) setLetra(data.lyrics);
+      if (data.suggestedPrompt) setPromptExtra(data.suggestedPrompt);
+
+      setIsComposeModalOpen(false);
+      setComposeIdea("");
+
+      toast({
+        title: "✨ Letra inédita composta com sucesso!",
+        description: `"${data.title}" foi estruturada com estrofes, refrão chiclete e tags para o MiniMax Music 2.6.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro na composição",
+        description: err.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsComposing(false);
+    }
+  };
+
+  const loadCreditPackages = async () => {
+    try {
+      const res = await fetch("/api/ai/credits/packages");
+      if (res.ok) {
+        const pkgs = await res.json();
+        setCreditPackages(pkgs);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar pacotes de créditos:", err);
+    }
+  };
+
+  const handleBuyCreditPackage = async (pkg: any) => {
+    setSelectedPackage(pkg);
+    setIsBuyingCredits(true);
+    try {
+      const res = await fetch("/api/ai/credits/buy-package", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageId: pkg.id }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Falha ao processar pacote");
+      }
+
+      const data = await res.json();
+      if (data.mode === "asaas_pix" && data.pixCopiaECola) {
+        setPixData(data);
+      } else {
+        // Instant
+        toast({
+          title: "🎉 Créditos Adicionados!",
+          description: `Você recebeu +${pkg.credits} créditos extras de geração musical.`,
+        });
+        setIsBuyCreditsModalOpen(false);
+        loadData();
+        if (onRefreshArtist) onRefreshArtist();
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erro na compra",
+        description: err.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBuyingCredits(false);
+    }
+  };
 
   // Fetch Credits Balance & Demos History
   const loadData = async () => {
@@ -500,12 +665,23 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
               </div>
             </div>
 
+            <button
+              onClick={() => {
+                loadCreditPackages();
+                setIsBuyCreditsModalOpen(true);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>+ Comprar Pacote</span>
+            </button>
+
             {onOpenUpgradeModal && (
               <button
                 onClick={onOpenUpgradeModal}
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/20"
               >
-                <span>Mais Créditos</span>
+                <span>Fazer Upgrade</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             )}
@@ -664,24 +840,35 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Letra & Estrutura ({letra.length} / 3.500 caracteres)
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleOptimizeLyrics}
-                    disabled={isOptimizing || !letra.trim()}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 disabled:opacity-40 transition-colors"
-                  >
-                    {isOptimizing ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Aprimorando com Vivi...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>✨ Aprimorar com IA</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsComposeModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+                    >
+                      <Lightbulb className="w-3.5 h-3.5" />
+                      <span>💡 Compor do Zero</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOptimizeLyrics}
+                      disabled={isOptimizing || !letra.trim()}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 disabled:opacity-40 transition-colors"
+                    >
+                      {isOptimizing ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Aprimorando com Vivi...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>✨ Aprimorar Letra</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Tag Pills */}
@@ -784,18 +971,41 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                       </button>
                     </div>
 
-                    {/* Progress Bar se estiver tocando */}
-                    {playingAudioId === currentDemo.id && audioDuration > 0 && (
-                      <div className="space-y-1">
-                        <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="bg-amber-400 h-full transition-all"
-                            style={{ width: `${(audioProgress / audioDuration) * 100}%` }}
+                    {/* Animated Equalizer Waveform se estiver tocando */}
+                    {playingAudioId === currentDemo.id && (
+                      <div className="flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl bg-amber-400/10 border border-amber-400/20">
+                        <span className="text-[10px] font-mono text-amber-400 mr-2 font-bold uppercase tracking-wider animate-pulse">Reproduzindo</span>
+                        {[40, 75, 95, 60, 30, 85, 100, 50, 75, 45, 90, 65, 35, 80, 55, 90].map((h, i) => (
+                          <span
+                            key={i}
+                            className="w-1 bg-gradient-to-t from-amber-500 to-amber-300 rounded-full transition-all"
+                            style={{
+                              height: `${Math.max(6, (h * (0.2 + (i % 3) * 0.1)))}px`,
+                              animation: `pulse ${0.35 + (i % 4) * 0.15}s ease-in-out infinite alternate`,
+                            }}
                           />
-                        </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Progress Bar Interativa (Scrubber) */}
+                    {playingAudioId === currentDemo.id && audioDuration > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        <input
+                          type="range"
+                          min={0}
+                          max={audioDuration || 100}
+                          value={audioProgress}
+                          onChange={(e) => {
+                            const newTime = Number(e.target.value);
+                            setAudioProgress(newTime);
+                            if (audioRef.current) audioRef.current.currentTime = newTime;
+                          }}
+                          className="w-full accent-amber-400 cursor-pointer h-1.5 bg-secondary rounded-full"
+                        />
                         <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                          <span>{Math.floor(audioProgress)}s</span>
-                          <span>{Math.floor(audioDuration)}s</span>
+                          <span>{formatTime(audioProgress)}</span>
+                          <span>{formatTime(audioDuration)}</span>
                         </div>
                       </div>
                     )}
@@ -803,25 +1013,47 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
 
                   {/* Ações da Demo */}
                   {currentDemo.status === "completed" && currentDemo.audioUrl && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <a
-                        href={currentDemo.audioUrl}
-                        download={`${currentDemo.titulo}.mp3`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-2.5 rounded-xl bg-secondary/80 hover:bg-secondary border border-border text-foreground font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Baixar MP3</span>
-                      </a>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <a
+                          href={currentDemo.audioUrl}
+                          download={`${currentDemo.titulo}.mp3`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-2.5 rounded-xl bg-secondary/80 hover:bg-secondary border border-border text-foreground font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Baixar MP3</span>
+                        </a>
 
-                      <button
-                        onClick={() => handleSaveToCatalog(currentDemo)}
-                        className="px-3 py-2.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Salvar no Catálogo</span>
-                      </button>
+                        <button
+                          onClick={() => handleSaveToCatalog(currentDemo)}
+                          className="px-3 py-2.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Salvar no Catálogo</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <button
+                          onClick={() => handleShareWhatsapp(currentDemo)}
+                          className="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>WhatsApp</span>
+                        </button>
+
+                        {currentDemo.letra && (
+                          <button
+                            onClick={() => handleCopy(currentDemo.letra || "", "Letra")}
+                            className="px-3 py-2 rounded-xl bg-secondary/60 hover:bg-secondary border border-border/80 text-muted-foreground hover:text-foreground font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copiar Letra</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -891,6 +1123,17 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                             Processando...
                           </span>
                         )}
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteDemo(d.id);
+                          }}
+                          className="w-7 h-7 rounded-lg hover:bg-red-500/20 text-muted-foreground hover:text-red-400 flex items-center justify-center transition-colors"
+                          title="Excluir demo do histórico"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -996,6 +1239,276 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
             >
               <Send className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: COMPOR LETRA DO ZERO COM A VIVI */}
+      {isComposeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-xl bg-card border border-cyan-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <button
+              onClick={() => setIsComposeModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-xl text-muted-foreground hover:text-white hover:bg-secondary/60 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30">
+                <Lightbulb className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Compor Letra do Zero com IA</h3>
+                <p className="text-xs text-muted-foreground">
+                  A Vivi vai escrever estrofes, rimas e um refrão chiclete já formatado para gravação vocal.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-2 uppercase tracking-wider">
+                  Qual é a ideia, história ou sentimento da música?
+                </label>
+                <textarea
+                  value={composeIdea}
+                  onChange={(e) => setComposeIdea(e.target.value)}
+                  placeholder="Ex: Um amor de faculdade que terminou faz tempo e agora se reencontra numa festa no interior, com saudade e clima animado..."
+                  rows={4}
+                  className="w-full px-4 py-3 bg-secondary/30 border border-border focus:border-cyan-400 rounded-2xl text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-cyan-400 resize-none"
+                />
+              </div>
+
+              {/* Sugestões Rápidas de Temas */}
+              <div>
+                <span className="text-[11px] font-semibold text-muted-foreground block mb-2">
+                  Ou clique em um tema de inspiração:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "💔 Sofrência e término de relacionamento no boteco",
+                    "💃 Piseiro animado de sexta-feira com amigos",
+                    "💍 Declaração de amor eterno e casamento",
+                    "🌾 Modão caipira raiz sobre saudade da roça",
+                    "🚀 Superação, conquistas e dar a volta por cima",
+                    "🙏 Gratidão pela vida e fé em Deus",
+                  ].map((theme, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setComposeIdea(theme)}
+                      className="px-2.5 py-1.5 rounded-xl bg-secondary/40 hover:bg-cyan-500/15 hover:border-cyan-500/40 text-muted-foreground hover:text-cyan-300 border border-border/80 text-xs text-left transition-all"
+                    >
+                      {theme}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-secondary/30 border border-border text-[11px] text-muted-foreground flex items-center justify-between">
+                <span>Gênero atual: <strong className="text-foreground">{estilo}</strong></span>
+                <span>Voz: <strong className="text-foreground">{voz}</strong></span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsComposeModalOpen(false)}
+                className="flex-1 py-3 rounded-2xl bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleComposeFromIdea}
+                disabled={isComposing || !composeIdea.trim()}
+                className="flex-[2] py-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-black font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 transition-all disabled:opacity-50"
+              >
+                {isComposing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>A Vivi está compondo a música...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>✨ Escrever Letra Completa</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: COMPRAR PACOTES DE CRÉDITOS EXTRAS */}
+      {isBuyCreditsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-2xl bg-card border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => {
+                setIsBuyCreditsModalOpen(false);
+                setPixData(null);
+                setSelectedPackage(null);
+              }}
+              className="absolute top-5 right-5 p-2 rounded-xl text-muted-foreground hover:text-white hover:bg-secondary/60 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Comprar Pacotes de Créditos de Música</h3>
+                <p className="text-xs text-muted-foreground">
+                  Créditos avulsos não expiram no final do mês e acumulam no seu saldo do Estúdio Vivi.
+                </p>
+              </div>
+            </div>
+
+            {pixData ? (
+              /* Tela PIX */
+              <div className="p-6 rounded-2xl bg-background/90 border border-amber-500/40 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                  <QrCode className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-base text-foreground">Pagamento via PIX</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Pague agora para liberar instantaneamente seus créditos de geração musical.
+                  </p>
+                </div>
+
+                {pixData.pixQrCode && (
+                  <div className="flex justify-center my-3">
+                    <img
+                      src={`data:image/png;base64,${pixData.pixQrCode}`}
+                      alt="PIX QR Code"
+                      className="w-48 h-48 rounded-xl border border-border p-2 bg-white"
+                    />
+                  </div>
+                )}
+
+                {pixData.pixCopiaECola && (
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase">
+                      PIX Copia e Cola
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={pixData.pixCopiaECola}
+                        className="w-full px-3 py-2 bg-secondary/40 border border-border rounded-xl text-xs font-mono text-muted-foreground"
+                      />
+                      <button
+                        onClick={() => handleCopy(pixData.pixCopiaECola || "", "Código PIX")}
+                        className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs flex items-center gap-1.5 shrink-0"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copiar</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    setIsBuyCreditsModalOpen(false);
+                    setPixData(null);
+                    loadData();
+                    if (onRefreshArtist) onRefreshArtist();
+                  }}
+                  className="w-full py-3 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs"
+                >
+                  Concluir / Já Realizei o Pagamento
+                </button>
+              </div>
+            ) : (
+              /* Grid de Pacotes */
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {(creditPackages.length > 0 ? creditPackages : [
+                    { id: "pack_5", name: "Pacote Start", credits: 5, price: 19.9, badge: "Econômico", description: "5 demos musicais completas geradas por IA" },
+                    { id: "pack_15", name: "Pro Compositor", credits: 15, price: 49.9, badge: "Mais Popular", description: "15 demos musicais com voz e instrumental" },
+                    { id: "pack_40", name: "Hitmaker", credits: 40, price: 99.9, badge: "Melhor Custo", description: "40 demos musicais para repertórios inteiros" },
+                  ]).map((pkg) => (
+                    <div
+                      key={pkg.id}
+                      className={`relative p-5 rounded-2xl border transition-all flex flex-col justify-between ${
+                        pkg.id === "pack_15"
+                          ? "bg-gradient-to-b from-amber-500/15 to-card border-amber-400/80 shadow-lg shadow-amber-500/10"
+                          : "bg-secondary/20 border-border hover:border-border/80"
+                      }`}
+                    >
+                      {pkg.badge && (
+                        <span className={`absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                          pkg.id === "pack_15"
+                            ? "bg-amber-400 text-black shadow-md shadow-amber-400/30"
+                            : "bg-secondary text-muted-foreground border border-border"
+                        }`}>
+                          {pkg.badge}
+                        </span>
+                      )}
+
+                      <div className="space-y-2">
+                        <h4 className="font-bold text-sm text-foreground">{pkg.name}</h4>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-black text-foreground">
+                            R$ {pkg.price.toFixed(2).replace(".", ",")}
+                          </span>
+                        </div>
+                        <p className="text-xs font-semibold text-amber-400">
+                          +{pkg.credits} Demos Cantadas
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          {pkg.description}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => handleBuyCreditPackage(pkg)}
+                        disabled={isBuyingCredits}
+                        className={`w-full mt-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                          pkg.id === "pack_15"
+                            ? "bg-amber-400 hover:bg-amber-300 text-black shadow-md shadow-amber-400/20"
+                            : "bg-secondary hover:bg-secondary/80 text-foreground"
+                        }`}
+                      >
+                        {isBuyingCredits && selectedPackage?.id === pkg.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <>
+                            <span>Comprar com PIX</span>
+                            <ArrowUpRight className="w-3.5 h-3.5" />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-4 rounded-2xl bg-secondary/30 border border-border/80 flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Pagamento Seguro via PIX com ativação instantânea</span>
+                  </div>
+                  {onOpenUpgradeModal && (
+                    <button
+                      onClick={() => {
+                        setIsBuyCreditsModalOpen(false);
+                        onOpenUpgradeModal();
+                      }}
+                      className="text-amber-400 hover:underline font-semibold"
+                    >
+                      Prefere assinar um plano mensal?
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

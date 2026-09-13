@@ -228,6 +228,7 @@ router.post(
         }
 
         let invoiceUrl: string | null = null;
+        let pixDetails: any = null;
 
         // Create Asaas subscription for paid plans
         if (isPaid) {
@@ -280,7 +281,6 @@ router.post(
               const firstPayment = payments.data?.[0];
               invoiceUrl = firstPayment?.invoiceUrl ?? null;
 
-              var pixDetails = null;
               if (finalBillingType === "PIX" && firstPayment) {
                 try {
                   pixDetails = await getPaymentPixQrCode(firstPayment.id);

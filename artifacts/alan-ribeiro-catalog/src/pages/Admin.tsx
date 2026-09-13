@@ -483,7 +483,7 @@ function SongsTab() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSong, setEditingSong] = useState<any | null>(null);
 
-  const filtered = (songs || []).filter((s) =>
+  const filtered = (songs || []).filter((s: any) =>
     s.titulo.toLowerCase().includes(search.toLowerCase()) ||
     s.genero.toLowerCase().includes(search.toLowerCase()) ||
     (s.compositor || "").toLowerCase().includes(search.toLowerCase())
@@ -568,7 +568,7 @@ function SongsTab() {
             <span className="text-right pr-2">Ações</span>
           </div>
           <div className="divide-y divide-border/40">
-            {filtered.map((song) => (
+            {filtered.map((song: any) => (
               <div
                 key={song.id}
                 className="flex sm:grid sm:grid-cols-[3fr_1fr_1fr_auto] items-center gap-3 sm:gap-4 px-4 py-3 hover:bg-white/[0.02] transition-colors group"

@@ -262,7 +262,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
     const payments = await getSubscriptionPayments(subscription.id);
     const firstPayment = payments.data?.[0];
 
-    let pixDetails = null;
+    let pixDetails: any = null;
     if (finalBillingType === "PIX" && firstPayment) {
       try {
         pixDetails = await getPaymentPixQrCode(firstPayment.id);
@@ -386,7 +386,7 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
     const { event, payment, subscription } = req.body;
 
     if (event === "PAYMENT_CONFIRMED" || event === "PAYMENT_RECEIVED" || event === "PAYMENT_CREDIT_CARD_CAPTURED" || event === "CHECKOUT_PAID") {
-      const paymentData = payment;
+      const paymentData: any = payment;
       if (!paymentData?.id) {
         res.json({ status: "ok", message: "No payment data" });
         return;
@@ -410,7 +410,7 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
       let [refArtistId, refPlanId] = externalRef.split("-");
 
       const subId = paymentData.subscription ?? subscription?.id;
-      let pendingSub = null;
+      let pendingSub: any = null;
 
       if (subId) {
         const [sub] = await db

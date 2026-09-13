@@ -7,7 +7,7 @@
     "lib/api-client-react",
     "scripts"
   ],
-  "nodeModulesDir": "auto",
+  "nodeModulesDir": "none",
   "unstable": ["sloppy-imports", "byonm"],
   "imports": {
     "@workspace/db": "./lib/db/src/index.ts",

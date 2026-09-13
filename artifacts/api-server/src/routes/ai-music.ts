@@ -3,6 +3,7 @@ import { db, aiMusicDemosTable, songsTable, artistsTable, plansTable } from "@wo
 import { eq, desc } from "drizzle-orm";
 import { 
   optimizeLyricsForMiniMax, 
+  composeFullSongFromIdea,
   getOpenRouterConfig, 
   listOpenRouterModels, 
   getOpenRouterCredits 
@@ -163,6 +164,36 @@ router.post("/ai/lyrics/optimize", async (req, res): Promise<void> => {
   } catch (error: any) {
     console.error("Erro ao otimizar letra com OpenRouter:", error);
     res.status(500).json({ error: error.message || "Erro ao aprimorar letra com IA" });
+  }
+});
+
+// POST /api/ai/lyrics/compose - Compõe uma letra inédita completa com base em uma ideia/tema
+router.post("/ai/lyrics/compose", async (req, res): Promise<void> => {
+  try {
+    const sessionArtistId = req.session.artistId;
+    if (!sessionArtistId && !req.session.logado) {
+      res.status(401).json({ error: "Você precisa estar logado para compor com a Vivi." });
+      return;
+    }
+
+    const { idea, genre, mood, bpm, voice } = req.body;
+    if (!idea || typeof idea !== "string" || idea.trim().length === 0) {
+      res.status(400).json({ error: "Informe a ideia ou tema da música para a Vivi compor." });
+      return;
+    }
+
+    const result = await composeFullSongFromIdea({
+      idea: idea.trim(),
+      genre: genre || "Sertanejo",
+      mood: mood || "Animado",
+      bpm: Number(bpm) || 120,
+      voice: voice || "Masculina",
+    });
+
+    res.json(result);
+  } catch (error: any) {
+    console.error("Erro ao compor letra com OpenRouter:", error);
+    res.status(500).json({ error: error.message || "Erro ao compor letra com a IA da Vivi" });
   }
 });
 
@@ -442,6 +473,166 @@ router.post("/ai/music/save-to-catalog", async (req, res): Promise<void> => {
   } catch (error: any) {
     console.error("Erro ao salvar demo no catálogo:", error);
     res.status(500).json({ error: error.message || "Erro ao salvar música no catálogo" });
+  }
+});
+
+// DELETE /api/ai/music/:id - Exclui uma demo do histórico do artista
+router.delete("/ai/music/:id", async (req, res): Promise<void> => {
+  try {
+    const sessionArtistId = req.session.artistId;
+    if (!sessionArtistId) {
+      res.status(401).json({ error: "Não autorizado" });
+      return;
+    }
+
+    const demoId = parseInt(req.params.id);
+    if (isNaN(demoId)) {
+      res.status(400).json({ error: "ID de demo inválido" });
+      return;
+    }
+
+    const demos = await db.select().from(aiMusicDemosTable).where(eq(aiMusicDemosTable.id, demoId));
+    if (demos.length === 0) {
+      res.status(404).json({ error: "Demo não encontrada" });
+      return;
+    }
+
+    if (demos[0].artistaId !== sessionArtistId) {
+      res.status(403).json({ error: "Você só pode excluir demos do seu próprio histórico" });
+      return;
+    }
+
+    await db.delete(aiMusicDemosTable).where(eq(aiMusicDemosTable.id, demoId));
+
+    res.json({ success: true, message: "Demo removida com sucesso" });
+  } catch (error: any) {
+    console.error("Erro ao excluir demo:", error);
+    res.status(500).json({ error: "Erro ao excluir demo" });
+  }
+});
+
+const CREDIT_PACKAGES = [
+  {
+    id: "pack_5",
+    name: "Pacote Start",
+    credits: 5,
+    price: 19.90,
+    pricePerCredit: 3.98,
+    badge: "Econômico",
+    description: "5 demos musicais completas geradas por IA",
+  },
+  {
+    id: "pack_15",
+    name: "Pacote Pro Compositor",
+    credits: 15,
+    price: 49.90,
+    pricePerCredit: 3.32,
+    badge: "Mais Popular",
+    description: "15 demos musicais com voz e instrumental completo",
+  },
+  {
+    id: "pack_40",
+    name: "Pacote Hitmaker",
+    credits: 40,
+    price: 99.90,
+    pricePerCredit: 2.49,
+    badge: "Melhor Custo-Benefício",
+    description: "40 demos musicais para criar repertórios inteiros",
+  },
+];
+
+// GET /api/ai/credits/packages - Lista pacotes de créditos extras disponíveis
+router.get("/ai/credits/packages", (_req, res): void => {
+  res.json(CREDIT_PACKAGES);
+});
+
+// POST /api/ai/credits/buy-package - Inicia compra de pacote de créditos de música
+router.post("/ai/credits/buy-package", async (req, res): Promise<void> => {
+  try {
+    const sessionArtistId = req.session.artistId;
+    if (!sessionArtistId) {
+      res.status(401).json({ error: "Não autorizado" });
+      return;
+    }
+
+    const { packageId } = req.body;
+    const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId);
+    if (!pkg) {
+      res.status(400).json({ error: "Pacote inválido" });
+      return;
+    }
+
+    const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, sessionArtistId));
+    if (artists.length === 0) {
+      res.status(404).json({ error: "Artista não encontrado" });
+      return;
+    }
+    const artist = artists[0];
+
+    // Verificar se o Asaas está disponível
+    try {
+      const { getAsaasCredentials, findOrCreateCustomer, asaasFetch } = await import("../lib/asaas-client.js");
+      const creds = await getAsaasCredentials();
+
+      if (creds.apiKey) {
+        const customer = await findOrCreateCustomer(
+          artist.name,
+          artist.email,
+          artist.documento || undefined,
+          artist.contato || undefined
+        );
+
+        const today = new Date().toISOString().split("T")[0];
+        const paymentRes = await asaasFetch<any>("/payments", {
+          method: "POST",
+          body: {
+            customer: customer.id,
+            billingType: "PIX",
+            value: pkg.price,
+            dueDate: today,
+            description: `Portal do Artista - Créditos de Música IA (${pkg.name} - ${pkg.credits} Demos)`,
+          },
+        });
+
+        let qrCodeData = { encodedImage: "", payload: "" };
+        try {
+          qrCodeData = await asaasFetch<any>(`/payments/${paymentRes.id}/pixQrCode`);
+        } catch (qrErr) {
+          console.warn("Falha ao gerar QR Code PIX Asaas:", qrErr);
+        }
+
+        res.json({
+          success: true,
+          mode: "asaas_pix",
+          paymentId: paymentRes.id,
+          pixQrCode: qrCodeData.encodedImage,
+          pixCopiaECola: qrCodeData.payload,
+          package: pkg,
+        });
+        return;
+      }
+    } catch (asaasErr) {
+      console.warn("Asaas não configurado ou indisponível, usando modo teste/direto:", asaasErr);
+    }
+
+    // Modo de demonstração / ativação direta quando sem Asaas em desenvolvimento
+    const newExtra = (artist.aiMusicExtraCredits || 0) + pkg.credits;
+    await db
+      .update(artistsTable)
+      .set({ aiMusicExtraCredits: newExtra })
+      .where(eq(artistsTable.id, sessionArtistId));
+
+    res.json({
+      success: true,
+      mode: "instant",
+      message: `Pacote de ${pkg.credits} créditos ativado com sucesso!`,
+      addedCredits: pkg.credits,
+      totalExtraCredits: newExtra,
+      package: pkg,
+    });
+  } catch (error: any) {
+    console.error("Erro ao processar compra de créditos:", error);
+    res.status(500).json({ error: error.message || "Erro ao processar compra de créditos" });
   }
 });
 

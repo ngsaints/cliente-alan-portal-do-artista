@@ -59,7 +59,7 @@ export async function startMusicGeneration(input: MiniMaxMusicInput): Promise<Re
   }
 
   // Montar prompt completo refinado para o MiniMax
-  const stylePromptParts = [];
+  const stylePromptParts: string[] = [];
   if (input.genre) stylePromptParts.push(input.genre);
   if (input.mood) stylePromptParts.push(`clima ${input.mood}`);
   if (input.voice) {

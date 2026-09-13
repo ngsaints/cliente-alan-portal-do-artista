@@ -218,6 +218,92 @@ Por favor, estruture a letra para o formato do MiniMax e forneça o prompt music
   }
 }
 
+export interface ComposeLyricsParams {
+  idea: string;
+  genre: string;
+  mood?: string;
+  voice?: string;
+  bpm?: number;
+}
+
+export interface ComposeLyricsResult {
+  title: string;
+  lyrics: string;
+  suggestedPrompt: string;
+  concept: string;
+}
+
+/**
+ * Cria uma letra completa e estruturada a partir de uma ideia ou tema fornecido pelo artista
+ */
+export async function composeFullSongFromIdea(params: ComposeLyricsParams): Promise<ComposeLyricsResult> {
+  const systemPrompt = `Você é a Vivi, produtora musical de sucessos no PORTALDOARTISTA.COM.
+Sua missão é compor uma letra inédita, emocionante e comercial com base na ideia enviada pelo artista.
+
+Estruture a letra com as tags padronizadas reconhecidas pelo MiniMax Music 2.6:
+[Intro]
+[Verse 1]
+[Pre-Chorus] (opcional)
+[Chorus]
+[Verse 2]
+[Chorus]
+[Bridge]
+[Guitar Solo] ou [Accordion Solo] (opcional)
+[Chorus]
+[Outro]
+
+Regras vitais:
+1. Rimas autênticas e métrica rítmica natural (8 a 10 sílabas por verso).
+2. Refrão forte, marcante e comercial.
+3. Vocabulário condizente com o gênero ${params.genre}.
+4. Retorne sua resposta estritamente no formato JSON válido com as chaves:
+{
+  "title": "Título Incrível",
+  "lyrics": "letra completa estruturada com as tags",
+  "suggestedPrompt": "descrição dos instrumentos e voz para a IA",
+  "concept": "explicação breve da ideia comercial da música"
+}`;
+
+  const userPrompt = `Gênero: ${params.genre}
+Clima/Mood: ${params.mood || "Animado"}
+Voz pretendida: ${params.voice || "Masculina"}
+BPM: ${params.bpm || 120}
+Ideia/Tema do Artista:
+"${params.idea}"
+
+Por favor, componha a música completa agora.`;
+
+  const response = await callOpenRouter({
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+    temperature: 0.8,
+  });
+
+  try {
+    let clean = response.content.trim();
+    if (clean.startsWith("```json")) {
+      clean = clean.replace(/^```json/, "").replace(/```$/, "").trim();
+    } else if (clean.startsWith("```")) {
+      clean = clean.replace(/^```/, "").replace(/```$/, "").trim();
+    }
+    const parsed = JSON.parse(clean);
+    return {
+      title: parsed.title || "Composição Inédita",
+      lyrics: parsed.lyrics || response.content,
+      suggestedPrompt: parsed.suggestedPrompt || `${params.genre} com ${params.voice || "voz marcante"}, ${params.bpm || 120} BPM`,
+      concept: parsed.concept || "Música composta com sucesso.",
+    };
+  } catch (err) {
+    console.warn("Falha ao parsear JSON de composição da Vivi:", err);
+    return {
+      title: "Composição Inédita",
+      lyrics: response.content,
+      suggestedPrompt: `${params.genre} estilo ${params.mood || "moderno"} com voz ${params.voice || "masculina"}, ${params.bpm || 120} BPM`,
+      concept: "Letra gerada com sucesso pela Vivi.",
+    };
+  }
+}
+
 export interface ModelOption {
   id: string;
   name: string;

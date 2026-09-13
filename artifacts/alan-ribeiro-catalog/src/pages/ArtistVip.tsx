@@ -25,7 +25,7 @@ export default function ArtistVip() {
 
   // Fetch all songs and filter by this artist's ID + VIP
   const { data: allSongs, isLoading: songsLoading } = useListSongs({});
-  const artistSongs = allSongs?.filter(s => 
+  const artistSongs = allSongs?.filter((s: any) => 
     (s as any).artistaId == id && s.isVip
   ) || [];
 
@@ -183,7 +183,7 @@ export default function ArtistVip() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {artistSongs.map((song, index) => (
+                  {artistSongs.map((song: any, index: number) => (
                     <motion.div
                       key={song.id}
                       initial={{ opacity: 0, y: 15 }}
