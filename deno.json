@@ -1,0 +1,33 @@
+{
+  "workspace": [
+    "artifacts/api-server",
+    "artifacts/alan-ribeiro-catalog",
+    "lib/db",
+    "lib/api-zod",
+    "lib/api-client-react"
+  ],
+  "nodeModulesDir": "auto",
+  "unstable": ["sloppy-imports", "byonm"],
+  "imports": {
+    "@workspace/db": "./lib/db/src/index.ts",
+    "@workspace/db/schema": "./lib/db/src/schema/index.ts",
+    "@workspace/api-zod": "./lib/api-zod/src/index.ts"
+  },
+  "tasks": {
+    "start": "deno run -A --unstable-sloppy-imports --unstable-byonm deno-server.ts",
+    "dev": "deno run -A --watch --unstable-sloppy-imports --unstable-byonm deno-server.ts",
+    "api": "deno run -A --unstable-sloppy-imports --unstable-byonm artifacts/api-server/src/index.ts"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "dom", "esnext"],
+    "noImplicitAny": false,
+    "strict": false,
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".git",
+    "artifacts/alan-ribeiro-catalog/dist"
+  ]
+}

@@ -1,20 +1,14 @@
 import dotenv from "dotenv";
 dotenv.config({ path: "../../.env" });
 
+
 import { initLogger } from "./lib/logger.js";
 initLogger();
 
 import app from "./app";
 import { startReactivation } from './lib/reactivation';
 
-const rawPort = process.env["PORT"];
-
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
-
+const rawPort = process.env["PORT"] || (typeof (globalThis as any).Deno !== "undefined" ? "8000" : "3000");
 const port = Number(rawPort);
 
 if (Number.isNaN(port) || port <= 0) {
