@@ -5,6 +5,7 @@ import { initLogger } from "./lib/logger.js";
 initLogger();
 
 import app from "./app";
+import { startReactivation } from './lib/reactivation';
 
 const rawPort = process.env["PORT"];
 
@@ -21,5 +22,6 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 app.listen(port, () => {
+  startReactivation();
   console.log(`Server listening on port ${port}`);
 });

@@ -8,18 +8,23 @@ export default function CrmPage() {
   const [, navigate] = useLocation();
   const [artist, setArtist] = useState<any>(null);
   const [songs, setSongs] = useState<any[]>([]);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch("/api/artists/status", { credentials: "include" })
       .then(r => r.json())
-      .then(d => { if (!d.error) setArtist(d); })
-      .catch(() => {});
+      .then(d => {
+        if (!d.loggedIn) { navigate('/artista/login'); return; }
+        setArtist(d.artist);
+      })
+      .catch(() => setError(true));
     fetch("/api/artist-songs", { credentials: "include" })
       .then(r => r.json())
       .then(d => setSongs(Array.isArray(d) ? d : []))
       .catch(() => {});
   }, []);
 
+  if (error) return <div className="min-h-screen bg-background p-8"><p role="alert">Não foi possível carregar seu perfil.</p><button className="text-primary" onClick={() => window.location.reload()}>Tentar novamente</button></div>;
   if (!artist) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

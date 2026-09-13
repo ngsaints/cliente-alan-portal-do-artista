@@ -9,6 +9,7 @@ import sharp from "sharp";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getEmailConfig, getPortalUrl } from "../lib/email.js";
 import { findOrCreateCustomer, createSubscription, getAsaasCredentials, getSubscriptionPayments, getPaymentPixQrCode } from "../lib/asaas-client.js";
+import { callOpenRouter } from "../lib/openrouter.js";
 
 const router: IRouter = Router();
 
@@ -920,35 +921,20 @@ Fale de forma simples, motivadora, orientada a resultados e forneça dicas extre
       systemPrompt = `Você é a Vivi, mentora virtual oficial do Portal do Artista. Gere 5 sugestões de títulos criativos, marcantes e vendáveis para a música do artista com base nas palavras-chave, tema ou trecho de letra compartilhado por ele.`;
     }
 
-    // 7. Fazer a requisição à OpenAI API
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openaiApiKey}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: planHeader + systemPrompt },
-          ...messages
-        ],
-        temperature: 0.7,
-        max_tokens: 1000
-      })
+    // 7. Fazer a requisição via OpenRouter / OpenAI
+    const aiResult = await callOpenRouter({
+      system: planHeader + systemPrompt,
+      messages: messages.map((m: any) => ({
+        role: m.role || "user",
+        content: m.content || "",
+      })),
+      temperature: 0.7,
+      maxTokens: 1000,
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("OpenAI API error response:", errText);
-      res.status(502).json({ error: "Erro na resposta da inteligência artificial. Tente novamente mais tarde." });
-      return;
-    }
+    const reply = aiResult.content;
 
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || "";
-
-    // 7. Incrementar o saldo consumido de IA do artista
+    // 8. Incrementar o saldo consumido de IA do artista
     const newUsageCount = currentUsage + 1;
     await db
       .update(artistsTable)
@@ -958,7 +944,8 @@ Fale de forma simples, motivadora, orientada a resultados e forneça dicas extre
     res.json({
       reply,
       aiQueriesCount: newUsageCount,
-      aiCreditsLimit: aiLimit
+      aiCreditsLimit: aiLimit,
+      model: aiResult.model,
     });
 
   } catch (error) {

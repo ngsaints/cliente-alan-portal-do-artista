@@ -1,3 +1,4 @@
+import { EngagementPanel } from "@/components/EngagementPanel";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
@@ -1164,6 +1165,8 @@ function ArtistsTab() {
         </button>
       </div>
 
+      <EngagementPanel />
+
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
       ) : artists.length === 0 ? (
@@ -2129,8 +2132,14 @@ const SETTING_LABELS: Record<string, string> = {
   suporte_instagram: "Instagram de Suporte",
   suporte_whatsapp: "WhatsApp de Suporte",
   suporte_email: "E-mail de Suporte",
-  openai_enabled: "Ativar Mentora Virtual (Vivi)",
-  openai_api_key: "Chave de API OpenAI (Vivi)",
+  openai_enabled: "Ativar Mentora Virtual (Vivi - Legado OpenAI)",
+  openai_api_key: "Chave de API OpenAI (Legado)",
+  openrouter_enabled: "Ativar Gateway OpenRouter (Texto, Letras e Chat Vivi)",
+  openrouter_api_key: "Chave de API OpenRouter",
+  openrouter_model: "Modelo Principal do OpenRouter",
+  replicate_enabled: "Ativar Gateway Replicate (MiniMax Music 2.6)",
+  replicate_api_key: "Chave de API Replicate (Token de Acesso)",
+  replicate_music_model: "Modelo de Música do Replicate",
   footer_copyright: "Rodapé: Copyright",
   landing_video_url: "Landing: URL do Vídeo (YouTube)",
   landing_hero_video_url: "Landing: URL do Vídeo do Hero (YouTube)",
@@ -2465,7 +2474,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
               )}
             </div>
             {s.description && <p className="text-xs text-muted-foreground mb-2">{getSettingDescription(s.key, s.description)}</p>}
-            {s.key === "asaas_sandbox" || s.key === "openai_enabled" ? (
+            {s.key === "asaas_sandbox" || s.key === "openai_enabled" || s.key === "openrouter_enabled" || s.key === "replicate_enabled" ? (
               <div className="flex items-center gap-3">
                 <Switch
                   checked={values[s.key] === "true"}
@@ -2474,7 +2483,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                 <span className="text-sm text-muted-foreground">
                   {s.key === "asaas_sandbox" 
                     ? (values[s.key] === "true" ? "Sandbox (testes)" : "Produção")
-                    : (values[s.key] === "true" ? "Ativada" : "Desativada")}
+                    : (values[s.key] === "true" ? "Ativado" : "Desativado")}
                 </span>
               </div>
             ) : s.key.startsWith("pixel_custom_") || s.key.endsWith("_script") ? (

@@ -23,3 +23,4 @@ export * from "./ajuda";
 export * from "./songComposers";
 export * from "./exitFeedbacks";
 export * from "./articles";
+export * from "./aiMusicDemos";

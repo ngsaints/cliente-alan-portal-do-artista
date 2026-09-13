@@ -80,6 +80,8 @@ router.get("/settings", async (_req, res): Promise<void> => {
       if (r.key === "suporte_whatsapp") suporteWhatsapp = r.value;
       if (r.key === "suporte_email") suporteEmail = r.value;
       if (r.key === "openai_enabled") openaiEnabled = r.value === "true";
+      if (r.key === "openrouter_enabled" && r.value === "true") openaiEnabled = true;
+      if (r.key === "replicate_enabled" && r.value === "true") openaiEnabled = true;
       if (r.key === "landing_video_url") landingVideoUrl = r.value;
       if (r.key === "landing_hero_video_url") landingHeroVideoUrl = r.value;
       if (r.key === "landing_hero_title") landingHeroTitle = r.value;

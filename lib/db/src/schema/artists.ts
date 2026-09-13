@@ -49,6 +49,8 @@ export const artistsTable = pgTable("artists", {
   // Controle de IA (Vivi)
   aiQueriesCount: integer("ai_queries_count").notNull().default(0),
   aiQueriesResetAt: timestamp("ai_queries_reset_at", { withTimezone: true }).notNull().defaultNow(),
+  aiMusicQueriesCount: integer("ai_music_queries_count").notNull().default(0),
+  aiMusicExtraCredits: integer("ai_music_extra_credits").notNull().default(0),
 
   // Permissões Especiais
   canPostArticles: boolean("can_post_articles").notNull().default(false),

@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
+import engagementRouter from "./engagement";
 import authRouter from "./auth";
 import songsRouter from "./songs";
 import settingsRouter from "./settings";
@@ -27,13 +28,14 @@ import audicoesRouter from "./audicoes";
 import liberacoesRouter from "./liberacoes";
 import financeiroRouter from "./financeiro";
 import songComposersRouter from "./song-composers";
-
 import exitFeedbackRouter from "./exit-feedback";
 import articlesRouter from "./articles";
+import aiMusicRouter from "./ai-music";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(engagementRouter);
 router.use(authRouter);
 router.use(songsRouter);
 router.use(settingsRouter);
@@ -63,5 +65,6 @@ router.use(financeiroRouter);
 router.use(songComposersRouter);
 router.use(exitFeedbackRouter);
 router.use(articlesRouter);
+router.use(aiMusicRouter);
 
 export default router;

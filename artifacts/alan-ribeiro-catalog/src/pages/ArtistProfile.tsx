@@ -1,3 +1,4 @@
+import { trackEngagement } from "@/lib/engagement";
 import { useParams, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
@@ -54,6 +55,13 @@ export default function ArtistProfile() {
   const [artistLoggedIn, setArtistLoggedIn] = useState(false);
   const [loggedInArtistId, setLoggedInArtistId] = useState<number | null>(null);
   const numericArtistId = artistData?.id;
+  const trackedProfile = useRef<string | null>(null);
+  useEffect(() => {
+    if (!artistData?.slug || trackedProfile.current === artistData.slug) return;
+    trackedProfile.current = artistData.slug;
+    trackEngagement('view', artistData.slug);
+  }, [artistData?.slug]);
+
 
   const [profileCapaError, setProfileCapaError] = useState(false);
 

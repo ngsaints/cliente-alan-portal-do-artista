@@ -1,3 +1,4 @@
+import { trackEngagement, copyArtistLink } from "@/lib/engagement";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
@@ -22,6 +23,7 @@ import { useGenres } from "@/hooks/useGenres";
 import { usePlayer, PlayerStyle } from "@/contexts/PlayerContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatImageUrl } from "@/lib/utils";
+import { ViviStudio } from "@/components/ViviStudio";
 
 interface ArtistStats {
   totalSongs: number;
@@ -385,6 +387,15 @@ export default function ArtistDashboard() {
     }
   };
   const [artist, setArtist] = useState<ArtistProfile | null>(null);  const [stats, setStats] = useState<ArtistStats>({ totalSongs: 0, totalPlays: 0, totalLikes: 0, vipContent: 0 });
+  useEffect(() => {
+    if (!artist?.id) return;
+    const record = () => { if (document.visibilityState === 'visible') trackEngagement('activity'); };
+    record();
+    const timer = window.setInterval(record, 300000);
+    document.addEventListener('visibilitychange', record);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', record); };
+  }, [artist?.id]);
+
   const [songs, setSongs] = useState<any[]>([]);
   const [openaiEnabled, setOpenaiEnabled] = useState(false);
   const [supportChannels, setSupportChannels] = useState({ instagram: "", whatsapp: "", email: "" });
@@ -546,7 +557,7 @@ export default function ArtistDashboard() {
   const getProfileCompletion = () => {
     if (!artist) return { percent: 0, items: [] as { label: string; status: "success" | "warning" | "error" }[] };
     
-    let score = 10;
+    let score = 0;
     const items: { label: string; status: "success" | "warning" | "error" }[] = [];
     
     if (artist.profissao && artist.profissao.trim()) {
@@ -570,12 +581,12 @@ export default function ArtistDashboard() {
       items.push({ label: "Adicione telefone/contato no perfil", status: "warning" });
     }
     
-    const artistGenero = (artist as any).genero;
-    if (artistGenero && artistGenero.trim()) {
+    const biography = (artist as any).biografia;
+    if (biography && biography.trim()) {
       score += 10;
-      items.push({ label: "Gênero musical definido", status: "success" });
+      items.push({ label: "Biografia preenchida", status: "success" });
     } else {
-      items.push({ label: "Selecione seu gênero principal", status: "warning" });
+      items.push({ label: "Conte sua história na biografia", status: "warning" });
     }
     
     if (artist.capaUrl && !artist.capaUrl.includes("default")) {
@@ -614,6 +625,7 @@ export default function ArtistDashboard() {
       items.push({ label: "Nenhuma música no catálogo", status: "error" });
     } else {
       items.push({ label: `${songs.length} música(s) cadastrada(s)`, status: "success" });
+      score += 10;
       
       const defaultCoversCount = songs.filter(s => !s.capaUrl || s.capaUrl.includes("default-cover")).length;
       if (defaultCoversCount > 0) {
@@ -654,7 +666,7 @@ export default function ArtistDashboard() {
     { id: "playlists",      label: "Playlists",       icon: ListMusic      },
     { id: "gallery",        label: "Galeria",         icon: Image          },
     { id: "profile",        label: "Perfil",          icon: User           },
-    ...(openaiEnabled ? [{ id: "mentor" as TabId, label: "Mentora IA", icon: Bot }] : []),
+    ...(openaiEnabled ? [{ id: "mentor" as TabId, label: "✨ Estúdio Vivi & IA", icon: Sparkles }] : []),
     { id: "vip",            label: "VIP",             icon: Crown          },
     { id: "plano",          label: "Plano",           icon: CreditCard     },
     { id: "interesses",     label: "Interesses",      icon: MessageSquare  },
@@ -1451,6 +1463,11 @@ export default function ArtistDashboard() {
                     </div>
                   </div>
 
+                  <div className="bg-card border border-border/40 rounded-2xl p-6 space-y-3">
+                    <h3 className="font-display font-bold">Organize seu próximo passo</h3>
+                    <p className="text-sm text-muted-foreground">Reserve um horário no calendário do CRM para completar seu perfil ou publicar uma música. Se encontrou alguma dificuldade, envie sua dúvida pelo suporte.</p>
+                    <a href="/artista/crm" className="inline-block text-primary font-semibold text-sm">Abrir gestão de carreira e suporte</a>
+                  </div>
                   {/* Card de Próximas Ações (Pílulas de CTA) */}
                   <div className="bg-card border border-border/40 rounded-2xl p-6 space-y-4 flex flex-col justify-between shadow-xl">
                     <div>
@@ -1465,7 +1482,7 @@ export default function ArtistDashboard() {
                         const hasSongs = songs.length > 0;
                         const isFree = artist?.plano === "free";
                         
-                        if (completion < 90) {
+                        if (hasSongs && completion < 100) {
                           return (
                             <div className="space-y-3">
                               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1931,11 +1948,10 @@ export default function ArtistDashboard() {
                             onClick={() => {
                               const publicPath = artist?.slug ? `/${artist.slug}` : `/artista/${artist?.id}`;
                               const shareUrl = `${window.location.origin}${publicPath}?musica=${song.id}`;
-                              navigator.clipboard.writeText(shareUrl);
-                              toast({
+                              void copyArtistLink(shareUrl).then(() => toast({
                                 title: "Link de compartilhamento copiado!",
                                 description: "Você pode colar e enviar para quem quiser.",
-                              });
+                              })).catch(() => toast({ title: "Não foi possível copiar o link.", variant: "destructive" }));
                             }}
                             className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                             title="Copiar link de compartilhamento da música"
@@ -3205,155 +3221,13 @@ export default function ArtistDashboard() {
               <ArtistInteresses artistId={artist.id} />
             )}
 
-            {/* Mentora IA (Vivi) */}
-            {activeTab === "mentor" && openaiEnabled && (
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[500px]">
-                {/* Painel Lateral - Ferramentas */}
-                <div className="lg:col-span-1 bg-card border border-border/40 rounded-2xl p-4 space-y-3 shadow-xl">
-                  <h4 className="font-bold text-foreground text-xs px-2 flex items-center gap-1.5 uppercase tracking-wider text-purple-400">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Ferramentas de IA
-                  </h4>
-                  <p className="text-[11px] text-muted-foreground px-2 leading-relaxed">
-                    Selecione uma tarefa específica para Vivi focar seu conhecimento:
-                  </p>
-                  
-                  <div className="space-y-1">
-                    {[
-                      { id: "chat", label: "Conversa Livre", icon: MessageSquare },
-                      { id: "biografia", label: "Melhorar Biografia", icon: User },
-                      { id: "potencial", label: "Análise de Música", icon: Music },
-                      { id: "legenda", label: "Legenda de Posts", icon: ImageIcon },
-                      { id: "reels", label: "Roteiro de Reels", icon: PlayCircle },
-                      { id: "hashtags", label: "Sugestão de Hashtags", icon: Share2 },
-                      { id: "release", label: "Criar Press Release", icon: Disc },
-                      { id: "titulos", label: "Ideias de Títulos", icon: Pencil }
-                    ].map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => handleSelectTool(t.id)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left text-xs transition-colors ${
-                          currentTool === t.id
-                            ? "bg-primary text-primary-foreground font-bold"
-                            : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
-                        }`}
-                      >
-                        <t.icon className="w-3.5 h-3.5" />
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Área de Chat */}
-                <div className="lg:col-span-3 flex flex-col bg-card border border-border/40 rounded-2xl overflow-hidden h-[520px] shadow-xl">
-                  {/* Top Bar do Chat */}
-                  <div className="px-5 py-4 border-b border-border/40 flex items-center justify-between bg-background/20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold shrink-0">
-                        Vivi
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-foreground text-sm">Vivi — Mentora Musical</h4>
-                        <span className="text-[10px] text-purple-400 font-medium">Online e pronta para ajudar</span>
-                      </div>
-                    </div>
-
-                    {/* IA Usage Counter */}
-                    {artist && (
-                      <div className="text-right shrink-0">
-                        <span className="text-[10px] text-muted-foreground block">Uso de IA no mês</span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden hidden sm:block">
-                            <div 
-                              className="h-full bg-purple-500" 
-                              style={{ width: `${Math.min(100, (((artist.aiQueriesCount || 0) / (artist.aiCreditsLimit || 10)) * 100))}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-bold text-foreground">
-                            {artist.aiQueriesCount || 0} / {artist.aiCreditsLimit || 10}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Histórico do Chat */}
-                  <div className="flex-1 overflow-y-auto p-5 space-y-4" style={{ scrollbarWidth: "thin" }}>
-                    {chatMessages.map((msg, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`flex gap-3 max-w-[85%] ${msg.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"}`}
-                      >
-                        {msg.role === "assistant" && (
-                          <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-xs shrink-0 select-none">
-                            👩‍🎤
-                          </div>
-                        )}
-                        <div className={`p-4 rounded-2xl text-sm leading-relaxed ${
-                          msg.role === "user" 
-                            ? "bg-primary text-primary-foreground rounded-tr-none" 
-                            : "bg-background/40 border border-border/30 text-foreground rounded-tl-none"
-                        }`} style={{ whiteSpace: "pre-wrap" }}>
-                          {msg.content}
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {chatLoading && (
-                      <div className="flex gap-3 mr-auto max-w-[85%] items-center">
-                        <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-xs shrink-0 select-none">
-                          👩‍🎤
-                        </div>
-                        <div className="bg-background/40 border border-border/30 p-3 rounded-2xl rounded-tl-none flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "300ms" }} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Input do Chat */}
-                  <form 
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      if (!chatInput.trim() || chatLoading) return;
-                      const text = chatInput;
-                      setChatInput("");
-                      const newMsgs = [...chatMessages, { role: "user" as const, content: text }];
-                      setChatMessages(newMsgs);
-                      await triggerVivi(newMsgs, currentTool);
-                    }}
-                    className="p-3 border-t border-border/40 bg-background/20 flex gap-2"
-                  >
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={e => setChatInput(e.target.value)}
-                      placeholder={
-                        currentTool === "biografia" ? "Cole sua biografia ou digite sobre sua carreira..." :
-                        currentTool === "potencial" ? "Cole a letra ou conte o tema da música..." :
-                        currentTool === "legenda" ? "Descreva seu lançamento para gerar a legenda..." :
-                        currentTool === "reels" ? "Fale sobre a música para criar o roteiro de Reels..." :
-                        currentTool === "hashtags" ? "Fale o tema do post para sugerir hashtags..." :
-                        currentTool === "release" ? "Descreva seu lançamento/evento para o release..." :
-                        currentTool === "titulos" ? "Descreva a história da música para sugerir títulos..." :
-                        "Fale com a Vivi..."
-                      }
-                      disabled={chatLoading}
-                      className="flex-1 px-4 py-2.5 bg-input border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary text-foreground text-sm disabled:opacity-50"
-                    />
-                    <button
-                      type="submit"
-                      disabled={chatLoading || !chatInput.trim()}
-                      className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
-                    >
-                      Enviar
-                    </button>
-                  </form>
-                </div>
-              </div>
+            {/* Estúdio Vivi & Demos IA (OpenRouter + MiniMax Music 2.6) */}
+            {activeTab === "mentor" && artist && (
+              <ViviStudio 
+                artist={artist} 
+                onRefreshArtist={loadData} 
+                onOpenUpgradeModal={() => setActiveTab("plano")} 
+              />
             )}
 
           </motion.div>
@@ -3468,8 +3342,9 @@ export default function ArtistDashboard() {
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/${artist.slug}`);
-                    alert("Link do perfil copiado para a área de transferência!");
+                    void copyArtistLink(`${window.location.origin}/${artist.slug}`)
+                      .then(() => alert("Link do perfil copiado para a área de transferência!"))
+                      .catch(() => alert("Não foi possível copiar o link."));
                   }}
                   className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/95 transition-colors shrink-0"
                 >
