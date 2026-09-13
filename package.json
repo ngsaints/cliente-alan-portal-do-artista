@@ -7,7 +7,8 @@
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "db:migrate": "pnpm --filter @workspace/scripts run migrate"
+    "db:migrate": "pnpm --filter @workspace/scripts run migrate",
+    "db:migrate:turso": "deno task migrate:turso || pnpm --filter @workspace/scripts run migrate:turso"
   },
   "private": true,
   "devDependencies": {

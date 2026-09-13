@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "seed": "tsx ./seed.ts",
     "migrate": "tsx ./migrate.ts",
+    "migrate:turso": "tsx ./migrate-to-turso.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

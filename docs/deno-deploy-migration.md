@@ -87,9 +87,9 @@ Ambientes Edge / Serverless como o Deno Deploy não possuem sistema de arquivos 
 
 | Recurso | Estratégia Atual | Como funciona no Deno Deploy |
 |---|---|---|
-| **Sessões de Usuário** | `connect-pg-simple` no PostgreSQL | As sessões são gravadas na tabela `sessions` do PostgreSQL, funcionando de forma distribuída em qualquer edge instance. |
+| **Sessões de Usuário** | `connect-pg-simple` no PostgreSQL ou Turso | As sessões são gravadas na tabela `sessions` (PostgreSQL ou Turso DB), funcionando de forma distribuída em qualquer edge instance. |
 | **Uploads (Áudio / Imagens)** | Cloudflare R2 | O arquivo `artifacts/api-server/src/lib/r2-storage.ts` envia os arquivos diretamente para o bucket Cloudflare R2, sem depender de disco local. |
-| **Banco de Dados** | Drizzle ORM + node-postgres (`pg`) | Conexão pool direta via string `DATABASE_URL` (funciona nativamente com Neon, Supabase, AWS RDS, etc.). |
+| **Banco de Dados** | Drizzle ORM + PostgreSQL ou **Turso DB** | Conexão pool via `DATABASE_URL` (Neon / Supabase) ou conexão edge nativa ultra-rápida via **Turso DB** (`TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`). Veja o guia detalhado em [`docs/turso-db-migration.md`](./turso-db-migration.md). |
 
 ---
 
@@ -98,7 +98,10 @@ Ambientes Edge / Serverless como o Deno Deploy não possuem sistema de arquivos 
 Ao criar o projeto no painel do **Deno Deploy** (Settings → Environment Variables), configure as seguintes variáveis:
 
 ### Banco de Dados & Sessão
-- `DATABASE_URL`: `postgres://user:pass@host:5432/dbname?sslmode=require`
+- `DATABASE_URL`: `postgres://user:pass@host:5432/dbname?sslmode=require` (caso use PostgreSQL)
+- **OU (Recomendado para Edge):**
+  - `TURSO_DATABASE_URL`: `libsql://portal-do-artista-seuuser.turso.io`
+  - `TURSO_AUTH_TOKEN`: Token JWT gerado no Turso CLI
 - `SESSION_SECRET`: Chave secreta longa para criptografia de cookies
 
 ### Cloudflare R2 (Armazenamento de Músicas e Capas)
