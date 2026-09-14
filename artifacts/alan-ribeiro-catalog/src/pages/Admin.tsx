@@ -2237,6 +2237,7 @@ const SETTING_LABELS: Record<string, string> = {
   demo_tiktok: "TikTok",
   demo_spotify: "Spotify",
   demo_cor: "Cor Tema da Página",
+  openrouter_fallbacks: "Modelos de Contingência (Fallbacks Automáticos)",
 };
 
 function getSettingLabel(key: string): string {
@@ -2252,6 +2253,7 @@ function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "demo_spotify") return "Link completo do perfil no Spotify.";
   if (key === "openrouter_api_key") return "Chave obtida em openrouter.ai/keys.";
   if (key === "openrouter_model") return "Modelo utilizado pela Vivi para rimas, métricas e composição.";
+  if (key === "openrouter_fallbacks") return "Modelos alternativos que serão acionados em ordem caso o principal esteja indisponível ou sofra rate-limit.";
   if (key === "replicate_api_key") return "Token de API obtido em replicate.com/account/api-tokens.";
   if (key === "replicate_music_model") return "Identificador do modelo na Replicate (padrão: minimax/music-2.6).";
   if (key === "openrouter_enabled") return "Habilita a IA para chat, análise e composição com a Vivi.";
@@ -2346,21 +2348,48 @@ function OpenRouterModelSelector({
 }) {
   const [models, setModels] = useState<OpenRouterModel[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeProvider, setActiveProvider] = useState<string>("all");
   const [sortOption, setSortOption] = useState<string>("most-popular");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  const fetchModels = async (isRefresh: boolean = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+
+    try {
+      const url = `/api/ai/models?sort=${sortOption}${isRefresh ? "&refresh=true" : ""}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setModels(data);
+        if (isRefresh) {
+          toast({
+            title: "Catálogo OpenRouter Atualizado!",
+            description: `${data.length} modelos de IA sincronizados em tempo real direto da API.`,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Erro ao carregar modelos OpenRouter:", err);
+      if (isRefresh) {
+        toast({
+          title: "Erro ao atualizar",
+          description: "Não foi possível carregar modelos frescos da OpenRouter.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/ai/models?sort=${sortOption}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setModels(data);
-      })
-      .catch((err) => console.warn("Erro ao carregar modelos OpenRouter:", err))
-      .finally(() => setLoading(false));
+    fetchModels(false);
   }, [sortOption]);
 
   useEffect(() => {
@@ -2378,8 +2407,10 @@ function OpenRouterModelSelector({
   // Filtros
   const filteredModels = models.filter((m) => {
     const matchesSearch =
+      !search.trim() ||
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.id.toLowerCase().includes(search.toLowerCase()) ||
+      (m.description && m.description.toLowerCase().includes(search.toLowerCase())) ||
       (m.provider && m.provider.toLowerCase().includes(search.toLowerCase()));
 
     if (!matchesSearch) return false;
@@ -2390,72 +2421,112 @@ function OpenRouterModelSelector({
   });
 
   const providers = [
-    { id: "all", label: "Todos" },
+    { id: "all", label: `Todos (${models.length || "400+"})` },
     { id: "free", label: "✨ Grátis" },
     { id: "openai", label: "OpenAI" },
     { id: "google", label: "Google" },
     { id: "deepseek", label: "DeepSeek" },
     { id: "anthropic", label: "Anthropic" },
-    { id: "meta-llama", label: "Meta" },
+    { id: "meta-llama", label: "Meta Llama" },
+    { id: "mistralai", label: "Mistral" },
+    { id: "qwen", label: "Qwen" },
   ];
 
   const presets = [
-    { id: "openai/gpt-4o-mini", label: "GPT-4o Mini", badge: "Recomendado" },
-    { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash", badge: "Ultrarrápido" },
-    { id: "deepseek/deepseek-chat", label: "DeepSeek V3", badge: "Econômico" },
-    { id: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet", badge: "Criativo" },
-    { id: "openrouter/auto", label: "Auto Router", badge: "Automático" },
+    { id: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
+    { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
+    { id: "deepseek/deepseek-chat", label: "DeepSeek V3" },
+    { id: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet" },
+    { id: "openrouter/auto", label: "Auto Router" },
   ];
 
   return (
-    <div className="space-y-2 relative" ref={dropdownRef}>
-      {/* Botão Seletor Principal */}
-      <div
-        onClick={() => setOpen(!open)}
-        className="w-full px-3.5 py-2.5 bg-background/60 border border-border/80 hover:border-primary/60 rounded-xl cursor-pointer transition-all flex items-center justify-between gap-2 shadow-sm"
-      >
+    <div className="space-y-3 relative" ref={dropdownRef}>
+      {/* Card do Modelo Ativo */}
+      <div className="p-3 bg-card/80 border border-primary/30 rounded-xl flex items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-2.5 overflow-hidden">
-          <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
-            <Sparkles className="w-3.5 h-3.5" />
+          <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shrink-0">
+            <Sparkles className="w-4 h-4 text-primary" />
           </div>
-          <div className="text-left overflow-hidden">
-            <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-bold text-foreground truncate">
-                {selectedModel?.name || value || "Selecione um modelo..."}
+          <div className="overflow-hidden">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-foreground truncate">
+                {selectedModel?.name || value || "openai/gpt-4o-mini"}
               </span>
-              {selectedModel?.isFree && (
-                <span className="text-[10px] font-black px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30 uppercase">
+              {selectedModel?.isFree ? (
+                <span className="text-[9px] font-black px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30 uppercase">
                   Grátis
+                </span>
+              ) : selectedModel?.formattedPricing ? (
+                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  {selectedModel.formattedPricing}
+                </span>
+              ) : null}
+              {selectedModel?.contextLength && (
+                <span className="text-[10px] text-muted-foreground/80 font-mono hidden sm:inline">
+                  {selectedModel.contextLength >= 1000000
+                    ? `${(selectedModel.contextLength / 1000000).toFixed(0)}M ctx`
+                    : `${Math.round(selectedModel.contextLength / 1000)}k ctx`}
                 </span>
               )}
             </div>
-            <span className="text-[11px] text-muted-foreground font-mono truncate block">
-              {value} {selectedModel?.formattedPricing ? `• ${selectedModel.formattedPricing}` : ""}
+            <span className="text-[10px] text-muted-foreground font-mono block truncate">
+              ID Ativo: {value}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="px-2.5 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-bold flex items-center gap-1 transition-all shrink-0 cursor-pointer"
+        >
+          <span>{open ? "Fechar Busca" : "Trocar Modelo"}</span>
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
       </div>
 
-      {/* Dropdown com Busca e Filtros */}
-      {open && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card/95 backdrop-blur-xl border border-border/90 rounded-2xl p-3 shadow-2xl space-y-2.5 max-h-[380px] flex flex-col">
-          {/* Campo de Busca */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por modelo (ex: gemini, claude, deepseek)..."
-              className="w-full pl-9 pr-3 py-2 bg-background/70 border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-              autoFocus
-            />
-          </div>
+      {/* Barra de Pesquisa Sempre Visível */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              if (!open) setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            placeholder="🔍 Digite para pesquisar entre 400+ modelos OpenRouter (ex: gemini, deepseek, claude, llama, gpt-4o, qwen)..."
+            className="w-full pl-9 pr-8 py-2 bg-background/80 border border-border/80 focus:border-primary rounded-xl text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none transition-all"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
 
+        <button
+          type="button"
+          onClick={() => fetchModels(true)}
+          disabled={loading || refreshing}
+          className="px-3 py-2 bg-background/80 hover:bg-card text-muted-foreground hover:text-foreground border border-border rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer disabled:opacity-50"
+          title="Fazer novo fetch direto na API do OpenRouter"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing || loading ? "animate-spin text-primary" : ""}`} />
+          <span className="hidden sm:inline">{refreshing ? "Buscando..." : "Buscar da API"}</span>
+        </button>
+      </div>
+
+      {/* Dropdown / Painel de Resultados */}
+      {open && (
+        <div className="bg-card/95 backdrop-blur-xl border border-border/90 rounded-2xl p-3 shadow-2xl space-y-2.5 max-h-[380px] flex flex-col transition-all">
           {/* Filtros de Provider e Ordenação */}
           <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
             <div className="flex items-center gap-1">
@@ -2486,24 +2557,33 @@ function OpenRouterModelSelector({
             </select>
           </div>
 
+          <div className="text-[11px] text-muted-foreground flex items-center justify-between px-1">
+            <span>
+              {loading ? "Carregando modelos do OpenRouter..." : `Exibindo ${filteredModels.length} de ${models.length} modelos`}
+            </span>
+            {search && (
+              <span className="text-primary font-medium">Filtrado por: "{search}"</span>
+            )}
+          </div>
+
           {/* Lista de Modelos */}
-          <div className="overflow-y-auto space-y-1 pr-1 flex-1 max-h-[200px]">
+          <div className="overflow-y-auto space-y-1.5 pr-1 flex-1 max-h-[220px]">
             {loading ? (
-              <div className="py-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin text-primary" /> Carregando catálogo OpenRouter...
+              <div className="py-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" /> Carregando 400+ modelos do OpenRouter...
               </div>
             ) : filteredModels.length === 0 ? (
-              <div className="py-6 text-center text-xs text-muted-foreground">
-                Nenhum modelo encontrado com "{search}".
+              <div className="py-6 text-center text-xs text-muted-foreground space-y-2">
+                <p>Nenhum modelo encontrado com "{search}".</p>
                 {search.trim() && (
-                  <div className="mt-2">
+                  <div>
                     <button
                       type="button"
                       onClick={() => {
                         onChange(search.trim());
                         setOpen(false);
                       }}
-                      className="text-xs text-primary font-bold hover:underline cursor-pointer"
+                      className="text-xs text-primary font-bold hover:underline cursor-pointer bg-primary/10 px-3 py-1 rounded-lg border border-primary/20"
                     >
                       Usar "{search.trim()}" como modelo customizado
                     </button>
@@ -2522,16 +2602,21 @@ function OpenRouterModelSelector({
                     }}
                     className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                       isSelected
-                        ? "bg-primary/15 border-primary text-foreground"
+                        ? "bg-primary/15 border-primary text-foreground shadow-sm"
                         : "bg-background/40 border-border/50 hover:bg-background/80 hover:border-primary/40 text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <div className="overflow-hidden">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-bold text-foreground truncate">{m.name}</span>
                         {m.isFree && (
                           <span className="text-[9px] font-black px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30 uppercase">
                             Grátis
+                          </span>
+                        )}
+                        {m.provider && (
+                          <span className="text-[9px] px-1.5 py-0.2 bg-white/5 text-muted-foreground rounded border border-white/10 uppercase font-mono">
+                            {m.provider}
                           </span>
                         )}
                         {m.contextLength && (
@@ -2543,11 +2628,22 @@ function OpenRouterModelSelector({
                         )}
                       </div>
                       <span className="text-[10px] text-muted-foreground font-mono block truncate">{m.id}</span>
+                      {m.description && (
+                        <p className="text-[10px] text-muted-foreground/70 line-clamp-1 mt-0.5">{m.description}</p>
+                      )}
                     </div>
 
-                    <div className="text-right shrink-0">
+                    <div className="text-right shrink-0 flex flex-col items-end gap-1">
                       <span className="text-[10px] font-bold text-amber-400 block">{m.formattedPricing}</span>
-                      {isSelected && <span className="text-[10px] text-primary font-black">Selecionado</span>}
+                      {isSelected ? (
+                        <span className="text-[10px] text-primary font-black flex items-center gap-0.5">
+                          <CheckCheck className="w-3 h-3" /> Selecionado
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/80 hover:text-primary font-medium">
+                          Selecionar →
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -2556,14 +2652,14 @@ function OpenRouterModelSelector({
           </div>
 
           {/* Digitar ID customizado */}
-          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>Usar modelo customizado:</span>
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+            <span className="shrink-0">ID customizado:</span>
             <input
               type="text"
               value={value}
               onChange={(e) => onChange(e.target.value)}
               placeholder="ex: anthropic/claude-3-haiku"
-              className="w-52 px-2.5 py-1 bg-background border border-border rounded-lg text-xs text-foreground font-mono focus:border-primary focus:outline-none"
+              className="w-full max-w-xs px-2.5 py-1 bg-background border border-border rounded-lg text-xs text-foreground font-mono focus:border-primary focus:outline-none"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
@@ -3064,7 +3160,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           title: "Gateway OpenRouter (Texto, Letras e Chat Vivi)",
           icon: Sparkles,
           description: "Conexão com os melhores modelos de IA para mentoria, rimas, reescrita e métrica de composições.",
-          keys: ["openrouter_enabled", "openrouter_api_key", "openrouter_model"],
+          keys: ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks"],
         },
         {
           title: "Gateway Replicate (MiniMax Music 2.6 - Geração de Demos)",

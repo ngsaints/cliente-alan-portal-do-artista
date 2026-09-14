@@ -304,6 +304,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "openrouter_enabled", value: "true", desc: "Ativar Gateway OpenRouter (Texto / Letras / Vivi)", isSecret: "false" },
         { key: "openrouter_api_key", value: "", desc: "Chave de API OpenRouter", isSecret: "true" },
         { key: "openrouter_model", value: "openai/gpt-4o-mini", desc: "Modelo Principal do OpenRouter", isSecret: "false" },
+        { key: "openrouter_fallbacks", value: "google/gemini-2.0-flash-001, deepseek/deepseek-chat, openai/gpt-4o-mini, openrouter/auto", desc: "Modelos de Contingência (Fallbacks Automáticos) - Testados em ordem caso o principal falhe", isSecret: "false" },
         { key: "replicate_enabled", value: "true", desc: "Ativar Gateway Replicate (MiniMax Music 2.6 - Geração de Demos)", isSecret: "false" },
         { key: "replicate_api_key", value: "", desc: "Chave de API Replicate (Token)", isSecret: "true" },
         { key: "replicate_music_model", value: "minimax/music-2.6", desc: "Modelo de Música do Replicate (ex: minimax/music-2.6)", isSecret: "false" },
@@ -345,7 +346,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
 
     if (category === "portal") {
       // Migrate any AI keys to 'ai' category and SMTP keys to 'email'
-      const aiKeyNames = ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "replicate_enabled", "replicate_api_key", "replicate_music_model", "openai_enabled", "openai_api_key"];
+      const aiKeyNames = ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks", "replicate_enabled", "replicate_api_key", "replicate_music_model", "openai_enabled", "openai_api_key"];
       for (const key of aiKeyNames) {
         await db.update(appSettingsTable).set({ category: "ai" }).where(eq(appSettingsTable.key, key));
       }

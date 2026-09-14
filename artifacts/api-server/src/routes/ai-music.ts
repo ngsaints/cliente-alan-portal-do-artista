@@ -59,7 +59,9 @@ router.get("/ai/config/status", async (_req, res): Promise<void> => {
 router.get("/ai/models", async (req, res): Promise<void> => {
   try {
     const sort = typeof req.query.sort === "string" ? req.query.sort : "most-popular";
-    const models = await listOpenRouterModels(sort);
+    const search = typeof req.query.search === "string" ? req.query.search : undefined;
+    const refresh = req.query.refresh === "true" || req.query.refresh === "1";
+    const models = await listOpenRouterModels(sort, search, refresh);
     res.json(models);
   } catch (error) {
     console.error("Erro ao listar modelos de IA:", error);

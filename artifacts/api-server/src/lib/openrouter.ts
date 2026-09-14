@@ -14,6 +14,7 @@ export interface OpenRouterOptions {
   messages: ChatMessage[];
   system?: string;
   model?: string;
+  fallbacks?: string[];
   temperature?: number;
   maxTokens?: number;
 }
@@ -97,7 +98,22 @@ export async function callOpenRouter(opts: OpenRouterOptions): Promise<OpenRoute
   };
 
   if (!config.isDirectOpenAi) {
-    payload.models = [modelToUse, "openrouter/auto"];
+    const rawFallbacks = (await getSettingValue("openrouter_fallbacks")) || "";
+    const parsedFallbacks = rawFallbacks
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const fallbackList = (opts.fallbacks && opts.fallbacks.length > 0)
+      ? opts.fallbacks
+      : (parsedFallbacks.length > 0)
+        ? parsedFallbacks
+        : ["google/gemini-2.0-flash-001", "deepseek/deepseek-chat", "openai/gpt-4o-mini", "openrouter/auto"];
+
+    // Monta cadeia com o modelo principal na primeira posição, seguido dos fallbacks
+    const modelChain = [modelToUse, ...fallbackList];
+    const uniqueModels = Array.from(new Set(modelChain.filter(Boolean)));
+    payload.models = uniqueModels;
   }
 
   const headers: Record<string, string> = {
@@ -324,100 +340,124 @@ const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutos
  * Busca a lista dinâmica de modelos disponíveis no OpenRouter
  * Suporta ordenação: 'most-popular' | 'pricing-low-to-high' | 'context-high-to-low' | 'newest'
  */
-export async function listOpenRouterModels(sort: string = "most-popular"): Promise<ModelOption[]> {
+export async function listOpenRouterModels(
+  sort: string = "most-popular",
+  search?: string,
+  refresh: boolean = false
+): Promise<ModelOption[]> {
   const cacheKey = sort || "most-popular";
   const now = Date.now();
-  if (modelsCache[cacheKey] && now - modelsCache[cacheKey].timestamp < CACHE_TTL_MS) {
-    return modelsCache[cacheKey].data;
+
+  if (refresh) {
+    delete modelsCache[cacheKey];
   }
 
-  const config = await getOpenRouterConfig();
+  let fullList: ModelOption[] = [];
 
-  try {
-    const url = `https://openrouter.ai/api/v1/models?output_modalities=text&sort=${encodeURIComponent(cacheKey)}`;
-    const headers: Record<string, string> = {
-      "HTTP-Referer": "https://portaldoartista.com",
-      "X-Title": "Portal do Artista",
-    };
-    if (config.apiKey) {
-      headers["Authorization"] = `Bearer ${config.apiKey}`;
-    }
+  if (modelsCache[cacheKey] && now - modelsCache[cacheKey].timestamp < CACHE_TTL_MS) {
+    fullList = modelsCache[cacheKey].data;
+  } else {
+    const config = await getOpenRouterConfig();
 
-    const res = await fetch(url, {
-      headers,
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!res.ok) {
-      throw new Error(`OpenRouter models API returned ${res.status}`);
-    }
-
-    const data = await res.json();
-    const list: ModelOption[] = [];
-
-    for (const m of data.data ?? []) {
-      if (!m?.id) continue;
-      const promptNum = m.pricing?.prompt ? parseFloat(m.pricing.prompt) : 0;
-      const compNum = m.pricing?.completion ? parseFloat(m.pricing.completion) : 0;
-      const isFree = m.id.endsWith(":free") || (promptNum === 0 && compNum === 0);
-
-      let formattedPricing = "Grátis";
-      if (!isFree && promptNum > 0) {
-        const promptPerM = (promptNum * 1_000_000).toFixed(promptNum * 1_000_000 < 1 ? 3 : 2);
-        const compPerM = (compNum * 1_000_000).toFixed(compNum * 1_000_000 < 1 ? 3 : 2);
-        formattedPricing = `$${promptPerM} / $${compPerM} por 1M`;
+    try {
+      const url = `https://openrouter.ai/api/v1/models?output_modalities=text&sort=${encodeURIComponent(cacheKey)}`;
+      const headers: Record<string, string> = {
+        "HTTP-Referer": "https://portaldoartista.com",
+        "X-Title": "Portal do Artista",
+      };
+      if (config.apiKey) {
+        headers["Authorization"] = `Bearer ${config.apiKey}`;
       }
 
-      const provider = m.id.includes("/") ? m.id.split("/")[0] : undefined;
-
-      list.push({
-        id: m.id,
-        name: m.name || m.id,
-        description: m.description,
-        isFree,
-        contextLength: m.context_length,
-        promptPrice: promptNum || undefined,
-        completionPrice: compNum || undefined,
-        formattedPricing,
-        provider,
+      const res = await fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(10000),
       });
-    }
 
-    // Se a ordenação for a padrão 'most-popular', mantemos os favoritos essenciais no topo
-    if (sort === "most-popular") {
-      const priority = [
-        "openai/gpt-4o-mini",
-        "google/gemini-2.0-flash-001",
-        "deepseek/deepseek-chat",
-        "anthropic/claude-3.5-sonnet",
-        "meta-llama/llama-3.3-70b-instruct",
-        "openrouter/auto",
+      if (!res.ok) {
+        throw new Error(`OpenRouter models API returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      const list: ModelOption[] = [];
+
+      for (const m of data.data ?? []) {
+        if (!m?.id) continue;
+        const promptNum = m.pricing?.prompt ? parseFloat(m.pricing.prompt) : 0;
+        const compNum = m.pricing?.completion ? parseFloat(m.pricing.completion) : 0;
+        const isFree = m.id.endsWith(":free") || (promptNum === 0 && compNum === 0);
+
+        let formattedPricing = "Grátis";
+        if (!isFree && promptNum > 0) {
+          const promptPerM = (promptNum * 1_000_000).toFixed(promptNum * 1_000_000 < 1 ? 3 : 2);
+          const compPerM = (compNum * 1_000_000).toFixed(compNum * 1_000_000 < 1 ? 3 : 2);
+          formattedPricing = `$${promptPerM} / $${compPerM} por 1M`;
+        }
+
+        const provider = m.id.includes("/") ? m.id.split("/")[0] : undefined;
+
+        list.push({
+          id: m.id,
+          name: m.name || m.id,
+          description: m.description,
+          isFree,
+          contextLength: m.context_length,
+          promptPrice: promptNum || undefined,
+          completionPrice: compNum || undefined,
+          formattedPricing,
+          provider,
+        });
+      }
+
+      // Se a ordenação for a padrão 'most-popular', mantemos os favoritos essenciais no topo
+      if (sort === "most-popular") {
+        const priority = [
+          "openai/gpt-4o-mini",
+          "google/gemini-2.0-flash-001",
+          "deepseek/deepseek-chat",
+          "anthropic/claude-3.5-sonnet",
+          "meta-llama/llama-3.3-70b-instruct",
+          "openrouter/auto",
+        ];
+
+        list.sort((a, b) => {
+          const idxA = priority.indexOf(a.id);
+          const idxB = priority.indexOf(b.id);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return 0; // Preserva a ordenação 'most-popular' do OpenRouter
+        });
+      }
+
+      fullList = list;
+      modelsCache[cacheKey] = { data: fullList, timestamp: now };
+    } catch (err) {
+      console.warn("Falha ao buscar modelos ao vivo do OpenRouter, retornando lista recomendada:", err);
+      fullList = [
+        { id: "openai/gpt-4o-mini", name: "GPT-4o Mini (Recomendado)", formattedPricing: "$0.15 / $0.60 por 1M", provider: "openai" },
+        { id: "google/gemini-2.0-flash-001", name: "Google Gemini 2.0 Flash (Ultrarrápido)", formattedPricing: "$0.10 / $0.40 por 1M", provider: "google" },
+        { id: "deepseek/deepseek-chat", name: "DeepSeek V3 (Excelente Custo-Benefício)", formattedPricing: "$0.14 / $0.28 por 1M", provider: "deepseek" },
+        { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet (Criativo)", formattedPricing: "$3.00 / $15.00 por 1M", provider: "anthropic" },
+        { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3 70B Instruct", formattedPricing: "$0.12 / $0.30 por 1M", provider: "meta-llama" },
+        { id: "openrouter/auto", name: "Auto Router (Seleção Automática)", formattedPricing: "Variável", provider: "openrouter" },
       ];
-
-      list.sort((a, b) => {
-        const idxA = priority.indexOf(a.id);
-        const idxB = priority.indexOf(b.id);
-        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-        if (idxA !== -1) return -1;
-        if (idxB !== -1) return 1;
-        return 0; // Preserva a ordenação 'most-popular' do OpenRouter
-      });
     }
-
-    const result = list.slice(0, 100); // Top 100 modelos filtrados por popularidade/relevância
-    modelsCache[cacheKey] = { data: result, timestamp: now };
-    return result;
-  } catch (err) {
-    console.warn("Falha ao buscar modelos ao vivo do OpenRouter, retornando lista recomendada:", err);
-    return [
-      { id: "openai/gpt-4o-mini", name: "GPT-4o Mini (Recomendado)", formattedPricing: "$0.15 / $0.60 por 1M", provider: "openai" },
-      { id: "google/gemini-2.0-flash-001", name: "Google Gemini 2.0 Flash (Ultrarrápido)", formattedPricing: "$0.10 / $0.40 por 1M", provider: "google" },
-      { id: "deepseek/deepseek-chat", name: "DeepSeek V3 (Excelente Custo-Benefício)", formattedPricing: "$0.14 / $0.28 por 1M", provider: "deepseek" },
-      { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet (Criativo)", formattedPricing: "$3.00 / $15.00 por 1M", provider: "anthropic" },
-      { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3 70B Instruct", formattedPricing: "$0.12 / $0.30 por 1M", provider: "meta-llama" },
-      { id: "openrouter/auto", name: "Auto Router (Seleção Automática)", formattedPricing: "Variável", provider: "openrouter" },
-    ];
   }
+
+  // Filtragem por busca (ID, nome, descrição ou provedor)
+  if (search && search.trim()) {
+    const q = search.trim().toLowerCase();
+    return fullList.filter(
+      (m) =>
+        m.id.toLowerCase().includes(q) ||
+        m.name.toLowerCase().includes(q) ||
+        (m.description && m.description.toLowerCase().includes(q)) ||
+        (m.provider && m.provider.toLowerCase().includes(q))
+    );
+  }
+
+  return fullList;
 }
 
 /**
