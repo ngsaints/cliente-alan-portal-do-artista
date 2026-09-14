@@ -409,11 +409,24 @@ export async function listOpenRouterModels(
         });
       }
 
+      // Garante que o Free Models Router oficial esteja presente e configurável no catálogo
+      if (!list.some((m) => m.id === "openrouter/free")) {
+        list.unshift({
+          id: "openrouter/free",
+          name: "Free Models Router (Roteador 100% Grátis)",
+          description: "Roteador gratuito do OpenRouter que alterna automaticamente entre os modelos grátis disponíveis (DeepSeek R1, Llama 3.2, Qwen) com Custo Zero absoluto.",
+          isFree: true,
+          formattedPricing: "100% Grátis",
+          provider: "openrouter",
+        });
+      }
+
       // Se a ordenação for a padrão 'most-popular', mantemos os favoritos essenciais no topo
       if (sort === "most-popular") {
         const priority = [
           "openai/gpt-4o-mini",
           "google/gemini-2.0-flash-001",
+          "openrouter/free",
           "deepseek/deepseek-chat",
           "anthropic/claude-3.5-sonnet",
           "meta-llama/llama-3.3-70b-instruct",
@@ -437,6 +450,7 @@ export async function listOpenRouterModels(
       fullList = [
         { id: "openai/gpt-4o-mini", name: "GPT-4o Mini (Recomendado)", formattedPricing: "$0.15 / $0.60 por 1M", provider: "openai" },
         { id: "google/gemini-2.0-flash-001", name: "Google Gemini 2.0 Flash (Ultrarrápido)", formattedPricing: "$0.10 / $0.40 por 1M", provider: "google" },
+        { id: "openrouter/free", name: "Free Models Router (100% Grátis)", formattedPricing: "100% Grátis", provider: "openrouter", isFree: true },
         { id: "deepseek/deepseek-chat", name: "DeepSeek V3 (Excelente Custo-Benefício)", formattedPricing: "$0.14 / $0.28 por 1M", provider: "deepseek" },
         { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet (Criativo)", formattedPricing: "$3.00 / $15.00 por 1M", provider: "anthropic" },
         { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3 70B Instruct", formattedPricing: "$0.12 / $0.30 por 1M", provider: "meta-llama" },

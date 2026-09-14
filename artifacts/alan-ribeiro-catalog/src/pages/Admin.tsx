@@ -2435,6 +2435,7 @@ function OpenRouterModelSelector({
   const presets = [
     { id: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
     { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
+    { id: "openrouter/free", label: "✨ 100% Grátis (Router)" },
     { id: "deepseek/deepseek-chat", label: "DeepSeek V3" },
     { id: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet" },
     { id: "openrouter/auto", label: "Auto Router" },
