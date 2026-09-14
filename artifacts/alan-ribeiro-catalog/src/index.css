@@ -119,7 +119,7 @@
 }
 
 /* Micro-interações e acessibilidade para botões e links interativos */
-button,
+button:not(.absolute):not([style*="position: absolute"]),
 a[role="button"],
 .clickable-item {
   position: relative;
@@ -141,6 +141,19 @@ button.no-scale:active {
 }
 
 /* Área clicável mínima de 44px para botões comuns */
-button:not(.w-8):not(.h-8):not(.w-10):not(.h-10):not(.p-0):not(.p-0\.5):not(.p-1):not(.p-1\.5):not(.p-2):not(.w-fit):not(.h-fit) {
+button:not(.w-8):not(.h-8):not(.w-10):not(.h-10):not(.p-0):not(.p-0\.5):not(.p-1):not(.p-1\.5):not(.p-2):not(.w-fit):not(.h-fit):not(.absolute):not([style*="position: absolute"]) {
   min-height: 44px;
+}
+
+/* Ocultar barra de rolagem horizontal mantendo scroll funcional */
+.scrollbar-none::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.scrollbar-none,
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }

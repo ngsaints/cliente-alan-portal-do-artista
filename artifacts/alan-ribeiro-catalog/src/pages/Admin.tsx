@@ -2043,7 +2043,10 @@ function SettingsTab({ onNavigate }: { onNavigate?: (tab: MainTab) => void }) {
       </div>
 
       {/* Category tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div
+        className="flex gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
         {categories.map((cat) => {
           const isActive = activeCategory === cat.id;
           return (
@@ -2726,19 +2729,30 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           </p>
         )}
 
-        <div className="relative">
+        <div className="relative w-full" style={{ position: "relative", width: "100%" }}>
           <input
             type={s.isSecret && !revealed[s.key] ? "password" : "text"}
             value={values[s.key] ?? ""}
             onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
             placeholder={s.isSecret ? "••••••••" : `Informe ${getSettingLabel(s.key).toLowerCase()}`}
-            className="w-full px-3.5 py-2.5 bg-background/60 border border-border/80 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground text-sm transition-all hover:border-border pr-10 font-normal placeholder:text-muted-foreground/40"
+            className="w-full px-3.5 py-2.5 bg-background/60 border border-border/80 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground text-sm transition-all hover:border-border pr-11 font-normal placeholder:text-muted-foreground/40"
           />
           {s.isSecret && (
             <button
               type="button"
               onClick={() => setRevealed({ ...revealed, [s.key]: !revealed[s.key] })}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-white/5 transition-colors cursor-pointer"
+              style={{
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                zIndex: 10,
+                width: "28px",
+                height: "28px",
+                minHeight: "28px",
+                padding: 0,
+              }}
+              className="absolute text-muted-foreground hover:text-primary hover:bg-white/10 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
               title={revealed[s.key] ? "Ocultar" : "Visualizar"}
             >
               {revealed[s.key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -2910,7 +2924,9 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       {groups.length > 0 ? (
         <div className="space-y-6">
           {groups.map((group, gIdx) => {
-            const groupSettings = settings.filter((s) => group.keys.includes(s.key));
+            const groupSettings = group.keys
+              .map((k) => settings.find((s) => s.key === k))
+              .filter((s): s is Setting => Boolean(s));
             if (groupSettings.length === 0) return null;
             groupSettings.forEach((s) => renderedKeys.add(s.key));
 
