@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import pgSession from "connect-pg-simple";
 import router from "./routes";
 import path from "path";
+import fs from "fs";
 
 const app: Express = express();
 
@@ -70,5 +71,17 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(sitemapRouter);
 
 app.use("/api", router);
+
+// Serve frontend SPA build if dist/public exists
+const clientDist = path.join(process.cwd(), "artifacts/alan-ribeiro-catalog/dist/public");
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
+      return next();
+    }
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
 
 export default app;

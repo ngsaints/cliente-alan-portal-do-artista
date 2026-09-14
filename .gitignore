@@ -1,12 +1,13 @@
 # compiled output
 dist
+!artifacts/alan-ribeiro-catalog/dist
+!artifacts/alan-ribeiro-catalog/dist/**
 tmp
 out-tsc
 *.tsbuildinfo
 .expo
 .expo-shared
 
-# dependencies
 node_modules
 
 # IDEs and editors

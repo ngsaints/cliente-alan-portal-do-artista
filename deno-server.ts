@@ -16,8 +16,11 @@ import { startReactivation } from "./artifacts/api-server/src/lib/reactivation.t
 // Configuração de Porta adaptada para Deno Deploy e Node
 const port = Number(process.env.PORT || (typeof (globalThis as any).Deno !== "undefined" ? "8000" : "3000"));
 
-// Servir frontend compilado SPA se a pasta dist existir (ideal para deploy unificado no Deno Deploy)
-const clientDistPath = path.join(process.cwd(), "artifacts/alan-ribeiro-catalog/dist");
+// Servir frontend compilado SPA se a pasta dist/public existir
+const publicDistPath = path.join(process.cwd(), "artifacts/alan-ribeiro-catalog/dist/public");
+const clientDistPath = fs.existsSync(publicDistPath)
+  ? publicDistPath
+  : path.join(process.cwd(), "artifacts/alan-ribeiro-catalog/dist");
 if (fs.existsSync(clientDistPath)) {
   const express = (await import("express")).default;
   app.use(express.static(clientDistPath));

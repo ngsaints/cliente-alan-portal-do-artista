@@ -53,17 +53,17 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
 
   try {
     const [allSongs, allArtists, allInterests, allPlans] = await Promise.all([
-      db.select().from(songsTable),
-      db.select().from(artistsTable),
-      db.select().from(interestsTable),
-      db.select().from(plansTable),
+      db.select({ id: songsTable.id }).from(songsTable),
+      db.select({ id: artistsTable.id }).from(artistsTable),
+      db.select({ id: interestsTable.id }).from(interestsTable),
+      db.select({ id: plansTable.id }).from(plansTable),
     ]);
 
     const [availSongs, vipSongs, freeArtists, paidArtists] = await Promise.all([
-      db.select().from(songsTable).where(eq(songsTable.status, "Disponível")),
-      db.select().from(songsTable).where(eq(songsTable.isVip, true)),
-      db.select().from(artistsTable).where(sql`${artistsTable.plano} = ${FREE_PLAN} OR ${artistsTable.planoAtivo} = false`),
-      db.select().from(artistsTable).where(sql`${artistsTable.plano} != ${FREE_PLAN} AND ${artistsTable.planoAtivo} = true`),
+      db.select({ id: songsTable.id }).from(songsTable).where(eq(songsTable.status, "Disponível")),
+      db.select({ id: songsTable.id }).from(songsTable).where(eq(songsTable.isVip, true)),
+      db.select({ id: artistsTable.id }).from(artistsTable).where(sql`${artistsTable.plano} = ${FREE_PLAN} OR ${artistsTable.planoAtivo} = false`),
+      db.select({ id: artistsTable.id }).from(artistsTable).where(sql`${artistsTable.plano} != ${FREE_PLAN} AND ${artistsTable.planoAtivo} = true`),
     ]);
 
     res.json({
