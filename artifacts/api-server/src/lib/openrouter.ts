@@ -126,14 +126,73 @@ export async function callOpenRouter(opts: OpenRouterOptions): Promise<OpenRoute
     headers["X-Title"] = "Portal do Artista - Vivi Studio";
   }
 
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  });
+  let res: Response;
+  let lastErrorText = "";
+
+  try {
+    res = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+  } catch (fetchErr: any) {
+    console.warn("[OpenRouter] Falha de conexão na requisição inicial:", fetchErr?.message || fetchErr);
+    res = new Response(JSON.stringify({ error: fetchErr?.message || "Connection failed" }), { status: 503 });
+  }
+
+  // Se a requisição principal falhou e não é OpenAI direto, tentamos os fallbacks um a um (Layer-2 Resilience)
+  if (!res.ok && !config.isDirectOpenAi) {
+    lastErrorText = await res.text().catch(() => "");
+    console.warn(
+      `[OpenRouter Fallback] Modelo principal (${modelToUse}) retornou status ${res.status}: ${lastErrorText.slice(0, 100)}. Acionando cadeia de contingência...`
+    );
+
+    const fallbacksToTry = (payload.models as string[] || []).filter((m) => m !== modelToUse);
+
+    for (const fallbackModel of fallbacksToTry) {
+      console.info(`[OpenRouter Fallback] Tentando modelo de contingência alternativo: ${fallbackModel}...`);
+      try {
+        const fallbackPayload = {
+          ...payload,
+          model: fallbackModel,
+          models: [fallbackModel, "openrouter/auto"],
+        };
+
+        const fallbackRes = await fetch(endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(fallbackPayload),
+        });
+
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          const choice = fallbackData.choices?.[0];
+          const content = choice?.message?.content || "";
+          console.info(`[OpenRouter Fallback] Sucesso! Recuperado com contingência: ${fallbackData.model || fallbackModel}`);
+          return {
+            content,
+            model: fallbackData.model || fallbackModel,
+            usage: {
+              promptTokens: fallbackData.usage?.prompt_tokens || 0,
+              completionTokens: fallbackData.usage?.completion_tokens || 0,
+            },
+          };
+        } else {
+          const fbErrText = await fallbackRes.text().catch(() => "");
+          console.warn(`[OpenRouter Fallback] Modelo ${fallbackModel} também falhou (${fallbackRes.status}): ${fbErrText.slice(0, 80)}`);
+        }
+      } catch (fbErr) {
+        console.warn(`[OpenRouter Fallback] Erro ao conectar com fallback ${fallbackModel}:`, fbErr);
+      }
+    }
+
+    // Se todos os fallbacks falharem
+    console.error("Erro na API de IA (todos os fallbacks esgotados):", res.status, lastErrorText);
+    throw new Error(`Falha na comunicação com a IA (${res.status}): ${lastErrorText.slice(0, 150)}`);
+  }
 
   if (!res.ok) {
-    const errText = await res.text();
+    const errText = await res.text().catch(() => "");
     console.error("Erro na API de IA:", res.status, errText);
     throw new Error(`Falha na comunicação com a IA (${res.status}): ${errText.slice(0, 150)}`);
   }

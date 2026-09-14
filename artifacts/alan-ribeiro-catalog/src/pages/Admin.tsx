@@ -3099,6 +3099,110 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       );
     }
 
+    if (s.key === "openrouter_fallbacks") {
+      const fallbackList = (values[s.key] || "")
+        .split(/[\n,;]+/)
+        .map((m) => m.trim())
+        .filter(Boolean);
+
+      const addFallback = (modelId: string) => {
+        if (!fallbackList.includes(modelId)) {
+          const updated = [...fallbackList, modelId].join(", ");
+          setValues({ ...values, [s.key]: updated });
+        }
+      };
+
+      const removeFallback = (modelId: string) => {
+        const updated = fallbackList.filter((m) => m !== modelId).join(", ");
+        setValues({ ...values, [s.key]: updated });
+      };
+
+      const resetDefault = () => {
+        setValues({
+          ...values,
+          [s.key]: "meta-llama/llama-3.3-70b-instruct:free, google/gemini-2.0-flash-001, deepseek/deepseek-chat, openai/gpt-4o-mini, openrouter/auto",
+        });
+      };
+
+      return (
+        <div key={s.key} className="col-span-full space-y-2.5 p-4 bg-card/60 border border-border/80 rounded-2xl">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                {getSettingLabel(s.key)}
+              </label>
+              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                Alta Disponibilidade & Anti-Queda
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={resetDefault}
+              className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+            >
+              Restaurar Padrão Seguro
+            </button>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Se o modelo principal (como o <strong>✨ 100% Grátis</strong>) atingir rate-limit, lentidão ou instabilidade temporária, o sistema acionará automaticamente os modelos de contingência abaixo em ordem:
+          </p>
+
+          {/* Chips dos modelos ativos de contingência */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {fallbackList.map((m, idx) => (
+              <span
+                key={m}
+                className="text-[11px] font-mono font-medium px-2.5 py-1 bg-background border border-primary/30 text-foreground rounded-lg flex items-center gap-1.5 shadow-sm"
+              >
+                <span className="text-[9px] font-bold text-primary">{idx + 1}º</span>
+                {m}
+                <button
+                  type="button"
+                  onClick={() => removeFallback(m)}
+                  className="text-muted-foreground hover:text-destructive text-xs ml-0.5 cursor-pointer"
+                  title="Remover modelo da contingência"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+
+          {/* Campo de texto para personalização */}
+          <input
+            type="text"
+            value={values[s.key] ?? ""}
+            onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+            placeholder="google/gemini-2.0-flash-001, deepseek/deepseek-chat, openai/gpt-4o-mini, openrouter/auto"
+            className="w-full px-3 py-2 bg-background/80 border border-border/80 rounded-xl focus:border-primary text-xs font-mono text-foreground"
+          />
+
+          {/* Atalhos para adicionar */}
+          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+            <span className="text-[10px] text-muted-foreground font-semibold">+ Adicionar à fila:</span>
+            {[
+              { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 (Grátis)" },
+              { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash (Econômico)" },
+              { id: "deepseek/deepseek-chat", label: "DeepSeek V3" },
+              { id: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
+              { id: "openrouter/auto", label: "Auto Router" },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => addFallback(f.id)}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-background border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40 cursor-pointer"
+              >
+                + {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     // Campo padrão de texto / segredo
     return (
       <div key={s.key} className="space-y-1.5">
