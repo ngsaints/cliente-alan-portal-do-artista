@@ -2042,18 +2042,18 @@ function SettingsTab({ onNavigate }: { onNavigate?: (tab: MainTab) => void }) {
         </div>
       </div>
 
-      {/* Category tabs */}
-      <div
-        className="flex gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
+      {/* Category tabs - wrap flexível para que nenhum botão fique cortado na borda */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
         {categories.map((cat) => {
           const isActive = activeCategory === cat.id;
           return (
             <button
               key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all duration-200 cursor-pointer ${
+              onClick={(e) => {
+                setActiveCategory(cat.id);
+                e.currentTarget.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              }}
+              className={`group relative flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
                 isActive
                   ? "bg-gradient-to-r from-primary via-amber-400 to-primary text-black shadow-[0_0_20px_rgba(245,197,24,0.35)] scale-[1.02]"
                   : "bg-card/80 border border-border/70 text-muted-foreground hover:text-white hover:bg-card hover:border-border hover:scale-[1.01]"
