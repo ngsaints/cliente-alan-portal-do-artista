@@ -2254,8 +2254,10 @@ function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "openrouter_enabled") return "Habilita a IA para chat, análise e composição com a Vivi.";
   if (key === "replicate_enabled") return "Habilita a geração de músicas cantadas completas no Estúdio Vivi.";
   if (key === "portal_url") return "URL usada em links de retorno e compartilhamentos (ex: https://portaldoartista.com).";
-  if (key === "vip_password") return "Senha global necessária para acessar composições exclusivas VIP.";
-  if (key === "asaas_sandbox") return "Ative para simular pagamentos em ambiente de testes sem transações reais.";
+  if (key === "landing_video_url") return "Link do vídeo no YouTube (ex: https://www.youtube.com/watch?v=...) para a seção de demonstração do portal.";
+  if (key === "landing_hero_video_url") return "Link do vídeo exibido no topo da página inicial (YouTube).";
+  if (key === "openai_enabled") return "Habilita a API direta da OpenAI para a mentora virtual Vivi (Legado).";
+  if (key === "openai_api_key") return "Chave de API obtida em platform.openai.com/api-keys.";
 
   const label = getSettingLabel(key).toLowerCase();
   const desc = (defaultDesc || "").toLowerCase().trim();
@@ -2460,10 +2462,11 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
 
   // Renderizador individual de campo
   const renderField = (s: Setting) => {
-    const isBoolean = s.key === "asaas_sandbox" || s.key === "openai_enabled" || s.key === "openrouter_enabled" || s.key === "replicate_enabled";
+    const isBoolean = s.key.endsWith("_enabled") || s.key.endsWith("_sandbox") || s.key === "asaas_sandbox" || s.key === "openai_enabled" || s.key === "openrouter_enabled" || s.key === "replicate_enabled";
     const isTextarea = s.key.startsWith("pixel_custom_") || s.key.endsWith("_script") || s.key.startsWith("footer_") || s.key === "landing_hero_subtitle";
     const isColor = category === "demo" && s.key === "demo_cor";
-    const isImageUpload = (category === "demo" && (s.key === "demo_capa_url" || s.key === "demo_banner_mobile_url")) || (s.key.startsWith("landing_") && s.key.endsWith("_url") && !s.key.includes("video"));
+    const isVideoUrl = s.key.includes("video") || s.key.endsWith("_video_url");
+    const isImageUpload = !isVideoUrl && ((category === "demo" && (s.key === "demo_capa_url" || s.key === "demo_banner_mobile_url")) || (s.key.startsWith("landing_") && s.key.endsWith("_url")));
     const isBannerCarousel = category === "demo" && s.key === "demo_banner_url";
 
     if (isBoolean) {
