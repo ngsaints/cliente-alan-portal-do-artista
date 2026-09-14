@@ -56,9 +56,10 @@ router.get("/ai/config/status", async (_req, res): Promise<void> => {
 });
 
 // GET /api/ai/models - Lista modelos do OpenRouter dinamicamente
-router.get("/ai/models", async (_req, res): Promise<void> => {
+router.get("/ai/models", async (req, res): Promise<void> => {
   try {
-    const models = await listOpenRouterModels();
+    const sort = typeof req.query.sort === "string" ? req.query.sort : "most-popular";
+    const models = await listOpenRouterModels(sort);
     res.json(models);
   } catch (error) {
     console.error("Erro ao listar modelos de IA:", error);

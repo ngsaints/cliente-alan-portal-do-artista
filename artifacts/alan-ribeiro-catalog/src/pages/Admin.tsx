@@ -20,7 +20,7 @@ import {
   Eye, EyeOff, Save, RefreshCw, X, Edit2, CreditCard, Cloud, Globe,
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
-Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight, Sparkles,
+Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight, ChevronDown, Sparkles,
   BookOpen, FileText, Star, FolderPlus, Lock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -2325,6 +2325,273 @@ function ModernSwitch({
   );
 }
 
+interface OpenRouterModel {
+  id: string;
+  name: string;
+  description?: string;
+  isFree?: boolean;
+  contextLength?: number;
+  promptPrice?: number;
+  completionPrice?: number;
+  formattedPricing?: string;
+  provider?: string;
+}
+
+function OpenRouterModelSelector({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [models, setModels] = useState<OpenRouterModel[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [activeProvider, setActiveProvider] = useState<string>("all");
+  const [sortOption, setSortOption] = useState<string>("most-popular");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/ai/models?sort=${sortOption}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setModels(data);
+      })
+      .catch((err) => console.warn("Erro ao carregar modelos OpenRouter:", err))
+      .finally(() => setLoading(false));
+  }, [sortOption]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedModel = models.find((m) => m.id === value);
+
+  // Filtros
+  const filteredModels = models.filter((m) => {
+    const matchesSearch =
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.id.toLowerCase().includes(search.toLowerCase()) ||
+      (m.provider && m.provider.toLowerCase().includes(search.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    if (activeProvider === "free") return m.isFree;
+    if (activeProvider !== "all") return m.provider?.toLowerCase() === activeProvider.toLowerCase();
+    return true;
+  });
+
+  const providers = [
+    { id: "all", label: "Todos" },
+    { id: "free", label: "✨ Grátis" },
+    { id: "openai", label: "OpenAI" },
+    { id: "google", label: "Google" },
+    { id: "deepseek", label: "DeepSeek" },
+    { id: "anthropic", label: "Anthropic" },
+    { id: "meta-llama", label: "Meta" },
+  ];
+
+  const presets = [
+    { id: "openai/gpt-4o-mini", label: "GPT-4o Mini", badge: "Recomendado" },
+    { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash", badge: "Ultrarrápido" },
+    { id: "deepseek/deepseek-chat", label: "DeepSeek V3", badge: "Econômico" },
+    { id: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet", badge: "Criativo" },
+    { id: "openrouter/auto", label: "Auto Router", badge: "Automático" },
+  ];
+
+  return (
+    <div className="space-y-2 relative" ref={dropdownRef}>
+      {/* Botão Seletor Principal */}
+      <div
+        onClick={() => setOpen(!open)}
+        className="w-full px-3.5 py-2.5 bg-background/60 border border-border/80 hover:border-primary/60 rounded-xl cursor-pointer transition-all flex items-center justify-between gap-2 shadow-sm"
+      >
+        <div className="flex items-center gap-2.5 overflow-hidden">
+          <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+            <Sparkles className="w-3.5 h-3.5" />
+          </div>
+          <div className="text-left overflow-hidden">
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm font-bold text-foreground truncate">
+                {selectedModel?.name || value || "Selecione um modelo..."}
+              </span>
+              {selectedModel?.isFree && (
+                <span className="text-[10px] font-black px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30 uppercase">
+                  Grátis
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] text-muted-foreground font-mono truncate block">
+              {value} {selectedModel?.formattedPricing ? `• ${selectedModel.formattedPricing}` : ""}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        </div>
+      </div>
+
+      {/* Dropdown com Busca e Filtros */}
+      {open && (
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card/95 backdrop-blur-xl border border-border/90 rounded-2xl p-3 shadow-2xl space-y-2.5 max-h-[380px] flex flex-col">
+          {/* Campo de Busca */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por modelo (ex: gemini, claude, deepseek)..."
+              className="w-full pl-9 pr-3 py-2 bg-background/70 border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              autoFocus
+            />
+          </div>
+
+          {/* Filtros de Provider e Ordenação */}
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex items-center gap-1">
+              {providers.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setActiveProvider(p.id)}
+                  className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                    activeProvider === p.id
+                      ? "bg-primary text-black"
+                      : "bg-background/50 text-muted-foreground hover:text-white border border-border/50"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="text-[10px] font-bold px-2 py-1 bg-background/50 text-muted-foreground border border-border/50 rounded-lg shrink-0 cursor-pointer focus:outline-none"
+            >
+              <option value="most-popular">Mais Populares</option>
+              <option value="pricing-low-to-high">Mais Baratos</option>
+              <option value="newest">Mais Novos</option>
+            </select>
+          </div>
+
+          {/* Lista de Modelos */}
+          <div className="overflow-y-auto space-y-1 pr-1 flex-1 max-h-[200px]">
+            {loading ? (
+              <div className="py-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" /> Carregando catálogo OpenRouter...
+              </div>
+            ) : filteredModels.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">
+                Nenhum modelo encontrado com "{search}".
+                {search.trim() && (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange(search.trim());
+                        setOpen(false);
+                      }}
+                      className="text-xs text-primary font-bold hover:underline cursor-pointer"
+                    >
+                      Usar "{search.trim()}" como modelo customizado
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              filteredModels.map((m) => {
+                const isSelected = value === m.id;
+                return (
+                  <div
+                    key={m.id}
+                    onClick={() => {
+                      onChange(m.id);
+                      setOpen(false);
+                    }}
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? "bg-primary/15 border-primary text-foreground"
+                        : "bg-background/40 border-border/50 hover:bg-background/80 hover:border-primary/40 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-foreground truncate">{m.name}</span>
+                        {m.isFree && (
+                          <span className="text-[9px] font-black px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30 uppercase">
+                            Grátis
+                          </span>
+                        )}
+                        {m.contextLength && (
+                          <span className="text-[9px] text-muted-foreground/70 font-mono">
+                            {m.contextLength >= 1000000
+                              ? `${(m.contextLength / 1000000).toFixed(0)}M ctx`
+                              : `${Math.round(m.contextLength / 1000)}k ctx`}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground font-mono block truncate">{m.id}</span>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-bold text-amber-400 block">{m.formattedPricing}</span>
+                      {isSelected && <span className="text-[10px] text-primary font-black">Selecionado</span>}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Digitar ID customizado */}
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>Usar modelo customizado:</span>
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="ex: anthropic/claude-3-haiku"
+              className="w-52 px-2.5 py-1 bg-background border border-border rounded-lg text-xs text-foreground font-mono focus:border-primary focus:outline-none"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Atalhos Rápidos */}
+      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+        <span className="text-[10px] text-muted-foreground font-semibold">Atalhos rápidos:</span>
+        {presets.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => onChange(m.id)}
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+              value === m.id
+                ? "bg-primary text-black border-primary font-extrabold shadow-sm"
+                : "bg-card border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/40"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCategory; onNavigate?: (tab: MainTab) => void }) {
   const [settings, setSettings] = useState<Setting[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -2709,6 +2976,32 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       );
     }
 
+    if (s.key === "openrouter_model") {
+      return (
+        <div key={s.key} className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-xs sm:text-sm font-bold text-foreground">
+              {getSettingLabel(s.key)}
+            </label>
+            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 flex items-center gap-1">
+              <Sparkles className="w-2.5 h-2.5" /> 100+ Modelos Disponíveis
+            </span>
+          </div>
+
+          {getSettingDescription(s.key, s.description) && (
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              {getSettingDescription(s.key, s.description)}
+            </p>
+          )}
+
+          <OpenRouterModelSelector
+            value={values[s.key] || "openai/gpt-4o-mini"}
+            onChange={(val) => setValues({ ...values, [s.key]: val })}
+          />
+        </div>
+      );
+    }
+
     // Campo padrão de texto / segredo
     return (
       <div key={s.key} className="space-y-1.5">
@@ -2759,31 +3052,6 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
             </button>
           )}
         </div>
-
-        {s.key === "openrouter_model" && (
-          <div className="flex items-center gap-1.5 flex-wrap pt-1">
-            <span className="text-[10px] text-muted-foreground font-semibold">Atalhos rápidos:</span>
-            {[
-              { id: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
-              { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
-              { id: "deepseek/deepseek-chat", label: "DeepSeek V3" },
-              { id: "anthropic/claude-3.5-sonnet", label: "Claude 3.5" },
-            ].map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => setValues({ ...values, [s.key]: m.id })}
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
-                  values[s.key] === m.id
-                    ? "bg-primary text-black border-primary font-extrabold shadow-sm"
-                    : "bg-card border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/40"
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     );
   };
