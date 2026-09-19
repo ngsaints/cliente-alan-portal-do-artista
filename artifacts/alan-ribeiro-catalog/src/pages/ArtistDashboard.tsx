@@ -7,7 +7,8 @@ import {
   TrendingUp, TrendingUpDown, Loader2, LogOut, Image, Link2, Crown, Save, X, Youtube, CreditCard,
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
   ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle, Share2,
-Bot, Sparkles, Zap, Download, ChevronLeft, ChevronRight, CheckCircle, Instagram, BookOpen, Search
+  Bot, Sparkles, Zap, Download, ChevronLeft, ChevronRight, CheckCircle, Instagram, BookOpen, Search,
+  Mic, Calendar, Users, Star, Video, Tent
 } from "lucide-react";
 import {
   Command,
@@ -466,7 +467,7 @@ export default function ArtistDashboard() {
   const [validatingPlanCoupon, setValidatingPlanCoupon] = useState(false);
 
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([
-    { role: "assistant", content: "👋 Olá! Eu sou a Vivi, mentora virtual do PORTALDOARTISTA.COM. Estou aqui para ajudar você a organizar sua carreira, divulgar suas músicas e aproveitar todas as ferramentas da plataforma. Como posso te ajudar hoje?" }
+    { role: "assistant", content: "Olá! Eu sou a Vivi, mentora virtual do PORTALDOARTISTA.COM. Estou aqui para ajudar você a organizar sua carreira, divulgar suas músicas e aproveitar todas as ferramentas da plataforma. Como posso te ajudar hoje?" }
   ]);
   const [currentTool, setCurrentTool] = useState<string>("chat");
   const [chatLoading, setChatLoading] = useState(false);
@@ -480,21 +481,21 @@ export default function ArtistDashboard() {
 
   const handleSelectTool = (toolName: string) => {
     setCurrentTool(toolName);
-    let intro = "👋 Olá! Eu sou a Vivi. Escolha uma das ferramentas ao lado ou faça uma pergunta livre sobre sua carreira.";
+    let intro = "Olá! Eu sou a Vivi. Escolha uma das ferramentas ao lado ou faça uma pergunta livre sobre sua carreira.";
     if (toolName === "biografia") {
-      intro = "✍️ Cole sua biografia profissional atual ou conte-me sua história para eu reescrevê-la de forma impactante!";
+      intro = "Cole sua biografia profissional atual ou conte-me sua história para eu reescrevê-la de forma impactante!";
     } else if (toolName === "potencial") {
-      intro = "🎵 Envie a letra, gênero ou tema da sua música para eu analisar seu apelo comercial e público-alvo.";
+      intro = "Envie a letra, gênero ou tema da sua música para eu analisar seu apelo comercial e público-alvo.";
     } else if (toolName === "legenda") {
-      intro = "📱 Diga sobre o que é a sua música ou publicação para eu gerar opções de legendas para Instagram, TikTok e Facebook.";
+      intro = "Diga sobre o que é a sua música ou publicação para eu gerar opções de legendas para Instagram, TikTok e Facebook.";
     } else if (toolName === "reels") {
-      intro = "📢 Fale do tema que quer gravar para eu criar um roteiro de vídeo de Reels/TikTok dinâmico de até 60 segundos.";
+      intro = "Fale do tema que quer gravar para eu criar um roteiro de vídeo de Reels/TikTok dinâmico de até 60 segundos.";
     } else if (toolName === "hashtags") {
-      intro = "🎯 Digite o tema ou estilo do seu post para eu listar hashtags estratégicas.";
+      intro = "Digite o tema ou estilo do seu post para eu listar hashtags estratégicas.";
     } else if (toolName === "release") {
-      intro = "📄 Me conte sobre seu novo lançamento, show ou conquista para eu redigir um press release completo.";
+      intro = "Me conte sobre seu novo lançamento, show ou conquista para eu redigir um press release completo.";
     } else if (toolName === "titulos") {
-      intro = "🎼 Conte sobre o tema ou a letra da música para eu sugerir 5 títulos marcantes.";
+      intro = "Conte sobre o tema ou a letra da música para eu sugerir 5 títulos marcantes.";
     }
     
     setChatMessages([
@@ -692,17 +693,17 @@ export default function ArtistDashboard() {
   }, []);
 
   useEffect(() => {
-    if (artist && chatMessages.length === 1 && chatMessages[0].content.startsWith("👋 Olá! Eu sou a Vivi")) {
+    if (artist && chatMessages.length === 1 && chatMessages[0].content.startsWith("Olá! Eu sou a Vivi")) {
       let welcome = "";
       if (artist.plano === "free") {
-        welcome = `👋 Olá, ${artist.name}! Eu sou a Vivi, sua mentora virtual aqui no Portal do Artista. No seu plano **Gratuito**, você pode cadastrar até 2 músicas e possui 10 consultas de IA por mês. Posso te ajudar a organizar sua carreira, gerar ideias de posts ou analisar suas letras. Como posso te apoiar hoje?`;
+        welcome = `Olá, ${artist.name}! Eu sou a Vivi, sua mentora virtual aqui no Portal do Artista. No seu plano **Gratuito**, você pode cadastrar até 2 músicas e possui 10 consultas de IA por mês. Posso te ajudar a organizar sua carreira, gerar ideias de posts ou analisar suas letras. Como posso te apoiar hoje?`;
       } else if (artist.plano === "basico") {
-        welcome = `👋 Olá, ${artist.name}! Eu sou a Vivi. Parabéns pelo seu plano **Básico**! Com ele, você pode subir até 20 músicas no catálogo e conta com 30 consultas de IA por mês. Vamos trabalhar na sua biografia, divulgações ou títulos das suas faixas? Me diga o que precisamos fazer hoje.`;
+        welcome = `Olá, ${artist.name}! Eu sou a Vivi. Parabéns pelo seu plano **Básico**! Com ele, você pode subir até 20 músicas no catálogo e conta com 30 consultas de IA por mês. Vamos trabalhar na sua biografia, divulgações ou títulos das suas faixas? Me diga o que precisamos fazer hoje.`;
       } else if (artist.plano === "premium") {
-        welcome = `👑 Olá, ${artist.name}! Eu sou a Vivi. Como membro **Premium**, você tem acesso total: até 200 músicas, personalização ilimitada do catálogo e 200 consultas de IA por mês. Vamos construir uma estratégia de lançamento de alto impacto para sua carreira? O que quer criar hoje?`;
+        welcome = `Olá, ${artist.name}! Eu sou a Vivi. Como membro **Premium**, você tem acesso total: até 200 músicas, personalização ilimitada do catálogo e 200 consultas de IA por mês. Vamos construir uma estratégia de lançamento de alto impacto para sua carreira? O que quer criar hoje?`;
       } else {
         const planName = artist.plano.charAt(0).toUpperCase() + artist.plano.slice(1);
-        welcome = `👋 Olá, ${artist.name}! Eu sou a Vivi. Excelente escolha com o plano **${planName}**! Você tem limites estendidos e ${artist.aiCreditsLimit || 50} consultas de IA por mês. Como posso te ajudar a divulgar suas músicas e alcançar mais fãs hoje?`;
+        welcome = `Olá, ${artist.name}! Eu sou a Vivi. Excelente escolha com o plano **${planName}**! Você tem limites estendidos e ${artist.aiCreditsLimit || 50} consultas de IA por mês. Como posso te ajudar a divulgar suas músicas e alcançar mais fãs hoje?`;
       }
       setChatMessages([{ role: "assistant", content: welcome }]);
     }
@@ -1622,8 +1623,8 @@ export default function ArtistDashboard() {
                 {openaiEnabled && (
                   <div className="bg-gradient-to-r from-purple-900/10 via-indigo-900/5 to-purple-900/10 border border-purple-500/20 rounded-2xl p-6 space-y-4 shadow-xl">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-lg shrink-0 border border-purple-500/30">
-                        🤖
+                      <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0 border border-purple-500/30">
+                        <Bot className="w-5 h-5" />
                       </div>
                       <div>
                         <h4 className="font-bold text-foreground text-sm">Pergunte à Vivi — Sua Mentora Virtual</h4>
@@ -2839,7 +2840,7 @@ export default function ArtistDashboard() {
                     </div>
                     {editCustom.cardStyle === "ipod" && (
                       <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
-                        ✨ No estilo iPod, a música toca <strong>dentro do card</strong> enquanto visível. Ao rolar a página, o player aparece no rodapé automaticamente.
+                        No estilo iPod, a música toca <strong>dentro do card</strong> enquanto visível. Ao rolar a página, o player aparece no rodapé automaticamente.
                       </p>
                     )}
                   </div>
@@ -3539,7 +3540,7 @@ export default function ArtistDashboard() {
                 <Instagram className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-black text-foreground">
-                Música Cadastrada! 🎉
+                Música Cadastrada!
               </h3>
               <p className="text-xs text-muted-foreground">
                 "{instagramShareModal.songTitle}" já está disponível no seu portal. Compartilhe no Instagram para divulgar agora!
@@ -3551,14 +3552,14 @@ export default function ArtistDashboard() {
                 Legenda Pronta para Instagram:
               </span>
               <p className="text-xs text-foreground/90 font-mono leading-relaxed bg-input/40 p-3 rounded-xl border border-border/40 select-all">
-                {`Ouça minha nova música "${instagramShareModal.songTitle}" no Portal do Artista! 🎵\n\nLink no meu perfil: ${window.location.origin}/${artist?.slug}`}
+                {`Ouça minha nova música "${instagramShareModal.songTitle}" no Portal do Artista!\n\nLink no meu perfil: ${window.location.origin}/${artist?.slug}`}
               </p>
             </div>
 
             <div className="space-y-2.5">
               <button
                 onClick={() => {
-                  const text = `Ouça minha nova música "${instagramShareModal.songTitle}" no Portal do Artista! 🎵\n\nLink no meu perfil: ${window.location.origin}/${artist?.slug}`;
+                  const text = `Ouça minha nova música "${instagramShareModal.songTitle}" no Portal do Artista!\n\nLink no meu perfil: ${window.location.origin}/${artist?.slug}`;
                   navigator.clipboard.writeText(text);
                   setCopiedCaption(true);
                   setTimeout(() => setCopiedCaption(false), 2500);
@@ -3751,35 +3752,35 @@ function ArtistInteresses({ artistId }: { artistId: number }) {
             <button
               type="button"
               onClick={() => setFilter("show")}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 flex items-center gap-1.5 ${
                 filter === "show"
                   ? "bg-primary text-black font-semibold shadow-sm"
                   : "bg-background border border-border text-muted-foreground hover:text-foreground"
               }`}
             >
-              🎤 Shows
+              <Mic className="w-3.5 h-3.5" /> Shows
             </button>
             <button
               type="button"
               onClick={() => setFilter("musica")}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 flex items-center gap-1.5 ${
                 filter === "musica"
                   ? "bg-primary text-black font-semibold shadow-sm"
                   : "bg-background border border-border text-muted-foreground hover:text-foreground"
               }`}
             >
-              🎵 Músicas
+              <Music className="w-3.5 h-3.5" /> Músicas
             </button>
             <button
               type="button"
               onClick={() => setFilter("reuniao")}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 flex items-center gap-1.5 ${
                 filter === "reuniao"
                   ? "bg-primary text-black font-semibold shadow-sm"
                   : "bg-background border border-border text-muted-foreground hover:text-foreground"
               }`}
             >
-              📅 Reuniões
+              <Calendar className="w-3.5 h-3.5" /> Reuniões
             </button>
           </div>
         </div>
@@ -3856,18 +3857,18 @@ function ArtistInteresses({ artistId }: { artistId: number }) {
                     {/* Tags de interesse */}
                     <div className="flex flex-wrap gap-1.5">
                       {item.contratarShow && (
-                        <span className="px-2.5 py-1 bg-blue-500/15 text-blue-300 text-xs rounded-full border border-blue-500/25 font-medium">
-                          🎤 Contratar Show
+                        <span className="px-2.5 py-1 bg-blue-500/15 text-blue-300 text-xs rounded-full border border-blue-500/25 font-medium inline-flex items-center gap-1">
+                          <Mic className="w-3 h-3" /> Contratar Show
                         </span>
                       )}
                       {item.reservarMusica && (
-                        <span className="px-2.5 py-1 bg-purple-500/15 text-purple-300 text-xs rounded-full border border-purple-500/25 font-medium">
-                          🎵 Reservar Música
+                        <span className="px-2.5 py-1 bg-purple-500/15 text-purple-300 text-xs rounded-full border border-purple-500/25 font-medium inline-flex items-center gap-1">
+                          <Music className="w-3 h-3" /> Reservar Música
                         </span>
                       )}
                       {item.agendarReuniao && (
-                        <span className="px-2.5 py-1 bg-emerald-500/15 text-emerald-300 text-xs rounded-full border border-emerald-500/25 font-medium">
-                          📅 Agendar Reunião
+                        <span className="px-2.5 py-1 bg-emerald-500/15 text-emerald-300 text-xs rounded-full border border-emerald-500/25 font-medium inline-flex items-center gap-1">
+                          <Calendar className="w-3 h-3" /> Agendar Reunião
                         </span>
                       )}
                     </div>
@@ -4119,16 +4120,18 @@ function GalleryTab({ artistId }: { artistId: string }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {[
-              { icon: "🎙️", title: "Estúdio", desc: "Gravou uma música em estúdio? Compartilhe esse momento." },
-              { icon: "🎸", title: "Palco & Shows", desc: "Fez uma apresentação? Mostre fotos do palco." },
-              { icon: "🎪", title: "Eventos", desc: "Participou de um evento? Compartilhe esse registro." },
-              { icon: "🎬", title: "Videoclipe", desc: "Gravou um videoclipe? Publique os bastidores." },
-              { icon: "🤝", title: "Conexões", desc: "Encontrou outros artistas ou produtores? Compartilhe essas conexões." },
-              { icon: "⭐", title: "Prova Social", desc: "Registros reais reforçam sua reputação profissional." },
+              { icon: <Mic className="w-4 h-4 text-primary" />, title: "Estúdio", desc: "Gravou uma música em estúdio? Compartilhe esse momento." },
+              { icon: <Music className="w-4 h-4 text-primary" />, title: "Palco & Shows", desc: "Fez uma apresentação? Mostre fotos do palco." },
+              { icon: <Tent className="w-4 h-4 text-primary" />, title: "Eventos", desc: "Participou de um evento? Compartilhe esse registro." },
+              { icon: <Video className="w-4 h-4 text-primary" />, title: "Videoclipe", desc: "Gravou um videoclipe? Publique os bastidores." },
+              { icon: <Users className="w-4 h-4 text-primary" />, title: "Conexões", desc: "Encontrou outros artistas ou produtores? Compartilhe essas conexões." },
+              { icon: <Star className="w-4 h-4 text-primary" />, title: "Prova Social", desc: "Registros reais reforçam sua reputação profissional." },
             ].map((tip, idx) => (
               <div key={idx} className="p-3.5 rounded-xl bg-card/80 border border-border/40 space-y-1.5 flex flex-col justify-between hover:border-primary/40 transition-colors">
                 <div>
-                  <span className="text-lg">{tip.icon}</span>
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-1">
+                    {tip.icon}
+                  </div>
                   <h5 className="font-bold text-xs text-foreground mt-1">{tip.title}</h5>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">{tip.desc}</p>
                 </div>

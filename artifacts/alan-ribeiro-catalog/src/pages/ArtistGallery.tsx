@@ -3,7 +3,7 @@ import { useParams } from "wouter";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
-import { Image, X, ArrowLeft, Loader2 } from "lucide-react";
+import { Image, X, ArrowLeft, Loader2, Mic, Music, Users } from "lucide-react";
 import { useSEO } from "@/hooks/useSEO";
 import { Footer } from "@/components/Footer";
 
@@ -81,21 +81,27 @@ export default function ArtistGallery() {
             {/* Dicas Inteligentes Inspiracionais */}
             <div className="p-6 rounded-3xl bg-card/40 border border-border/30 space-y-4">
               <h3 className="font-extrabold text-foreground text-sm flex items-center gap-2">
-                ✨ Ideias de fotos que aumentam o interesse de contratantes:
+                Ideias de fotos que aumentam o interesse de contratantes:
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                 <div className="p-3.5 rounded-xl bg-background border border-border/40 space-y-1">
-                  <span className="text-lg">🎙️</span>
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-1">
+                    <Mic className="w-4 h-4" />
+                  </div>
                   <p className="font-bold text-foreground">Estúdio & Gravações</p>
                   <p className="text-muted-foreground text-[11px]">Bastidores de produção e gravação de voz.</p>
                 </div>
                 <div className="p-3.5 rounded-xl bg-background border border-border/40 space-y-1">
-                  <span className="text-lg">🎸</span>
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-1">
+                    <Music className="w-4 h-4" />
+                  </div>
                   <p className="font-bold text-foreground">Palco & Concertos</p>
                   <p className="text-muted-foreground text-[11px]">Momentos ao vivo e interação com o público.</p>
                 </div>
                 <div className="p-3.5 rounded-xl bg-background border border-border/40 space-y-1">
-                  <span className="text-lg">🤝</span>
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-1">
+                    <Users className="w-4 h-4" />
+                  </div>
                   <p className="font-bold text-foreground">Feats & Parcerias</p>
                   <p className="text-muted-foreground text-[11px]">Encontros com outros artistas e produtores.</p>
                 </div>

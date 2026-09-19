@@ -61,15 +61,15 @@ interface DemoItem {
 }
 
 const GENRES = [
-  { id: "Sertanejo", label: "Sertanejo", icon: "🤠" },
-  { id: "Sertanejo Universitário", label: "Sertanejo Univ.", icon: "🎸" },
-  { id: "Piseiro", label: "Piseiro", icon: "🎹" },
-  { id: "Forró", label: "Forró", icon: "🪗" },
-  { id: "Pagode", label: "Pagode", icon: "🥁" },
-  { id: "Modão", label: "Modão Caipira", icon: "🌾" },
-  { id: "Pop", label: "Pop / Trap", icon: "✨" },
-  { id: "Gospel", label: "Gospel / Worship", icon: "🙏" },
-  { id: "Rock", label: "Rock / MPB", icon: "⚡" },
+  { id: "Sertanejo", label: "Sertanejo" },
+  { id: "Sertanejo Universitário", label: "Sertanejo Univ." },
+  { id: "Piseiro", label: "Piseiro" },
+  { id: "Forró", label: "Forró" },
+  { id: "Pagode", label: "Pagode" },
+  { id: "Modão", label: "Modão Caipira" },
+  { id: "Pop", label: "Pop / Trap" },
+  { id: "Gospel", label: "Gospel / Worship" },
+  { id: "Rock", label: "Rock / MPB" },
 ];
 
 const VOICES = [
@@ -139,7 +139,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
     {
       role: "assistant",
-      content: `👋 Olá, ${artist?.name || "Artista"}! Eu sou a Vivi, sua assistente de composição e mentora no Portal do Artista.\n\nNo **Estúdio de Criação**, posso te ajudar a transformar qualquer letra em uma demo cantada completa com voz e instrumentos usando IA de última geração (MiniMax Music 2.6). Se precisar de dicas de arranjo, ideias de rima ou marketing, estou aqui!`,
+      content: `Olá, ${artist?.name || "Artista"}! Eu sou a Vivi, sua assistente de composição e mentora no Portal do Artista.\n\nNo **Estúdio de Criação**, posso te ajudar a transformar qualquer letra em uma demo cantada completa com voz e instrumentos usando IA de última geração (MiniMax Music 2.6). Se precisar de dicas de arranjo, ideias de rima ou marketing, estou aqui!`,
     },
   ]);
   const [chatInput, setChatInput] = useState("");
@@ -217,7 +217,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       });
 
       toast({
-        title: "🎨 Imagem gerada com sucesso!",
+        title: "Imagem gerada com sucesso!",
         description: "Veja a prévia e a legenda de divulgação pronta para suas redes.",
       });
     } catch (err: any) {
@@ -310,7 +310,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   };
 
   const handleShareWhatsapp = (demo: DemoItem) => {
-    const text = `🎵 Ouça a nova demo da música "${demo.titulo}" gerada no Portal do Artista:\n${demo.audioUrl || window.location.href}`;
+    const text = `Ouça a nova demo da música "${demo.titulo}" gerada no Portal do Artista:\n${demo.audioUrl || window.location.href}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -374,7 +374,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       setComposeIdea("");
 
       toast({
-        title: "✨ Letra inédita composta com sucesso!",
+        title: "Letra inédita composta com sucesso!",
         description: `"${data.title}" foi estruturada com estrofes, refrão chiclete e tags para o MiniMax Music 2.6.`,
       });
     } catch (err: any) {
@@ -422,7 +422,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       } else {
         // Instant
         toast({
-          title: "🎉 Créditos Adicionados!",
+          title: "Créditos Adicionados!",
           description: `Você recebeu +${pkg.credits} créditos extras de geração musical.`,
         });
         setIsBuyCreditsModalOpen(false);
@@ -530,7 +530,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       }
 
       toast({
-        title: "✨ Letra aprimorada com sucesso!",
+        title: "Letra aprimorada com sucesso!",
         description: "Estruturei as tags [Intro], [Verse], [Chorus] e otimizei a métrica para o MiniMax Music 2.6.",
       });
     } catch (error: any) {
@@ -646,7 +646,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
             if (onRefreshArtist) onRefreshArtist();
 
             toast({
-              title: "🎉 Sua demo cantada está pronta!",
+              title: "Sua demo cantada está pronta!",
               description: `Ouça agora "${updated.titulo}" e salve direto no seu catálogo musical.`,
             });
           } else if (updated.status === "failed") {
@@ -684,7 +684,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       }
 
       toast({
-        title: "✅ Música adicionada ao seu catálogo!",
+        title: "Música adicionada ao seu catálogo!",
         description: `"${demo.titulo}" agora está disponível na sua vitrine e no seu repertório oficial.`,
       });
 
@@ -864,7 +864,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
             }`}
           >
             <ImageIcon className="w-4 h-4" />
-            <span>🎨 Gerador de Capas & Fotos IA</span>
+            <span>Gerador de Capas & Fotos IA</span>
           </button>
         </div>
       </div>
@@ -914,7 +914,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                           : "bg-secondary/20 border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
                       }`}
                     >
-                      <span>{g.icon}</span>
+                      <Music className="w-3 h-3 opacity-60" />
                       <span className="truncate">{g.label}</span>
                     </button>
                   ))}
@@ -1000,7 +1000,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
                     >
                       <Lightbulb className="w-3.5 h-3.5" />
-                      <span>💡 Compor do Zero</span>
+                      <span>Compor do Zero</span>
                     </button>
 
                     <button
@@ -1017,7 +1017,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                       ) : (
                         <>
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>✨ Aprimorar Letra</span>
+                          <span>Aprimorar Letra</span>
                         </>
                       )}
                     </button>
@@ -1065,7 +1065,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                 ) : (
                   <>
                     <Headphones className="w-5 h-5" />
-                    <span>🚀 Gerar Demo Cantada (MiniMax Music 2.6)</span>
+                    <span>Gerar Demo Cantada (MiniMax Music 2.6)</span>
                   </>
                 )}
               </button>
@@ -1307,12 +1307,12 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
           {/* Tool Selector */}
           <div className="flex flex-wrap gap-2 pb-3 border-b border-border">
             {[
-              { id: "chat", label: "💬 Dúvidas Gerais" },
-              { id: "biografia", label: "📝 Biografia Profissional" },
-              { id: "comercial", label: "⭐ Análise Comercial da Letra" },
-              { id: "legenda", label: "📱 Legenda para Instagram" },
-              { id: "reels", label: "🎬 Roteiro de Vídeo / Reels" },
-              { id: "titulos", label: "💡 Sugestão de Títulos" },
+              { id: "chat", label: "Dúvidas Gerais" },
+              { id: "biografia", label: "Biografia Profissional" },
+              { id: "comercial", label: "Análise Comercial da Letra" },
+              { id: "legenda", label: "Legenda para Instagram" },
+              { id: "reels", label: "Roteiro de Vídeo / Reels" },
+              { id: "titulos", label: "Sugestão de Títulos" },
             ].map((t) => (
               <button
                 key={t.id}
@@ -1873,12 +1873,12 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    "💔 Sofrência e término de relacionamento no boteco",
-                    "💃 Piseiro animado de sexta-feira com amigos",
-                    "💍 Declaração de amor eterno e casamento",
-                    "🌾 Modão caipira raiz sobre saudade da roça",
-                    "🚀 Superação, conquistas e dar a volta por cima",
-                    "🙏 Gratidão pela vida e fé em Deus",
+                    "Sofrência e término de relacionamento no boteco",
+                    "Piseiro animado de sexta-feira com amigos",
+                    "Declaração de amor eterno e casamento",
+                    "Modão caipira raiz sobre saudade da roça",
+                    "Superação, conquistas e dar a volta por cima",
+                    "Gratidão pela vida e fé em Deus",
                   ].map((theme, i) => (
                     <button
                       key={i}
@@ -1918,7 +1918,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>✨ Escrever Letra Completa</span>
+                    <span>Escrever Letra Completa</span>
                   </>
                 )}
               </button>
