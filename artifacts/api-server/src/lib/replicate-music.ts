@@ -3,9 +3,8 @@ import { db } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import path from "path";
 import fs from "fs";
+import Replicate from "replicate";
 import { uploadToR2, generateR2Key, r2Enabled } from "./r2-storage.js";
-
-const REPLICATE_API_BASE = "https://api.replicate.com/v1";
 
 export interface MiniMaxMusicInput {
   prompt: string;
@@ -49,6 +48,12 @@ export async function getReplicateConfig(): Promise<{
   };
 }
 
+function getReplicateClient(apiKey: string): Replicate {
+  return new Replicate({
+    auth: apiKey,
+  });
+}
+
 /**
  * Inicia uma predição no Replicate para gerar música com o MiniMax Music 2.6
  */
@@ -75,38 +80,37 @@ export async function startMusicGeneration(input: MiniMaxMusicInput): Promise<Re
   const fullPrompt = stylePromptParts.join(", ");
 
   // Normalizar modelo (ex: minimax/music-2.6 ou minimax/music-01)
-  const modelName = config.model.includes("/") ? config.model : `minimax/${config.model}`;
+  const modelName = (config.model.includes("/") ? config.model : `minimax/${config.model}`) as `${string}/${string}`;
 
-  const payload = {
-    input: {
-      prompt: fullPrompt,
-      lyrics: input.lyrics.trim() || "[Instrumental]",
-    },
+  const replicate = getReplicateClient(config.apiKey);
+
+  const modelInput = {
+    prompt: fullPrompt,
+    lyrics: input.lyrics.trim() || "[Instrumental]",
+    bitrate: 256000,
+    sample_rate: 44100,
+    audio_format: "mp3",
+    is_instrumental: input.voice ? input.voice.toLowerCase().includes("instrumental") : false,
+    lyrics_optimizer: false,
   };
 
-  const res = await fetch(`${REPLICATE_API_BASE}/models/${modelName}/predictions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      "Content-Type": "application/json",
-      Prefer: "wait=5", // espera até 5s para retornar resposta inicial rápida
-    },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const prediction = await replicate.predictions.create({
+      model: modelName,
+      input: modelInput,
+    });
 
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("Erro ao iniciar predição no Replicate:", res.status, errText);
-    throw new Error(`Falha ao iniciar geração musical no Replicate (${res.status}): ${errText.slice(0, 180)}`);
+    return {
+      id: prediction.id,
+      status: prediction.status as ReplicatePredictionResponse["status"],
+      output: prediction.output as any,
+      error: prediction.error ? String(prediction.error) : null,
+      logs: prediction.logs || null,
+    };
+  } catch (err: any) {
+    console.error("Erro ao iniciar predição no Replicate via SDK:", err);
+    throw new Error(`Falha ao iniciar geração musical no Replicate: ${err.message || String(err)}`);
   }
-
-  const prediction = await res.json();
-  return {
-    id: prediction.id,
-    status: prediction.status,
-    output: prediction.output,
-    error: prediction.error,
-  };
 }
 
 /**
@@ -118,24 +122,30 @@ export async function getPredictionStatus(predictionId: string): Promise<Replica
     throw new Error("Chave de API do Replicate não configurada.");
   }
 
-  const res = await fetch(`${REPLICATE_API_BASE}/predictions/${predictionId}`, {
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-  });
+  const replicate = getReplicateClient(config.apiKey);
 
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Erro ao consultar status da geração (${res.status}): ${errText.slice(0, 100)}`);
+  try {
+    const prediction = await replicate.predictions.get(predictionId);
+    
+    // Tratamento de URL de saída caso seja FileOutput ou objeto com método .url()
+    let out = prediction.output;
+    if (out && typeof (out as any).url === "function") {
+      out = (out as any).url();
+    } else if (Array.isArray(out) && out.length > 0 && typeof (out[0] as any)?.url === "function") {
+      out = (out[0] as any).url();
+    }
+
+    return {
+      id: prediction.id,
+      status: prediction.status as ReplicatePredictionResponse["status"],
+      output: out as any,
+      error: prediction.error ? String(prediction.error) : null,
+      logs: prediction.logs || null,
+    };
+  } catch (err: any) {
+    console.error("Erro ao consultar status da predição no Replicate via SDK:", err);
+    throw new Error(`Erro ao consultar status da geração: ${err.message || String(err)}`);
   }
-
-  const prediction = await res.json();
-  return {
-    id: prediction.id,
-    status: prediction.status,
-    output: prediction.output,
-    error: prediction.error,
-  };
 }
 
 /**
