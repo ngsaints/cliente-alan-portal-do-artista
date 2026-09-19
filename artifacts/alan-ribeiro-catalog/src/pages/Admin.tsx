@@ -1086,6 +1086,12 @@ function ArtistsTab() {
   const [creditsCurrentExtra, setCreditsCurrentExtra] = useState(0);
   const [creditsAmount, setCreditsAmount] = useState("5");
   const [creditsSaving, setCreditsSaving] = useState(false);
+  const [subTab, setSubTab] = useState<"cadastrados" | "historico">("cadastrados");
+  const [artistSearch, setArtistSearch] = useState("");
+  const [artistPlanFilter, setArtistPlanFilter] = useState("todos");
+  const [artistStatusFilter, setArtistStatusFilter] = useState("todos");
+  const [artistPage, setArtistPage] = useState(1);
+  const [artistPageSize, setArtistPageSize] = useState(10);
   const { toast } = useToast();
 
   const load = () => {
@@ -1202,52 +1208,257 @@ function ArtistsTab() {
 
   const PLANOS = ["free", "basico", "intermediario", "pro", "premium"];
 
+  const filteredArtists = artists.filter((a) => {
+    const q = artistSearch.trim().toLowerCase();
+    const matchSearch =
+      !q ||
+      a.name.toLowerCase().includes(q) ||
+      (a.email || "").toLowerCase().includes(q) ||
+      (a.cidade || "").toLowerCase().includes(q) ||
+      (a.plano || "").toLowerCase().includes(q);
+
+    const matchPlan =
+      artistPlanFilter === "todos" || a.plano.toLowerCase() === artistPlanFilter.toLowerCase();
+
+    const matchStatus =
+      artistStatusFilter === "todos" ||
+      (artistStatusFilter === "ativo" ? a.planoAtivo : !a.planoAtivo);
+
+    return matchSearch && matchPlan && matchStatus;
+  });
+
+  const artistTotalPages = Math.max(1, Math.ceil(filteredArtists.length / artistPageSize));
+  const artistCurrentPage = Math.min(artistPage, artistTotalPages);
+  const pagedArtists = filteredArtists.slice(
+    (artistCurrentPage - 1) * artistPageSize,
+    artistCurrentPage * artistPageSize
+  );
+  const artistFrom = filteredArtists.length === 0 ? 0 : (artistCurrentPage - 1) * artistPageSize + 1;
+  const artistTo = Math.min(artistCurrentPage * artistPageSize, filteredArtists.length);
+
+  function getArtistInitials(name: string) {
+    if (!name) return "A";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  function getPlanBadgeClass(plano: string) {
+    switch (plano.toLowerCase()) {
+      case "free":
+        return "bg-zinc-500/15 text-zinc-300 border-zinc-500/30";
+      case "basico":
+        return "bg-blue-500/15 text-blue-300 border-blue-500/30";
+      case "intermediario":
+        return "bg-indigo-500/15 text-indigo-300 border-indigo-500/30";
+      case "pro":
+        return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+      case "premium":
+        return "bg-yellow-500/20 text-yellow-300 border-yellow-500/40 shadow-sm shadow-yellow-500/10";
+      default:
+        return "bg-primary/20 text-primary border-primary/30";
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header Principal com Alternador de Sub-Abas */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-display font-bold text-foreground">Artistas</h2>
-          <p className="text-sm text-muted-foreground">{artists.length} artistas cadastrados</p>
+          <h2 className="text-2xl font-display font-bold text-foreground">Gestão de Artistas</h2>
+          <p className="text-sm text-muted-foreground">
+            Cadastros, planos contratados, permissões, créditos e métricas de atividade
+          </p>
         </div>
-        <button onClick={load} className="p-2 text-muted-foreground hover:text-primary transition-colors" title="Atualizar">
-          <RefreshCw className="w-5 h-5" />
-        </button>
+
+        <div className="flex items-center gap-2">
+          {/* Sub-abas pill */}
+          <div className="flex items-center p-1 bg-card/80 border border-border rounded-xl">
+            <button
+              type="button"
+              onClick={() => setSubTab("cadastrados")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                subTab === "cadastrados"
+                  ? "bg-primary text-black shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Artistas Cadastrados</span>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  subTab === "cadastrados" ? "bg-black/20 text-black" : "bg-white/10 text-muted-foreground"
+                }`}
+              >
+                {artists.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubTab("historico")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                subTab === "historico"
+                  ? "bg-primary text-black shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Histórico & Acompanhamento</span>
+            </button>
+          </div>
+
+          <button
+            onClick={load}
+            disabled={loading}
+            className="p-2 text-muted-foreground hover:text-primary transition-colors bg-card border border-border rounded-xl disabled:opacity-50"
+            title="Atualizar lista de artistas"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-primary" : ""}`} />
+          </button>
+        </div>
       </div>
 
-      <EngagementPanel />
-
-      {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      {/* Conteúdo da Sub-Aba Selecionada */}
+      {subTab === "historico" ? (
+        <EngagementPanel />
+      ) : loading ? (
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm">Carregando artistas...</p>
+        </div>
       ) : artists.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground bg-card border border-dashed border-border rounded-2xl">
           <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
-          <p>Nenhum artista cadastrado ainda.</p>
+          <p className="font-medium">Nenhum artista cadastrado ainda.</p>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-lg">
+          {/* Barra de Filtros & Pesquisa */}
+          <div className="p-4 border-b border-border/80 bg-background/40 flex flex-col lg:flex-row lg:items-center gap-3 justify-between">
+            {/* Campo de Busca */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="search"
+                value={artistSearch}
+                onChange={(e) => {
+                  setArtistSearch(e.target.value);
+                  setArtistPage(1);
+                }}
+                placeholder="Buscar por nome, e-mail, cidade ou plano…"
+                className="w-full pl-9 pr-9 py-2 bg-background border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+              />
+              {artistSearch && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setArtistSearch("");
+                    setArtistPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Filtros: Plano, Status e Itens por Página */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Filtro de Plano */}
+              <select
+                aria-label="Filtrar por plano"
+                value={artistPlanFilter}
+                onChange={(e) => {
+                  setArtistPlanFilter(e.target.value);
+                  setArtistPage(1);
+                }}
+                className="bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="todos">Todos os Planos</option>
+                <option value="free">Plano Free</option>
+                <option value="basico">Plano Básico</option>
+                <option value="intermediario">Plano Intermediário</option>
+                <option value="pro">Plano Pro</option>
+                <option value="premium">Plano Premium</option>
+              </select>
+
+              {/* Filtro de Status */}
+              <select
+                aria-label="Filtrar por status"
+                value={artistStatusFilter}
+                onChange={(e) => {
+                  setArtistStatusFilter(e.target.value);
+                  setArtistPage(1);
+                }}
+                className="bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="todos">Todos os Status</option>
+                <option value="ativo">Apenas Ativos</option>
+                <option value="inativo">Apenas Inativos</option>
+              </select>
+
+              {/* Itens por página */}
+              <select
+                aria-label="Quantidade por página"
+                value={artistPageSize}
+                onChange={(e) => {
+                  setArtistPageSize(Number(e.target.value));
+                  setArtistPage(1);
+                }}
+                className="bg-background border border-border rounded-xl px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                title="Itens por página"
+              >
+                <option value={10}>10 / pág</option>
+                <option value={25}>25 / pág</option>
+                <option value={50}>50 / pág</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Tabela de Artistas */}
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border bg-background/50">
+            <table className="w-full text-sm min-w-[880px]">
+              <thead className="border-b border-border bg-background/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 <tr>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Artista</th>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Cidade</th>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Plano</th>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Músicas</th>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Créditos IA</th>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Status</th>
-                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Cupom</th>
-                  <th className="text-right px-4 py-3 text-muted-foreground font-medium">Ações</th>
+                  <th className="text-left px-4 py-3">Artista</th>
+                  <th className="text-left px-4 py-3">Cidade</th>
+                  <th className="text-left px-4 py-3">Plano</th>
+                  <th className="text-center px-4 py-3">Músicas</th>
+                  <th className="text-center px-4 py-3">Créditos IA</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-left px-4 py-3">Cupom</th>
+                  <th className="text-right px-4 py-3">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/50">
-                {artists.map((a) => (
-                  <tr key={a.id} className="hover:bg-white/[0.02] transition-colors">
+              <tbody className="divide-y divide-border/40">
+                {pagedArtists.map((a) => (
+                  <tr key={a.id} className="hover:bg-white/[0.02] transition-colors group">
+                    {/* Artista */}
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-foreground">{a.name}</p>
-                      <p className="text-xs text-muted-foreground">{a.email}</p>
-                      {a.profissao && <p className="text-xs text-muted-foreground">{a.profissao}</p>}
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/25 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                          {getArtistInitials(a.name)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-foreground truncate max-w-[200px]" title={a.name}>
+                            {a.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">{a.email}</p>
+                          {a.profissao && (
+                            <p className="text-[11px] text-muted-foreground/70 truncate max-w-[200px]">
+                              {a.profissao}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{a.cidade || "—"}</td>
+
+                    {/* Cidade */}
+                    <td className="px-4 py-3 text-muted-foreground text-xs max-w-[140px] truncate">
+                      {a.cidade || "—"}
+                    </td>
+
+                    {/* Plano */}
                     <td className="px-4 py-3">
                       {editingId === a.id ? (
                         <select
@@ -1255,53 +1466,108 @@ function ArtistsTab() {
                           onChange={(e) => setEditPlano(e.target.value)}
                           className="bg-input border border-border rounded-lg px-2 py-1 text-foreground text-xs"
                         >
-                          {PLANOS.map(p => <option key={p} value={p}>{p}</option>)}
+                          {PLANOS.map((p) => (
+                            <option key={p} value={p}>
+                              {p}
+                            </option>
+                          ))}
                         </select>
                       ) : (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                          a.plano === "free" ? "bg-zinc-500/20 text-zinc-400" :
-                          a.plano === "premium" ? "bg-yellow-500/20 text-yellow-400" :
-                          "bg-primary/20 text-primary"
-                        }`}>{a.plano}</span>
+                        <span
+                          className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize ${getPlanBadgeClass(
+                            a.plano
+                          )}`}
+                        >
+                          {a.plano}
+                        </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {a.musicaCount} / {a.limiteMusicas}
+
+                    {/* Músicas */}
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <Music className="w-3 h-3 text-primary/70" />
+                        <strong className="text-foreground">{Number(a.musicaCount) || 0}</strong>
+                        <span>/</span>
+                        <span>{a.limiteMusicas || 4}</span>
+                      </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${(a.aiMusicExtraCredits || 0) > 0 ? "bg-amber-500/20 text-amber-300" : "text-muted-foreground"}`}>
+
+                    {/* Créditos IA */}
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          (a.aiMusicExtraCredits || 0) > 0
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            : "text-muted-foreground bg-zinc-500/10"
+                        }`}
+                      >
+                        <Sparkles className="w-3 h-3" />
                         +{a.aiMusicExtraCredits || 0}
                       </span>
                     </td>
+
+                    {/* Status */}
                     <td className="px-4 py-3">
                       {editingId === a.id ? (
                         <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={editAtivo} onChange={e => setEditAtivo(e.target.checked)} className="accent-primary" />
+                          <input
+                            type="checkbox"
+                            checked={editAtivo}
+                            onChange={(e) => setEditAtivo(e.target.checked)}
+                            className="accent-primary"
+                          />
                           <span className="text-xs text-muted-foreground">Ativo</span>
                         </label>
                       ) : (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.planoAtivo ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                            a.planoAtivo
+                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                              : "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              a.planoAtivo ? "bg-emerald-400" : "bg-rose-400"
+                            }`}
+                          />
                           {a.planoAtivo ? "Ativo" : "Inativo"}
                         </span>
                       )}
                     </td>
+
+                    {/* Cupom */}
                     <td className="px-4 py-3">
                       {a.couponCode ? (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-violet-500/20 text-violet-400" title="Plano contratado via cupom">
+                        <span
+                          className="px-2 py-0.5 rounded-full text-xs font-bold bg-violet-500/20 text-violet-400 border border-violet-500/30"
+                          title="Plano contratado via cupom"
+                        >
                           {a.couponCode}
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
+
+                    {/* Ações */}
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         {editingId === a.id ? (
                           <>
-                            <button onClick={() => handleSave(a.id)} className="p-1.5 text-green-400 hover:bg-green-400/10 rounded-lg transition-colors" title="Salvar">
+                            <button
+                              onClick={() => handleSave(a.id)}
+                              className="p-1.5 text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
+                              title="Salvar alterações"
+                            >
                               <CheckCircle2 className="w-4 h-4" />
                             </button>
-                            <button onClick={() => setEditingId(null)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors" title="Cancelar">
+                            <button
+                              onClick={() => setEditingId(null)}
+                              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors"
+                              title="Cancelar edição"
+                            >
                               <X className="w-4 h-4" />
                             </button>
                           </>
@@ -1317,7 +1583,11 @@ function ArtistsTab() {
                                   body: JSON.stringify({ canPostArticles: nextVal }),
                                 });
                                 if (res.ok) {
-                                  toast({ title: nextVal ? `Permissão de artigos concedida a ${a.name}!` : `Permissão de artigos revogada de ${a.name}` });
+                                  toast({
+                                    title: nextVal
+                                      ? `Permissão de artigos concedida a ${a.name}!`
+                                      : `Permissão de artigos revogada de ${a.name}`,
+                                  });
                                   load();
                                 }
                               }}
@@ -1326,20 +1596,44 @@ function ArtistsTab() {
                                   ? "text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
                                   : "text-muted-foreground hover:text-emerald-400 hover:bg-emerald-400/10"
                               }`}
-                              title={a.canPostArticles ? "Permissão para publicar artigos ATIVA (clique para revogar)" : "Conceder permissão para publicar artigos"}
+                              title={
+                                a.canPostArticles
+                                  ? "Permissão para publicar artigos ATIVA (clique para revogar)"
+                                  : "Conceder permissão para publicar artigos"
+                              }
                             >
                               <BookOpen className="w-4 h-4" />
                             </button>
-                            <button onClick={() => handleOpenCredits(a)} className="p-1.5 text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors" title="Conceder créditos de música IA">
+
+                            <button
+                              onClick={() => handleOpenCredits(a)}
+                              className="p-1.5 text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors"
+                              title="Conceder créditos de música IA"
+                            >
                               <Sparkles className="w-4 h-4" />
                             </button>
-                            <button onClick={() => handleOpenGrant(a)} className="p-1.5 text-muted-foreground hover:text-violet-400 hover:bg-violet-400/10 rounded-lg transition-colors" title="Conceder plano">
+
+                            <button
+                              onClick={() => handleOpenGrant(a)}
+                              className="p-1.5 text-muted-foreground hover:text-violet-400 hover:bg-violet-400/10 rounded-lg transition-colors"
+                              title="Conceder plano por tempo determinado"
+                            >
                               <Gift className="w-4 h-4" />
                             </button>
-                            <button onClick={() => handleEdit(a)} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Editar plano">
+
+                            <button
+                              onClick={() => handleEdit(a)}
+                              className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                              title="Editar plano e status"
+                            >
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button onClick={() => handleDelete(a.id, a.name)} className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors" title="Deletar">
+
+                            <button
+                              onClick={() => handleDelete(a.id, a.name)}
+                              className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                              title="Deletar artista"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </>
@@ -1350,6 +1644,89 @@ function ArtistsTab() {
                 ))}
               </tbody>
             </table>
+
+            {filteredArtists.length === 0 && (
+              <div className="py-12 text-center text-muted-foreground">
+                <Users className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                <p className="text-sm font-medium">Nenhum artista encontrado com os filtros selecionados.</p>
+                <p className="text-xs mt-1">Tente ajustar o termo de busca ou filtros de plano e status.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Paginação da Tabela de Cadastro */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 border-t border-border bg-background/30 text-xs text-muted-foreground">
+            <div>
+              Mostrando <strong className="text-foreground">{artistFrom}</strong> a{" "}
+              <strong className="text-foreground">{artistTo}</strong> de{" "}
+              <strong className="text-foreground">{filteredArtists.length}</strong> artistas
+            </div>
+
+            <div className="flex items-center gap-1.5 self-center sm:self-auto">
+              <button
+                type="button"
+                disabled={artistCurrentPage <= 1}
+                onClick={() => setArtistPage(1)}
+                className="px-2 py-1 rounded-lg border border-border hover:bg-white/5 disabled:opacity-25 transition-colors"
+                title="Primeira página"
+              >
+                «
+              </button>
+              <button
+                type="button"
+                disabled={artistCurrentPage <= 1}
+                onClick={() => setArtistPage((p) => Math.max(1, p - 1))}
+                className="p-1.5 rounded-lg border border-border hover:bg-white/5 disabled:opacity-25 transition-colors"
+                title="Página anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Páginas numéricas */}
+              <div className="flex items-center gap-1 px-1">
+                {Array.from({ length: artistTotalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === artistTotalPages || Math.abs(p - artistCurrentPage) <= 1)
+                  .map((p, idx, arr) => {
+                    const prev = arr[idx - 1];
+                    const showEllipsis = prev && p - prev > 1;
+                    return (
+                      <div key={p} className="flex items-center">
+                        {showEllipsis && <span className="px-1 text-muted-foreground">…</span>}
+                        <button
+                          type="button"
+                          onClick={() => setArtistPage(p)}
+                          className={`min-w-[28px] h-7 px-2 rounded-lg text-xs font-semibold transition-all ${
+                            p === artistCurrentPage
+                              ? "bg-primary text-black font-bold shadow-sm"
+                              : "hover:bg-white/5 text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              <button
+                type="button"
+                disabled={artistCurrentPage >= artistTotalPages}
+                onClick={() => setArtistPage((p) => Math.min(artistTotalPages, p + 1))}
+                className="p-1.5 rounded-lg border border-border hover:bg-white/5 disabled:opacity-25 transition-colors"
+                title="Próxima página"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                disabled={artistCurrentPage >= artistTotalPages}
+                onClick={() => setArtistPage(artistTotalPages)}
+                className="px-2 py-1 rounded-lg border border-border hover:bg-white/5 disabled:opacity-25 transition-colors"
+                title="Última página"
+              >
+                »
+              </button>
+            </div>
           </div>
         </div>
       )}
