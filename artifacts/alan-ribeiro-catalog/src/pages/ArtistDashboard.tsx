@@ -661,15 +661,15 @@ export default function ArtistDashboard() {
   const { autoPlayPlaylist, setAutoPlayPlaylist, setPlayerColors, setPlayerStyle } = usePlayer();
 
   const tabs: { id: TabId; label: string; icon: any }[] = [
-    { id: "dashboard",      label: "Dashboard",       icon: BarChart3      },
-    { id: "songs",          label: "Músicas",         icon: Music          },
-    { id: "playlists",      label: "Playlists",       icon: ListMusic      },
-    { id: "gallery",        label: "Galeria",         icon: Image          },
-    { id: "profile",        label: "Perfil",          icon: User           },
-    ...(openaiEnabled ? [{ id: "mentor" as TabId, label: "✨ Estúdio Vivi & IA", icon: Sparkles }] : []),
-    { id: "vip",            label: "VIP",             icon: Crown          },
-    { id: "plano",          label: "Plano",           icon: CreditCard     },
-    { id: "interesses",     label: "Interesses",      icon: MessageSquare  },
+    { id: "dashboard",      label: "Dashboard",            icon: BarChart3      },
+    { id: "mentor",         label: "Gerar Música IA",      icon: Sparkles       },
+    { id: "songs",          label: "Músicas",              icon: Music          },
+    { id: "playlists",      label: "Playlists",            icon: ListMusic      },
+    { id: "gallery",        label: "Galeria",              icon: Image          },
+    { id: "profile",        label: "Perfil",               icon: User           },
+    { id: "vip",            label: "VIP",                  icon: Crown          },
+    { id: "plano",          label: "Plano",                icon: CreditCard     },
+    { id: "interesses",     label: "Interesses",           icon: MessageSquare  },
     ...(artist?.canPostArticles ? [{ id: "artigos" as TabId, label: "Meus Artigos", icon: BookOpen }] : []),
   ];
 
@@ -721,7 +721,7 @@ export default function ArtistDashboard() {
         return;
       }
 
-      setOpenaiEnabled(settingsRes.openaiEnabled || false);
+      setOpenaiEnabled(settingsRes.openaiEnabled !== false);
       setSupportChannels({
         instagram: settingsRes.suporteInstagram || "@Portaldoartista.oficial",
         whatsapp: settingsRes.suporteWhatsapp || "21 99589 7040",
@@ -1355,11 +1355,15 @@ export default function ArtistDashboard() {
                     }}
                     className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                       isActive
-                        ? "bg-primary text-black shadow-[0_0_15px_rgba(245,197,24,0.3)] scale-[1.02]"
-                        : "bg-card text-muted-foreground border border-border/60 hover:text-white hover:border-primary/50"
+                        ? tab.id === "mentor"
+                          ? "bg-amber-400 text-black shadow-[0_0_15px_rgba(245,197,24,0.35)] scale-[1.02]"
+                          : "bg-primary text-black shadow-[0_0_15px_rgba(245,197,24,0.3)] scale-[1.02]"
+                        : tab.id === "mentor"
+                          ? "bg-amber-400/15 text-amber-300 border border-amber-400/50 hover:bg-amber-400/25"
+                          : "bg-card text-muted-foreground border border-border/60 hover:text-white hover:border-primary/50"
                     }`}
                   >
-                    <tab.icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-black" : "text-primary/70"}`} />
+                    <tab.icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-black" : tab.id === "mentor" ? "text-amber-300" : "text-primary/70"}`} />
                     {tab.label}
                   </button>
                 );
@@ -1403,6 +1407,29 @@ export default function ArtistDashboard() {
             {/* Dashboard */}
             {activeTab === "dashboard" && (
               <div className="space-y-6">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("mentor")}
+                  className="w-full text-left p-5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-purple-500/10 border border-amber-400/40 hover:border-amber-300 shadow-[0_0_24px_rgba(245,197,24,0.12)] transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-400 text-black flex items-center justify-center shrink-0 shadow-lg shadow-amber-400/30">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300 mb-0.5">Estúdio Vivi</p>
+                      <h3 className="text-lg font-black text-white group-hover:text-amber-300 transition-colors">
+                        Gerar música com inteligência artificial
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Crie demos cantadas, capas e fotos de perfil. Seus créditos do plano aparecem dentro do estúdio.
+                      </p>
+                    </div>
+                    <span className="hidden sm:inline-flex px-4 py-2 rounded-xl bg-amber-400 text-black text-xs font-extrabold shrink-0">
+                      Abrir estúdio
+                    </span>
+                  </div>
+                </button>
                 {/* Alerta de pagamento pendente */}
                 {artist && artist.plano !== "free" && !artist.planoAtivo && (
                   <div className="p-4.5 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-lg">
@@ -1527,13 +1554,19 @@ export default function ArtistDashboard() {
                           return (
                             <div className="space-y-3">
                               <p className="text-xs text-muted-foreground leading-relaxed">
-                                Sua vitrine está vazia! Envie suas faixas ou releases para que seu perfil fique visível na busca de artistas.
+                                Sua vitrine está vazia. Gere uma demo cantada com a Vivi ou envie um MP3 que você já gravou.
                               </p>
                               <button 
-                                onClick={() => setActiveTab("songs")}
-                                className="w-full py-2 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/95 transition-all shadow-md"
+                                onClick={() => setActiveTab("mentor")}
+                                className="w-full py-2 px-4 rounded-xl bg-amber-400 text-black text-xs font-bold hover:bg-amber-300 transition-all shadow-md"
                               >
-                                Subir Músicas
+                                Gerar música com IA
+                              </button>
+                              <button 
+                                onClick={() => setActiveTab("songs")}
+                                className="w-full py-2 px-4 rounded-xl bg-white/5 border border-white/10 text-foreground text-xs font-bold hover:bg-white/10 transition-all"
+                              >
+                                Enviar MP3 pronto
                               </button>
                             </div>
                           );
@@ -1559,24 +1592,21 @@ export default function ArtistDashboard() {
                         return (
                           <div className="space-y-3">
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                              Parabéns! Suas ações básicas estão concluídas. Lembre-se que você pode usar a nossa IA no menu <strong>Mentora IA</strong> para planejar lançamentos e fechar negócios.
+                              Pronto para o próximo passo? Gere uma demo cantada no <strong>Gerar Música IA</strong> ou converse com a Vivi sobre divulgação.
                             </p>
-                            {openaiEnabled && (
-                              <button 
-                                onClick={() => setActiveTab("mentor")}
-                                className="w-full py-2 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/95 transition-all shadow-md"
-                              >
-                                Conversar com a Vivi
-                              </button>
-                            )}
+                            <button 
+                              onClick={() => setActiveTab("mentor")}
+                              className="w-full py-2 px-4 rounded-xl bg-amber-400 text-black text-xs font-bold hover:bg-amber-300 transition-all shadow-md"
+                            >
+                              Gerar música com a Vivi
+                            </button>
                           </div>
                         );
                       })()}
                     </div>
                     
                     {/* Dica da semana (se a IA estiver ativa) */}
-                    {openaiEnabled && (
-                      <div className="mt-3 p-3 bg-purple-500/5 border border-purple-500/10 rounded-xl">
+                    <div className="mt-3 p-3 bg-purple-500/5 border border-purple-500/10 rounded-xl">
                         <div className="flex items-center gap-1.5 text-xs text-purple-400 font-bold mb-1">
                           <Sparkles className="w-3 h-3" />
                           Dica da Semana:
@@ -1585,7 +1615,6 @@ export default function ArtistDashboard() {
                           "Grave vídeos curtos mostrando os bastidores da criação da sua música e use-os para engajar no Reels."
                         </p>
                       </div>
-                    )}
                   </div>
                 </div>
 
@@ -1642,6 +1671,13 @@ export default function ArtistDashboard() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">{songs.length}/{artist?.limiteMusicas}</span>
                       <button
+                        onClick={() => setActiveTab("mentor")}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-400 text-black text-sm font-bold hover:bg-amber-300 transition-colors"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Gerar com IA
+                      </button>
+                      <button
                         onClick={() => setActiveTab("songs")}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
                       >
@@ -1655,7 +1691,14 @@ export default function ArtistDashboard() {
                     <div className="text-center py-8">
                       <Music className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
                       <p className="text-muted-foreground">Nenhuma música cadastrada</p>
-                      <button onClick={() => setActiveTab("songs")} className="mt-2 text-sm text-primary hover:underline">Adicionar primeira música</button>
+                      <div className="flex flex-wrap items-center justify-center gap-3 mt-3">
+                        <button onClick={() => setActiveTab("mentor")} className="text-sm font-bold text-amber-400 hover:underline">
+                          Gerar com a Vivi
+                        </button>
+                        <button onClick={() => setActiveTab("songs")} className="text-sm text-primary hover:underline">
+                          Enviar MP3
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1807,21 +1850,31 @@ export default function ArtistDashboard() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-foreground">Minhas Músicas ({songs.length}/{artist?.limiteMusicas})</h3>
-                  <button 
-                    onClick={() => {
-                      setEditingSong(null);
-                      setNewSong({
-                        titulo: "", descricao: "", genero: "Sertanejo", subgenero: "",
-                        compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false",
-                        isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "", isPrivate: "false",
-                      });
-                      setShowAddForm(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Adicionar Música
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("mentor")}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-400 text-black text-sm font-bold hover:bg-amber-300 transition-colors"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Gerar com IA
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setEditingSong(null);
+                        setNewSong({
+                          titulo: "", descricao: "", genero: "Sertanejo", subgenero: "",
+                          compositor: "", status: "Disponível", precoX: "", precoY: "", hasPrice: "false",
+                          isVip: "false", tipoMidia: "audio", youtubeUrl: "", vipCode: "", isPrivate: "false",
+                        });
+                        setShowAddForm(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Adicionar Música
+                    </button>
+                  </div>
                 </div>
 
                 {/* Add/Edit Song Form */}

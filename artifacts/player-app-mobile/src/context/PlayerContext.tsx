@@ -102,7 +102,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     setCurrentSong(song);
-    audio.src = song.audioUrl;
+    const playable =
+      song.fileBlob instanceof Blob ? URL.createObjectURL(song.fileBlob) : song.audioUrl;
+    audio.src = playable;
     audio.volume = isMuted ? 0 : volume;
     audio.play()
       .then(() => setIsPlaying(true))

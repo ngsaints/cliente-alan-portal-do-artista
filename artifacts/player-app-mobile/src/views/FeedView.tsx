@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Flame, Play, Music, UserCheck, Smartphone } from 'lucide-react';
 import { SongItem, ArtistItem } from '../types/music';
-import { fetchExploreSongs, fetchExploreArtists } from '../services/portalApi';
+import { fetchExploreSongs, fetchExploreArtists, artistProfileUrl } from '../services/portalApi';
 import { SongCard } from '../components/SongCard';
 import { usePlayer } from '../context/PlayerContext';
 
-export const FeedView: React.FC = () => {
+export const FeedView: React.FC<{ onOpenExplore?: () => void }> = ({ onOpenExplore }) => {
   const [songs, setSongs] = useState<SongItem[]>([]);
   const [artists, setArtists] = useState<ArtistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,8 +37,11 @@ export const FeedView: React.FC = () => {
             Portal do Artista Player
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Descubra Talentos Independentes
+            Compositores do Portal
           </h1>
+          <p className="text-xs text-white/50 mt-1">
+            Ouça e conheça produtores independentes. Este app não publica músicas — só reproduz.
+          </p>
         </div>
       </div>
 
@@ -83,15 +86,24 @@ export const FeedView: React.FC = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <UserCheck className="w-5 h-5 text-[#f5c518]" />
-            Artistas do Portal
+            Produtores em destaque
           </h2>
-          <span className="text-xs text-[#f5c518] font-bold">Ver todos</span>
+          <button
+            type="button"
+            onClick={onOpenExplore}
+            className="text-xs text-[#f5c518] font-bold"
+          >
+            Ver catálogo
+          </button>
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
           {artists.map((artist) => (
-            <div
+            <a
               key={artist.id}
+              href={artistProfileUrl(artist.slug) || 'https://portaldoartista.com/artistas'}
+              target="_blank"
+              rel="noreferrer"
               className="flex-shrink-0 w-28 text-center space-y-2 group cursor-pointer"
             >
               <div className="w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-[#f5c518]/30 group-hover:border-[#f5c518] transition-all shadow-lg p-0.5 bg-[#181818]">
@@ -110,7 +122,7 @@ export const FeedView: React.FC = () => {
               <p className="text-[10px] text-white/50 truncate">
                 {artist.genero}
               </p>
-            </div>
+            </a>
           ))}
         </div>
       </div>

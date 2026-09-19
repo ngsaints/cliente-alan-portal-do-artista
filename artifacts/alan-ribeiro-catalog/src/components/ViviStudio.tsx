@@ -840,7 +840,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
             }`}
           >
             <Disc className={`w-4 h-4 ${activeTab === "studio" ? "animate-spin" : ""}`} />
-            <span>Estúdio de Criação de Demos</span>
+            <span>Gerar Música</span>
           </button>
 
           <button

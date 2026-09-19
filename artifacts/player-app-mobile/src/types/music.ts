@@ -11,6 +11,7 @@ export interface SongItem {
   isLocal?: boolean;
   fileBlob?: Blob;
   addedAt?: number;
+  artistaSlug?: string;
 }
 
 export interface ArtistItem {

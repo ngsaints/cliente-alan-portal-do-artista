@@ -102,6 +102,20 @@ router.get("/settings", async (_req, res): Promise<void> => {
     console.error("Error fetching support/openai settings:", err);
   }
 
+  try {
+    const aiRows = await db
+      .select({ key: appSettingsTable.key, value: appSettingsTable.value })
+      .from(appSettingsTable)
+      .where(eq(appSettingsTable.category, "ai"));
+    for (const r of aiRows) {
+      if (r.key === "openai_enabled" && r.value === "true") openaiEnabled = true;
+      if (r.key === "openrouter_enabled" && r.value === "true") openaiEnabled = true;
+      if (r.key === "replicate_enabled" && r.value === "true") openaiEnabled = true;
+    }
+  } catch (err) {
+    console.error("Error fetching AI settings:", err);
+  }
+
   let pixelMetaId: string | null = null;
   let pixelGoogleId: string | null = null;
   let pixelTiktokId: string | null = null;

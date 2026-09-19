@@ -57,7 +57,7 @@ export const LocalSongsView: React.FC = () => {
         fileBlob: file,
         isLocal: true,
         addedAt: Date.now(),
-        capaUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80',
+        capaUrl: 'https://portaldoartista.com/images/default-cover.png',
       };
 
       await saveLocalSong(songItem);
@@ -90,7 +90,7 @@ export const LocalSongsView: React.FC = () => {
           Músicas no Aparelho
         </h1>
         <p className="text-xs text-white/50 mt-1">
-          Organize e toque seus arquivos MP3/WAV salvos no smartphone sem subir nada pro servidor.
+          Importe MP3, WAV ou M4A do seu celular e organize no player. Nada é enviado ao Portal — fica só no aparelho.
         </p>
       </div>
 
@@ -98,7 +98,7 @@ export const LocalSongsView: React.FC = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept="audio/*"
+        accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/aac,audio/ogg,.mp3,.wav,.m4a,.aac,.ogg,.flac"
         multiple
         onChange={handleFileSelect}
         className="hidden"
@@ -117,7 +117,7 @@ export const LocalSongsView: React.FC = () => {
             {importing ? 'Importando Áudios...' : '+ Adicionar Músicas do Celular'}
           </h3>
           <p className="text-xs text-white/40 mt-0.5">
-            Selecione arquivos MP3, WAV ou M4A no armazenamento do seu aparelho.
+            Sem cadastro e sem upload. Os arquivos tocam direto da memória do aparelho.
           </p>
         </div>
       </div>

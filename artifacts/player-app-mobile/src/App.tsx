@@ -9,7 +9,7 @@ import { LibraryView } from './views/LibraryView';
 import { LocalSongsView } from './views/LocalSongsView';
 
 export function AppContent() {
-  const [activeTab, setActiveTab] = useState<TabType>('feed');
+  const [activeTab, setActiveTab] = useState<TabType>('local');
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-white flex flex-col justify-between selection:bg-[#f5c518] selection:text-black">
@@ -24,13 +24,13 @@ export function AppContent() {
           </span>
         </div>
         <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-mono text-white/50">
-          v1.0 Demo
+          Player local
         </span>
       </header>
 
       {/* Main Container */}
       <main className="flex-1 max-w-lg mx-auto w-full px-4 pt-4">
-        {activeTab === 'feed' && <FeedView />}
+        {activeTab === 'feed' && <FeedView onOpenExplore={() => setActiveTab('explore')} />}
         {activeTab === 'explore' && <ExploreView />}
         {activeTab === 'library' && <LibraryView />}
         {activeTab === 'local' && <LocalSongsView />}

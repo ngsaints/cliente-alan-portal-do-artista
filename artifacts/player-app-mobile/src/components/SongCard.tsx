@@ -61,9 +61,21 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queue }) => {
         <h4 className="font-bold text-sm text-white truncate leading-tight group-hover:text-[#f5c518] transition-colors">
           {song.titulo}
         </h4>
-        <p className="text-xs text-white/50 truncate font-medium mt-0.5">
-          {song.artista}
-        </p>
+        {song.artistaSlug && !song.isLocal ? (
+          <a
+            href={`https://portaldoartista.com/${song.artistaSlug}`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs text-white/50 truncate font-medium mt-0.5 hover:text-[#f5c518]"
+          >
+            {song.artista}
+          </a>
+        ) : (
+          <p className="text-xs text-white/50 truncate font-medium mt-0.5">
+            {song.artista}
+          </p>
+        )}
 
         <div className="flex items-center gap-1.5 mt-1.5">
           <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-white/5 text-white/70 border border-white/10 flex items-center gap-1">

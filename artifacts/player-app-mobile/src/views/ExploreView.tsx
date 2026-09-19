@@ -10,7 +10,7 @@ export const ExploreView: React.FC = () => {
   const [query, setQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState<string>('Todos');
 
-  const genres = ['Todos', 'Sertanejo', 'Vaneira', 'Piseiro', 'Forró', 'Pop/Rock'];
+  const genres = ['Todos', ...Array.from(new Set(songs.map((s) => s.genero).filter(Boolean) as string[]))];
 
   useEffect(() => {
     async function loadData() {
@@ -46,7 +46,7 @@ export const ExploreView: React.FC = () => {
           Explorar Músicas & Artistas
         </h1>
         <p className="text-xs text-white/50 mt-1">
-          Busque composições e conheça quem tá fazendo sucesso no Portal.
+          Catálogo dos compositores do Portal. Você só ouve — não há envio de arquivo daqui.
         </p>
       </div>
 

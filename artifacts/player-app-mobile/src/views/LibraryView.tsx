@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Library, Plus, ListMusic, Heart, Smartphone, Music } from 'lucide-react';
+import { Library, Plus, ListMusic, Heart, Music, ChevronLeft, Trash2, Play } from 'lucide-react';
 import { SongItem, PlaylistItem } from '../types/music';
-import { getPlaylists, savePlaylist, deletePlaylist, getLocalSongs, getFavorites } from '../services/db';
+import { getPlaylists, savePlaylist, deletePlaylist, getLocalSongs, getFavorites, updatePlaylistSongs } from '../services/db';
 import { fetchExploreSongs } from '../services/portalApi';
 import { SongCard } from '../components/SongCard';
+import { usePlayer } from '../context/PlayerContext';
 
 export const LibraryView: React.FC = () => {
+  const { playSong } = usePlayer();
   const [playlists, setPlaylists] = useState<PlaylistItem[]>([]);
+  const [allSongs, setAllSongs] = useState<SongItem[]>([]);
   const [favoriteSongs, setFavoriteSongs] = useState<SongItem[]>([]);
   const [showNewModal, setShowNewModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [activeTab, setActiveTab] = useState<'favorites' | 'playlists'>('favorites');
+  const [openPlaylist, setOpenPlaylist] = useState<PlaylistItem | null>(null);
+  const [showAddSongs, setShowAddSongs] = useState(false);
 
   useEffect(() => {
     loadLibraryData();
@@ -26,10 +31,13 @@ export const LibraryView: React.FC = () => {
       ]);
 
       setPlaylists(pls);
-
-      const allSongs = [...localS, ...portalS];
-      const liked = allSongs.filter((s) => favIds.includes(s.id));
-      setFavoriteSongs(liked);
+      const catalog = [...localS, ...portalS];
+      setAllSongs(catalog);
+      setFavoriteSongs(catalog.filter((s) => favIds.includes(s.id)));
+      if (openPlaylist) {
+        const updated = pls.find((p) => p.id === openPlaylist.id) || null;
+        setOpenPlaylist(updated);
+      }
     } catch (err) {
       console.error('Erro ao carregar biblioteca:', err);
     }
@@ -42,27 +50,135 @@ export const LibraryView: React.FC = () => {
     const newPl: PlaylistItem = {
       id: `pl-${Date.now()}`,
       nome: newPlaylistName.trim(),
-      descricao: 'Playlist personalizada offline',
+      descricao: 'Playlist do aparelho',
       songIds: [],
       createdAt: Date.now(),
-      capaUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
     };
 
     await savePlaylist(newPl);
     setNewPlaylistName('');
     setShowNewModal(false);
+    setActiveTab('playlists');
     await loadLibraryData();
   };
 
-  const handleDeletePl = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await deletePlaylist(id);
+  const songsOf = (pl: PlaylistItem) => allSongs.filter((s) => pl.songIds.includes(s.id));
+
+  const handleToggleInPlaylist = async (songId: string) => {
+    if (!openPlaylist) return;
+    const has = openPlaylist.songIds.includes(songId);
+    const nextIds = has
+      ? openPlaylist.songIds.filter((id) => id !== songId)
+      : [...openPlaylist.songIds, songId];
+    await updatePlaylistSongs(openPlaylist.id, nextIds);
     await loadLibraryData();
   };
+
+  const handleDeletePl = async (id: string) => {
+    await deletePlaylist(id);
+    setOpenPlaylist(null);
+    await loadLibraryData();
+  };
+
+  if (openPlaylist) {
+    const tracks = songsOf(openPlaylist);
+    return (
+      <div className="space-y-5 pb-28">
+        <button
+          type="button"
+          onClick={() => {
+            setOpenPlaylist(null);
+            setShowAddSongs(false);
+          }}
+          className="text-xs text-white/60 hover:text-white flex items-center gap-1 font-bold"
+        >
+          <ChevronLeft className="w-4 h-4" /> Biblioteca
+        </button>
+
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-black text-white">{openPlaylist.nome}</h1>
+            <p className="text-xs text-white/50 mt-1">{tracks.length} faixa(s) nesta playlist</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleDeletePl(openPlaylist.id)}
+            className="p-2 rounded-xl text-red-400/70 hover:bg-red-500/10"
+            title="Excluir playlist"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={tracks.length === 0}
+            onClick={() => playSong(tracks[0], tracks)}
+            className="flex-1 py-2.5 rounded-xl bg-[#f5c518] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 disabled:opacity-40"
+          >
+            <Play className="w-4 h-4 fill-current" /> Tocar playlist
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAddSongs((v) => !v)}
+            className="flex-1 py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" /> {showAddSongs ? 'Fechar' : 'Adicionar faixas'}
+          </button>
+        </div>
+
+        {showAddSongs && (
+          <div className="space-y-2 rounded-2xl border border-white/10 p-3 bg-white/5">
+            <p className="text-[10px] uppercase tracking-wider text-white/40 font-bold">
+              Escolha músicas do aparelho ou do Portal
+            </p>
+            {allSongs.length === 0 ? (
+              <p className="text-xs text-white/50 py-4 text-center">
+                Importe músicas na aba Aparelho para montar playlists.
+              </p>
+            ) : (
+              allSongs.map((song) => {
+                const added = openPlaylist.songIds.includes(song.id);
+                return (
+                  <button
+                    key={song.id}
+                    type="button"
+                    onClick={() => handleToggleInPlaylist(song.id)}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between ${
+                      added ? 'bg-[#f5c518]/15 text-[#f5c518]' : 'bg-black/30 text-white/80'
+                    }`}
+                  >
+                    <span className="truncate">
+                      {song.titulo} <span className="text-white/40">· {song.artista}</span>
+                    </span>
+                    <span className="shrink-0 font-bold">{added ? 'Na lista' : '+ Add'}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {tracks.length === 0 ? (
+          <div className="text-center py-12 bg-white/5 rounded-3xl border border-white/10 space-y-2">
+            <ListMusic className="w-8 h-8 text-white/20 mx-auto" />
+            <p className="text-sm font-semibold text-white/70">Playlist vazia</p>
+            <p className="text-xs text-white/40">Adicione faixas locais ou do catálogo do Portal.</p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {tracks.map((song) => (
+              <SongCard key={song.id} song={song} queue={tracks} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-28">
-      {/* Title Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
@@ -70,7 +186,7 @@ export const LibraryView: React.FC = () => {
             Sua Biblioteca
           </h1>
           <p className="text-xs text-white/50 mt-1">
-            Suas músicas favoritas e playlists híbridas offline.
+            Favoritas e playlists no aparelho. Nada disso sobe para o Portal.
           </p>
         </div>
         <button
@@ -82,7 +198,6 @@ export const LibraryView: React.FC = () => {
         </button>
       </div>
 
-      {/* Sub Tabs */}
       <div className="flex gap-2 border-b border-white/10 pb-2">
         <button
           onClick={() => setActiveTab('favorites')}
@@ -108,7 +223,6 @@ export const LibraryView: React.FC = () => {
         </button>
       </div>
 
-      {/* Favorites Content */}
       {activeTab === 'favorites' && (
         <div className="space-y-3">
           {favoriteSongs.length === 0 ? (
@@ -116,7 +230,7 @@ export const LibraryView: React.FC = () => {
               <Heart className="w-8 h-8 text-white/20 mx-auto" />
               <p className="text-sm font-semibold text-white/70">Nenhuma música favoritada ainda</p>
               <p className="text-xs text-white/40">
-                Toque no ícone de coração em qualquer música para salvar aqui.
+                Toque no coração em qualquer faixa local ou do Portal.
               </p>
             </div>
           ) : (
@@ -129,7 +243,6 @@ export const LibraryView: React.FC = () => {
         </div>
       )}
 
-      {/* Playlists Content */}
       {activeTab === 'playlists' && (
         <div className="space-y-3">
           {playlists.length === 0 ? (
@@ -137,35 +250,32 @@ export const LibraryView: React.FC = () => {
               <ListMusic className="w-8 h-8 text-white/20 mx-auto" />
               <p className="text-sm font-semibold text-white/70">Você não tem playlists salvas</p>
               <p className="text-xs text-white/40">
-                Crie playlists misturando faixas do Portal e áudios do seu celular.
+                Crie listas com MP3s do celular e faixas dos compositores do Portal.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {playlists.map((pl) => (
-                <div
+                <button
                   key={pl.id}
-                  className="bg-[#181818]/80 border border-white/10 hover:border-[#f5c518]/50 rounded-2xl p-3.5 space-y-2 group cursor-pointer transition-all"
+                  type="button"
+                  onClick={() => setOpenPlaylist(pl)}
+                  className="bg-[#181818]/80 border border-white/10 hover:border-[#f5c518]/50 rounded-2xl p-3.5 space-y-2 group cursor-pointer transition-all text-left"
                 >
-                  <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/10 relative">
-                    <img
-                      src={pl.capaUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80'}
-                      alt={pl.nome}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
+                  <div className="w-full aspect-square rounded-xl overflow-hidden bg-[#f5c518]/10 border border-white/10 flex items-center justify-center">
+                    <Music className="w-10 h-10 text-[#f5c518]/70" />
                   </div>
                   <h4 className="font-extrabold text-sm text-white truncate group-hover:text-[#f5c518] transition-colors">
                     {pl.nome}
                   </h4>
                   <p className="text-[10px] text-white/40">{pl.songIds.length} faixas</p>
-                </div>
+                </button>
               ))}
             </div>
           )}
         </div>
       )}
 
-      {/* Create Playlist Modal */}
       {showNewModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <form
@@ -181,7 +291,7 @@ export const LibraryView: React.FC = () => {
                 type="text"
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
-                placeholder="Ex: Minhas Favoritas Sertanejo"
+                placeholder="Ex: Sertanejo do celular"
                 required
                 className="w-full bg-[#121212] border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f5c518]"
               />

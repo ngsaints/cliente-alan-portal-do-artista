@@ -40,6 +40,13 @@ function getDB() {
   return dbPromise;
 }
 
+function hydrateLocalSong(song: SongItem): SongItem {
+  if (song.fileBlob instanceof Blob) {
+    return { ...song, audioUrl: URL.createObjectURL(song.fileBlob), isLocal: true };
+  }
+  return { ...song, isLocal: true };
+}
+
 export async function saveLocalSong(song: SongItem): Promise<void> {
   const db = await getDB();
   await db.put('local_songs', song);
@@ -47,12 +54,20 @@ export async function saveLocalSong(song: SongItem): Promise<void> {
 
 export async function getLocalSongs(): Promise<SongItem[]> {
   const db = await getDB();
-  return db.getAll('local_songs');
+  const songs = await db.getAll('local_songs');
+  return songs.map(hydrateLocalSong);
 }
 
 export async function deleteLocalSong(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('local_songs', id);
+}
+
+export async function updatePlaylistSongs(id: string, songIds: string[]): Promise<void> {
+  const db = await getDB();
+  const playlist = await db.get('playlists', id);
+  if (!playlist) return;
+  await db.put('playlists', { ...playlist, songIds: Array.from(new Set(songIds)) });
 }
 
 export async function savePlaylist(playlist: PlaylistItem): Promise<void> {
