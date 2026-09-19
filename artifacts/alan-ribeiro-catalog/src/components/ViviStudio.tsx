@@ -175,6 +175,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   const [selectedSongForCover, setSelectedSongForCover] = useState<number | null>(null);
   const [isApplyingCover, setIsApplyingCover] = useState(false);
   const [isApplyingProfile, setIsApplyingProfile] = useState(false);
+  const [configuredImageModel, setConfiguredImageModel] = useState<string>("FLUX.1 Schnell");
 
   useEffect(() => {
     fetch("/api/artist-songs", { credentials: "include" })
@@ -443,10 +444,24 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   // Fetch Credits Balance & Demos History
   const loadData = async () => {
     try {
-      const [creditsRes, demosRes] = await Promise.all([
+      const [creditsRes, demosRes, configRes] = await Promise.all([
         fetch("/api/ai/credits/balance"),
         fetch("/api/ai/music/history"),
+        fetch("/api/ai/config/status").catch(() => null),
       ]);
+
+      if (configRes && configRes.ok) {
+        const cfgData = await configRes.json().catch(() => null);
+        if (cfgData?.image?.model) {
+          const raw = String(cfgData.image.model);
+          const shortName = raw.includes("/") ? raw.split("/")[1] : raw;
+          const formatted = shortName
+            .replace(/-/g, " ")
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+          setConfiguredImageModel(formatted || raw);
+        }
+      }
 
       if (creditsRes.ok) {
         const cData = await creditsRes.json();
@@ -1407,8 +1422,8 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                   <h3 className="text-xl sm:text-2xl font-black text-white">
                     Estúdio Visual <span className="text-amber-400">&</span> Marketing IA
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40">
-                    FLUX Schnell HD
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40 font-mono">
+                    {configuredImageModel}
                   </span>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">

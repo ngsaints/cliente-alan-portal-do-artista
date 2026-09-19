@@ -308,6 +308,8 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "replicate_enabled", value: "true", desc: "Ativar Gateway Replicate (MiniMax Music 2.6 - Geração de Demos)", isSecret: "false" },
         { key: "replicate_api_key", value: "", desc: "Chave de API Replicate (Token)", isSecret: "true" },
         { key: "replicate_music_model", value: "minimax/music-2.6", desc: "Modelo de Música do Replicate (ex: minimax/music-2.6)", isSecret: "false" },
+        { key: "image_ai_provider", value: "openrouter", desc: "Provedor de IA para Capas e Fotos (openrouter ou replicate)", isSecret: "false" },
+        { key: "image_ai_model", value: "black-forest-labs/flux-1-schnell", desc: "Modelo de Imagem para Capas e Fotos (OpenRouter ou Replicate)", isSecret: "false" },
         { key: "openai_enabled", value: "false", desc: "Ativar Mentora Virtual (OpenAI Legado)", isSecret: "false" },
         { key: "openai_api_key", value: "", desc: "OpenAI API Key para a mentora Vivi", isSecret: "true" },
         { key: "ai_credit_pack_5_price", value: "19.90", desc: "Preço em reais do Pacote Start (5 créditos)", isSecret: "false" },

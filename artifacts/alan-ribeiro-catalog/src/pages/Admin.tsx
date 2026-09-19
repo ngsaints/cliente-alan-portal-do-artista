@@ -2657,6 +2657,8 @@ const SETTING_LABELS: Record<string, string> = {
   replicate_enabled: "Ativar Gateway Replicate (MiniMax)",
   replicate_api_key: "Token de Acesso Replicate",
   replicate_music_model: "Modelo Vocal & Instrumental",
+  image_ai_provider: "Provedor do Gerador de Capas e Fotos",
+  image_ai_model: "Modelo do Gerador de Capas e Fotos",
   openai_enabled: "Ativar OpenAI Legado",
   openai_api_key: "Chave de API OpenAI",
   ai_credit_pack_5_price: "Pacote Start — Preço (R$)",
@@ -2771,6 +2773,8 @@ function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "openrouter_fallbacks") return "Modelos alternativos que serão acionados em ordem caso o principal esteja indisponível ou sofra rate-limit.";
   if (key === "replicate_api_key") return "Token de API obtido em replicate.com/account/api-tokens.";
   if (key === "replicate_music_model") return "Identificador do modelo na Replicate (padrão: minimax/music-2.6).";
+  if (key === "image_ai_provider") return "Selecione se o gerador de imagem usará OpenRouter (recomendado) ou Replicate.";
+  if (key === "image_ai_model") return "Slug do modelo de geração de imagem (ex: black-forest-labs/flux-1-schnell, bytedance-seed/seedream-4.5 ou stabilityai/stable-diffusion-xl).";
   if (key === "openrouter_enabled") return "Habilita a IA para chat, análise e composição com a Vivi.";
   if (key === "replicate_enabled") return "Habilita a geração de músicas cantadas completas no Estúdio Vivi.";
   if (key === "portal_url") return "URL usada em links de retorno e compartilhamentos (ex: https://portaldoartista.com).";
@@ -3724,6 +3728,87 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       );
     }
 
+    if (s.key === "image_ai_provider") {
+      return (
+        <div key={s.key} className="space-y-1.5">
+          <label className="text-xs sm:text-sm font-bold text-foreground">
+            {getSettingLabel(s.key)}
+          </label>
+          <p className="text-[11px] text-muted-foreground">
+            {getSettingDescription(s.key, s.description)}
+          </p>
+          <select
+            value={values[s.key] || "openrouter"}
+            onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+            className="w-full px-3.5 py-2.5 bg-background border border-border rounded-xl text-foreground text-xs sm:text-sm focus:border-primary focus:outline-none"
+          >
+            <option value="openrouter">OpenRouter (Recomendado — mais modelos e mesma chave)</option>
+            <option value="replicate">Replicate (Direto via Replicate API)</option>
+          </select>
+        </div>
+      );
+    }
+
+    if (s.key === "image_ai_model") {
+      const isReplicate = (values["image_ai_provider"] || "").toLowerCase() === "replicate";
+      const popularOpenRouterImageModels = [
+        { id: "black-forest-labs/flux-1-schnell", label: "FLUX.1 Schnell (Ultrarrápido & Econômico)" },
+        { id: "black-forest-labs/flux-1-dev", label: "FLUX.1 Dev (Altíssima Fidelidade)" },
+        { id: "bytedance-seed/seedream-4.5", label: "Seedream 4.5" },
+        { id: "stabilityai/stable-diffusion-xl-base-1.0", label: "Stable Diffusion XL" },
+      ];
+      const popularReplicateImageModels = [
+        { id: "black-forest-labs/flux-schnell", label: "FLUX Schnell (Replicate)" },
+        { id: "black-forest-labs/flux-dev", label: "FLUX Dev (Replicate)" },
+        { id: "stability-ai/sdxl", label: "SDXL (Replicate)" },
+      ];
+      const modelOptions = isReplicate ? popularReplicateImageModels : popularOpenRouterImageModels;
+
+      return (
+        <div key={s.key} className="space-y-2 p-4 bg-card/60 border border-border/80 rounded-2xl col-span-full">
+          <div className="flex items-center justify-between">
+            <label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
+              <Image className="w-4 h-4 text-amber-400" />
+              {getSettingLabel(s.key)}
+            </label>
+            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+              {isReplicate ? "Provedor: Replicate" : "Provedor: OpenRouter"}
+            </span>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            {getSettingDescription(s.key, s.description)}
+          </p>
+
+          <input
+            type="text"
+            value={values[s.key] ?? (isReplicate ? "black-forest-labs/flux-schnell" : "black-forest-labs/flux-1-schnell")}
+            onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+            placeholder={isReplicate ? "black-forest-labs/flux-schnell" : "black-forest-labs/flux-1-schnell"}
+            className="w-full px-3.5 py-2.5 bg-background border border-border rounded-xl text-foreground text-xs font-mono focus:border-primary focus:outline-none"
+          />
+
+          <div className="flex items-center gap-1.5 flex-wrap pt-1">
+            <span className="text-[10px] text-muted-foreground font-semibold">Modelos Populares:</span>
+            {modelOptions.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setValues({ ...values, [s.key]: opt.id })}
+                className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                  values[s.key] === opt.id
+                    ? "bg-primary text-black border-primary shadow-sm"
+                    : "bg-background border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/40"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     // Campo padrão de texto / segredo
     return (
       <div key={s.key} className="space-y-1.5">
@@ -3793,6 +3878,12 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           icon: Music,
           description: "Geração de áudios cantados de alta fidelidade com voz humana e instrumentos a partir da letra.",
           keys: ["replicate_enabled", "replicate_api_key", "replicate_music_model"],
+        },
+        {
+          title: "Gerador de Capas & Fotos IA (Estúdio Visual)",
+          icon: Image,
+          description: "Defina qual provedor e qual modelo de inteligência artificial será usado para gerar as capas de músicas e fotos de perfil dos artistas.",
+          keys: ["image_ai_provider", "image_ai_model"],
         },
         {
           title: "OpenAI Legado (Opcional)",

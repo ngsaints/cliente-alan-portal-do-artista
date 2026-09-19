@@ -31,10 +31,12 @@ function getPlanMusicLimit(plano: string): number {
 // GET /api/ai/config/status - Retorna status dos gateways de IA
 router.get("/ai/config/status", async (_req, res): Promise<void> => {
   try {
-    const [openrouter, replicate, openrouterCredits] = await Promise.all([
+    const { getImageModelConfig } = await import("../lib/replicate-image.js");
+    const [openrouter, replicate, openrouterCredits, imageConfig] = await Promise.all([
       getOpenRouterConfig(),
       getReplicateConfig(),
       getOpenRouterCredits(),
+      getImageModelConfig(),
     ]);
 
     res.json({
@@ -49,6 +51,10 @@ router.get("/ai/config/status", async (_req, res): Promise<void> => {
         configured: !!replicate.apiKey,
         model: replicate.model,
         enabled: replicate.enabled,
+      },
+      image: {
+        provider: imageConfig.provider,
+        model: imageConfig.model,
       },
     });
   } catch (error) {

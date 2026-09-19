@@ -59,8 +59,32 @@ export async function saveGeneratedImage(
   }
 }
 
+export interface ImageModelConfig {
+  provider: "openrouter" | "replicate";
+  model: string;
+}
+
+export async function getImageModelConfig(): Promise<ImageModelConfig> {
+  const providerSetting = (await getSettingValue("image_ai_provider"))?.toLowerCase();
+  const modelSetting = (await getSettingValue("image_ai_model")) || (await getSettingValue("replicate_image_model")) || "black-forest-labs/flux-1-schnell";
+
+  if (providerSetting === "replicate") {
+    return {
+      provider: "replicate",
+      model: modelSetting,
+    };
+  }
+
+  // Se o modelo contiver ou o provider estiver configurado para openrouter (padrão)
+  return {
+    provider: "openrouter",
+    model: modelSetting,
+  };
+}
+
 /**
- * Gera imagem via Replicate (FLUX-schnell ou SDXL) com fallback para Pollinations AI (100% gratuito e resiliente)
+ * Gera imagem via OpenRouter ou Replicate conforme configurado pelo Administrador,
+ * com fallback para Pollinations AI (100% gratuito e resiliente).
  */
 export async function generateAiImage(params: {
   prompt: string;
@@ -70,17 +94,64 @@ export async function generateAiImage(params: {
 }): Promise<{ imageUrl: string; provider: string }> {
   const { prompt, type, title = "imagem", aspectRatio = "1:1" } = params;
 
-  // 1. Tenta Replicate FLUX Schnell se houver chave configurada
-  const apiKey = await getSettingValue("replicate_api_key");
-  const modelSetting = (await getSettingValue("replicate_image_model")) || "black-forest-labs/flux-schnell";
+  const imageConfig = await getImageModelConfig();
+  const openrouterKey = (await getSettingValue("openrouter_api_key")) || process.env.OPENROUTER_API_KEY || null;
+  const replicateKey = (await getSettingValue("replicate_api_key")) || process.env.REPLICATE_API_TOKEN || null;
 
-  if (apiKey) {
+  // 1. Tenta OpenRouter se for o provedor selecionado ou se tiver chave OpenRouter configurada
+  if (imageConfig.provider === "openrouter" && openrouterKey) {
     try {
-      console.log(`[AI Image] Iniciando geração no Replicate (${modelSetting}):`, prompt.slice(0, 80));
-      const res = await fetchWithTimeout(`${REPLICATE_API_BASE}/models/${modelSetting}/predictions`, {
+      console.log(`[AI Image] Iniciando geração no OpenRouter (${imageConfig.model}):`, prompt.slice(0, 80));
+      const res = await fetchWithTimeout("https://openrouter.ai/api/v1/images", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${openrouterKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://portaldoartista.com",
+          "X-Title": "Portal do Artista",
+        },
+        body: JSON.stringify({
+          model: imageConfig.model,
+          prompt,
+          aspect_ratio: aspectRatio,
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const firstItem = json.data?.[0];
+        if (firstItem?.b64_json) {
+          const buffer = Buffer.from(firstItem.b64_json, "base64");
+          assertImageBuffer(buffer.buffer);
+          const permanentUrl = await saveGeneratedImage(buffer, type, title);
+          return { imageUrl: permanentUrl, provider: `openrouter:${imageConfig.model}` };
+        } else if (firstItem?.url) {
+          const imgRes = await fetchWithTimeout(firstItem.url);
+          if (imgRes.ok) {
+            const arrayBuf = await imgRes.arrayBuffer();
+            assertImageBuffer(arrayBuf);
+            const permanentUrl = await saveGeneratedImage(Buffer.from(arrayBuf), type, title);
+            return { imageUrl: permanentUrl, provider: `openrouter:${imageConfig.model}` };
+          }
+        }
+      } else {
+        const errText = await res.text().catch(() => "");
+        console.warn("[AI Image] OpenRouter retornou erro:", res.status, errText.slice(0, 150));
+      }
+    } catch (openrouterErr) {
+      console.warn("[AI Image] Exceção no OpenRouter:", openrouterErr);
+    }
+  }
+
+  // 2. Tenta Replicate (se configurado como prioritário ou como fallback para OpenRouter)
+  if (replicateKey) {
+    try {
+      const replicateModel = imageConfig.provider === "replicate" ? imageConfig.model : "black-forest-labs/flux-schnell";
+      console.log(`[AI Image] Iniciando geração no Replicate (${replicateModel}):`, prompt.slice(0, 80));
+      const res = await fetchWithTimeout(`${REPLICATE_API_BASE}/models/${replicateModel}/predictions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${replicateKey}`,
           "Content-Type": "application/json",
           Prefer: "wait=60",
         },
@@ -103,7 +174,7 @@ export async function generateAiImage(params: {
           for (let i = 0; i < 15; i++) {
             await new Promise((r) => setTimeout(r, 2000));
             const pollRes = await fetchWithTimeout(`${REPLICATE_API_BASE}/predictions/${predId}`, {
-              headers: { Authorization: `Bearer ${apiKey}` },
+              headers: { Authorization: `Bearer ${replicateKey}` },
             }, 15_000);
             if (pollRes.ok) {
               prediction = await pollRes.json();
@@ -115,13 +186,12 @@ export async function generateAiImage(params: {
         if (prediction.status === "succeeded" && prediction.output) {
           const rawUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
           if (rawUrl && typeof rawUrl === "string") {
-            // Baixa e salva local/R2
             const imgRes = await fetchWithTimeout(rawUrl);
             if (imgRes.ok) {
               const arrayBuf = await imgRes.arrayBuffer();
               assertImageBuffer(arrayBuf);
               const permanentUrl = await saveGeneratedImage(Buffer.from(arrayBuf), type, title);
-              return { imageUrl: permanentUrl, provider: "replicate-flux" };
+              return { imageUrl: permanentUrl, provider: `replicate:${replicateModel}` };
             }
           }
         }
@@ -134,7 +204,7 @@ export async function generateAiImage(params: {
     }
   }
 
-  // 2. Fallback de Alta Resiliência: Pollinations Flux (Gratuito, rápido e de alta qualidade)
+  // 3. Fallback de Alta Resiliência: Pollinations Flux (Gratuito, rápido e de alta qualidade)
   console.log("[AI Image] Gerando via Fallback Pollinations Flux...");
   let width = 1024;
   let height = 1024;
