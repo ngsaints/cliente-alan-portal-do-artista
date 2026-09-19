@@ -74,6 +74,13 @@ export function Navbar() {
               </Link>
             )}
             <Link
+              href="/play"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 hover:border-primary/50 transition-all shadow-sm"
+            >
+              <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+              ▶ Portal Play
+            </Link>
+            <Link
               href="/explorar"
               className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             >
@@ -193,6 +200,14 @@ export function Navbar() {
                     Área do Artista (Login)
                   </Link>
                 )}
+                <Link
+                  href="/play"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-primary animate-ping" />
+                  ▶ Portal Play (Streaming)
+                </Link>
                 <Link
                   href="/explorar"
                   onClick={() => setOpen(false)}

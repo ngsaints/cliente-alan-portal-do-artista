@@ -72,12 +72,21 @@ app.use(sitemapRouter);
 
 app.use("/api", router);
 
+// Serve Player App Mobile if dist exists
+const playerAppDist = path.join(process.cwd(), "artifacts/player-app-mobile/dist");
+if (fs.existsSync(playerAppDist)) {
+  app.use("/play-app", express.static(playerAppDist));
+  app.get("/play-app*", (_req, res) => {
+    res.sendFile(path.join(playerAppDist, "index.html"));
+  });
+}
+
 // Serve frontend SPA build if dist/public exists
 const clientDist = path.join(process.cwd(), "artifacts/alan-ribeiro-catalog/dist/public");
 if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
   app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
+    if (req.path.startsWith("/api") || req.path.startsWith("/uploads") || req.path.startsWith("/play-app")) {
       return next();
     }
     res.sendFile(path.join(clientDist, "index.html"));

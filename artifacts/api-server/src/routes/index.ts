@@ -31,6 +31,7 @@ import songComposersRouter from "./song-composers";
 import exitFeedbackRouter from "./exit-feedback";
 import articlesRouter from "./articles";
 import aiMusicRouter from "./ai-music";
+import aiImagesRouter from "./ai-images";
 
 const router: IRouter = Router();
 
@@ -66,5 +67,6 @@ router.use(songComposersRouter);
 router.use(exitFeedbackRouter);
 router.use(articlesRouter);
 router.use(aiMusicRouter);
+router.use(aiImagesRouter);
 
 export default router;

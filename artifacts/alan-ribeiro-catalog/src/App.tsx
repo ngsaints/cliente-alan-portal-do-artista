@@ -23,6 +23,7 @@ import Planos from "@/pages/Planos";
 import CrmPage from "@/pages/CrmPage";
 import Articles from "@/pages/Articles";
 import ArticleDetail from "@/pages/ArticleDetail";
+import PortalPlay from "@/pages/PortalPlay";
 import NotFound from "@/pages/not-found";
 import { ExitIntentModal } from "@/components/ExitIntentModal";
 
@@ -40,6 +41,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/play" component={PortalPlay} />
       <Route path="/explorar" component={Home} />
       <Route path="/artigos" component={Articles} />
       <Route path="/artigos/:slug" component={ArticleDetail} />

@@ -30,7 +30,11 @@ import {
   QrCode,
   CreditCard,
   X,
-  ExternalLink
+  ExternalLink,
+  Image as ImageIcon,
+  Camera,
+  CheckCircle2,
+  Instagram
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -99,7 +103,7 @@ const TAGS = [
 
 export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: ViviStudioProps) {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"studio" | "mentor">("studio");
+  const [activeTab, setActiveTab] = useState<"studio" | "mentor" | "images">("studio");
 
   // Form State
   const [titulo, setTitulo] = useState("");
@@ -153,6 +157,136 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
   const [pixData, setPixData] = useState<{ pixQrCode?: string; pixCopiaECola?: string; paymentId?: string } | null>(null);
   const [isBuyingCredits, setIsBuyingCredits] = useState(false);
+
+  // Image Generation State
+  const [imageType, setImageType] = useState<"cover" | "profile">("cover");
+  const [imageTitle, setImageTitle] = useState("");
+  const [imageGenre, setImageGenre] = useState("Sertanejo");
+  const [imageStyleKey, setImageStyleKey] = useState("sertanejo_acustico");
+  const [imageCustomPrompt, setImageCustomPrompt] = useState("");
+  const [imageAspectRatio, setImageAspectRatio] = useState<"1:1" | "16:9" | "9:16">("1:1");
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedImageResult, setGeneratedImageResult] = useState<{
+    imageUrl: string;
+    marketingCopy: { caption: string; hashtags: string; storiesHook: string };
+  } | null>(null);
+  const [artistSongsList, setArtistSongsList] = useState<any[]>([]);
+  const [selectedSongForCover, setSelectedSongForCover] = useState<number | null>(null);
+  const [isApplyingCover, setIsApplyingCover] = useState(false);
+  const [isApplyingProfile, setIsApplyingProfile] = useState(false);
+
+  useEffect(() => {
+    if (artist?.id) {
+      fetch(`/api/artist/${artist.id}/songs`, { credentials: "include" })
+        .then((r) => r.json())
+        .then((d) => {
+          if (Array.isArray(d)) {
+            setArtistSongsList(d);
+            if (d.length > 0) setSelectedSongForCover(d[0].id);
+          }
+        })
+        .catch(() => setArtistSongsList([]));
+    }
+  }, [artist?.id]);
+
+  const handleGenerateImage = async () => {
+    setIsGeneratingImage(true);
+    try {
+      const res = await fetch("/api/ai/images/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          type: imageType,
+          title: imageTitle.trim() || (imageType === "profile" ? artist?.name : "Nova Faixa"),
+          genre: imageGenre,
+          styleKey: imageStyleKey,
+          userPrompt: imageCustomPrompt.trim(),
+          aspectRatio: imageAspectRatio,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao gerar imagem");
+
+      setGeneratedImageResult({
+        imageUrl: data.imageUrl,
+        marketingCopy: data.marketingCopy || { caption: "", hashtags: "", storiesHook: "" },
+      });
+
+      toast({
+        title: "🎨 Imagem gerada com sucesso!",
+        description: "Veja a prévia e a legenda de divulgação pronta para suas redes.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro na geração de imagem",
+        description: err.message || "Tente novamente em instantes.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const handleSetGeneratedAsProfile = async () => {
+    if (!generatedImageResult?.imageUrl) return;
+    setIsApplyingProfile(true);
+    try {
+      const res = await fetch("/api/ai/images/set-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ imageUrl: generatedImageResult.imageUrl }),
+      });
+      if (res.ok) {
+        toast({
+          title: "Foto de perfil atualizada!",
+          description: "Sua foto de perfil do Portal do Artista foi atualizada.",
+        });
+        if (onRefreshArtist) onRefreshArtist();
+      } else {
+        const d = await res.json();
+        throw new Error(d.error || "Erro ao salvar foto de perfil");
+      }
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setIsApplyingProfile(false);
+    }
+  };
+
+  const handleSetGeneratedAsSongCover = async () => {
+    if (!generatedImageResult?.imageUrl || !selectedSongForCover) {
+      toast({ title: "Selecione uma música", description: "Escolha qual música receberá esta capa.", variant: "destructive" });
+      return;
+    }
+    setIsApplyingCover(true);
+    try {
+      const res = await fetch("/api/ai/images/set-song-cover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          songId: selectedSongForCover,
+          imageUrl: generatedImageResult.imageUrl,
+        }),
+      });
+      if (res.ok) {
+        toast({
+          title: "Capa da música atualizada!",
+          description: "A música selecionada agora tem esta nova capa oficial.",
+        });
+      } else {
+        const d = await res.json();
+        throw new Error(d.error || "Erro ao atualizar capa");
+      }
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setIsApplyingCover(false);
+    }
+  };
 
   const formatTime = (secs: number) => {
     if (isNaN(secs) || secs < 0) return "00:00";
@@ -713,6 +847,18 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
             <Bot className="w-4 h-4" />
             <span>Vivi Mentora (Chat)</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab("images")}
+            className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all ${
+              activeTab === "images"
+                ? "bg-amber-400 text-black shadow-lg shadow-amber-400/25"
+                : "bg-secondary/40 text-muted-foreground hover:text-white hover:bg-secondary/60"
+            }`}
+          >
+            <ImageIcon className="w-4 h-4" />
+            <span>🎨 Gerador de Capas & Fotos IA</span>
+          </button>
         </div>
       </div>
 
@@ -1239,6 +1385,426 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
             >
               <Send className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: GERADOR DE CAPAS & FOTOS IA COM MARKETING */}
+      {activeTab === "images" && (
+        <div className="space-y-6 max-w-5xl mx-auto">
+          {/* Header do Estúdio Visual */}
+          <div className="bg-card border border-border/80 rounded-3xl p-6 sm:p-8 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl sm:text-2xl font-black text-white">
+                    Estúdio Visual <span className="text-amber-400">&</span> Marketing IA
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                    FLUX Schnell HD
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
+                  Gere capas oficiais de alta resolução para suas músicas e fotos de perfil profissionais para o seu site e redes sociais. A Vivi também cria a legenda pronta com hashtags para você postar no Instagram e TikTok!
+                </p>
+              </div>
+
+              {/* Sub-mode selector */}
+              <div className="flex p-1 bg-secondary/40 border border-white/10 rounded-2xl shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageType("cover");
+                    setImageStyleKey("sertanejo_acustico");
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                    imageType === "cover"
+                      ? "bg-amber-400 text-black shadow-md shadow-amber-400/25"
+                      : "text-muted-foreground hover:text-white"
+                  }`}
+                >
+                  <Disc className="w-3.5 h-3.5" />
+                  Capa de Música
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageType("profile");
+                    setImageStyleKey("estudio_pro");
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                    imageType === "profile"
+                      ? "bg-amber-400 text-black shadow-md shadow-amber-400/25"
+                      : "text-muted-foreground hover:text-white"
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  Foto de Perfil
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6">
+              {/* Form Controls */}
+              <div className="lg:col-span-7 space-y-5">
+                {imageType === "cover" ? (
+                  <>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1.5 uppercase tracking-wider">
+                        Título da Música / Lançamento
+                      </label>
+                      <input
+                        type="text"
+                        value={imageTitle}
+                        onChange={(e) => setImageTitle(e.target.value)}
+                        placeholder="Ex: Noite de Saudade, Boteco Vazio, Meu Grande Amor..."
+                        className="w-full px-4 py-2.5 bg-secondary/20 border border-border focus:border-amber-400 rounded-xl text-white text-sm focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground block mb-1.5 uppercase tracking-wider">
+                          Gênero Musical
+                        </label>
+                        <select
+                          value={imageGenre}
+                          onChange={(e) => setImageGenre(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-secondary/20 border border-border focus:border-amber-400 rounded-xl text-white text-xs sm:text-sm focus:outline-none"
+                        >
+                          <option value="Sertanejo" className="bg-[#121212]">Sertanejo</option>
+                          <option value="Modão Caipira" className="bg-[#121212]">Modão Caipira</option>
+                          <option value="Sertanejo Universitário" className="bg-[#121212]">Sertanejo Universitário</option>
+                          <option value="Piseiro / Forró" className="bg-[#121212]">Piseiro / Forró</option>
+                          <option value="Gospel" className="bg-[#121212]">Gospel</option>
+                          <option value="Pop / Acústico" className="bg-[#121212]">Pop / Acústico</option>
+                          <option value="Country" className="bg-[#121212]">Country</option>
+                          <option value="Trap / Rap" className="bg-[#121212]">Trap / Rap</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground block mb-1.5 uppercase tracking-wider">
+                          Formato da Imagem
+                        </label>
+                        <select
+                          value={imageAspectRatio}
+                          onChange={(e) => setImageAspectRatio(e.target.value as any)}
+                          className="w-full px-3 py-2.5 bg-secondary/20 border border-border focus:border-amber-400 rounded-xl text-white text-xs sm:text-sm focus:outline-none"
+                        >
+                          <option value="1:1" className="bg-[#121212]">1:1 Quadrado (Capa Spotify / Feed)</option>
+                          <option value="16:9" className="bg-[#121212]">16:9 Banner (YouTube / Site)</option>
+                          <option value="9:16" className="bg-[#121212]">9:16 Vertical (Stories / TikTok)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-2 uppercase tracking-wider">
+                        Estilo Visual da Capa
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {[
+                          { key: "sertanejo_acustico", label: "Pôr do Sol & Violão", desc: "Clima acústico, luz dourada" },
+                          { key: "sertanejo_universitario", label: "Balada & Festa", desc: "Lasers, público animado" },
+                          { key: "palco_show", label: "Palco de Show", desc: "Holofotes e microfone vintage" },
+                          { key: "minimalista_elegante", label: "Minimalista Luxo", desc: "Preto, dourado e ondas" },
+                          { key: "country_vintage", label: "Country Rústico", desc: "Madeira e textura vintage" },
+                          { key: "dark_neon_pop", label: "Dark Neon Moderno", desc: "Cores neon e chuva noturna" },
+                        ].map((st) => (
+                          <button
+                            key={st.key}
+                            type="button"
+                            onClick={() => setImageStyleKey(st.key)}
+                            className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                              imageStyleKey === st.key
+                                ? "bg-amber-400/15 border-amber-400 shadow-sm"
+                                : "bg-secondary/20 border-white/5 hover:border-white/20 text-muted-foreground"
+                            }`}
+                          >
+                            <span className={`text-xs font-bold block ${imageStyleKey === st.key ? "text-amber-400" : "text-white"}`}>
+                              {st.label}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{st.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground block mb-1.5 uppercase tracking-wider">
+                          Nome do Artista / Projeto
+                        </label>
+                        <input
+                          type="text"
+                          value={imageTitle || artist?.name || ""}
+                          onChange={(e) => setImageTitle(e.target.value)}
+                          placeholder="Seu nome artístico"
+                          className="w-full px-4 py-2.5 bg-secondary/20 border border-border focus:border-amber-400 rounded-xl text-white text-sm focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground block mb-1.5 uppercase tracking-wider">
+                          Gênero Musical Principal
+                        </label>
+                        <input
+                          type="text"
+                          value={imageGenre}
+                          onChange={(e) => setImageGenre(e.target.value)}
+                          placeholder="Ex: Sertanejo, Pop..."
+                          className="w-full px-4 py-2.5 bg-secondary/20 border border-border focus:border-amber-400 rounded-xl text-white text-sm focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-2 uppercase tracking-wider">
+                        Estilo de Fotografia Profissional
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {[
+                          { key: "estudio_pro", label: "Estúdio com Luz Suave", desc: "Retrato clean e confiante" },
+                          { key: "palco_microfone", label: "Palco com Microfone", desc: "Performance ao vivo com luzes" },
+                          { key: "editorial_revista", label: "Editorial de Revista", desc: "Estilo Rolling Stone / GQ" },
+                          { key: "acustico_casual", label: "Casual com Violão", desc: "Luz natural e espontâneo" },
+                          { key: "preto_e_branco", label: "P&B Cinematográfico", desc: "Contraste e drama artístico" },
+                        ].map((st) => (
+                          <button
+                            key={st.key}
+                            type="button"
+                            onClick={() => setImageStyleKey(st.key)}
+                            className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                              imageStyleKey === st.key
+                                ? "bg-amber-400/15 border-amber-400 shadow-sm"
+                                : "bg-secondary/20 border-white/5 hover:border-white/20 text-muted-foreground"
+                            }`}
+                          >
+                            <span className={`text-xs font-bold block ${imageStyleKey === st.key ? "text-amber-400" : "text-white"}`}>
+                              {st.label}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{st.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1.5 uppercase tracking-wider">
+                    Instruções ou Elementos Visuais Extras (Opcional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={imageCustomPrompt}
+                    onChange={(e) => setImageCustomPrompt(e.target.value)}
+                    placeholder={
+                      imageType === "cover"
+                        ? "Ex: Uma caminhonete antiga na estrada de terra com chuva fina e céu estrelado..."
+                        : "Ex: Homem de 30 anos com chapéu de couro preto, jaqueta escura e sorriso carismático..."
+                    }
+                    className="w-full px-4 py-2.5 bg-secondary/20 border border-border focus:border-amber-400 rounded-xl text-white text-xs sm:text-sm focus:outline-none resize-none"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateImage}
+                  disabled={isGeneratingImage}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl shadow-amber-400/20 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isGeneratingImage ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Gerando Imagem HD & Criando Post de Marketing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Gerar {imageType === "cover" ? "Capa de Música" : "Foto de Perfil"} com IA</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Preview and Marketing Section */}
+              <div className="lg:col-span-5 space-y-4">
+                <div className="bg-secondary/20 border border-white/10 rounded-2xl p-4">
+                  <span className="text-xs font-semibold text-muted-foreground block mb-3 uppercase tracking-wider">
+                    Resultado da Geração
+                  </span>
+
+                  {generatedImageResult ? (
+                    <div className="space-y-4">
+                      {/* Image Preview */}
+                      <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black/50 group">
+                        <img
+                          src={generatedImageResult.imageUrl}
+                          alt="Imagem Gerada com IA"
+                          className="w-full object-cover max-h-[340px]"
+                        />
+                        <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-amber-300 border border-white/10 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          Pronta em Alta Resolução
+                        </div>
+                      </div>
+
+                      {/* Download and Share Actions */}
+                      <div className="flex flex-wrap gap-2">
+                        <a
+                          href={generatedImageResult.imageUrl}
+                          download={`portal_do_artista_${imageType}.jpg`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all text-center"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Baixar Imagem HD
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(generatedImageResult.imageUrl, "Link da Imagem")}
+                          className="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          Copiar Link
+                        </button>
+                      </div>
+
+                      {/* Direct Apply Controls */}
+                      {imageType === "profile" ? (
+                        <button
+                          type="button"
+                          onClick={handleSetGeneratedAsProfile}
+                          disabled={isApplyingProfile}
+                          className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
+                        >
+                          {isApplyingProfile ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          )}
+                          <span>Definir como Minha Foto de Perfil</span>
+                        </button>
+                      ) : (
+                        <div className="p-3 bg-black/40 border border-white/10 rounded-xl space-y-2">
+                          <label className="text-[11px] font-bold text-amber-300 block">
+                            Aplicar esta capa em uma música cadastrada:
+                          </label>
+                          {artistSongsList.length > 0 ? (
+                            <div className="flex gap-2">
+                              <select
+                                value={selectedSongForCover || ""}
+                                onChange={(e) => setSelectedSongForCover(Number(e.target.value))}
+                                className="flex-1 px-3 py-1.5 bg-secondary/40 border border-border rounded-lg text-xs text-white focus:outline-none"
+                              >
+                                {artistSongsList.map((s) => (
+                                  <option key={s.id} value={s.id} className="bg-[#121212]">
+                                    {s.titulo} ({s.genero})
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={handleSetGeneratedAsSongCover}
+                                disabled={isApplyingCover}
+                                className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs shrink-0 flex items-center gap-1 transition-all cursor-pointer"
+                              >
+                                {isApplyingCover ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                Salvar Capa
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground">
+                              Nenhuma música cadastrada ainda no seu painel.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="py-16 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+                      <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-30" />
+                      <p className="text-xs text-muted-foreground">
+                        Configure os detalhes ao lado e clique em "Gerar com IA" para ver a imagem aqui.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Marketing & Social Media Text Box */}
+                {generatedImageResult?.marketingCopy && (
+                  <div className="bg-gradient-to-br from-purple-900/20 via-card to-card border border-purple-500/30 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-purple-300 font-bold text-xs">
+                        <Instagram className="w-4 h-4 text-pink-400" />
+                        <span>Divulgação Pronta para Redes Sociais</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground uppercase font-mono">Gerado por Vivi</span>
+                    </div>
+
+                    {/* Stories Hook */}
+                    {generatedImageResult.marketingCopy.storiesHook && (
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs">
+                        <span className="text-[10px] font-bold text-amber-300 block mb-0.5 uppercase tracking-wider">
+                          Gancho para Stories / Reels:
+                        </span>
+                        <p className="text-white italic">"{generatedImageResult.marketingCopy.storiesHook}"</p>
+                      </div>
+                    )}
+
+                    {/* Feed Caption */}
+                    {generatedImageResult.marketingCopy.caption && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                            Legenda do Feed (Instagram / TikTok):
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopy(generatedImageResult.marketingCopy.caption, "Legenda do Feed")
+                            }
+                            className="text-[11px] text-amber-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                          >
+                            <Copy className="w-3 h-3" /> Copiar Legenda
+                          </button>
+                        </div>
+                        <div className="p-3 bg-secondary/30 border border-white/5 rounded-xl text-xs text-muted-foreground whitespace-pre-line leading-relaxed max-h-40 overflow-y-auto">
+                          {generatedImageResult.marketingCopy.caption}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hashtags */}
+                    {generatedImageResult.marketingCopy.hashtags && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                            Hashtags de Engajamento:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopy(generatedImageResult.marketingCopy.hashtags, "Hashtags")
+                            }
+                            className="text-[11px] text-amber-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                          >
+                            <Copy className="w-3 h-3" /> Copiar
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-amber-300/80 font-mono bg-white/5 p-2 rounded-xl border border-white/5 break-words">
+                          {generatedImageResult.marketingCopy.hashtags}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
