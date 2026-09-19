@@ -176,32 +176,33 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   const [isApplyingProfile, setIsApplyingProfile] = useState(false);
 
   useEffect(() => {
-    if (artist?.id) {
-      fetch(`/api/artist/${artist.id}/songs`, { credentials: "include" })
-        .then((r) => r.json())
-        .then((d) => {
-          if (Array.isArray(d)) {
-            setArtistSongsList(d);
-            if (d.length > 0) setSelectedSongForCover(d[0].id);
-          }
-        })
-        .catch(() => setArtistSongsList([]));
-    }
+    fetch("/api/artist-songs", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d)) {
+          setArtistSongsList(d);
+          if (d.length > 0) setSelectedSongForCover(d[0].id);
+        }
+      })
+      .catch(() => setArtistSongsList([]));
   }, [artist?.id]);
 
   const handleGenerateImage = async () => {
     setIsGeneratingImage(true);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 90_000);
     try {
       const res = await fetch("/api/ai/images/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        signal: controller.signal,
         body: JSON.stringify({
           type: imageType,
           title: imageTitle.trim() || (imageType === "profile" ? artist?.name : "Nova Faixa"),
           genre: imageGenre,
           styleKey: imageStyleKey,
-          userPrompt: imageCustomPrompt.trim(),
+          userPrompt: imageCustomPrompt.trim().slice(0, 500),
           aspectRatio: imageAspectRatio,
         }),
       });
@@ -221,10 +222,11 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
     } catch (err: any) {
       toast({
         title: "Erro na geração de imagem",
-        description: err.message || "Tente novamente em instantes.",
+        description: err.name === "AbortError" ? "A geração demorou demais. Tente novamente." : (err.message || "Tente novamente em instantes."),
         variant: "destructive",
       });
     } finally {
+      window.clearTimeout(timeout);
       setIsGeneratingImage(false);
     }
   };
@@ -277,6 +279,9 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
           title: "Capa da música atualizada!",
           description: "A música selecionada agora tem esta nova capa oficial.",
         });
+        setArtistSongsList((prev) =>
+          prev.map((s) => (s.id === selectedSongForCover ? { ...s, capaUrl: generatedImageResult.imageUrl } : s))
+        );
       } else {
         const d = await res.json();
         throw new Error(d.error || "Erro ao atualizar capa");
@@ -1540,9 +1545,9 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                         </label>
                         <input
                           type="text"
-                          value={imageTitle || artist?.name || ""}
+                          value={imageTitle}
                           onChange={(e) => setImageTitle(e.target.value)}
-                          placeholder="Seu nome artístico"
+                          placeholder={artist?.name || "Seu nome artístico"}
                           className="w-full px-4 py-2.5 bg-secondary/20 border border-border focus:border-amber-400 rounded-xl text-white text-sm focus:outline-none"
                         />
                       </div>
@@ -1738,12 +1743,25 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                 {/* Marketing & Social Media Text Box */}
                 {generatedImageResult?.marketingCopy && (
                   <div className="bg-gradient-to-br from-purple-900/20 via-card to-card border border-purple-500/30 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 text-purple-300 font-bold text-xs">
                         <Instagram className="w-4 h-4 text-pink-400" />
                         <span>Divulgação Pronta para Redes Sociais</span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-mono">Gerado por Vivi</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCopy(
+                            [generatedImageResult.marketingCopy.caption, generatedImageResult.marketingCopy.hashtags]
+                              .filter(Boolean)
+                              .join("\n\n"),
+                            "Post completo"
+                          )
+                        }
+                        className="text-[11px] text-amber-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer shrink-0"
+                      >
+                        <Copy className="w-3 h-3" /> Copiar post
+                      </button>
                     </div>
 
                     {/* Stories Hook */}

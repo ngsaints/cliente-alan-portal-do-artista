@@ -6,6 +6,27 @@ import fs from "fs";
 import { uploadToR2, generateR2Key, r2Enabled } from "./r2-storage.js";
 
 const REPLICATE_API_BASE = "https://api.replicate.com/v1";
+const FETCH_TIMEOUT_MS = 60_000;
+const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function assertImageBuffer(arrayBuf: ArrayBuffer): void {
+  if (arrayBuf.byteLength < 1024) {
+    throw new Error("Resposta de imagem inválida");
+  }
+  if (arrayBuf.byteLength > MAX_IMAGE_BYTES) {
+    throw new Error("Imagem gerada excede o tamanho permitido");
+  }
+}
 
 async function getSettingValue(key: string): Promise<string | null> {
   try {
@@ -56,12 +77,12 @@ export async function generateAiImage(params: {
   if (apiKey) {
     try {
       console.log(`[AI Image] Iniciando geração no Replicate (${modelSetting}):`, prompt.slice(0, 80));
-      const res = await fetch(`${REPLICATE_API_BASE}/models/${modelSetting}/predictions`, {
+      const res = await fetchWithTimeout(`${REPLICATE_API_BASE}/models/${modelSetting}/predictions`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
-          Prefer: "wait=60", // Aguarda resposta direta síncrona se concluir em até 60s
+          Prefer: "wait=60",
         },
         body: JSON.stringify({
           input: {
@@ -81,9 +102,9 @@ export async function generateAiImage(params: {
           const predId = prediction.id;
           for (let i = 0; i < 15; i++) {
             await new Promise((r) => setTimeout(r, 2000));
-            const pollRes = await fetch(`${REPLICATE_API_BASE}/predictions/${predId}`, {
+            const pollRes = await fetchWithTimeout(`${REPLICATE_API_BASE}/predictions/${predId}`, {
               headers: { Authorization: `Bearer ${apiKey}` },
-            });
+            }, 15_000);
             if (pollRes.ok) {
               prediction = await pollRes.json();
               if (prediction.status === "succeeded" || prediction.status === "failed") break;
@@ -95,9 +116,10 @@ export async function generateAiImage(params: {
           const rawUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
           if (rawUrl && typeof rawUrl === "string") {
             // Baixa e salva local/R2
-            const imgRes = await fetch(rawUrl);
+            const imgRes = await fetchWithTimeout(rawUrl);
             if (imgRes.ok) {
               const arrayBuf = await imgRes.arrayBuffer();
+              assertImageBuffer(arrayBuf);
               const permanentUrl = await saveGeneratedImage(Buffer.from(arrayBuf), type, title);
               return { imageUrl: permanentUrl, provider: "replicate-flux" };
             }
@@ -127,12 +149,13 @@ export async function generateAiImage(params: {
   const encodedPrompt = encodeURIComponent(prompt.slice(0, 800));
   const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&model=flux&nologo=true&seed=${Date.now()}`;
 
-  const pollRes = await fetch(pollinationsUrl, { headers: { "User-Agent": "PortalDoArtista/1.0" } });
+  const pollRes = await fetchWithTimeout(pollinationsUrl, { headers: { "User-Agent": "PortalDoArtista/1.0" } });
   if (!pollRes.ok) {
     throw new Error(`Falha ao gerar imagem no provedor alternativo (${pollRes.status})`);
   }
 
   const arrayBuf = await pollRes.arrayBuffer();
+  assertImageBuffer(arrayBuf);
   const permanentUrl = await saveGeneratedImage(Buffer.from(arrayBuf), type, title);
   return { imageUrl: permanentUrl, provider: "pollinations-flux" };
 }

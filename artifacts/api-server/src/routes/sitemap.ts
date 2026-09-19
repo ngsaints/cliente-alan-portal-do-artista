@@ -36,8 +36,11 @@ router.get("/sitemap.xml", async (_req, res): Promise<void> => {
 
     const staticPages = [
       { url: "/", priority: "1.0", changefreq: "daily" },
+      { url: "/explorar", priority: "0.9", changefreq: "daily" },
+      { url: "/play", priority: "0.9", changefreq: "daily" },
       { url: "/artigos", priority: "0.9", changefreq: "daily" },
       { url: "/artistas", priority: "0.9", changefreq: "daily" },
+      { url: "/planos", priority: "0.8", changefreq: "weekly" },
       { url: "/vip", priority: "0.7", changefreq: "weekly" },
       { url: "/demo", priority: "0.6", changefreq: "monthly" },
     ];

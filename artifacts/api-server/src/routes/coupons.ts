@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, couponsTable, subscriptionsTable, artistsTable, plansTable } from "@workspace/db";
 import { eq, sql, and, gte, lte } from "drizzle-orm";
+import { applyCompletePlanPriceFloor } from "../lib/plan-price.js";
 
 const router: IRouter = Router();
 
@@ -165,21 +166,10 @@ router.post("/coupons/validate", async (req, res): Promise<void> => {
       finalPrice = Math.max(0, planPrice - discountAmount);
     }
 
-    // Limitador de R$ 10,00 para o plano completo / premium
-    const isCompletePlan =
-      plan.nome?.toLowerCase() === "premium" ||
-      plan.nome?.toLowerCase() === "completo" ||
-      plan.label?.toLowerCase().includes("completo") ||
-      plan.label?.toLowerCase().includes("premium") ||
-      planId?.toLowerCase() === "premium" ||
-      planId?.toLowerCase() === "completo";
-
-    let priceFloorApplied = false;
-    if (isCompletePlan && finalPrice < 10.00) {
-      finalPrice = Math.min(planPrice, 10.00);
-      discountAmount = Math.max(0, planPrice - finalPrice);
-      priceFloorApplied = true;
-    }
+    const floor = applyCompletePlanPriceFloor(plan, planId, planPrice, finalPrice);
+    finalPrice = floor.finalPrice;
+    discountAmount = floor.discountAmount;
+    const priceFloorApplied = floor.priceFloorApplied;
 
     res.json({
       valid: true,

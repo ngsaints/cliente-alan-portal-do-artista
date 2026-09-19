@@ -76,7 +76,7 @@ app.use("/api", router);
 const playerAppDist = path.join(process.cwd(), "artifacts/player-app-mobile/dist");
 if (fs.existsSync(playerAppDist)) {
   app.use("/play-app", express.static(playerAppDist));
-  app.get("/play-app*", (_req, res) => {
+  app.use("/play-app", (_req, res) => {
     res.sendFile(path.join(playerAppDist, "index.html"));
   });
 }

@@ -83,7 +83,7 @@ router.get("/songs", async (req, res): Promise<void> => {
 
   const artistMap = new Map<string, any>(allArtists.map((a: any) => [String(a.id), a]));
 
-  let filteredRows = rows;
+  let filteredRows = rows.filter((s) => !s.isPrivate);
   if (vip === "true") {
     filteredRows = filteredRows.filter((s) => s.isVip === true);
   } else if (vip === "false") {

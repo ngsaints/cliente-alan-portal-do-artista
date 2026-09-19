@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Music, Users, Zap, LayoutDashboard, Menu, X, Star, User, BookOpen } from "lucide-react";
+import { Music, Users, Zap, LayoutDashboard, Menu, X, Star, User, BookOpen, Headphones } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlansModal } from "@/components/PlansModal";
 
@@ -77,8 +77,8 @@ export function Navbar() {
               href="/play"
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 hover:border-primary/50 transition-all shadow-sm"
             >
-              <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
-              ▶ Portal Play
+              <Headphones className="w-3.5 h-3.5" />
+              Portal Play
             </Link>
             <Link
               href="/explorar"
@@ -205,8 +205,8 @@ export function Navbar() {
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
                 >
-                  <span className="w-2.5 h-2.5 rounded-full bg-primary animate-ping" />
-                  ▶ Portal Play (Streaming)
+                  <Headphones className="w-5 h-5" />
+                  Portal Play (Streaming)
                 </Link>
                 <Link
                   href="/explorar"

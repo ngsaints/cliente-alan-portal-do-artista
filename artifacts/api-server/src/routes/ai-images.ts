@@ -1,10 +1,46 @@
 import { Router, type IRouter } from "express";
+import rateLimit from "express-rate-limit";
 import { db, artistsTable, songsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { generateAiImage } from "../lib/replicate-image.js";
 import { callOpenRouter } from "../lib/openrouter.js";
 
 const router: IRouter = Router();
+
+const imageGenLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 8,
+  message: { error: "Muitas gerações de imagem. Aguarde alguns minutos e tente novamente." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+function extractJsonObject(text: string): Record<string, unknown> {
+  const clean = (text || "").trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/, "");
+  try {
+    return JSON.parse(clean);
+  } catch {
+    const match = clean.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("JSON inválido");
+    return JSON.parse(match[0]);
+  }
+}
+
+function isAllowedGeneratedImageUrl(url: unknown): boolean {
+  if (typeof url !== "string") return false;
+  const u = url.trim();
+  if (!u || u.length > 2048 || u.includes("..") || u.includes("\\")) return false;
+  if (u.startsWith("/api/uploads/covers/") || u.startsWith("/api/uploads/photos/")) return true;
+  try {
+    const parsed = new URL(u);
+    if (parsed.protocol !== "https:") return false;
+    const publicUrl = (process.env.R2_PUBLIC_URL || "").replace(/\/$/, "");
+    if (publicUrl && u.startsWith(`${publicUrl}/`)) return true;
+  } catch {
+    return false;
+  }
+  return false;
+}
 
 // Prompts base estilizados para capa de música
 const COVER_STYLE_PROMPTS: Record<string, string> = {
@@ -29,7 +65,7 @@ const PROFILE_STYLE_PROMPTS: Record<string, string> = {
  * POST /api/ai/images/generate
  * Gera imagem de capa ou foto de perfil com IA e gera texto de marketing / divulgação
  */
-router.post("/ai/images/generate", async (req, res): Promise<void> => {
+router.post("/ai/images/generate", imageGenLimiter, async (req, res): Promise<void> => {
   try {
     const artistId = (req.session as any)?.artistId;
     if (!artistId) {
@@ -37,15 +73,13 @@ router.post("/ai/images/generate", async (req, res): Promise<void> => {
       return;
     }
 
-    const {
-      type = "cover", // "cover" | "profile"
-      title = "",
-      genre = "Sertanejo",
-      styleKey = "",
-      userPrompt = "",
-      aspectRatio = "1:1",
-      generateMarketingCopy = true,
-    } = req.body;
+    const type = req.body?.type === "profile" ? "profile" : "cover";
+    const title = String(req.body?.title || "").slice(0, 120);
+    const genre = String(req.body?.genre || "Sertanejo").slice(0, 60);
+    const styleKey = String(req.body?.styleKey || "").slice(0, 60);
+    const userPrompt = String(req.body?.userPrompt || "").slice(0, 500);
+    const aspectRatio = req.body?.aspectRatio === "16:9" || req.body?.aspectRatio === "9:16" ? req.body.aspectRatio : "1:1";
+    const generateMarketingCopy = req.body?.generateMarketingCopy !== false;
 
     const [artist] = await db.select().from(artistsTable).where(eq(artistsTable.id, parseInt(artistId)));
     if (!artist) {
@@ -127,11 +161,10 @@ Retorne em formato JSON puro:
           maxTokens: 800,
         });
 
-        const cleanJson = (aiResponse.content || "").trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/, "");
-        const parsed = JSON.parse(cleanJson);
-        if (parsed.caption) marketingCopy.caption = parsed.caption;
-        if (parsed.hashtags) marketingCopy.hashtags = parsed.hashtags;
-        if (parsed.storiesHook) marketingCopy.storiesHook = parsed.storiesHook;
+        const parsed = extractJsonObject(aiResponse.content || "");
+        if (typeof parsed.caption === "string") marketingCopy.caption = parsed.caption.slice(0, 1500);
+        if (typeof parsed.hashtags === "string") marketingCopy.hashtags = parsed.hashtags.slice(0, 600);
+        if (typeof parsed.storiesHook === "string") marketingCopy.storiesHook = parsed.storiesHook.slice(0, 280);
       } catch (err) {
         console.warn("[AI Image] Não foi possível gerar cópia de marketing detalhada:", err);
         marketingCopy = {
@@ -167,14 +200,14 @@ router.post("/ai/images/set-profile", async (req, res): Promise<void> => {
       return;
     }
     const { imageUrl } = req.body;
-    if (!imageUrl) {
-      res.status(400).json({ error: "URL da imagem é obrigatória" });
+    if (!isAllowedGeneratedImageUrl(imageUrl)) {
+      res.status(400).json({ error: "URL da imagem inválida" });
       return;
     }
 
     await db
       .update(artistsTable)
-      .set({ capaUrl: imageUrl, updatedAt: new Date() })
+      .set({ capaUrl: imageUrl.trim(), updatedAt: new Date() })
       .where(eq(artistsTable.id, parseInt(artistId)));
 
     res.json({ success: true, message: "Foto de perfil atualizada com sucesso!", capaUrl: imageUrl });
@@ -195,15 +228,16 @@ router.post("/ai/images/set-song-cover", async (req, res): Promise<void> => {
       return;
     }
     const { songId, imageUrl } = req.body;
-    if (!songId || !imageUrl) {
-      res.status(400).json({ error: "ID da música e URL da imagem são obrigatórios" });
+    const parsedSongId = parseInt(songId, 10);
+    if (!Number.isFinite(parsedSongId) || !isAllowedGeneratedImageUrl(imageUrl)) {
+      res.status(400).json({ error: "ID da música e URL da imagem válidos são obrigatórios" });
       return;
     }
 
     const [updated] = await db
       .update(songsTable)
-      .set({ capaPath: imageUrl, updatedAt: new Date() })
-      .where(and(eq(songsTable.id, parseInt(songId)), eq(songsTable.artistaId, parseInt(artistId))))
+      .set({ capaPath: imageUrl.trim() })
+      .where(and(eq(songsTable.id, parsedSongId), eq(songsTable.artistaId, String(artistId))))
       .returning();
 
     if (!updated) {

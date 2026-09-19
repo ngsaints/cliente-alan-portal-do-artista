@@ -11,6 +11,7 @@ import {
   getPaymentPixQrCode,
   asaasFetch,
 } from "../lib/asaas-client.js";
+import { applyCompletePlanPriceFloor } from "../lib/plan-price.js";
 
 const router: IRouter = Router();
 
@@ -92,19 +93,9 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
               finalPrice = Math.max(0, finalPrice - discountAmount);
             }
 
-            // Limitador de R$ 10,00 para o plano completo / premium
-            const isCompletePlan =
-              plan.nome?.toLowerCase() === "premium" ||
-              plan.nome?.toLowerCase() === "completo" ||
-              plan.label?.toLowerCase().includes("completo") ||
-              plan.label?.toLowerCase().includes("premium") ||
-              planId?.toLowerCase() === "premium" ||
-              planId?.toLowerCase() === "completo";
-
-            if (isCompletePlan && finalPrice < 10.00) {
-              finalPrice = Math.min(Number(plan.preco), 10.00);
-              discountAmount = Math.max(0, Number(plan.preco) - finalPrice);
-            }
+            const floor = applyCompletePlanPriceFloor(plan, planId, Number(plan.preco), finalPrice);
+            finalPrice = floor.finalPrice;
+            discountAmount = floor.discountAmount;
 
             appliedCoupon = {
               code: coupon.code,

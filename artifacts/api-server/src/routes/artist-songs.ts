@@ -92,6 +92,12 @@ router.get("/artist/:artistId/songs", async (req, res): Promise<void> => {
       .where(eq(songsTable.artistaId, artistId))
       .orderBy(songsTable.createdAt);
 
+    const sessionArtistId = req.session.artistId;
+    const isOwner = sessionArtistId != null && String(sessionArtistId) === String(artistId);
+    if (!isOwner) {
+      rows = rows.filter((s) => !s.isPrivate);
+    }
+
     if (vip === "true") {
       rows = rows.filter((s) => s.isVip === true);
     } else if (vip === "false") {

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "wouter";
 import { Navbar } from "@/components/Navbar";
+import { AudioPlayer } from "@/components/AudioPlayer";
+import { Footer } from "@/components/Footer";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { formatImageUrl } from "@/lib/utils";
 import {
@@ -8,22 +10,15 @@ import {
   Pause,
   Music,
   Search,
-  Sparkles,
   Smartphone,
   Headphones,
   Download,
-  Share2,
-  Heart,
-  TrendingUp,
   Radio,
-  ExternalLink,
-  Volume2,
   ChevronRight,
-  Disc3,
-  SlidersHorizontal,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { InterestModal } from "@/components/InterestModal";
+import { useSEO } from "@/hooks/useSEO";
 
 interface SongData {
   id: number;
@@ -31,21 +26,31 @@ interface SongData {
   genero: string;
   subgenero?: string | null;
   capaUrl?: string | null;
-  capaPath?: string | null;
-  arquivoUrl?: string | null;
-  mp3Path?: string | null;
+  mp3Url?: string | null;
   artistaNome?: string | null;
   compositor?: string | null;
   artistaSlug?: string | null;
-  artistaId?: number | null;
+  artistaId?: number | string | null;
   status?: string | null;
   precoX?: string | null;
   precoY?: string | null;
   plays?: number | string | null;
   likes?: number | string | null;
-  duracao?: number | string | null;
   tipoMidia?: string | null;
   youtubeUrl?: string | null;
+  isPrivate?: boolean | null;
+}
+
+function formatPreco(val: string | number | null | undefined) {
+  if (val === null || val === undefined) return null;
+  let str = String(val).replace(/[R$\s]/g, "").trim();
+  if (str === "" || str === "null" || str === "undefined") return null;
+  if (str.includes(",")) {
+    str = str.replace(/\./g, "").replace(",", ".");
+  }
+  const n = parseFloat(str);
+  if (isNaN(n) || n <= 0) return null;
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 export default function PortalPlay() {
@@ -54,19 +59,36 @@ export default function PortalPlay() {
 
   const [songs, setSongs] = useState<SongData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string>("Todos");
   const [interestSong, setInterestSong] = useState<SongData | null>(null);
+
+  useSEO({
+    title: "Portal Play | Streaming e Catálogo do Portal do Artista",
+    description:
+      "Ouça faixas inéditas de compositores de todo o Brasil, descubra novos sucessos e libere músicas no reprodutor oficial do Portal do Artista.",
+    keywords: "portal play, streaming, músicas inéditas, compositores, portal do artista",
+    ogUrl: "https://portaldoartista.com/play",
+    canonical: "https://portaldoartista.com/play",
+    breadcrumbs: [
+      { name: "Início", item: "https://portaldoartista.com/" },
+      { name: "Portal Play", item: "https://portaldoartista.com/play" },
+    ],
+  });
 
   useEffect(() => {
     fetch("/api/songs")
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setSongs(data);
+          setSongs(data.filter((s: SongData) => !s.isPrivate));
         }
       })
-      .catch((e) => console.error("Erro ao carregar catálogo:", e))
+      .catch((e) => {
+        console.error("Erro ao carregar catálogo:", e);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -75,18 +97,19 @@ export default function PortalPlay() {
     songs.forEach((s) => {
       if (s.genero) set.add(s.genero);
     });
-    return ["Todos", ...Array.from(set)];
+    return ["Todos", ...Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))];
   }, [songs]);
 
   const filteredSongs = useMemo(() => {
+    const q = search.toLowerCase().trim();
     return songs.filter((song) => {
       const matchGenre = selectedGenre === "Todos" || song.genero?.toLowerCase() === selectedGenre.toLowerCase();
       const matchSearch =
-        !search ||
-        song.titulo?.toLowerCase().includes(search.toLowerCase()) ||
-        song.artistaNome?.toLowerCase().includes(search.toLowerCase()) ||
-        song.compositor?.toLowerCase().includes(search.toLowerCase()) ||
-        song.genero?.toLowerCase().includes(search.toLowerCase());
+        !q ||
+        song.titulo?.toLowerCase().includes(q) ||
+        song.artistaNome?.toLowerCase().includes(q) ||
+        song.compositor?.toLowerCase().includes(q) ||
+        song.genero?.toLowerCase().includes(q);
       return matchGenre && matchSearch;
     });
   }, [songs, selectedGenre, search]);
@@ -95,12 +118,13 @@ export default function PortalPlay() {
     playSong(song as any, filteredSongs as any[]);
   };
 
+  const featuredSong = currentSong || songs[0];
+
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-foreground flex flex-col selection:bg-primary selection:text-black">
+    <div className="min-h-screen bg-[#0a0a0f] text-foreground flex flex-col selection:bg-primary selection:text-black pb-32">
       <Navbar />
 
-      {/* Hero Banner Portal Play */}
-      <section className="relative overflow-hidden pt-12 pb-16 px-4 border-b border-white/5 bg-gradient-to-b from-[#121222] via-[#0d0d16] to-[#0a0a0f]">
+      <section className="relative overflow-hidden pt-24 pb-16 px-4 border-b border-white/5 bg-gradient-to-b from-[#121222] via-[#0d0d16] to-[#0a0a0f]">
         <div className="absolute inset-0 pointer-events-none opacity-30 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/30 via-purple-600/10 to-transparent" />
 
         <div className="max-w-6xl mx-auto relative z-10">
@@ -134,8 +158,8 @@ export default function PortalPlay() {
                 <button
                   onClick={() => {
                     toast({
-                      title: "📱 App Portal do Artista Player",
-                      description: "Para instalar no Android/iOS, toque em Compartilhar e selecione 'Adicionar à Tela de Início'!",
+                      title: "App Portal do Artista Player",
+                      description: "Para instalar no Android/iOS, toque em Compartilhar e selecione 'Adicionar à Tela de Início'.",
                     });
                   }}
                   className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold text-sm flex items-center gap-2 transition-all"
@@ -146,7 +170,6 @@ export default function PortalPlay() {
               </div>
             </div>
 
-            {/* Visual Mini Mockup */}
             <div className="w-full max-w-sm bg-gradient-to-br from-white/10 to-white/5 p-4 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-xl shrink-0">
               <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3 text-xs text-muted-foreground font-mono">
                 <span className="flex items-center gap-1.5 text-primary font-bold">
@@ -156,19 +179,19 @@ export default function PortalPlay() {
               </div>
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-black/60 mb-3 border border-white/10 group">
                 <img
-                  src={formatImageUrl(currentSong?.capaUrl || songs[0]?.capaUrl, "/images/default-cover.png")}
-                  alt="Now Playing"
+                  src={formatImageUrl(featuredSong?.capaUrl, "/images/default-cover.png")}
+                  alt={featuredSong?.titulo || "Now Playing"}
                   className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 flex flex-col justify-end p-4">
                   <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                    {currentSong?.genero || "Catálogo em Destaque"}
+                    {featuredSong?.genero || "Catálogo em Destaque"}
                   </span>
                   <h3 className="text-lg font-bold text-white truncate">
-                    {currentSong?.titulo || songs[0]?.titulo || "Pronto para tocar"}
+                    {featuredSong?.titulo || "Pronto para tocar"}
                   </h3>
                   <p className="text-xs text-white/70 truncate">
-                    {currentSong?.artistaNome || currentSong?.compositor || songs[0]?.artistaNome || "Portal do Artista"}
+                    {featuredSong?.artistaNome || featuredSong?.compositor || "Portal do Artista"}
                   </p>
                 </div>
               </div>
@@ -192,6 +215,7 @@ export default function PortalPlay() {
                     }
                   }}
                   className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-black font-black hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/30"
+                  aria-label={isPlaying ? "Pausar" : "Reproduzir"}
                 >
                   {isPlaying ? <Pause className="w-5 h-5 fill-black" /> : <Play className="w-5 h-5 fill-black ml-0.5" />}
                 </button>
@@ -201,9 +225,7 @@ export default function PortalPlay() {
         </div>
       </section>
 
-      {/* Main Catalog View */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 space-y-6">
-        {/* Search and Genre Filters */}
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -216,7 +238,6 @@ export default function PortalPlay() {
             />
           </div>
 
-          {/* Genre Badges */}
           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
             {genres.map((g) => (
               <button
@@ -234,12 +255,17 @@ export default function PortalPlay() {
           </div>
         </div>
 
-        {/* Catalog Grid */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <div key={n} className="h-32 bg-white/5 rounded-2xl animate-pulse border border-white/5" />
             ))}
+          </div>
+        ) : loadError ? (
+          <div className="text-center py-16 bg-white/[0.02] border border-dashed border-white/10 rounded-2xl">
+            <Music className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-40" />
+            <h3 className="text-base font-bold text-white">Não foi possível carregar o catálogo</h3>
+            <p className="text-xs text-muted-foreground mt-1">Atualize a página e tente novamente.</p>
           </div>
         ) : filteredSongs.length === 0 ? (
           <div className="text-center py-16 bg-white/[0.02] border border-dashed border-white/10 rounded-2xl">
@@ -253,6 +279,8 @@ export default function PortalPlay() {
               const isThisSong = currentSong?.id === song.id;
               const isThisPlaying = isThisSong && isPlaying;
               const disponivel = !song.status || song.status === "Disponível";
+              const precoX = formatPreco(song.precoX);
+              const precoY = formatPreco(song.precoY);
 
               return (
                 <div
@@ -263,7 +291,6 @@ export default function PortalPlay() {
                       : "bg-white/[0.03] border-white/10"
                   }`}
                 >
-                  {/* Capa com Play Overlay */}
                   <div
                     onClick={() => handlePlaySong(song)}
                     className="relative w-16 h-16 rounded-xl overflow-hidden bg-black/60 shrink-0 cursor-pointer border border-white/10"
@@ -278,19 +305,16 @@ export default function PortalPlay() {
                         isThisPlaying ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                       }`}
                     >
-                      {isThisPlaying ? (
-                        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                        {isThisPlaying ? (
                           <Pause className="w-3.5 h-3.5 fill-black text-black" />
-                        </div>
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                        ) : (
                           <Play className="w-3.5 h-3.5 fill-black text-black ml-0.5" />
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Informações da Música */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1">
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground font-medium truncate">
@@ -318,20 +342,14 @@ export default function PortalPlay() {
                       {song.artistaNome || song.compositor || "Artista"}
                     </p>
 
-                    {/* Preços de liberação se houver */}
-                    {(song.precoX || song.precoY) && (
+                    {(precoX || precoY) && (
                       <div className="flex items-center gap-2 mt-1 text-[11px]">
-                        {song.precoX && (
-                          <span className="text-primary font-bold">Livre: R$ {song.precoX}</span>
-                        )}
-                        {song.precoY && (
-                          <span className="text-amber-400 font-bold">Excl: R$ {song.precoY}</span>
-                        )}
+                        {precoX && <span className="text-primary font-bold">Livre: {precoX}</span>}
+                        {precoY && <span className="text-amber-400 font-bold">Excl: {precoY}</span>}
                       </div>
                     )}
                   </div>
 
-                  {/* Ações Rápidas */}
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
                     <button
                       onClick={() => setInterestSong(song)}
@@ -355,18 +373,18 @@ export default function PortalPlay() {
         )}
       </main>
 
-      {/* Modal de Interesse / Liberação */}
       {interestSong && (
         <InterestModal
           isOpen={!!interestSong}
           onClose={() => setInterestSong(null)}
           songTitle={interestSong.titulo}
           songId={interestSong.id}
-          artistId={interestSong.artistaId || 0}
-          artistName={interestSong.artistaNome || interestSong.compositor || "Compositor"}
-          whatsappNumber=""
+          artistaId={interestSong.artistaId || null}
         />
       )}
+
+      <Footer />
+      <AudioPlayer />
     </div>
   );
 }
