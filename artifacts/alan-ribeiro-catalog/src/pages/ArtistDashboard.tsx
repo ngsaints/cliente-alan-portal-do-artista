@@ -661,8 +661,8 @@ export default function ArtistDashboard() {
   const { autoPlayPlaylist, setAutoPlayPlaylist, setPlayerColors, setPlayerStyle } = usePlayer();
 
   const tabs: { id: TabId; label: string; icon: any }[] = [
-    { id: "dashboard",      label: "Dashboard",            icon: BarChart3      },
     { id: "mentor",         label: "Gerar Música IA",      icon: Sparkles       },
+    { id: "dashboard",      label: "Dashboard",            icon: BarChart3      },
     { id: "songs",          label: "Músicas",              icon: Music          },
     { id: "playlists",      label: "Playlists",            icon: ListMusic      },
     { id: "gallery",        label: "Galeria",              icon: Image          },
