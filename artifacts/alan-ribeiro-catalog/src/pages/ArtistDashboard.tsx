@@ -1070,6 +1070,31 @@ export default function ArtistDashboard() {
     }
   };
 
+  const handleToggleSongStatus = async (song: any) => {
+    if (!artist?.id) return;
+    const nextStatus = song.status === "Reservado" ? "Disponível" : "Reservado";
+    try {
+      const formData = new FormData();
+      formData.append("status", nextStatus);
+      const res = await fetch(`/api/artist/${artist.id}/songs/${song.id}`, {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      });
+      if (res.ok) {
+        setSongs(prev => prev.map(s => s.id === song.id ? { ...s, status: nextStatus } : s));
+        toast({
+          title: `Status alterado para ${nextStatus}`,
+          description: `A música "${song.titulo}" agora está como ${nextStatus}.`,
+        });
+      } else {
+        toast({ title: "Erro ao atualizar status", variant: "destructive" });
+      }
+    } catch (e) {
+      toast({ title: "Erro de conexão ao alterar status", variant: "destructive" });
+    }
+  };
+
   const handleAddSong = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -1863,6 +1888,36 @@ export default function ArtistDashboard() {
                         </>
                       )}
 
+                      <div className="sm:col-span-2 bg-secondary/20 border border-border/40 rounded-xl p-3">
+                        <label className="block text-xs font-semibold text-foreground mb-2">Status da Música</label>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setNewSong({ ...newSong, status: "Disponível" })}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                              newSong.status === "Disponível" || !newSong.status
+                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-sm"
+                                : "bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            Disponível para Gravação
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setNewSong({ ...newSong, status: "Reservado" })}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                              newSong.status === "Reservado"
+                                ? "bg-amber-500/20 text-amber-400 border border-amber-500/50 shadow-sm"
+                                : "bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <span className="w-2 h-2 rounded-full bg-amber-400" />
+                            Reservado / Em Negociação
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="flex items-center gap-2">
                         <input type="checkbox" id="isVip" checked={newSong.isVip === "true"} onChange={e => setNewSong({...newSong, isVip: e.target.checked ? "true" : "false"})} className="accent-primary" />
                         <label htmlFor="isVip" className="text-sm text-muted-foreground">Conteúdo VIP</label>
@@ -1934,7 +1989,23 @@ export default function ArtistDashboard() {
                         <img src={formatImageUrl(song.capaUrl, "/images/default-cover.png")} alt={song.titulo} className="w-16 h-16 rounded-lg object-cover" />
                         <div className="flex-1 min-w-0">
                           <h4 className="font-bold text-foreground truncate">{song.titulo}</h4>
-                          <p className="text-sm text-muted-foreground">{song.genero} · {song.status}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground">{song.genero}</span>
+                            <span className="text-xs text-muted-foreground">·</span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSongStatus(song)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                                song.status === "Reservado"
+                                  ? "bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25"
+                                  : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25"
+                              }`}
+                              title="Clique para alternar entre Disponível e Reservado"
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${song.status === "Reservado" ? "bg-amber-400" : "bg-emerald-400 animate-pulse"}`} />
+                              {song.status || "Disponível"}
+                            </button>
+                          </div>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{Number(song.likes) || 0}</span>
                             <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" />{Number(song.plays) || 0}</span>

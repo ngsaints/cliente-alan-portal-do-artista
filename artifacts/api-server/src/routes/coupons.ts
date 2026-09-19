@@ -165,6 +165,22 @@ router.post("/coupons/validate", async (req, res): Promise<void> => {
       finalPrice = Math.max(0, planPrice - discountAmount);
     }
 
+    // Limitador de R$ 10,00 para o plano completo / premium
+    const isCompletePlan =
+      plan.nome?.toLowerCase() === "premium" ||
+      plan.nome?.toLowerCase() === "completo" ||
+      plan.label?.toLowerCase().includes("completo") ||
+      plan.label?.toLowerCase().includes("premium") ||
+      planId?.toLowerCase() === "premium" ||
+      planId?.toLowerCase() === "completo";
+
+    let priceFloorApplied = false;
+    if (isCompletePlan && finalPrice < 10.00) {
+      finalPrice = Math.min(planPrice, 10.00);
+      discountAmount = Math.max(0, planPrice - finalPrice);
+      priceFloorApplied = true;
+    }
+
     res.json({
       valid: true,
       coupon: {
@@ -174,6 +190,8 @@ router.post("/coupons/validate", async (req, res): Promise<void> => {
         discountAmount: discountAmount.toFixed(2),
         finalPrice: finalPrice.toFixed(2),
         originalPrice: planPrice.toFixed(2),
+        priceFloorApplied,
+        note: priceFloorApplied ? "Valor mínimo do plano completo: R$ 10,00" : undefined,
       },
     });
   } catch (error) {

@@ -19,6 +19,18 @@ function formatTime(sec: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function formatPreco(val: string | number | null | undefined) {
+  if (val === null || val === undefined) return null;
+  let str = String(val).replace(/[R$\s]/g, "").trim();
+  if (str === "" || str === "null" || str === "undefined") return null;
+  if (str.includes(",")) {
+    str = str.replace(/\./g, "").replace(",", ".");
+  }
+  const n = parseFloat(str);
+  if (isNaN(n) || n <= 0) return null;
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 function extractYouTubeId(url: string): string | null {
   if (!url) return null;
   const m = url.match(
@@ -40,6 +52,8 @@ export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpo
   const isThisPlaying = isThisSong && isPlaying;
 
   const disponivel = !song.status || song.status === "Disponível";
+  const precoX     = formatPreco(song.precoX);
+  const precoY     = formatPreco(song.precoY);
   const isVideo    = song.tipoMidia === "video";
   const youtubeId  = extractYouTubeId(song.youtubeUrl || "");
 
@@ -270,13 +284,33 @@ export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpo
             </button>
             <button
               onClick={handleInterest}
-              className="shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-all hover:scale-102 active:scale-98 shadow-sm cursor-pointer"
-              style={{ background: accent, color: "#121212" }}
+              className={`shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-all hover:scale-102 active:scale-98 shadow-sm cursor-pointer ${
+                !disponivel ? "opacity-80 bg-rose-500/20 text-rose-300 border border-rose-500/30" : ""
+              }`}
+              style={disponivel ? { background: accent, color: "#121212" } : undefined}
             >
-              Tenho Interesse
+              {disponivel ? "Tenho Interesse" : "Reservado"}
             </button>
           </div>
         </div>
+
+        {/* Valores de Liberação */}
+        {(precoX || precoY) && (
+          <div className="flex items-center gap-2 mb-3.5 text-xs">
+            {precoX && (
+              <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-center">
+                <div className="text-white/40 text-[9px] uppercase font-bold tracking-wider mb-0.5">Livre (X)</div>
+                <div className="font-bold text-xs" style={{ color: accent }}>{precoX}</div>
+              </div>
+            )}
+            {precoY && (
+              <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-center">
+                <div className="text-white/40 text-[9px] uppercase font-bold tracking-wider mb-0.5">Exclusivo (Y)</div>
+                <div className="font-bold text-xs" style={{ color: accent }}>{precoY}</div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Linear Progress Bar */}
         <div className="space-y-1.5 mb-5">

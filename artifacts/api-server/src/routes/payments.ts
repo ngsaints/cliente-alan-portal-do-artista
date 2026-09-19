@@ -91,6 +91,21 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
               discountAmount = parseFloat(String(coupon.discountValue));
               finalPrice = Math.max(0, finalPrice - discountAmount);
             }
+
+            // Limitador de R$ 10,00 para o plano completo / premium
+            const isCompletePlan =
+              plan.nome?.toLowerCase() === "premium" ||
+              plan.nome?.toLowerCase() === "completo" ||
+              plan.label?.toLowerCase().includes("completo") ||
+              plan.label?.toLowerCase().includes("premium") ||
+              planId?.toLowerCase() === "premium" ||
+              planId?.toLowerCase() === "completo";
+
+            if (isCompletePlan && finalPrice < 10.00) {
+              finalPrice = Math.min(Number(plan.preco), 10.00);
+              discountAmount = Math.max(0, Number(plan.preco) - finalPrice);
+            }
+
             appliedCoupon = {
               code: coupon.code,
               discountType: coupon.discountType,
