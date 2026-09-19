@@ -310,6 +310,12 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "replicate_music_model", value: "minimax/music-2.6", desc: "Modelo de Música do Replicate (ex: minimax/music-2.6)", isSecret: "false" },
         { key: "openai_enabled", value: "false", desc: "Ativar Mentora Virtual (OpenAI Legado)", isSecret: "false" },
         { key: "openai_api_key", value: "", desc: "OpenAI API Key para a mentora Vivi", isSecret: "true" },
+        { key: "ai_credit_pack_5_price", value: "19.90", desc: "Preço em reais do Pacote Start (5 créditos)", isSecret: "false" },
+        { key: "ai_credit_pack_5_credits", value: "5", desc: "Quantidade de créditos do Pacote Start", isSecret: "false" },
+        { key: "ai_credit_pack_15_price", value: "49.90", desc: "Preço em reais do Pacote Pro Compositor (15 créditos)", isSecret: "false" },
+        { key: "ai_credit_pack_15_credits", value: "15", desc: "Quantidade de créditos do Pacote Pro Compositor", isSecret: "false" },
+        { key: "ai_credit_pack_40_price", value: "99.90", desc: "Preço em reais do Pacote Hitmaker (40 créditos)", isSecret: "false" },
+        { key: "ai_credit_pack_40_credits", value: "40", desc: "Quantidade de créditos do Pacote Hitmaker", isSecret: "false" },
       ];
       for (const item of aiKeys) {
         const existing = await db
@@ -346,7 +352,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
 
     if (category === "portal") {
       // Migrate any AI keys to 'ai' category and SMTP keys to 'email'
-      const aiKeyNames = ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks", "replicate_enabled", "replicate_api_key", "replicate_music_model", "openai_enabled", "openai_api_key"];
+      const aiKeyNames = ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks", "replicate_enabled", "replicate_api_key", "replicate_music_model", "openai_enabled", "openai_api_key", "ai_credit_pack_5_price", "ai_credit_pack_5_credits", "ai_credit_pack_15_price", "ai_credit_pack_15_credits", "ai_credit_pack_40_price", "ai_credit_pack_40_credits"];
       for (const key of aiKeyNames) {
         await db.update(appSettingsTable).set({ category: "ai" }).where(eq(appSettingsTable.key, key));
       }
@@ -536,10 +542,13 @@ router.get("/admin/artists", async (req, res): Promise<void> => {
       cidade: a.cidade,
       plano: a.plano,
       planoAtivo: a.planoAtivo,
+      canPostArticles: a.canPostArticles === true,
       musicaCount: a.musicaCount,
       limiteMusicas: planLimitsMap[a.plano] || a.limiteMusicas || "4",
       createdAt: a.createdAt,
       couponCode: couponByArtist[String(a.id)] || null,
+      aiMusicExtraCredits: a.aiMusicExtraCredits || 0,
+      aiMusicQueriesCount: a.aiMusicQueriesCount || 0,
     })));
   } catch (error) {
     console.error("Error fetching artists:", error);
@@ -705,6 +714,57 @@ router.post("/admin/artists/:id/grant-plan", async (req, res): Promise<void> => 
   } catch (error) {
     console.error("Error granting plan:", error);
     res.status(500).json({ error: "Erro ao conceder plano" });
+  }
+});
+
+// POST /admin/artists/:id/grant-credits - Admin grants extra AI music credits
+router.post("/admin/artists/:id/grant-credits", async (req, res): Promise<void> => {
+  if (!req.session.logado) {
+    res.status(401).json({ error: "Não autorizado" });
+    return;
+  }
+
+  try {
+    const { id } = req.params;
+    const credits = parseInt(req.body?.credits, 10);
+
+    if (!Number.isFinite(credits) || credits < 1 || credits > 500) {
+      res.status(400).json({ error: "Informe um número de créditos entre 1 e 500" });
+      return;
+    }
+
+    const artistId = parseInt(id, 10);
+    if (!Number.isFinite(artistId)) {
+      res.status(400).json({ error: "Artista inválido" });
+      return;
+    }
+
+    const [artist] = await db.select().from(artistsTable).where(eq(artistsTable.id, artistId));
+    if (!artist) {
+      res.status(404).json({ error: "Artista não encontrado" });
+      return;
+    }
+
+    const newExtra = (artist.aiMusicExtraCredits || 0) + credits;
+    const [updated] = await db
+      .update(artistsTable)
+      .set({
+        aiMusicExtraCredits: newExtra,
+        updatedAt: new Date(),
+      })
+      .where(eq(artistsTable.id, artistId))
+      .returning();
+
+    res.json({
+      success: true,
+      artistId: updated.id,
+      addedCredits: credits,
+      extraCredits: updated.aiMusicExtraCredits,
+      message: `${credits} crédito(s) de música concedido(s) a ${artist.name}`,
+    });
+  } catch (error) {
+    console.error("Error granting music credits:", error);
+    res.status(500).json({ error: "Erro ao conceder créditos de música" });
   }
 });
 

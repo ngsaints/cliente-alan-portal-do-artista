@@ -54,6 +54,8 @@ interface Artist {
   limiteMusicas: string;
   couponCode: string | null;
   createdAt: string;
+  aiMusicExtraCredits?: number;
+  aiMusicQueriesCount?: number;
 }
 
 interface Plan {
@@ -1078,6 +1080,12 @@ function ArtistsTab() {
   const [grantPlano, setGrantPlano] = useState("premium");
   const [grantDuracao, setGrantDuracao] = useState("1");
   const [grantSaving, setGrantSaving] = useState(false);
+  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
+  const [creditsArtistId, setCreditsArtistId] = useState<number | null>(null);
+  const [creditsArtistName, setCreditsArtistName] = useState("");
+  const [creditsCurrentExtra, setCreditsCurrentExtra] = useState(0);
+  const [creditsAmount, setCreditsAmount] = useState("5");
+  const [creditsSaving, setCreditsSaving] = useState(false);
   const { toast } = useToast();
 
   const load = () => {
@@ -1151,6 +1159,47 @@ function ArtistsTab() {
     setGrantSaving(false);
   };
 
+  const handleOpenCredits = (a: Artist) => {
+    setCreditsArtistId(a.id);
+    setCreditsArtistName(a.name);
+    setCreditsCurrentExtra(a.aiMusicExtraCredits || 0);
+    setCreditsAmount("5");
+    setCreditsModalOpen(true);
+  };
+
+  const handleGrantCredits = async () => {
+    if (!creditsArtistId) return;
+    const credits = parseInt(creditsAmount, 10);
+    if (!Number.isFinite(credits) || credits < 1 || credits > 500) {
+      toast({ title: "Informe um número de créditos entre 1 e 500", variant: "destructive" });
+      return;
+    }
+    setCreditsSaving(true);
+    try {
+      const res = await fetch(`/api/admin/artists/${creditsArtistId}/grant-credits`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ credits }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({
+          title: `${credits} crédito(s) de música concedido(s)`,
+          description: `${creditsArtistName} agora tem ${data.extraCredits} crédito(s) extra(s).`,
+        });
+        setCreditsModalOpen(false);
+        load();
+      } else {
+        toast({ title: data.error || "Erro ao conceder créditos", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erro de conexão ao conceder créditos", variant: "destructive" });
+    } finally {
+      setCreditsSaving(false);
+    }
+  };
+
   const PLANOS = ["free", "basico", "intermediario", "pro", "premium"];
 
   return (
@@ -1184,6 +1233,7 @@ function ArtistsTab() {
                   <th className="text-left px-4 py-3 text-muted-foreground font-medium">Cidade</th>
                   <th className="text-left px-4 py-3 text-muted-foreground font-medium">Plano</th>
                   <th className="text-left px-4 py-3 text-muted-foreground font-medium">Músicas</th>
+                  <th className="text-left px-4 py-3 text-muted-foreground font-medium">Créditos IA</th>
                   <th className="text-left px-4 py-3 text-muted-foreground font-medium">Status</th>
                   <th className="text-left px-4 py-3 text-muted-foreground font-medium">Cupom</th>
                   <th className="text-right px-4 py-3 text-muted-foreground font-medium">Ações</th>
@@ -1217,6 +1267,11 @@ function ArtistsTab() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {a.musicaCount} / {a.limiteMusicas}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${(a.aiMusicExtraCredits || 0) > 0 ? "bg-amber-500/20 text-amber-300" : "text-muted-foreground"}`}>
+                        +{a.aiMusicExtraCredits || 0}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       {editingId === a.id ? (
@@ -1274,6 +1329,9 @@ function ArtistsTab() {
                               title={a.canPostArticles ? "Permissão para publicar artigos ATIVA (clique para revogar)" : "Conceder permissão para publicar artigos"}
                             >
                               <BookOpen className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleOpenCredits(a)} className="p-1.5 text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors" title="Conceder créditos de música IA">
+                              <Sparkles className="w-4 h-4" />
                             </button>
                             <button onClick={() => handleOpenGrant(a)} className="p-1.5 text-muted-foreground hover:text-violet-400 hover:bg-violet-400/10 rounded-lg transition-colors" title="Conceder plano">
                               <Gift className="w-4 h-4" />
@@ -1355,6 +1413,80 @@ function ArtistsTab() {
                 className="flex-1 py-2.5 rounded-xl font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {grantSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
+                Conceder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {creditsModalOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4" onClick={() => setCreditsModalOpen(false)}>
+          <div className="bg-card border border-border/40 rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                <h3 className="text-lg font-bold text-foreground">Conceder Créditos de Música</h3>
+              </div>
+              <button onClick={() => setCreditsModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm text-muted-foreground mb-1">
+              Artista: <span className="text-foreground font-medium">{creditsArtistName}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              Créditos extras atuais: <span className="text-amber-300 font-bold">+{creditsCurrentExtra}</span>
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Quantidade rápida</label>
+                <div className="flex gap-2">
+                  {[5, 15, 40].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setCreditsAmount(String(n))}
+                      className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-colors ${
+                        creditsAmount === String(n)
+                          ? "bg-amber-400 text-black border-amber-400"
+                          : "bg-input border-border text-foreground hover:border-amber-400/50"
+                      }`}
+                    >
+                      +{n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Ou informe outro valor (1 a 500)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={creditsAmount}
+                  onChange={(e) => setCreditsAmount(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setCreditsModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl font-semibold bg-muted text-foreground hover:bg-muted/80 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGrantCredits}
+                disabled={creditsSaving}
+                className="flex-1 py-2.5 rounded-xl font-semibold bg-amber-500 text-black hover:bg-amber-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {creditsSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 Conceder
               </button>
             </div>
@@ -2150,6 +2282,12 @@ const SETTING_LABELS: Record<string, string> = {
   replicate_music_model: "Modelo Vocal & Instrumental",
   openai_enabled: "Ativar OpenAI Legado",
   openai_api_key: "Chave de API OpenAI",
+  ai_credit_pack_5_price: "Pacote Start — Preço (R$)",
+  ai_credit_pack_5_credits: "Pacote Start — Quantidade de créditos",
+  ai_credit_pack_15_price: "Pacote Pro — Preço (R$)",
+  ai_credit_pack_15_credits: "Pacote Pro — Quantidade de créditos",
+  ai_credit_pack_40_price: "Pacote Hitmaker — Preço (R$)",
+  ai_credit_pack_40_credits: "Pacote Hitmaker — Quantidade de créditos",
 
   // Portal / Geral
   portal_name: "Nome do Portal",
@@ -2263,6 +2401,12 @@ function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "landing_hero_video_url") return "Link do vídeo exibido no topo da página inicial (YouTube).";
   if (key === "openai_enabled") return "Habilita a API direta da OpenAI para a mentora virtual Vivi (Legado).";
   if (key === "openai_api_key") return "Chave de API obtida em platform.openai.com/api-keys.";
+  if (key === "ai_credit_pack_5_price") return "Valor cobrado no PIX pelo pacote menor. Use ponto ou vírgula (ex: 19.90).";
+  if (key === "ai_credit_pack_5_credits") return "Quantos créditos extras o artista recebe ao comprar o Pacote Start.";
+  if (key === "ai_credit_pack_15_price") return "Valor cobrado no PIX pelo pacote intermediário.";
+  if (key === "ai_credit_pack_15_credits") return "Quantos créditos extras o artista recebe ao comprar o Pacote Pro.";
+  if (key === "ai_credit_pack_40_price") return "Valor cobrado no PIX pelo pacote maior.";
+  if (key === "ai_credit_pack_40_credits") return "Quantos créditos extras o artista recebe ao comprar o Pacote Hitmaker.";
 
   const label = getSettingLabel(key).toLowerCase();
   const desc = (defaultDesc || "").toLowerCase().trim();
@@ -3278,6 +3422,16 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           icon: Globe,
           description: "Uso opcional da API direta da OpenAI para a mentora virtual Vivi.",
           keys: ["openai_enabled", "openai_api_key"],
+        },
+        {
+          title: "Pacotes de Créditos Extras de Música",
+          icon: CreditCard,
+          description: "Preço e quantidade dos pacotes que o artista compra no Estúdio Vivi. Créditos extras não expiram no fim do mês.",
+          keys: [
+            "ai_credit_pack_5_price", "ai_credit_pack_5_credits",
+            "ai_credit_pack_15_price", "ai_credit_pack_15_credits",
+            "ai_credit_pack_40_price", "ai_credit_pack_40_credits",
+          ],
         },
       ];
     }

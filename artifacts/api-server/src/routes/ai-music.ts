@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
-import { db, aiMusicDemosTable, songsTable, artistsTable, plansTable } from "@workspace/db";
+import { db, aiMusicDemosTable, songsTable, artistsTable, plansTable, subscriptionsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { getCreditPackages, fulfillAiCreditPurchase } from "../lib/ai-credits.js";
+import { getPaymentById } from "../lib/asaas-client.js";
 import { 
   optimizeLyricsForMiniMax, 
   composeFullSongFromIdea,
@@ -514,39 +516,15 @@ router.delete("/ai/music/:id", async (req, res): Promise<void> => {
   }
 });
 
-const CREDIT_PACKAGES = [
-  {
-    id: "pack_5",
-    name: "Pacote Start",
-    credits: 5,
-    price: 19.90,
-    pricePerCredit: 3.98,
-    badge: "Econômico",
-    description: "5 demos musicais completas geradas por IA",
-  },
-  {
-    id: "pack_15",
-    name: "Pacote Pro Compositor",
-    credits: 15,
-    price: 49.90,
-    pricePerCredit: 3.32,
-    badge: "Mais Popular",
-    description: "15 demos musicais com voz e instrumental completo",
-  },
-  {
-    id: "pack_40",
-    name: "Pacote Hitmaker",
-    credits: 40,
-    price: 99.90,
-    pricePerCredit: 2.49,
-    badge: "Melhor Custo-Benefício",
-    description: "40 demos musicais para criar repertórios inteiros",
-  },
-];
-
 // GET /api/ai/credits/packages - Lista pacotes de créditos extras disponíveis
-router.get("/ai/credits/packages", (_req, res): void => {
-  res.json(CREDIT_PACKAGES);
+router.get("/ai/credits/packages", async (_req, res): Promise<void> => {
+  try {
+    const packages = await getCreditPackages();
+    res.json(packages);
+  } catch (error) {
+    console.error("Erro ao listar pacotes de créditos:", error);
+    res.status(500).json({ error: "Erro ao listar pacotes de créditos" });
+  }
 });
 
 // POST /api/ai/credits/buy-package - Inicia compra de pacote de créditos de música
@@ -559,7 +537,8 @@ router.post("/ai/credits/buy-package", async (req, res): Promise<void> => {
     }
 
     const { packageId } = req.body;
-    const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId);
+    const packages = await getCreditPackages();
+    const pkg = packages.find((p) => p.id === packageId);
     if (!pkg) {
       res.status(400).json({ error: "Pacote inválido" });
       return;
@@ -594,6 +573,7 @@ router.post("/ai/credits/buy-package", async (req, res): Promise<void> => {
             value: pkg.price,
             dueDate: today,
             description: `Portal do Artista - Créditos de Música IA (${pkg.name} - ${pkg.credits} Demos)`,
+            externalReference: `credits-${sessionArtistId}-${pkg.id}`,
           },
         });
 
@@ -603,6 +583,15 @@ router.post("/ai/credits/buy-package", async (req, res): Promise<void> => {
         } catch (qrErr) {
           console.warn("Falha ao gerar QR Code PIX Asaas:", qrErr);
         }
+
+        await db.insert(subscriptionsTable).values({
+          artistId: String(sessionArtistId) as any,
+          planNome: `ai_credits:${pkg.id}`,
+          asaasPaymentId: paymentRes.id,
+          status: "pending",
+          amount: String(pkg.price),
+          billingType: "PIX",
+        });
 
         res.json({
           success: true,
@@ -636,6 +625,71 @@ router.post("/ai/credits/buy-package", async (req, res): Promise<void> => {
   } catch (error: any) {
     console.error("Erro ao processar compra de créditos:", error);
     res.status(500).json({ error: error.message || "Erro ao processar compra de créditos" });
+  }
+});
+
+// POST /api/ai/credits/confirm-payment - Confirma PIX e libera créditos extras
+router.post("/ai/credits/confirm-payment", async (req, res): Promise<void> => {
+  try {
+    const sessionArtistId = req.session.artistId;
+    if (!sessionArtistId) {
+      res.status(401).json({ error: "Não autorizado" });
+      return;
+    }
+
+    const paymentId = String(req.body?.paymentId || "").trim();
+    if (!paymentId) {
+      res.status(400).json({ error: "Pagamento não informado" });
+      return;
+    }
+
+    const [pending] = await db
+      .select()
+      .from(subscriptionsTable)
+      .where(eq(subscriptionsTable.asaasPaymentId, paymentId));
+
+    if (!pending || String(pending.artistId) !== String(sessionArtistId)) {
+      res.status(404).json({ error: "Pagamento não encontrado para este artista" });
+      return;
+    }
+
+    if (pending.status === "active") {
+      res.json({ success: true, alreadyProcessed: true, message: "Créditos já liberados." });
+      return;
+    }
+
+    const payment = await getPaymentById(paymentId);
+    const paidStatuses = ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"];
+    if (!paidStatuses.includes(String(payment.status || "").toUpperCase())) {
+      res.json({ success: false, pending: true, message: "Pagamento ainda não confirmado. Aguarde alguns instantes." });
+      return;
+    }
+
+    const packageId = String(pending.planNome || "").replace("ai_credits:", "");
+    const result = await fulfillAiCreditPurchase({
+      artistId: sessionArtistId,
+      packageId,
+      paymentId,
+      amount: pending.amount,
+    });
+
+    if (!result.ok) {
+      res.status(400).json({ error: result.error || "Não foi possível liberar os créditos" });
+      return;
+    }
+
+    res.json({
+      success: true,
+      alreadyProcessed: result.alreadyProcessed === true,
+      addedCredits: result.addedCredits || 0,
+      extraCredits: result.extraCredits,
+      message: result.alreadyProcessed
+        ? "Créditos já estavam liberados."
+        : `${result.addedCredits} crédito(s) de música liberado(s)!`,
+    });
+  } catch (error: any) {
+    console.error("Erro ao confirmar pagamento de créditos:", error);
+    res.status(500).json({ error: error.message || "Erro ao confirmar pagamento" });
   }
 });
 

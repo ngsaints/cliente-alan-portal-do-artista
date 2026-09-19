@@ -157,6 +157,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
   const [pixData, setPixData] = useState<{ pixQrCode?: string; pixCopiaECola?: string; paymentId?: string } | null>(null);
   const [isBuyingCredits, setIsBuyingCredits] = useState(false);
+  const [isConfirmingCredits, setIsConfirmingCredits] = useState(false);
 
   // Image Generation State
   const [imageType, setImageType] = useState<"cover" | "profile">("cover");
@@ -406,6 +407,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       const res = await fetch("/api/ai/credits/buy-package", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ packageId: pkg.id }),
       });
 
@@ -1999,15 +2001,49 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                 )}
 
                 <button
-                  onClick={() => {
-                    setIsBuyCreditsModalOpen(false);
-                    setPixData(null);
-                    loadData();
-                    if (onRefreshArtist) onRefreshArtist();
+                  onClick={async () => {
+                    if (!pixData?.paymentId) {
+                      setIsBuyCreditsModalOpen(false);
+                      setPixData(null);
+                      loadData();
+                      return;
+                    }
+                    setIsConfirmingCredits(true);
+                    try {
+                      const res = await fetch("/api/ai/credits/confirm-payment", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ paymentId: pixData.paymentId }),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        toast({
+                          title: "Créditos liberados!",
+                          description: data.message || "Seu saldo extra de música foi atualizado.",
+                        });
+                        setIsBuyCreditsModalOpen(false);
+                        setPixData(null);
+                        loadData();
+                        if (onRefreshArtist) onRefreshArtist();
+                      } else {
+                        toast({
+                          title: "Pagamento ainda não confirmado",
+                          description: data.message || "Assim que o PIX cair, clique novamente para liberar os créditos.",
+                        });
+                        loadData();
+                      }
+                    } catch {
+                      toast({ title: "Não foi possível confirmar o PIX agora", variant: "destructive" });
+                    } finally {
+                      setIsConfirmingCredits(false);
+                    }
                   }}
-                  className="w-full py-3 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs"
+                  disabled={isConfirmingCredits}
+                  className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Concluir / Já Realizei o Pagamento
+                  {isConfirmingCredits ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {isConfirmingCredits ? "Confirmando PIX..." : "Já paguei — Liberar créditos"}
                 </button>
               </div>
             ) : (
@@ -2041,7 +2077,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                         <h4 className="font-bold text-sm text-foreground">{pkg.name}</h4>
                         <div className="flex items-baseline gap-1">
                           <span className="text-2xl font-black text-foreground">
-                            R$ {pkg.price.toFixed(2).replace(".", ",")}
+                            {Number(pkg.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                           </span>
                         </div>
                         <p className="text-xs font-semibold text-amber-400">

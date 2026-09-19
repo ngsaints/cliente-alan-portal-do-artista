@@ -12,6 +12,7 @@ import {
   asaasFetch,
 } from "../lib/asaas-client.js";
 import { applyCompletePlanPriceFloor } from "../lib/plan-price.js";
+import { fulfillAiCreditPurchase, parseCreditExternalRef } from "../lib/ai-credits.js";
 
 const router: IRouter = Router();
 
@@ -409,6 +410,28 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
       if (existingSubs.length > 0) {
         console.log(`Webhook Asaas: payment ${paymentData.id} já processado — idempotência OK`);
         res.json({ status: "ok", message: "Already processed" });
+        return;
+      }
+
+      const creditRef = parseCreditExternalRef(paymentData.externalReference ?? "");
+      const [creditPending] = await db
+        .select()
+        .from(subscriptionsTable)
+        .where(eq(subscriptionsTable.asaasPaymentId, paymentData.id));
+
+      const creditPackageId = creditRef?.packageId
+        || (creditPending?.planNome?.startsWith("ai_credits:") ? creditPending.planNome.replace("ai_credits:", "") : null);
+      const creditArtistId = creditRef?.artistId || creditPending?.artistId;
+
+      if (creditPackageId && creditArtistId) {
+        const creditResult = await fulfillAiCreditPurchase({
+          artistId: creditArtistId,
+          packageId: creditPackageId,
+          paymentId: paymentData.id,
+          amount: paymentData.value,
+        });
+        console.log(`Webhook Asaas: créditos IA para artista ${creditArtistId} | pack ${creditPackageId} | ok=${creditResult.ok}`);
+        res.json({ status: "ok", credits: creditResult });
         return;
       }
 
