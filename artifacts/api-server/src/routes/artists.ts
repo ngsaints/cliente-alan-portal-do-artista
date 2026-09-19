@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import { db, artistsTable, plansTable, subscriptionsTable, couponsTable, appSettingsTable } from "@workspace/db";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
@@ -825,22 +825,27 @@ router.post("/artists/mentor", async (req, res): Promise<void> => {
       return;
     }
 
-    // 1. Obter configurações da OpenAI no appSettingsTable
+    // 1. Obter configurações de IA (OpenRouter preferencial, OpenAI legado como fallback).
+    // As chaves vivem na categoria "ai" (painel admin); lê por chave sem filtrar categoria
+    // para continuar aceitando valores legados salvos em "portal".
     const settings = await db
       .select({ key: appSettingsTable.key, value: appSettingsTable.value })
       .from(appSettingsTable)
-      .where(eq(appSettingsTable.category, "portal"));
+      .where(inArray(appSettingsTable.key, ["openai_enabled", "openai_api_key", "openrouter_enabled", "openrouter_api_key"]));
 
-    const openaiEnabledSetting = settings.find(s => s.key === "openai_enabled")?.value;
-    const openaiApiKey = settings.find(s => s.key === "openai_api_key")?.value;
+    const getSetting = (k: string) => settings.find(s => s.key === k)?.value?.trim() ?? "";
+    const openaiEnabledSetting = getSetting("openai_enabled") === "true";
+    const openrouterEnabledSetting = getSetting("openrouter_enabled") === "true";
+    const openaiApiKey = getSetting("openai_api_key") || process.env.OPENAI_API_KEY || "";
+    const openrouterApiKey = getSetting("openrouter_api_key") || process.env.OPENROUTER_API_KEY || "";
 
-    if (openaiEnabledSetting !== "true") {
+    if (!openaiEnabledSetting && !openrouterEnabledSetting) {
       res.status(400).json({ error: "A mentora virtual Vivi está desativada temporariamente pelo administrador." });
       return;
     }
 
-    if (!openaiApiKey) {
-      res.status(500).json({ error: "A chave de API da OpenAI não foi configurada no painel administrativo." });
+    if (!openaiApiKey && !openrouterApiKey) {
+      res.status(500).json({ error: "Nenhuma chave de IA configurada no painel administrativo (OpenRouter ou OpenAI)." });
       return;
     }
 
