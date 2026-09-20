@@ -28,6 +28,16 @@ export interface OpenRouterResponse {
   };
 }
 
+// Vivi (mentora/texto) roda 100% no tier gratuito do OpenRouter.
+// Nenhum custo por chamada: modelo roteador free + fallbacks :free.
+export const VIVI_FREE_MODEL = "openrouter/free";
+export const VIVI_FREE_FALLBACKS = [
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "deepseek/deepseek-chat-v3-0324:free",
+  "google/gemma-3-27b-it:free",
+  "openrouter/auto",
+];
+
 async function getSettingValue(key: string): Promise<string | null> {
   try {
     const rows = await db.select().from(appSettingsTable).where(eq(appSettingsTable.key, key));
@@ -267,6 +277,8 @@ Por favor, estruture a letra para o formato do MiniMax e forneça o prompt music
   const response = await callOpenRouter({
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
+    model: VIVI_FREE_MODEL,
+    fallbacks: VIVI_FREE_FALLBACKS,
     temperature: 0.6,
   });
 
@@ -351,6 +363,8 @@ Por favor, componha a música completa agora.`;
   const response = await callOpenRouter({
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
+    model: VIVI_FREE_MODEL,
+    fallbacks: VIVI_FREE_FALLBACKS,
     temperature: 0.8,
   });
 

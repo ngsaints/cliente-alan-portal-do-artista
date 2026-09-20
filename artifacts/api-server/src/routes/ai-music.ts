@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, aiMusicDemosTable, songsTable, artistsTable, plansTable, subscriptionsTable } from "@workspace/db";
+import { db, aiMusicDemosTable, songsTable, artistsTable, subscriptionsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { getCreditPackages, fulfillAiCreditPurchase } from "../lib/ai-credits.js";
 import { getPaymentById } from "../lib/asaas-client.js";
@@ -8,7 +8,7 @@ import {
   composeFullSongFromIdea,
   getOpenRouterConfig, 
   listOpenRouterModels, 
-  getOpenRouterCredits 
+  getOpenRouterCredits,
 } from "../lib/openrouter.js";
 import { 
   startMusicGeneration, 
@@ -116,9 +116,9 @@ router.get("/ai/credits/balance", async (req, res): Promise<void> => {
         .where(eq(artistsTable.id, sessionArtistId));
     }
 
-    // Limites de texto
-    const planRows = await db.select().from(plansTable).where(eq(plansTable.nome, plano));
-    const textLimit = planRows[0]?.aiCreditsLimit ?? (plano === "premium" ? 200 : plano === "pro" ? 100 : plano === "basico" ? 30 : 10);
+    // Limites de texto — Vivi é GRÁTIS e ilimitada via OpenRouter free (custo zero).
+    // Mantemos used só para métricas; o frontend deve tratar unlimited=true como "Grátis • Ilimitado".
+    const textLimit: number | null = null;
 
     // Limites de música
     const musicLimit = getPlanMusicLimit(plano);
@@ -131,7 +131,9 @@ router.get("/ai/credits/balance", async (req, res): Promise<void> => {
       text: {
         used: textUsed,
         limit: textLimit,
-        remaining: Math.max(0, textLimit - textUsed),
+        remaining: null,
+        unlimited: true,
+        free: true,
       },
       music: {
         used: musicUsed,

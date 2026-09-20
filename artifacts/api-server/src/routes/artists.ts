@@ -9,7 +9,7 @@ import sharp from "sharp";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getEmailConfig, getPortalUrl } from "../lib/email.js";
 import { findOrCreateCustomer, createSubscription, getAsaasCredentials, getSubscriptionPayments, getPaymentPixQrCode } from "../lib/asaas-client.js";
-import { callOpenRouter } from "../lib/openrouter.js";
+import { callOpenRouter, VIVI_FREE_MODEL, VIVI_FREE_FALLBACKS } from "../lib/openrouter.js";
 
 const router: IRouter = Router();
 
@@ -857,9 +857,8 @@ router.post("/artists/mentor", async (req, res): Promise<void> => {
     }
     const artist = artists[0];
 
-    const plans = await db.select().from(plansTable).where(eq(plansTable.nome, artist.plano));
-    const plan = plans[0];
-    const aiLimit = plan?.aiCreditsLimit ?? 10;
+    // Vivi texto é GRÁTIS e ilimitada via OpenRouter free (openrouter/free + fallbacks :free).
+    // Sem teto de plano para o chat — contagem mantida só para estatística.
 
     // 3. Verificar reset mensal dos créditos (30 dias)
     const resetDate = new Date(artist.aiQueriesResetAt);
@@ -879,24 +878,19 @@ router.post("/artists/mentor", async (req, res): Promise<void> => {
         .where(eq(artistsTable.id, artist.id));
     }
 
-    // 4. Verificar se tem saldo
-    if (currentUsage >= aiLimit) {
-      res.status(403).json({
-        error: `Você atingiu o limite de consultas de Inteligência Artificial do seu plano (${aiLimit} por mês). Faça um upgrade para continuar conversando com a Vivi!`
-      });
-      return;
-    }
+    // 4. Sem bloqueio de saldo: Vivi texto é gratuita e ilimitada (custo zero no OpenRouter free).
+    // O contador aiQueriesCount continua sendo incrementado abaixo só para métricas.
 
     // 5. Definir o contexto do plano do artista
     let planContext = "";
     if (artist.plano === "free") {
-      planContext = `O artista ${artist.name} está no plano GRATUITO (Free). Esse plano possui limite de até 2 músicas e 10 consultas de IA. Incentive-o de forma amigável e motivadora a conhecer as vantagens de fazer upgrade para o plano Básico (20 músicas) ou Premium (200 músicas) para ter personalização de cores/fontes do catálogo e mais espaço.`;
+      planContext = `O artista ${artist.name} está no plano GRATUITO (Free) com a Vivi liberada de forma gratuita e ilimitada. Incentive-o de forma amigável e motivadora a conhecer as vantagens de fazer upgrade para o plano Básico (20 músicas) ou Premium para ter mais espaço no catálogo e personalização de cores/fontes.`;
     } else if (artist.plano === "basico") {
-      planContext = `O artista ${artist.name} está no plano BÁSICO. Esse plano permite até 20 músicas no catálogo e 30 consultas de IA. Dê os parabéns por ter dado esse passo profissional e ajude-o a divulgar.`;
+      planContext = `O artista ${artist.name} está no plano BÁSICO com a Vivi liberada de forma gratuita e ilimitada. Dê os parabéns por ter dado esse passo profissional e ajude-o a divulgar.`;
     } else if (artist.plano === "intermediario" || artist.plano === "pro") {
-      planContext = `O artista ${artist.name} está no plano PRO/INTERMEDIÁRIO. Dê dicas mais completas e avançadas sobre divulgação e engajamento.`;
+      planContext = `O artista ${artist.name} está no plano PRO/INTERMEDIÁRIO com a Vivi liberada de forma gratuita e ilimitada. Dê dicas mais completas e avançadas sobre divulgação e engajamento.`;
     } else if (artist.plano === "premium") {
-      planContext = `O artista ${artist.name} está no plano PREMIUM. Esse plano é o máximo completo com até 200 músicas, 100% de personalização e 200 consultas de IA. Trate-o como um artista VIP com recursos totais.`;
+      planContext = `O artista ${artist.name} está no plano PREMIUM com a Vivi liberada de forma gratuita e ilimitada. Trate-o como um artista VIP com recursos totais.`;
     }
 
     const planHeader = `[INFORMAÇÃO DO ARTISTA]
@@ -926,20 +920,22 @@ Fale de forma simples, motivadora, orientada a resultados e forneça dicas extre
       systemPrompt = `Você é a Vivi, mentora virtual oficial do Portal do Artista. Gere 5 sugestões de títulos criativos, marcantes e vendáveis para a música do artista com base nas palavras-chave, tema ou trecho de letra compartilhado por ele.`;
     }
 
-    // 7. Fazer a requisição via OpenRouter / OpenAI
+    // 7. Fazer a requisição via OpenRouter (tier gratuito — custo zero)
     const aiResult = await callOpenRouter({
       system: planHeader + systemPrompt,
       messages: messages.map((m: any) => ({
         role: m.role || "user",
         content: m.content || "",
       })),
+      model: VIVI_FREE_MODEL,
+      fallbacks: VIVI_FREE_FALLBACKS,
       temperature: 0.7,
       maxTokens: 1000,
     });
 
     const reply = aiResult.content;
 
-    // 8. Incrementar o saldo consumido de IA do artista
+    // 8. Contagem apenas para métricas (sem bloqueio — Vivi é grátis/ilimitada)
     const newUsageCount = currentUsage + 1;
     await db
       .update(artistsTable)
@@ -949,7 +945,9 @@ Fale de forma simples, motivadora, orientada a resultados e forneça dicas extre
     res.json({
       reply,
       aiQueriesCount: newUsageCount,
-      aiCreditsLimit: aiLimit,
+      aiCreditsLimit: null,
+      unlimited: true,
+      free: true,
       model: aiResult.model,
     });
 

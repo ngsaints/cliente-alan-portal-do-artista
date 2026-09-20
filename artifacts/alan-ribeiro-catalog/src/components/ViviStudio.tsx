@@ -868,6 +868,9 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
           >
             <Bot className="w-4 h-4" />
             <span>Vivi Mentora (Chat)</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-400/20 text-emerald-300 border border-emerald-400/40">
+              Grátis
+            </span>
           </button>
 
           <button
@@ -1319,6 +1322,10 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       {/* TAB 2: VIVI MENTORA (CHAT) */}
       {activeTab === "mentor" && (
         <div className="bg-card border border-border rounded-3xl p-6 shadow-xl space-y-4 max-w-4xl mx-auto">
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            <span>Vivi Mentora é gratuita e ilimitada — pergunte à vontade, sem gastar créditos.</span>
+          </div>
           {/* Tool Selector */}
           <div className="flex flex-wrap gap-2 pb-3 border-b border-border">
             {[
