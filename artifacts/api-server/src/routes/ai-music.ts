@@ -213,7 +213,7 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
   try {
     const sessionArtistId = req.session.artistId;
     if (!sessionArtistId) {
-      res.status(401).json({ error: "Você precisa estar logado como artista para gerar demos musicais." });
+      res.status(401).json({ error: "Você precisa estar logado como artista para gerar hits musicais." });
       return;
     }
 
@@ -249,7 +249,7 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
 
     if (currentMusicUsed >= musicTotalLimit) {
       res.status(403).json({
-        error: `Você atingiu o limite de ${musicTotalLimit} geração(ões) de música do seu plano ${plano.toUpperCase()}. Faça um upgrade ou adquira créditos extras para continuar criando demos cantadas!`,
+        error: `Você atingiu o limite de ${musicTotalLimit} geração(ões) de música do seu plano ${plano.toUpperCase()}. Faça um upgrade ou adquira créditos extras para continuar criando hits!`,
         creditsExhausted: true,
         used: currentMusicUsed,
         limit: musicTotalLimit,
@@ -321,13 +321,13 @@ router.get("/ai/music/status/:id", async (req, res): Promise<void> => {
     const demoId = parseInt(id);
 
     if (isNaN(demoId)) {
-      res.status(400).json({ error: "ID de demo inválido" });
+      res.status(400).json({ error: "ID de hit inválido" });
       return;
     }
 
     const demos = await db.select().from(aiMusicDemosTable).where(eq(aiMusicDemosTable.id, demoId));
     if (demos.length === 0) {
-      res.status(404).json({ error: "Demo musical não encontrada" });
+      res.status(404).json({ error: "Hit musical não encontrado" });
       return;
     }
 
@@ -409,7 +409,7 @@ router.get("/ai/music/history", async (req, res): Promise<void> => {
     res.json(demos);
   } catch (error) {
     console.error("Erro ao buscar histórico de demos:", error);
-    res.status(500).json({ error: "Erro ao buscar histórico de demos musicais" });
+    res.status(500).json({ error: "Erro ao buscar histórico de hits musicais" });
   }
 });
 
@@ -427,7 +427,7 @@ router.post("/ai/music/save-to-catalog", async (req, res): Promise<void> => {
 
     const demos = await db.select().from(aiMusicDemosTable).where(eq(aiMusicDemosTable.id, dId));
     if (demos.length === 0) {
-      res.status(404).json({ error: "Demo musical não encontrada" });
+      res.status(404).json({ error: "Hit musical não encontrado" });
       return;
     }
 
@@ -438,7 +438,7 @@ router.post("/ai/music/save-to-catalog", async (req, res): Promise<void> => {
     }
 
     if (!demo.audioUrl) {
-      res.status(400).json({ error: "Esta demo ainda não possui áudio gerado." });
+      res.status(400).json({ error: "Este hit ainda não possui áudio gerado." });
       return;
     }
 
@@ -451,7 +451,7 @@ router.post("/ai/music/save-to-catalog", async (req, res): Promise<void> => {
       .values({
         artistaId: String(sessionArtistId),
         titulo: demo.titulo,
-        descricao: descricao || `Demo musical gerada no Estúdio Vivi (Estilo: ${demo.estilo}, Voz: ${demo.voz}).`,
+        descricao: descricao || `Hit musical gerado no Estúdio Vivi (Estilo: ${demo.estilo}, Voz: ${demo.voz}).`,
         genero: demo.estilo,
         subgenero: demo.clima || null,
         compositor: artist?.name || "Artista",
@@ -498,27 +498,27 @@ router.delete("/ai/music/:id", async (req, res): Promise<void> => {
 
     const demoId = parseInt(req.params.id);
     if (isNaN(demoId)) {
-      res.status(400).json({ error: "ID de demo inválido" });
+      res.status(400).json({ error: "ID de hit inválido" });
       return;
     }
 
     const demos = await db.select().from(aiMusicDemosTable).where(eq(aiMusicDemosTable.id, demoId));
     if (demos.length === 0) {
-      res.status(404).json({ error: "Demo não encontrada" });
+      res.status(404).json({ error: "Hit não encontrado" });
       return;
     }
 
     if (demos[0].artistaId !== sessionArtistId) {
-      res.status(403).json({ error: "Você só pode excluir demos do seu próprio histórico" });
+      res.status(403).json({ error: "Você só pode excluir hits do seu próprio histórico" });
       return;
     }
 
     await db.delete(aiMusicDemosTable).where(eq(aiMusicDemosTable.id, demoId));
 
-    res.json({ success: true, message: "Demo removida com sucesso" });
+    res.json({ success: true, message: "Hit removido com sucesso" });
   } catch (error: any) {
-    console.error("Erro ao excluir demo:", error);
-    res.status(500).json({ error: "Erro ao excluir demo" });
+    console.error("Erro ao excluir hit:", error);
+    res.status(500).json({ error: "Erro ao excluir hit" });
   }
 });
 
@@ -578,7 +578,7 @@ router.post("/ai/credits/buy-package", async (req, res): Promise<void> => {
             billingType: "PIX",
             value: pkg.price,
             dueDate: today,
-            description: `Portal do Artista - Créditos de Música IA (${pkg.name} - ${pkg.credits} Demos)`,
+            description: `Portal do Artista - Créditos de Música IA (${pkg.name} - ${pkg.credits} Hits)`,
             externalReference: `credits-${sessionArtistId}-${pkg.id}`,
           },
         });

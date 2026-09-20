@@ -19,7 +19,7 @@ export const DEFAULT_CREDIT_PACKAGES: CreditPackage[] = [
     price: 19.9,
     pricePerCredit: 3.98,
     badge: "Econômico",
-    description: "5 demos musicais completas geradas por IA",
+    description: "5 hits completos gerados por IA",
   },
   {
     id: "pack_15",
@@ -28,7 +28,7 @@ export const DEFAULT_CREDIT_PACKAGES: CreditPackage[] = [
     price: 49.9,
     pricePerCredit: 3.32,
     badge: "Mais Popular",
-    description: "15 demos musicais com voz e instrumental completo",
+    description: "15 hits com voz e instrumental completo",
   },
   {
     id: "pack_40",
@@ -37,7 +37,7 @@ export const DEFAULT_CREDIT_PACKAGES: CreditPackage[] = [
     price: 99.9,
     pricePerCredit: 2.49,
     badge: "Melhor Custo-Benefício",
-    description: "40 demos musicais para criar repertórios inteiros",
+    description: "40 hits para criar repertórios inteiros",
   },
 ];
 

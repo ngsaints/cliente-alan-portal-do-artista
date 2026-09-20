@@ -139,7 +139,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
     {
       role: "assistant",
-      content: `Olá, ${artist?.name || "Artista"}! Eu sou a Vivi, sua assistente de composição e mentora no Portal do Artista.\n\nNo **Estúdio de Criação**, posso te ajudar a transformar qualquer letra em uma demo cantada completa com voz e instrumentos usando IA de última geração (MiniMax Music 2.6). Se precisar de dicas de arranjo, ideias de rima ou marketing, estou aqui!`,
+      content: `Olá, ${artist?.name || "Artista"}! Eu sou a Vivi, sua assistente de composição e mentora no Portal do Artista.\n\nNo **Estúdio de Criação**, posso te ajudar a transformar qualquer letra em uma hit completo com voz e instrumentos usando IA de última geração (MiniMax Music 2.6). Se precisar de dicas de arranjo, ideias de rima ou marketing, estou aqui!`,
     },
   ]);
   const [chatInput, setChatInput] = useState("");
@@ -311,21 +311,21 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   };
 
   const handleShareWhatsapp = (demo: DemoItem) => {
-    const text = `Ouça a nova demo da música "${demo.titulo}" gerada no Portal do Artista:\n${demo.audioUrl || window.location.href}`;
+    const text = `Ouça a novo hit da música "${demo.titulo}" gerada no Portal do Artista:\n${demo.audioUrl || window.location.href}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const handleDeleteDemo = async (demoId: number) => {
-    if (!confirm("Deseja realmente excluir esta demo musical do seu histórico?")) return;
+    if (!confirm("Deseja realmente excluir este hit musical do seu histórico?")) return;
     try {
       const res = await fetch(`/api/ai/music/${demoId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Falha ao excluir demo");
+      if (!res.ok) throw new Error("Falha ao excluir hit");
       setDemos((prev) => prev.filter((d) => d.id !== demoId));
       if (currentDemo?.id === demoId) {
         setCurrentDemo(demos.find((d) => d.id !== demoId) || null);
       }
       toast({
-        title: "Demo removida",
+        title: "Hit removido",
         description: "A música foi removida do seu histórico.",
       });
     } catch (err: any) {
@@ -564,7 +564,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
     if (!titulo.trim()) {
       toast({
         title: "Informe o título",
-        description: "Dê um título para a sua composição antes de gerar a demo.",
+        description: "Dê um título para a sua composição antes de gerar o hit.",
         variant: "destructive",
       });
       return;
@@ -582,7 +582,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
     if (creditsInfo && creditsInfo.music.remaining <= 0) {
       toast({
         title: "Créditos de música esgotados",
-        description: "Você atingiu o limite de gerações do seu plano atual. Faça upgrade para continuar criando demos cantadas!",
+        description: "Você atingiu o limite de gerações do seu plano atual. Faça upgrade para continuar criando hits!",
         variant: "destructive",
       });
       if (onOpenUpgradeModal) onOpenUpgradeModal();
@@ -612,7 +612,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
         if (errData.creditsExhausted && onOpenUpgradeModal) {
           onOpenUpgradeModal();
         }
-        throw new Error(errData.error || "Falha ao iniciar geração da demo");
+        throw new Error(errData.error || "Falha ao iniciar geração do hit");
       }
 
       const initialDemo: DemoItem = await res.json();
@@ -625,7 +625,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       setIsGenerating(false);
       setGenerationStep("");
       toast({
-        title: "Não foi possível gerar a demo",
+        title: "Não foi possível gerar o hit",
         description: error.message || "Verifique sua conexão ou tente novamente.",
         variant: "destructive",
       });
@@ -661,7 +661,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
             if (onRefreshArtist) onRefreshArtist();
 
             toast({
-              title: "Sua demo cantada está pronta!",
+              title: "Seu hit está pronto!",
               description: `Ouça agora "${updated.titulo}" e salve direto no seu catálogo musical.`,
             });
           } else if (updated.status === "failed") {
@@ -797,14 +797,14 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                  Estúdio Vivi <span className="text-amber-400">&</span> Demos IA
+                  Estúdio Vivi <span className="text-amber-400">&</span> Hits IA
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40">
                   MiniMax 2.6
                 </span>
               </div>
               <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-                Crie letras perfeitas com a mentoria da Vivi e gere demos completas cantadas com voz humana e instrumentos reais.
+                Crie letras perfeitas com a mentoria da Vivi e gere hits completos com voz humana e instrumentos reais.
               </p>
             </div>
           </div>
@@ -814,7 +814,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
             <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
               <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
               <div>
-                <span className="text-xs text-muted-foreground block">Créditos de Demo</span>
+                <span className="text-xs text-muted-foreground block">Créditos de Hit</span>
                 <span className="text-sm font-bold text-foreground">
                   {creditsInfo ? `${creditsInfo.music.remaining} de ${creditsInfo.music.totalLimit} restantes` : "Carregando..."}
                 </span>
@@ -1075,12 +1075,12 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Gerando Demo Musical...</span>
+                    <span>Gerando Hit...</span>
                   </>
                 ) : (
                   <>
                     <Headphones className="w-5 h-5" />
-                    <span>Gerar Demo Cantada (MiniMax Music 2.6)</span>
+                    <span>Gerar Hit com IA</span>
                   </>
                 )}
               </button>
@@ -1103,7 +1103,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Disc className="w-5 h-5 text-amber-400 animate-spin" style={{ animationDuration: "8s" }} />
-                  <h3 className="font-bold text-foreground text-sm">Demo em Destaque</h3>
+                  <h3 className="font-bold text-foreground text-sm">Hit em Destaque</h3>
                 </div>
                 {currentDemo && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-mono">
@@ -1228,9 +1228,9 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
               ) : (
                 <div className="py-12 text-center text-muted-foreground space-y-2">
                   <Music className="w-10 h-10 mx-auto opacity-30" />
-                  <p className="text-xs">Nenhuma demo gerada ainda.</p>
+                  <p className="text-xs">Nenhum hit gerado ainda.</p>
                   <p className="text-[11px] opacity-70">
-                    Preencha o formulário e clique em "Gerar Demo Cantada" para ver a mágica da IA acontecer!
+                    Preencha o formulário e clique em "Gerar Hit com IA" para ver a mágica da IA acontecer!
                   </p>
                 </div>
               )}
@@ -1241,7 +1241,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
               <div className="flex items-center justify-between pb-3 border-b border-border">
                 <div className="flex items-center gap-2">
                   <Radio className="w-4 h-4 text-amber-400" />
-                  <h3 className="font-bold text-foreground text-sm">Histórico de Demos ({demos.length})</h3>
+                  <h3 className="font-bold text-foreground text-sm">Histórico de Hits ({demos.length})</h3>
                 </div>
                 <button
                   onClick={loadData}
@@ -1298,7 +1298,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                             handleDeleteDemo(d.id);
                           }}
                           className="w-7 h-7 rounded-lg hover:bg-red-500/20 text-muted-foreground hover:text-red-400 flex items-center justify-center transition-colors"
-                          title="Excluir demo do histórico"
+                          title="Excluir hit do histórico"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -2066,9 +2066,9 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {(creditPackages.length > 0 ? creditPackages : [
-                    { id: "pack_5", name: "Pacote Start", credits: 5, price: 19.9, badge: "Econômico", description: "5 demos musicais completas geradas por IA" },
-                    { id: "pack_15", name: "Pro Compositor", credits: 15, price: 49.9, badge: "Mais Popular", description: "15 demos musicais com voz e instrumental" },
-                    { id: "pack_40", name: "Hitmaker", credits: 40, price: 99.9, badge: "Melhor Custo", description: "40 demos musicais para repertórios inteiros" },
+                    { id: "pack_5", name: "Pacote Start", credits: 5, price: 19.9, badge: "Econômico", description: "5 hits completos gerados por IA" },
+                    { id: "pack_15", name: "Pro Compositor", credits: 15, price: 49.9, badge: "Mais Popular", description: "15 hits com voz e instrumental completo" },
+                    { id: "pack_40", name: "Hitmaker", credits: 40, price: 99.9, badge: "Melhor Custo", description: "40 hits para repertórios inteiros" },
                   ]).map((pkg) => (
                     <div
                       key={pkg.id}
@@ -2096,7 +2096,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
                           </span>
                         </div>
                         <p className="text-xs font-semibold text-amber-400">
-                          +{pkg.credits} Demos Cantadas
+                          +{pkg.credits} Hits
                         </p>
                         <p className="text-[11px] text-muted-foreground leading-relaxed">
                           {pkg.description}
