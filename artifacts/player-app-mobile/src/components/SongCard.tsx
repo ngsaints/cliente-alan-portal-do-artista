@@ -77,7 +77,7 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queue }) => {
           </p>
         )}
 
-        <div className="flex items-center gap-1.5 mt-1.5">
+        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
           <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-white/5 text-white/70 border border-white/10 flex items-center gap-1">
             {song.isLocal ? (
               <>
@@ -91,6 +91,20 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queue }) => {
               </>
             )}
           </span>
+          {!song.isLocal && song.status && (
+            <span
+              className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                !song.status || song.status === 'Disponível'
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                  : 'bg-amber-500/15 text-amber-400 border-amber-500/25'
+              }`}
+            >
+              {!song.status || song.status === 'Disponível' ? 'Livre' : 'Reservado'}
+            </span>
+          )}
+          {!song.isLocal && typeof song.plays === 'number' && song.plays > 0 && (
+            <span className="text-[10px] text-white/40 font-medium">{song.plays} plays</span>
+          )}
         </div>
       </div>
 

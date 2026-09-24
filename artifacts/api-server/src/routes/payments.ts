@@ -46,16 +46,20 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       return;
     }
 
-    if (planId === FREE_PLAN) {
+    // Comparação case-insensitive: o plano gratuito pode ter sido salvo como "FREE"/"Free".
+    const planIdNorm = String(planId).toLowerCase();
+    if (planIdNorm === FREE_PLAN) {
       res.status(400).json({ error: "Plano gratuito não requer pagamento" });
       return;
     }
 
-    const [plan] = await db.select().from(plansTable).where(eq(plansTable.nome, planId));
+    const [plan] = await db.select().from(plansTable).where(sql`lower(${plansTable.nome}) = ${planIdNorm}`);
     if (!plan) {
       res.status(404).json({ error: "Plano não encontrado" });
       return;
     }
+    // Usa o nome canônico do banco (ex.: "start") nas referências abaixo.
+    const effectivePlanId = plan.nome;
 
     const { apiKey, portalUrl } = await getAsaasCredentials();
     if (!apiKey) {
@@ -83,7 +87,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
 
         if (isValid) {
           const applicablePlans = coupon.applicablePlans;
-          const planApplicable = !applicablePlans || applicablePlans.length === 0 || applicablePlans.includes(planId);
+          const planApplicable = !applicablePlans || applicablePlans.length === 0 || applicablePlans.includes(effectivePlanId);
           if (planApplicable) {
             finalPrice = Number(plan.preco);
             if (coupon.discountType === "percentage") {
@@ -94,7 +98,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
               finalPrice = Math.max(0, finalPrice - discountAmount);
             }
 
-            const floor = applyCompletePlanPriceFloor(plan, planId, Number(plan.preco), finalPrice);
+            const floor = applyCompletePlanPriceFloor(plan, effectivePlanId, Number(plan.preco), finalPrice);
             finalPrice = floor.finalPrice;
             discountAmount = floor.discountAmount;
 
@@ -119,7 +123,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       await db
         .update(artistsTable)
         .set({
-          plano: planId,
+          plano: effectivePlanId,
           planoAtivo: true,
           limiteMusicas: String(plan.limiteMusicas),
           personalizacaoPercent: String(plan.personalizacaoPercent),
@@ -132,7 +136,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
 
       await db.insert(subscriptionsTable).values({
         artistId: artistId,
-        planNome: planId,
+        planNome: effectivePlanId,
         asaasSubscriptionId: "direct_activation_" + Date.now(),
         status: "active",
         amount: String(finalPrice),
@@ -144,7 +148,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       res.json({
         success: true,
         activatedDirectly: true,
-        planNome: planId,
+        planNome: effectivePlanId,
         originalPrice: Number(plan.preco).toFixed(2),
         finalPrice: finalPrice.toFixed(2),
         discountAmount: discountAmount.toFixed(2),
@@ -152,13 +156,18 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       return;
     }
 
-    // Para cobranças no Asaas (>= R$ 5,00), o CPF/CNPJ é obrigatório
-    if (!artist.documento) {
-      res.status(400).json({ error: "Para criar esta cobrança é necessário preencher o CPF ou CNPJ nas configurações de perfil." });
+    // Para cobranças no Asaas (>= R$ 5,00), o CPF/CNPJ é obrigatório.
+    // Quem veio do plano gratuito cadastrou docNumero (fluxo free) em vez de documento —
+    // aceita como fallback para não travar o upgrade free -> pago.
+    const cleanDoc = (artist.documento || artist.docNumero || "").replace(/\D/g, "") || "";
+    if (!cleanDoc) {
+      res.status(400).json({
+        error: "Para assinar, preencha seu CPF ou CNPJ na aba Perfil (campo 'CPF ou CNPJ') e tente de novo.",
+        code: "DOCUMENT_REQUIRED",
+        action: "fill_profile_document",
+      });
       return;
     }
-
-    const cleanDoc = artist.documento?.replace(/\D/g, "") || "";
 
     let customerId = artist.asaasCustomerId;
     if (!customerId) {
@@ -202,7 +211,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       .from(subscriptionsTable)
       .where(and(
         eq(subscriptionsTable.artistId, artistId),
-        eq(subscriptionsTable.planNome, planId),
+        eq(subscriptionsTable.planNome, effectivePlanId),
         eq(subscriptionsTable.status, "pending")
       ))
       .orderBy(sql`${subscriptionsTable.createdAt} DESC`);
@@ -212,7 +221,9 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       try {
         const payments = await getSubscriptionPayments(pendingSub.asaasSubscriptionId!);
         const firstPayment = payments.data?.[0];
-        if (firstPayment) {
+        const paymentReusable = firstPayment &&
+          (firstPayment.status === "PENDING" || firstPayment.status === "AWAITING_RISK_ANALYSIS");
+        if (firstPayment && paymentReusable) {
           res.json({
             subscriptionId: pendingSub.asaasSubscriptionId,
             invoiceUrl: firstPayment.invoiceUrl ?? null,
@@ -225,6 +236,11 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
           });
           return;
         }
+        // Boleto/PIX expirado ou pagamento já liquidado fora do fluxo: descarta o pending e cria novo.
+        await db
+          .update(subscriptionsTable)
+          .set({ status: "cancelled", cancelledAt: new Date() })
+          .where(eq(subscriptionsTable.id, pendingSub.id));
       } catch (err) {
         console.warn("Erro ao buscar pagamentos de assinatura pendente existente, criando nova:", err);
       }
@@ -236,16 +252,19 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       value: finalPrice,
       billingType: finalBillingType,
       description: `Plano ${plan.label} — Portal do Artista`,
-      externalReference: `${artistId}-${planId}`,
+      externalReference: `${artistId}-${effectivePlanId}`,
       callbackUrl,
     });
+
+    // A assinatura antiga (outro plano) só é cancelada no webhook, quando o
+    // pagamento novo confirmar — assim não se perde o plano atual se o checkout for abandonado.
 
     const existingSubs = await db
       .select()
       .from(subscriptionsTable)
       .where(and(
         eq(subscriptionsTable.artistId, artistId),
-        eq(subscriptionsTable.planNome, planId),
+        eq(subscriptionsTable.planNome, effectivePlanId),
         eq(subscriptionsTable.status, "active")
       ));
 
@@ -255,7 +274,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
 
       await db.insert(subscriptionsTable).values({
         artistId: artistId,
-        planNome: planId,
+        planNome: effectivePlanId,
         asaasSubscriptionId: subscription.id,
         status: "pending",
         amount: String(finalPrice),
@@ -341,20 +360,28 @@ router.post("/payments/cancel-subscription", async (req, res): Promise<void> => 
       .set({ status: "cancelled" })
       .where(eq(subscriptionsTable.id, activeSub.id));
 
-    // Revert artist to free plan
+    // Revert artist to free plan (apenas se o plano free ainda existir/estiver ativo;
+    // senão fica inativo até ele assinar de novo — evita free "fantasma").
     const [freePlan] = await db.select().from(plansTable).where(eq(plansTable.nome, FREE_PLAN));
+    const freeAllowed = !!freePlan && freePlan.ativo !== false;
     await db
       .update(artistsTable)
       .set({
         plano: FREE_PLAN,
-        planoAtivo: false,
-        limiteMusicas: freePlan ? String(freePlan.limiteMusicas) : "5",
-        personalizacaoPercent: freePlan ? String(freePlan.personalizacaoPercent) : "0",
+        planoAtivo: freeAllowed,
+        limiteMusicas: freeAllowed && freePlan ? String(freePlan.limiteMusicas) : "0",
+        personalizacaoPercent: freeAllowed && freePlan ? String(freePlan.personalizacaoPercent) : "0",
         updatedAt: new Date(),
       })
       .where(eq(artistsTable.id, parseInt(artistId)));
 
-    res.json({ success: true, message: "Assinatura cancelada com sucesso" });
+    res.json({
+      success: true,
+      message: freeAllowed
+        ? "Assinatura cancelada com sucesso"
+        : "Assinatura cancelada. O plano free não está disponível — assine um plano pago para reativar o perfil.",
+      freeAllowed,
+    });
   } catch (error: any) {
     console.error("Error cancelling subscription:", error);
     res.status(500).json({ error: error.message ?? "Erro ao cancelar assinatura" });
@@ -487,6 +514,34 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
             })
             .where(eq(artistsTable.id, parseInt(artistId)));
 
+          // Webhook de plano pago: cancela assinaturas ativas de outros planos
+          // (evita cobrança dupla após upgrade e reativação do plano antigo).
+          const otherActive = await db
+            .select()
+            .from(subscriptionsTable)
+            .where(and(
+              eq(subscriptionsTable.artistId, artistId),
+              eq(subscriptionsTable.status, "active"),
+              sql`${subscriptionsTable.planNome} != ${planId}`
+            ));
+          for (const oldSub of otherActive) {
+            if (
+              oldSub.asaasSubscriptionId &&
+              !oldSub.asaasSubscriptionId.startsWith("direct_activation_") &&
+              !oldSub.asaasSubscriptionId.startsWith("admin_grant_")
+            ) {
+              try {
+                await cancelSubscription(oldSub.asaasSubscriptionId);
+              } catch (err) {
+                console.warn(`Webhook: falha ao cancelar assinatura antiga ${oldSub.asaasSubscriptionId}:`, err);
+              }
+            }
+            await db
+              .update(subscriptionsTable)
+              .set({ status: "cancelled", cancelledAt: new Date() })
+              .where(eq(subscriptionsTable.id, oldSub.id));
+          }
+
           const expiresAt = new Date();
           expiresAt.setMonth(expiresAt.getMonth() + 1);
 
@@ -549,30 +604,21 @@ router.get("/payments/subscription/:artistId", async (req, res): Promise<void> =
         .set({ status: "expired" })
         .where(eq(subscriptionsTable.id, active.id));
 
+      const [freePlan] = await db.select().from(plansTable).where(eq(plansTable.nome, FREE_PLAN));
+      const freeAllowed = !!freePlan && freePlan.ativo !== false;
+
       await db
         .update(artistsTable)
         .set({
           plano: FREE_PLAN,
-          planoAtivo: false,
+          planoAtivo: freeAllowed,
+          limiteMusicas: freeAllowed && freePlan ? String(freePlan.limiteMusicas) : "0",
+          personalizacaoPercent: freeAllowed && freePlan ? String(freePlan.personalizacaoPercent) : "0",
           updatedAt: new Date(),
         })
         .where(eq(artistsTable.id, parseInt(artistId)));
 
-      const [updated] = await db.select().from(artistsTable).where(eq(artistsTable.id, parseInt(artistId)));
-      if (updated) {
-        const [freePlan] = await db.select().from(plansTable).where(eq(plansTable.nome, FREE_PLAN));
-        if (freePlan) {
-          await db
-            .update(artistsTable)
-            .set({
-              limiteMusicas: String(freePlan.limiteMusicas),
-              personalizacaoPercent: String(freePlan.personalizacaoPercent),
-            })
-            .where(eq(artistsTable.id, parseInt(artistId)));
-        }
-      }
-
-      console.log(`⏰ Assinatura expirada para artista ${artistId} — plano revertido para ${FREE_PLAN}`);
+      console.log(`⏰ Assinatura expirada para artista ${artistId} — plano revertido para ${FREE_PLAN} (ativo=${freeAllowed})`);
     }
 
     res.json({

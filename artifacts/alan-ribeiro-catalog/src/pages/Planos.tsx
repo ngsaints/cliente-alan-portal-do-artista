@@ -54,7 +54,7 @@ export default function Planos() {
             let color = "bg-primary/20 text-primary border-primary/30";
             let cardStyle = "border-border/40 bg-card/40 hover:border-primary/40";
             
-            if (p.nome === "free") {
+            if (String(p.nome || "").toLowerCase() === "free") {
               tagline = "Plano experimental e limitado para conhecer a experiência.";
               color = "bg-muted text-muted-foreground border-border";
             } else if (p.nome === "basico") {
@@ -142,7 +142,7 @@ export default function Planos() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
             {plans.map((plan) => {
               const isFeatured = plan.nome === heroFeaturedPlan;
-              const isFree = plan.nome === "free";
+              const isFree = String(plan.nome || "").toLowerCase() === "free";
 
               return (
                 <motion.div

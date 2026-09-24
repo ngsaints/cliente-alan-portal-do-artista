@@ -1,0 +1,17 @@
+Fala Alan, beleza?
+
+Entendi o BO: amador tava marcando VIP/Reservado e a música sumia do site.
+
+Deixei modular no teu admin. Em **Configurações → Portal → Recursos do Painel do Artista** agora tem 2 chaves:
+
+- **Permitir marcar músicas como VIP**
+- **Permitir status Reservado nas músicas**
+
+Quando tu desliga:
+- some o checkbox VIP e o botão Reservado do painel do artista
+- músicas que já estavam VIP/Reservado passam a aparecer normal no site (não somem mais)
+- ninguém consegue marcar pelo painel (a API bloqueia também)
+
+Liga/desliga quando quiser, sem deploy.
+
+Typecheck OK.

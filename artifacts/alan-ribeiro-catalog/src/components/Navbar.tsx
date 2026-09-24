@@ -36,21 +36,21 @@ export function Navbar() {
     <>
       <nav className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group" onClick={() => setOpen(false)}>
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+          <Link href="/" className="flex items-center gap-2 group shrink-0 min-w-0" onClick={() => setOpen(false)}>
+            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors shrink-0">
               <Music className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-display font-bold text-lg text-foreground tracking-tight">
+            <span className="font-display font-bold text-lg text-foreground tracking-tight whitespace-nowrap truncate">
               Portal <span className="text-primary">do Artista</span>
             </span>
           </Link>
 
           {/* Desktop links */}
-          <div className="hidden sm:flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-1 xl:gap-2 shrink-0">
             {!artistLoggedIn && (
               <Link
                 href="/planos"
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
               >
                 <Star className="w-4 h-4 text-primary" />
                 Planos
@@ -59,7 +59,7 @@ export function Navbar() {
             {artistLoggedIn ? (
               <Link
                 href="/artista/dashboard"
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
               >
                 <LayoutDashboard className="w-4 h-4 text-primary" />
                 Meu Painel
@@ -67,7 +67,7 @@ export function Navbar() {
             ) : (
               <Link
                 href="/artista/login"
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
               >
                 <User className="w-4 h-4 text-primary" />
                 Área do Artista
@@ -75,35 +75,35 @@ export function Navbar() {
             )}
             <Link
               href="/play"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 hover:border-primary/50 transition-all shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 hover:border-primary/50 transition-all shadow-sm"
             >
               <Headphones className="w-3.5 h-3.5" />
               Portal Play
             </Link>
             <Link
               href="/explorar"
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             >
               <Music className="w-4 h-4" />
               Músicas
             </Link>
             <Link
               href="/artistas"
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             >
               <Users className="w-4 h-4" />
               Artistas
             </Link>
             <Link
               href="/artigos"
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             >
               <BookOpen className="w-4 h-4 text-primary" />
               Fique Ligado!
             </Link>
             <Link
               href="/vitrine"
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             >
               <Zap className="w-4 h-4" />
               Vitrine
@@ -111,7 +111,7 @@ export function Navbar() {
             {!artistLoggedIn && (
               <Link
                 href="/planos"
-                className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap text-black bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
               >
                 <Zap className="w-4 h-4" />
                 Assine Agora
@@ -120,7 +120,7 @@ export function Navbar() {
           </div>
 
           {/* Mobile: Assine Agora + hamburger */}
-          <div className="flex sm:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-2 shrink-0">
             {!artistLoggedIn && (
               <Link
                 href="/planos"
@@ -150,7 +150,7 @@ export function Navbar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm sm:hidden"
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
               onClick={() => setOpen(false)}
             />
             <motion.div
@@ -158,7 +158,7 @@ export function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 z-50 w-72 bg-card border-l border-border shadow-2xl sm:hidden flex flex-col"
+              className="fixed top-0 right-0 bottom-0 z-50 w-72 bg-card border-l border-border shadow-2xl lg:hidden flex flex-col"
             >
               <div className="flex items-center justify-between px-4 h-16 border-b border-border/50">
                 <span className="font-display font-bold text-foreground">Menu</span>

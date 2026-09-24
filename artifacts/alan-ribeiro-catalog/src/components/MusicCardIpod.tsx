@@ -5,6 +5,7 @@ import { type Song } from "@workspace/api-client-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatImageUrl } from "@/lib/utils";
+import { useFeatureFlags } from "@/lib/featureFlags";
 
 interface MusicCardIpodProps {
   song: Song;
@@ -47,11 +48,12 @@ export function MusicCardIpod({ song, index, highlighted = false }: MusicCardIpo
     setCardMode,
   } = usePlayer();
   const { toast } = useToast();
+  const featureFlags = useFeatureFlags();
 
   const isThisSong   = currentSong?.id === song.id;
   const isThisPlaying = isThisSong && isPlaying;
 
-  const disponivel = !song.status || song.status === "Disponível";
+  const disponivel = !featureFlags.reservadoEnabled || !song.status || song.status === "Disponível";
   const precoX     = formatPreco(song.precoX);
   const precoY     = formatPreco(song.precoY);
   const isVideo    = song.tipoMidia === "video";

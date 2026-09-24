@@ -2674,6 +2674,8 @@ const SETTING_LABELS: Record<string, string> = {
   portal_email: "E-mail de Contato Principal",
   artist_name: "Nome do Artista Padrão",
   vip_password: "Senha da Área VIP",
+  artist_vip_enabled: "Permitir marcar músicas como VIP",
+  artist_reservado_enabled: "Permitir status Reservado nas músicas",
 
   // Suporte & Atendimento
   suporte_instagram: "Instagram Oficial de Suporte",
@@ -2778,6 +2780,8 @@ function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "openrouter_enabled") return "Habilita a IA para chat, análise e composição com a Vivi.";
   if (key === "replicate_enabled") return "Habilita a geração de músicas cantadas completas no Estúdio Vivi.";
   if (key === "portal_url") return "URL usada em links de retorno e compartilhamentos (ex: https://portaldoartista.com).";
+  if (key === "artist_vip_enabled") return "Desligue para esconder o checkbox VIP do painel do artista. Músicas já marcadas VIP passam a aparecer normalmente no site.";
+  if (key === "artist_reservado_enabled") return "Desligue para esconder o botão Reservado do painel. Músicas reservadas passam a aparecer como disponíveis.";
   if (key === "landing_video_url") return "Link do vídeo no YouTube (ex: https://www.youtube.com/watch?v=...) para a seção de demonstração do portal.";
   if (key === "landing_hero_video_url") return "Link do vídeo exibido no topo da página inicial (YouTube).";
   if (key === "openai_enabled") return "Habilita a API direta da OpenAI para a mentora virtual Vivi (Legado).";
@@ -3937,6 +3941,12 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           icon: FileText,
           description: "Declarações legais e termos exibidos no rodapé do portal.",
           keys: ["footer_copyright", "footer_founder_description", "footer_copyright_protection", "footer_platform_tagline"],
+        },
+        {
+          title: "Recursos do Painel do Artista",
+          icon: Crown,
+          description: "Ligue ou desligue botões que os artistas usam ao cadastrar músicas. Vale para todos os artistas da plataforma.",
+          keys: ["artist_vip_enabled", "artist_reservado_enabled"],
         },
       ];
     }

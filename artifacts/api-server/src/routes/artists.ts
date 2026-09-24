@@ -105,7 +105,14 @@ router.post(
       // Check if artist already exists
       const existingArtist = await db.select().from(artistsTable).where(eq(artistsTable.email, email));
       if (existingArtist.length > 0) {
-        res.status(409).json({ error: "Email já cadastrado" });
+        res.status(409).json({
+          error: "Email já cadastrado",
+          code: "EMAIL_ALREADY_REGISTERED",
+          action: "login_and_upgrade",
+          message: "Você já tem conta com este email. Faça login e assine o plano pelo Painel do Artista (aba Plano) — não é preciso criar outro cadastro.",
+          loginUrl: "/artista/login",
+          dashboardUrl: "/artista/dashboard",
+        });
         return;
       }
 
@@ -116,9 +123,30 @@ router.post(
       let limiteMusicas = "2";
       let personalizacaoPercent = "10";
       const selectedPlano = normalizedPlano || "free";
-      
-      // Buscar configurações do plano no banco
-      const plans = await db.select().from(plansTable).where(eq(plansTable.nome, selectedPlano));
+
+      // Buscar configurações do plano no banco (case-insensitive: "free"/"FREE")
+      // Inclui planos inativos para rejeitar free desativado com mensagem clara.
+      const plans = await db.select().from(plansTable).where(sql`lower(${plansTable.nome}) = ${selectedPlano}`);
+
+      // Plano free desativado/removido: não cria conta free fantasma.
+      if (selectedPlano === "free") {
+        const freePlan = plans[0];
+        if (!freePlan || freePlan.ativo === false) {
+          res.status(403).json({
+            error: "O plano gratuito não está mais disponível. Escolha um plano pago para continuar.",
+            code: "FREE_PLAN_DISABLED",
+            action: "choose_paid_plan",
+          });
+          return;
+        }
+      } else if (plans.length === 0) {
+        res.status(404).json({ error: "Plano não encontrado" });
+        return;
+      } else if (plans[0].ativo === false) {
+        res.status(403).json({ error: "Este plano não está disponível no momento." });
+        return;
+      }
+
       if (plans.length > 0) {
         limiteMusicas = String(plans[0].limiteMusicas);
         personalizacaoPercent = String(plans[0].personalizacaoPercent);
@@ -207,10 +235,12 @@ router.post(
           spotify: spotify || null,
           capaUrl,
           bannerUrl,
-          plano: (isPaid && !paidPlanActivatedDirectly) ? "free" : selectedPlano,
-          planoAtivo: true,
-          limiteMusicas: (isPaid && !paidPlanActivatedDirectly) ? "4" : limiteMusicas,
-          personalizacaoPercent: (isPaid && !paidPlanActivatedDirectly) ? "10" : personalizacaoPercent,
+          // Plano pago aguardando pagamento: NÃO ganha free ativo — fica com o plano
+          // escolhido inativo (sem limites) até o webhook/ativação direta confirmar.
+          plano: selectedPlano,
+          planoAtivo: !(isPaid && !paidPlanActivatedDirectly),
+          limiteMusicas: (isPaid && !paidPlanActivatedDirectly) ? "0" : limiteMusicas,
+          personalizacaoPercent: (isPaid && !paidPlanActivatedDirectly) ? "0" : personalizacaoPercent,
           musicaCount: "0",
         })
         .returning();

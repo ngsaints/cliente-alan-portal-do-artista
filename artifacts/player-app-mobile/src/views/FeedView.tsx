@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Flame, Play, Music, UserCheck, Smartphone } from 'lucide-react';
+import { Flame, Play, Music, UserCheck, Radio } from 'lucide-react';
 import { SongItem, ArtistItem } from '../types/music';
 import { fetchExploreSongs, fetchExploreArtists, artistProfileUrl } from '../services/portalApi';
 import { SongCard } from '../components/SongCard';
@@ -32,9 +32,9 @@ export const FeedView: React.FC<{ onOpenExplore?: () => void }> = ({ onOpenExplo
       {/* Header Badge */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f5c518]/10 border border-[#f5c518]/30 text-[#f5c518] text-[11px] font-extrabold uppercase tracking-wider mb-1">
-            <Sparkles className="w-3.5 h-3.5" />
-            Portal do Artista Player
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f5c518]/10 border border-[#f5c518]/30 text-[#f5c518] text-[11px] font-extrabold uppercase tracking-wider mb-1 whitespace-nowrap">
+            <Radio className="w-3.5 h-3.5 shrink-0" />
+            Portal do Artista Play
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">
             Compositores do Portal
@@ -63,8 +63,8 @@ export const FeedView: React.FC<{ onOpenExplore?: () => void }> = ({ onOpenExplo
               />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#f5c518] text-black inline-block mb-1">
-                🔥 DESTAQUE DA SEMANA
+              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#f5c518] text-black inline-flex items-center gap-1 mb-1">
+                <Flame className="w-3 h-3" /> Destaque da semana
               </span>
               <h3 className="text-base font-extrabold text-white truncate">
                 {featuredSong.titulo}

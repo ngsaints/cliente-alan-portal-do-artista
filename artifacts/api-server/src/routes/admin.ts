@@ -389,6 +389,8 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "footer_founder_description", value: "Portal desenvolvido e mantido por Alan Ribeiro, fundador do Portaldoartista.com e desenvolvedor de soluções digitais voltadas à valorização e profissionalização de artistas independentes.", desc: "Rodapé: Descrição do Fundador" },
         { key: "footer_copyright_protection", value: "Todo o conteúdo, identidade visual, estrutura da plataforma, códigos, layout, recursos e funcionalidades são protegidos pela legislação de direitos autorais. É proibida a reprodução, distribuição, modificação ou utilização total ou parcial sem autorização prévia.", desc: "Rodapé: Proteção Autoral" },
         { key: "footer_platform_tagline", value: "A maior plataforma de gestão de carreira para artistas da música.", desc: "Rodapé: Slogan da Plataforma" },
+        { key: "artist_vip_enabled", value: "true", desc: "Mostra o checkbox VIP no painel do artista" },
+        { key: "artist_reservado_enabled", value: "true", desc: "Mostra o botão Reservado no painel do artista" },
       ];
       
       for (const item of keysToEnsure) {
@@ -495,11 +497,6 @@ router.get("/admin/artists", async (req, res): Promise<void> => {
     // Atualizar artistas no banco que estejam com limites antigos
     await db.update(artistsTable).set({ limiteMusicas: "4" }).where(eq(artistsTable.plano, "free"));
     await db.update(artistsTable).set({ limiteMusicas: "50" }).where(eq(artistsTable.plano, "premium"));
-
-    // Limpar checkouts não pagos/abandonados (planoAtivo = false) revertendo para o plano Free ativo
-    await db.update(artistsTable)
-      .set({ plano: "free", planoAtivo: true, limiteMusicas: "4", personalizacaoPercent: "10" })
-      .where(eq(artistsTable.planoAtivo, false));
 
     const [artists, allPlans] = await Promise.all([
       db.select().from(artistsTable).orderBy(artistsTable.createdAt),

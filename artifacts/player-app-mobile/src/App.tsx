@@ -9,22 +9,24 @@ import { LibraryView } from './views/LibraryView';
 import { LocalSongsView } from './views/LocalSongsView';
 
 export function AppContent() {
-  const [activeTab, setActiveTab] = useState<TabType>('local');
+  const [activeTab, setActiveTab] = useState<TabType>('feed');
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-white flex flex-col justify-between selection:bg-[#f5c518] selection:text-black">
       {/* Top Mobile Bar Status */}
       <header className="sticky top-0 z-30 bg-[#0d0d0d]/90 backdrop-blur-xl border-b border-white/5 px-4 py-3 max-w-lg mx-auto w-full flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#f5c518] to-amber-200 flex items-center justify-center text-black font-black text-xs shadow-md">
-            PA
-          </div>
-          <span className="font-extrabold text-sm tracking-tight text-white">
-            Portal do Artista <span className="text-[#f5c518] text-xs font-mono font-normal">Player</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <img
+            src="./favicon.svg"
+            alt="Portal do Artista"
+            className="w-7 h-7 rounded-xl shadow-md shrink-0"
+          />
+          <span className="font-extrabold text-sm tracking-tight text-white whitespace-nowrap truncate">
+            Portal do Artista <span className="text-[#f5c518] text-xs font-mono font-normal">Play</span>
           </span>
         </div>
-        <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-mono text-white/50">
-          Player local
+        <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-mono text-white/50 whitespace-nowrap shrink-0">
+          Streaming & Catálogo
         </span>
       </header>
 

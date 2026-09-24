@@ -85,8 +85,8 @@ export const LocalSongsView: React.FC = () => {
           <HardDrive className="w-3.5 h-3.5" />
           Armazenamento Local
         </div>
-        <h1 className="text-2xl font-black text-white flex items-center gap-2">
-          <Smartphone className="w-6 h-6 text-[#f5c518]" />
+        <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+          <Smartphone className="w-6 h-6 text-[#f5c518] shrink-0" />
           Músicas no Aparelho
         </h1>
         <p className="text-xs text-white/50 mt-1">

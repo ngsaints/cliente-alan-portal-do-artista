@@ -4,6 +4,7 @@ import { db, songsTable, artistsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { uploadToR2, deleteFromR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { isValidImage } from "../lib/image-utils.js";
+import { getSetting } from "./settings.js";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
@@ -16,6 +17,28 @@ const upload = multer({
 const router: IRouter = Router();
 
 const useR2 = !!(process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY);
+
+async function isVipFeatureEnabled(): Promise<boolean> {
+  const value = await getSetting("artist_vip_enabled");
+  return value !== "false";
+}
+
+async function isReservadoFeatureEnabled(): Promise<boolean> {
+  const value = await getSetting("artist_reservado_enabled");
+  return value !== "false";
+}
+
+async function resolveSongStatus(status: string | undefined): Promise<string | undefined> {
+  if (!status) return undefined;
+  if (status === "Reservado" && !(await isReservadoFeatureEnabled())) return "Disponível";
+  return status;
+}
+
+async function resolveVipFlag(isVip: unknown): Promise<boolean> {
+  const requested = isVip === "true" || isVip === true || isVip === "1";
+  if (!requested) return false;
+  return isVipFeatureEnabled();
+}
 
 // Aceita formato brasileiro de preço ("50,00", "R$ 50,00", "1.234,50" ou "50.00") e normaliza para "50.00"/"1234.50".
 // Retorna null para valores vazios/ausentes (limpa o campo) e a string numérica para valores válidos.
@@ -228,8 +251,9 @@ router.post(
         }
       }
 
-      const vipFlag = isVip === "true" || isVip === "1";
+      const vipFlag = await resolveVipFlag(isVip);
       const privateFlag = isPrivate === "true" || isPrivate === "1";
+      const resolvedStatus = (await resolveSongStatus(status)) || "Disponível";
 
       const [song] = await db
         .insert(songsTable)
@@ -244,7 +268,7 @@ router.post(
           edicao: edicao || null,
           distribuicao: distribuicao || null,
           associacao: associacao || null,
-          status: status || "Disponível",
+          status: resolvedStatus,
           precoX: _precoX,
           precoY: _precoY,
           capaPath: capaPath || null,
@@ -364,8 +388,9 @@ router.put(
         }
       }
 
-      const vipFlag = isVip === "true" || isVip === true;
+      const vipFlag = await resolveVipFlag(isVip);
       const privateFlag = isPrivate === "true" || isPrivate === true;
+      const resolvedStatus = await resolveSongStatus(status);
 
       const [updated] = await db
         .update(songsTable)
@@ -379,7 +404,7 @@ router.put(
           edicao: edicao !== undefined ? (edicao || null) : undefined,
           distribuicao: distribuicao !== undefined ? (distribuicao || null) : undefined,
           associacao: associacao !== undefined ? (associacao || null) : undefined,
-          ...(status ? { status } : {}),
+          ...(resolvedStatus ? { status: resolvedStatus } : {}),
           precoX: precoX !== undefined ? (_precoX !== null ? _precoX : null) : undefined,
           precoY: precoY !== undefined ? (_precoY !== null ? _precoY : null) : undefined,
           ...(tipoMidia ? { tipoMidia } : {}),

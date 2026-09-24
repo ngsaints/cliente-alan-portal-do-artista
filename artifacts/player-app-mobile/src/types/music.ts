@@ -12,6 +12,12 @@ export interface SongItem {
   fileBlob?: Blob;
   addedAt?: number;
   artistaSlug?: string;
+  artistaId?: string | number | null;
+  artistaFoto?: string | null;
+  plays?: number;
+  likes?: number;
+  status?: string | null;
+  youtubeUrl?: string | null;
 }
 
 export interface ArtistItem {

@@ -62,6 +62,8 @@ router.get("/settings", async (_req, res): Promise<void> => {
   let landingHeroSubtitle: string | null = null;
   let landingHeroCta: string | null = null;
   let heroFeaturedPlan: string | null = null;
+  let artistVipEnabled = true;
+  let artistReservadoEnabled = true;
 
   let landingHeroMockupUrl: string | null = null;
   let landingFeature01Url: string | null = null;
@@ -91,6 +93,8 @@ router.get("/settings", async (_req, res): Promise<void> => {
       if (r.key === "landing_hero_mockup_url") landingHeroMockupUrl = r.value;
       if (r.key === "landing_feature01_url") landingFeature01Url = r.value;
       if (r.key === "landing_feature02_url") landingFeature02Url = r.value;
+      if (r.key === "artist_vip_enabled") artistVipEnabled = r.value !== "false";
+      if (r.key === "artist_reservado_enabled") artistReservadoEnabled = r.value !== "false";
 
       if (r.value) {
         portalSettingsObj[r.key] = r.value;
@@ -175,6 +179,8 @@ router.get("/settings", async (_req, res): Promise<void> => {
     landingHeroSubtitle: landingHeroSubtitle || "Pare de enviar apenas um MP3. Crie sua página profissional, organize sua carreira e apresente suas músicas como um artista profissional.",
     landingHeroCta: landingHeroCta || "COMEÇAR AGORA",
     heroFeaturedPlan: heroFeaturedPlan || "premium",
+    artistVipEnabled,
+    artistReservadoEnabled,
     landingHeroMockupUrl: landingHeroMockupUrl || "/images/hero_mockup.jpg",
     landingFeature01Url: landingFeature01Url || "/images/feature_profile_site_3d.jpg",
     landingFeature02Url: landingFeature02Url || "/images/catalog_preview.png",

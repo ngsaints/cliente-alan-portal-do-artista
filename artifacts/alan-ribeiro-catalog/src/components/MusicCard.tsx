@@ -7,6 +7,7 @@ import { MusicCardIpod } from "@/components/MusicCardIpod";
 import { type CardStyle } from "@/contexts/PlayerContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatImageUrl } from "@/lib/utils";
+import { useFeatureFlags } from "@/lib/featureFlags";
 
 interface MusicCardProps {
   song: Song;
@@ -43,8 +44,9 @@ export function MusicCard({ song, index, cardStyle = "default", highlighted = fa
 
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayer();
   const { toast } = useToast();
+  const featureFlags = useFeatureFlags();
   const isThisPlaying = currentSong?.id === song.id && isPlaying;
-  const disponivel = !song.status || song.status === "Disponível";
+  const disponivel = !featureFlags.reservadoEnabled || !song.status || song.status === "Disponível";
   const precoX = formatPreco(song.precoX);
   const precoY = formatPreco(song.precoY);
 

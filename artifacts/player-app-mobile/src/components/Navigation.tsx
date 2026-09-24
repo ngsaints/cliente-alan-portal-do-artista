@@ -10,10 +10,10 @@ interface NavigationProps {
 
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
   const tabs = [
-    { id: 'local' as TabType, label: 'Aparelho', icon: Smartphone },
-    { id: 'library' as TabType, label: 'Biblioteca', icon: Library },
     { id: 'feed' as TabType, label: 'Portal', icon: Home },
     { id: 'explore' as TabType, label: 'Explorar', icon: Compass },
+    { id: 'library' as TabType, label: 'Biblioteca', icon: Library },
+    { id: 'local' as TabType, label: 'Aparelho', icon: Smartphone },
   ];
 
   return (
@@ -26,7 +26,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all cursor-pointer ${
+              className={`flex flex-col items-center gap-1 py-1 px-1 sm:px-3 rounded-xl transition-all cursor-pointer flex-1 min-w-0 ${
                 isActive
                   ? 'text-[#f5c518] scale-105 font-bold'
                   : 'text-white/50 hover:text-white/80 font-medium'
@@ -38,7 +38,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
                   <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#f5c518] shadow-[0_0_8px_#f5c518]" />
                 )}
               </div>
-              <span className="text-[10px] tracking-tight">{tab.label}</span>
+              <span className="text-[10px] tracking-tight whitespace-nowrap leading-none">{tab.label}</span>
             </button>
           );
         })}

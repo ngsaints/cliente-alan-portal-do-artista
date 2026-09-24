@@ -26,6 +26,7 @@ import ArticleDetail from "@/pages/ArticleDetail";
 import PortalPlay from "@/pages/PortalPlay";
 import NotFound from "@/pages/not-found";
 import { ExitIntentModal } from "@/components/ExitIntentModal";
+import { applyFeatureFlagsFromSettings } from "@/lib/featureFlags";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +72,8 @@ function App() {
     fetch("/api/settings")
       .then((res) => res.json())
       .then((data) => {
+        applyFeatureFlagsFromSettings(data);
+
         // 1. Microsoft Clarity
         if (data.clarityProjectId) {
           Clarity.init(data.clarityProjectId);

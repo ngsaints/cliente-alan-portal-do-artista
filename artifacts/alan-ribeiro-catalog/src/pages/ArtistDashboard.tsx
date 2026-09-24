@@ -22,6 +22,7 @@ import { Navbar } from "@/components/Navbar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useGenres } from "@/hooks/useGenres";
 import { usePlayer, PlayerStyle } from "@/contexts/PlayerContext";
+import { useFeatureFlags } from "@/lib/featureFlags";
 import { useToast } from "@/hooks/use-toast";
 import { formatImageUrl } from "@/lib/utils";
 import { ViviStudio } from "@/components/ViviStudio";
@@ -66,7 +67,10 @@ interface ArtistProfile {
 }
 
 const DEFAULT_PLANS = [
-  { id: "free", label: "Gratuito", preco: "0", limiteMusicas: 2 },
+  { id: "basico", label: "Básico", preco: "19.90", limiteMusicas: 20 },
+  { id: "intermediario", label: "Intermediário", preco: "39.90", limiteMusicas: 60 },
+  { id: "pro", label: "Profissional", preco: "79.90", limiteMusicas: 100 },
+  { id: "premium", label: "Premium", preco: "149.90", limiteMusicas: 150 },
 ];
 
 const FONTS = [
@@ -660,6 +664,13 @@ export default function ArtistDashboard() {
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<any | null>(null);
   const { autoPlayPlaylist, setAutoPlayPlaylist, setPlayerColors, setPlayerStyle } = usePlayer();
+  const featureFlags = useFeatureFlags();
+  const vipEnabled = featureFlags.vipEnabled;
+  const reservadoEnabled = featureFlags.reservadoEnabled;
+
+  useEffect(() => {
+    if (!vipEnabled && activeTab === "vip") setActiveTab("dashboard");
+  }, [vipEnabled, activeTab]);
 
   const tabs: { id: TabId; label: string; icon: any }[] = [
     { id: "mentor",         label: "Gerar Música IA",      icon: Sparkles       },
@@ -668,7 +679,7 @@ export default function ArtistDashboard() {
     { id: "playlists",      label: "Playlists",            icon: ListMusic      },
     { id: "gallery",        label: "Galeria",              icon: Image          },
     { id: "profile",        label: "Perfil",               icon: User           },
-    { id: "vip",            label: "VIP",                  icon: Crown          },
+    ...(vipEnabled ? [{ id: "vip" as TabId, label: "VIP", icon: Crown }] : []),
     { id: "plano",          label: "Plano",                icon: CreditCard     },
     { id: "interesses",     label: "Interesses",           icon: MessageSquare  },
     ...(artist?.canPostArticles ? [{ id: "artigos" as TabId, label: "Meus Artigos", icon: BookOpen }] : []),
@@ -971,10 +982,23 @@ export default function ArtistDashboard() {
       if (data.activatedDirectly) {
         alert("Plano ativado com sucesso!");
         loadData();
+      } else if (data.pixDetails?.payload) {
+        // PIX: mostra o QR Code no modal em vez de abrir nova aba
+        setPixModalData({
+          encodedImage: data.pixDetails.encodedImage || "",
+          payload: data.pixDetails.payload || "",
+          expirationDate: data.pixDetails.expirationDate || "",
+          invoiceUrl: data.invoiceUrl ?? undefined,
+        });
       } else if (data.invoiceUrl) {
         window.open(data.invoiceUrl, "_blank");
       } else if (data.error) {
-        alert(data.error);
+        if (data.code === "DOCUMENT_REQUIRED") {
+          alert("Para assinar, preencha seu CPF ou CNPJ na aba Perfil (campo 'CPF ou CNPJ') e tente de novo. Vou te levar até lá.");
+          setActiveTab("profile");
+        } else {
+          alert(data.error);
+        }
       }
     } catch (err) {
       alert("Erro ao processar pagamento");
@@ -1016,7 +1040,9 @@ export default function ArtistDashboard() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert("Plano cancelado com sucesso. Você foi movido para o plano gratuito.");
+        alert(data.freeAllowed === false
+          ? (data.message || "Plano cancelado. O free não está mais disponível — assine um plano para reativar o perfil.")
+          : "Plano cancelado com sucesso.");
         loadData();
       } else {
         alert(data.error || "Erro ao cancelar plano");
@@ -1073,6 +1099,7 @@ export default function ArtistDashboard() {
 
   const handleToggleSongStatus = async (song: any) => {
     if (!artist?.id) return;
+    if (!reservadoEnabled) return;
     const nextStatus = song.status === "Reservado" ? "Disponível" : "Reservado";
     try {
       const formData = new FormData();
@@ -1119,6 +1146,9 @@ export default function ArtistDashboard() {
       formData.set("precoX", "");
       formData.set("precoY", "");
     }
+
+    if (!vipEnabled) formData.set("isVip", "false");
+    if (!reservadoEnabled && formData.get("status") === "Reservado") formData.set("status", "Disponível");
 
     if (artist) {
       formData.append("artistaId", String(artist.id));
@@ -1432,7 +1462,7 @@ export default function ArtistDashboard() {
                   </div>
                 </button>
                 {/* Alerta de pagamento pendente */}
-                {artist && artist.plano !== "free" && !artist.planoAtivo && (
+                {artist && String(artist.plano || "").toLowerCase() !== "free" && !artist.planoAtivo && (
                   <div className="p-4.5 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-lg">
                     <div className="flex items-start gap-3">
                       <Zap className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5 animate-pulse" />
@@ -1533,7 +1563,7 @@ export default function ArtistDashboard() {
                       {(() => {
                         const completion = getProfileCompletion().percent;
                         const hasSongs = songs.length > 0;
-                        const isFree = artist?.plano === "free";
+                        const isFree = String(artist?.plano || "").toLowerCase() === "free";
                         
                         if (hasSongs && completion < 100) {
                           return (
@@ -1831,17 +1861,19 @@ export default function ArtistDashboard() {
                     <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Favoritadas por ouvintes</p>
                   </motion.div>
 
-                  <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-yellow-500/40 rounded-2xl p-5 shadow-lg group transition-all">
-                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-yellow-500/10 rounded-full blur-xl group-hover:bg-yellow-500/20 transition-all pointer-events-none" />
-                    <div className="flex items-center justify-between mb-2 relative z-10">
-                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Conteúdo VIP</span>
-                      <div className="w-8 h-8 rounded-lg bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
-                        <Crown className="w-4 h-4" />
+                  {vipEnabled && (
+                    <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden bg-gradient-to-b from-card/90 via-card/60 to-card/40 border border-border/70 hover:border-yellow-500/40 rounded-2xl p-5 shadow-lg group transition-all">
+                      <div className="absolute -top-10 -right-10 w-24 h-24 bg-yellow-500/10 rounded-full blur-xl group-hover:bg-yellow-500/20 transition-all pointer-events-none" />
+                      <div className="flex items-center justify-between mb-2 relative z-10">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Conteúdo VIP</span>
+                        <div className="w-8 h-8 rounded-lg bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
+                          <Crown className="w-4 h-4" />
+                        </div>
                       </div>
-                    </div>
-                    <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{stats.vipContent}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Faixas protegidas por senha</p>
-                  </motion.div>
+                      <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{stats.vipContent}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 relative z-10 font-medium">Faixas protegidas por senha</p>
+                    </motion.div>
+                  )}
                 </div>
               </div>
             )}
@@ -1949,7 +1981,7 @@ export default function ArtistDashboard() {
                             type="button"
                             onClick={() => setNewSong({ ...newSong, status: "Disponível" })}
                             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                              newSong.status === "Disponível" || !newSong.status
+                              newSong.status === "Disponível" || !newSong.status || !reservadoEnabled
                                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-sm"
                                 : "bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground"
                             }`}
@@ -1957,31 +1989,37 @@ export default function ArtistDashboard() {
                             <span className="w-2 h-2 rounded-full bg-emerald-400" />
                             Disponível para Gravação
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setNewSong({ ...newSong, status: "Reservado" })}
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                              newSong.status === "Reservado"
-                                ? "bg-amber-500/20 text-amber-400 border border-amber-500/50 shadow-sm"
-                                : "bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            <span className="w-2 h-2 rounded-full bg-amber-400" />
-                            Reservado / Em Negociação
-                          </button>
+                          {reservadoEnabled && (
+                            <button
+                              type="button"
+                              onClick={() => setNewSong({ ...newSong, status: "Reservado" })}
+                              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                                newSong.status === "Reservado"
+                                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/50 shadow-sm"
+                                  : "bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              <span className="w-2 h-2 rounded-full bg-amber-400" />
+                              Reservado / Em Negociação
+                            </button>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="isVip" checked={newSong.isVip === "true"} onChange={e => setNewSong({...newSong, isVip: e.target.checked ? "true" : "false"})} className="accent-primary" />
-                        <label htmlFor="isVip" className="text-sm text-muted-foreground">Conteúdo VIP</label>
-                      </div>
-                      {newSong.isVip === "true" && (
-                        <div>
-                          <label className="block text-sm font-medium text-muted-foreground mb-1">Código de Acesso VIP</label>
-                          <input value={newSong.vipCode} onChange={e => setNewSong({...newSong, vipCode: e.target.value})} placeholder="Código para acessar"
-                            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground" />
-                        </div>
+                      {vipEnabled && (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <input type="checkbox" id="isVip" checked={newSong.isVip === "true"} onChange={e => setNewSong({...newSong, isVip: e.target.checked ? "true" : "false"})} className="accent-primary" />
+                            <label htmlFor="isVip" className="text-sm text-muted-foreground">Conteúdo VIP</label>
+                          </div>
+                          {newSong.isVip === "true" && (
+                            <div>
+                              <label className="block text-sm font-medium text-muted-foreground mb-1">Código de Acesso VIP</label>
+                              <input value={newSong.vipCode} onChange={e => setNewSong({...newSong, vipCode: e.target.value})} placeholder="Código para acessar"
+                                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground" />
+                            </div>
+                          )}
+                        </>
                       )}
 
                       <div className="flex items-center gap-2">
@@ -2046,19 +2084,26 @@ export default function ArtistDashboard() {
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-xs text-muted-foreground">{song.genero}</span>
                             <span className="text-xs text-muted-foreground">·</span>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleSongStatus(song)}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 ${
-                                song.status === "Reservado"
-                                  ? "bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25"
-                                  : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25"
-                              }`}
-                              title="Clique para alternar entre Disponível e Reservado"
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${song.status === "Reservado" ? "bg-amber-400" : "bg-emerald-400 animate-pulse"}`} />
-                              {song.status || "Disponível"}
-                            </button>
+                            {reservadoEnabled ? (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSongStatus(song)}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                                  song.status === "Reservado"
+                                    ? "bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25"
+                                    : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25"
+                                }`}
+                                title="Clique para alternar entre Disponível e Reservado"
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${song.status === "Reservado" ? "bg-amber-400" : "bg-emerald-400 animate-pulse"}`} />
+                                {song.status || "Disponível"}
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                Disponível
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{Number(song.likes) || 0}</span>
@@ -2965,7 +3010,7 @@ export default function ArtistDashboard() {
                             likes: "340"
                           }
                         ]).map((song) => {
-                          const disponivel = song.status === "Disponível";
+                          const disponivel = !reservadoEnabled || song.status === "Disponível" || !song.status;
                           const accent = editCustom.playerGradient || editCustom.playerCor || "#f5c518";
 
                           if (editCustom.cardStyle === "ipod") {
@@ -3226,7 +3271,7 @@ export default function ArtistDashboard() {
                   </div>
                 </div>
 
-                {artist?.plano && artist.plano !== "free" && (
+                {artist?.plano && String(artist.plano || "").toLowerCase() !== "free" && (
                   <div className="mb-6">
                     <button
                       onClick={handleCancelPlan}
@@ -3303,7 +3348,18 @@ export default function ArtistDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {(dbPlans.length > 0 ? dbPlans : DEFAULT_PLANS).filter(p => p.id !== artist?.plano).map((plan) => {
+                  {(dbPlans.length > 0 ? dbPlans : DEFAULT_PLANS)
+                    .filter(p => {
+                      const planId = String(p.id || "").toLowerCase();
+                      const current = String(artist?.plano || "").toLowerCase();
+                      // Free não aparece como opção de upgrade (cancelar é outro botão).
+                      if (planId === "free") return false;
+                      // Plano atual só aparece se ainda NÃO estiver ativo (pendente de pagamento)
+                      // — assim o artista consegue retomar o checkout.
+                      if (planId === current) return artist?.planoAtivo === false;
+                      return true;
+                    })
+                    .map((plan) => {
                     const showDiscount = planCouponResult && selectedPlanId === plan.id;
                     return (
                     <div 

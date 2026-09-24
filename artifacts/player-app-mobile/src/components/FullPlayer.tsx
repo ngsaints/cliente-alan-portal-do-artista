@@ -12,8 +12,6 @@ import {
   Volume2,
   VolumeX,
   Share2,
-  Smartphone,
-  Music,
 } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 
@@ -44,6 +42,7 @@ export const FullPlayer: React.FC = () => {
     toggleRepeatMode,
     favorites,
     toggleLike,
+    shareSong,
     isFullPlayerOpen,
     setIsFullPlayerOpen,
   } = usePlayer();
@@ -88,12 +87,23 @@ export const FullPlayer: React.FC = () => {
               {currentSong.isLocal ? 'Música do Seu Aparelho' : 'Portal do Artista'}
             </p>
           </div>
-          <button
-            onClick={() => toggleLike(currentSong.id)}
-            className="p-2 rounded-full bg-white/5 text-white/70 hover:text-[#f5c518] transition-colors cursor-pointer"
-          >
-            <Heart className={`w-5 h-5 ${isLiked ? 'fill-[#f5c518] text-[#f5c518]' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => currentSong && shareSong(currentSong)}
+              className="p-2 rounded-full bg-white/5 text-white/70 hover:text-[#f5c518] transition-colors cursor-pointer"
+              aria-label="Compartilhar música"
+              title="Compartilhar"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => toggleLike(currentSong.id)}
+              className="p-2 rounded-full bg-white/5 text-white/70 hover:text-[#f5c518] transition-colors cursor-pointer"
+              aria-label="Favoritar"
+            >
+              <Heart className={`w-5 h-5 ${isLiked ? 'fill-[#f5c518] text-[#f5c518]' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {/* Main Artwork Showcase */}

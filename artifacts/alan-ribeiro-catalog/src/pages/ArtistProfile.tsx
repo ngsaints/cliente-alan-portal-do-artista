@@ -16,6 +16,7 @@ import { InterestModal } from "@/components/InterestModal";
 import { useSEO } from "@/hooks/useSEO";
 import { Footer } from "@/components/Footer";
 import { formatImageUrl } from "@/lib/utils";
+import { useFeatureFlags } from "@/lib/featureFlags";
 
 
 
@@ -123,7 +124,7 @@ export default function ArtistProfile() {
 
   const handleSelectPlan = async (planId: string, couponCode?: string) => {
     setPlansModalOpen(false);
-    if (planId === "free") {
+    if (String(planId || "").toLowerCase() === "free") {
       if (artistLoggedIn && loggedInArtistId) {
         const res = await fetch("/api/payments/cancel-subscription", {
           method: "POST",
@@ -133,12 +134,14 @@ export default function ArtistProfile() {
         });
         const data = await res.json();
         if (res.ok) {
-          alert("Você foi movido para o plano gratuito.");
+          alert(data.freeAllowed === false
+            ? (data.message || "Plano cancelado. O free não está mais disponível — assine um plano para reativar.")
+            : "Você foi movido para o plano gratuito.");
         } else {
           alert(data.error || "Erro ao mudar para plano gratuito");
         }
       } else {
-        setLocation("/cadastro?plano=free");
+        setLocation("/planos");
       }
       return;
     }
@@ -154,8 +157,16 @@ export default function ArtistProfile() {
         alert("Plano ativado com sucesso!");
       } else if (data.invoiceUrl) {
         window.location.href = data.invoiceUrl;
+      } else if (data.pixDetails?.payload) {
+        // PIX sem invoiceUrl: leva ao painel, onde o QR Code abre no modal
+        setLocation("/artista/dashboard");
       } else if (data.error) {
-        alert(data.error);
+        if (data.code === "DOCUMENT_REQUIRED") {
+          alert("Para assinar, preencha seu CPF ou CNPJ na aba Perfil do seu painel e tente de novo. Vou te levar até lá.");
+          setLocation("/artista/dashboard");
+        } else {
+          alert(data.error);
+        }
       }
     } else {
       setLocation(`/cadastro?plano=${planId}`);
@@ -167,8 +178,13 @@ export default function ArtistProfile() {
   const { data: songs, isLoading } = useListSongs({
     genre: selectedGenre || undefined,
   });
+  const featureFlags = useFeatureFlags();
 
-  const artistSongs = (songs || []).filter((s: any) => !s.isVip && !(s as any).isPrivate && (s as any).artistaId == numericArtistId);
+  const artistSongs = (songs || []).filter((s: any) =>
+    !(featureFlags.vipEnabled && s.isVip) &&
+    !(s as any).isPrivate &&
+    (s as any).artistaId == numericArtistId
+  );
 
   const isGroup = artistData?.profissao && (
     artistData.profissao.toLowerCase().includes("banda") ||
@@ -605,16 +621,18 @@ export default function ArtistProfile() {
             )}
 
             {/* VIP Button */}
-            <Link
-              href={`/artista/${artistData?.id ?? slug}/vip`}
-              className="flex items-center justify-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 hover:bg-yellow-500/20 transition-colors"
-            >
-              <Star className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-              <div className="text-left">
-                <p className="text-xs text-yellow-500 font-bold">Área VIP</p>
-                <p className="text-xs text-muted-foreground">Conteúdo exclusivo</p>
-              </div>
-            </Link>
+            {featureFlags.vipEnabled && (
+              <Link
+                href={`/artista/${artistData?.id ?? slug}/vip`}
+                className="flex items-center justify-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 hover:bg-yellow-500/20 transition-colors"
+              >
+                <Star className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+                <div className="text-left">
+                  <p className="text-xs text-yellow-500 font-bold">Área VIP</p>
+                  <p className="text-xs text-muted-foreground">Conteúdo exclusivo</p>
+                </div>
+              </Link>
+            )}
           </div>
 
           {/* Biografia Oficial do Artista */}

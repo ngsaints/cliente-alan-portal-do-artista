@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { InterestModal } from "@/components/InterestModal";
 import { useSEO } from "@/hooks/useSEO";
+import { useFeatureFlags } from "@/lib/featureFlags";
 
 interface SongData {
   id: number;
@@ -56,6 +57,7 @@ function formatPreco(val: string | number | null | undefined) {
 export default function PortalPlay() {
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayer();
   const { toast } = useToast();
+  const featureFlags = useFeatureFlags();
 
   const [songs, setSongs] = useState<SongData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -278,7 +280,7 @@ export default function PortalPlay() {
             {filteredSongs.map((song) => {
               const isThisSong = currentSong?.id === song.id;
               const isThisPlaying = isThisSong && isPlaying;
-              const disponivel = !song.status || song.status === "Disponível";
+              const disponivel = !featureFlags.reservadoEnabled || !song.status || song.status === "Disponível";
               const precoX = formatPreco(song.precoX);
               const precoY = formatPreco(song.precoY);
 

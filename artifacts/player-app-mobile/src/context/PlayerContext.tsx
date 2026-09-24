@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { SongItem } from '../types/music';
 import { getFavorites, toggleFavorite as dbToggleFavorite } from '../services/db';
+import { reportPlay, likeRemote, songShareUrl } from '../services/portalApi';
 
 interface PlayerContextType {
   currentSong: SongItem | null;
@@ -25,6 +26,7 @@ interface PlayerContextType {
   toggleShuffle: () => void;
   toggleRepeatMode: () => void;
   toggleLike: (songId: string) => Promise<void>;
+  shareSong: (song: SongItem) => Promise<boolean>;
   setIsFullPlayerOpen: (open: boolean) => void;
 }
 
@@ -86,7 +88,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [repeatMode]);
 
-  const playSong = (song: SongItem, newQueue?: SongItem[]) => {
+  const playSong = useCallback((song: SongItem, newQueue?: SongItem[]) => {
     if (!audioRef.current) return;
     const audio = audioRef.current;
 
@@ -97,7 +99,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     if (currentSong?.id === song.id) {
-      togglePlay();
+      if (isPlaying) {
+        audio.pause();
+        setIsPlaying(false);
+      } else {
+        audio.play()
+          .then(() => setIsPlaying(true))
+          .catch(err => console.error('Erro ao dar play:', err));
+      }
       return;
     }
 
@@ -107,12 +116,31 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     audio.src = playable;
     audio.volume = isMuted ? 0 : volume;
     audio.play()
-      .then(() => setIsPlaying(true))
+      .then(() => {
+        setIsPlaying(true);
+        reportPlay(song.id);
+      })
       .catch(err => {
         console.error('Erro ao iniciar áudio:', err);
         setIsPlaying(false);
       });
-  };
+
+    if ('mediaSession' in navigator && song) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: song.titulo,
+          artist: song.artista,
+          album: song.genero || 'Portal do Artista',
+          artwork: song.capaUrl
+            ? [{ src: song.capaUrl, sizes: '512x512', type: 'image/jpeg' }]
+            : [],
+        });
+      } catch {
+        // MediaSession opcional
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue, currentSong, isPlaying, isMuted, volume]);
 
   const togglePlay = () => {
     if (!audioRef.current || !currentSong) return;
@@ -122,10 +150,27 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsPlaying(false);
     } else {
       audio.play()
-        .then(() => setIsPlaying(true))
+        .then(() => {
+          setIsPlaying(true);
+          reportPlay(currentSong.id);
+        })
         .catch(err => console.error('Erro ao dar play:', err));
     }
   };
+
+  // Controles de mídia do sistema (tela de bloqueio / fones / PWA)
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.setActionHandler('play', () => togglePlay());
+      navigator.mediaSession.setActionHandler('pause', () => togglePlay());
+      navigator.mediaSession.setActionHandler('previoustrack', () => prevSong());
+      navigator.mediaSession.setActionHandler('nexttrack', () => nextSong());
+    } catch {
+      // alguns browsers não suportam todos os handlers
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, queue, currentSong]);
 
   const nextSong = () => {
     if (queue.length === 0 || !currentSong) return;
@@ -191,8 +236,28 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const isLiked = await dbToggleFavorite(songId);
     if (isLiked) {
       setFavorites(prev => [...prev, songId]);
+      likeRemote(songId);
     } else {
       setFavorites(prev => prev.filter(id => id !== songId));
+    }
+  };
+
+  const shareSong = async (song: SongItem): Promise<boolean> => {
+    const url = songShareUrl(song);
+    const text = `${song.titulo} — ${song.artista} no Portal do Artista`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: song.titulo, text, url });
+        return true;
+      }
+    } catch {
+      return false;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      return false;
     }
   };
 
@@ -220,6 +285,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toggleShuffle,
         toggleRepeatMode,
         toggleLike,
+        shareSong,
         setIsFullPlayerOpen,
       }}
     >

@@ -14,11 +14,13 @@ import { useSEO } from "@/hooks/useSEO";
 import { CTACarouselBanner } from "@/components/CTACarouselBanner";
 import { Footer } from "@/components/Footer";
 import { formatImageUrl } from "@/lib/utils";
+import { useFeatureFlags } from "@/lib/featureFlags";
 
 export default function Home() {
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [visibleSongsCount, setVisibleSongsCount] = useState(8);
   const { genres } = useGenres();
+  const featureFlags = useFeatureFlags();
   const [heroSettings, setHeroSettings] = useState<{ title: string | null; subtitle: string | null; cta: string | null }>({ title: null, subtitle: null, cta: null });
   
   useSEO({
@@ -127,7 +129,7 @@ export default function Home() {
 
   // Intercalar dinamicamente as músicas entre diferentes artistas (Round-Robin com Shuffle)
   const filteredSongs = useMemo(() => {
-    const base = (songs || []).filter((s: any) => !(s as any).isVip && !(s as any).isPrivate);
+    const base = (songs || []).filter((s: any) => !(featureFlags.vipEnabled && s.isVip) && !(s as any).isPrivate);
     if (base.length === 0) return [];
 
     // Agrupar faixas por artista
@@ -160,7 +162,7 @@ export default function Home() {
     }
 
     return interleaved;
-  }, [songs]);
+  }, [songs, featureFlags.vipEnabled]);
 
   const highlights = useMemo(() => {
     const dest = filteredSongs.filter((s) => (s as any).destaque);
@@ -263,7 +265,7 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
               <Link
-                href="/cadastro?plano=free"
+                href="/planos"
                 className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:scale-105"
               >
                 <Star className="w-5 h-5" />
@@ -532,7 +534,7 @@ export default function Home() {
             )}
 
             <div className="pt-2 border-t border-border/30">
-              <Link href="/cadastro?plano=free" className="w-full py-2.5 px-3 rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 font-bold text-xs flex items-center justify-center gap-2 transition-all">
+              <Link href="/planos" className="w-full py-2.5 px-3 rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 font-bold text-xs flex items-center justify-center gap-2 transition-all">
                 <Star className="w-3.5 h-3.5" />
                 Divulgar Minha Música
               </Link>

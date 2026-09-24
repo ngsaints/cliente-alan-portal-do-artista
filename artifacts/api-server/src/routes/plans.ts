@@ -15,9 +15,14 @@ router.get("/plans", async (_req, res): Promise<void> => {
   }
 });
 
-// Update artist plan (after payment)
+// Update artist plan — APENAS admin logado (removia bypass de billing sem auth)
 router.put("/artists/:id/plan", async (req, res): Promise<void> => {
   try {
+    if (!req.session.logado) {
+      res.status(401).json({ error: "Não autorizado" });
+      return;
+    }
+
     const { id } = req.params;
     const { plano } = req.body;
 

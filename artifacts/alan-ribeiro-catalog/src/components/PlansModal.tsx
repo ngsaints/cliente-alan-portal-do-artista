@@ -44,7 +44,9 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          const mapped: Plan[] = data.map((p: any) => ({
+          const mapped: Plan[] = data
+            .filter((p: any) => p && p.ativo !== false)
+            .map((p: any) => ({
             id: p.nome,
             nome: p.nome,
             label: p.label,
@@ -96,7 +98,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
     onSelectPlan?.(selectedPlan, couponResult ? couponCode : undefined);
   };
 
-  const isFree = selectedPlan === "free";
+  const isFree = String(selectedPlan || "").toLowerCase() === "free";
   const canConfirm = selectedPlan && (!isFree || isFree);
 
   return (
@@ -142,7 +144,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
               )}
               {!loading && plans.map((plan) => {
                 const isSelected = selectedPlan === plan.id;
-                const planIsFree = plan.id === "free";
+                const planIsFree = String(plan.id || "").toLowerCase() === "free";
                 const showDiscount = couponResult && isSelected && !planIsFree;
 
                 return (

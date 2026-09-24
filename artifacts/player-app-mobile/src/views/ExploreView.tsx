@@ -10,7 +10,7 @@ export const ExploreView: React.FC = () => {
   const [query, setQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState<string>('Todos');
 
-  const genres = ['Todos', ...Array.from(new Set(songs.map((s) => s.genero).filter(Boolean) as string[]))];
+  const genres = ['Todos', ...Array.from(new Set(songs.map((s) => s.genero).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'pt-BR'))];
 
   useEffect(() => {
     async function loadData() {
@@ -41,8 +41,8 @@ export const ExploreView: React.FC = () => {
     <div className="space-y-5 pb-28">
       {/* Title */}
       <div>
-        <h1 className="text-2xl font-black text-white flex items-center gap-2">
-          <Compass className="w-6 h-6 text-[#f5c518]" />
+        <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+          <Compass className="w-6 h-6 text-[#f5c518] shrink-0" />
           Explorar Músicas & Artistas
         </h1>
         <p className="text-xs text-white/50 mt-1">

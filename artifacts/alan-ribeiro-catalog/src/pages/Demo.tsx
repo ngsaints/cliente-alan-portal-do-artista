@@ -11,6 +11,7 @@ import { NotificationBell, type Interest } from "@/components/NotificationBell";
 import { InterestModal } from "@/components/InterestModal";
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
+import { useFeatureFlags } from "@/lib/featureFlags";
 
 const DEMO_ARTIST = {
   id: 1,
@@ -31,6 +32,7 @@ export default function Demo() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { playSong } = usePlayer();
+  const featureFlags = useFeatureFlags();
   const artistId = id || "1";
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const { genres } = useGenres();
@@ -114,12 +116,14 @@ export default function Demo() {
         });
         const data = await res.json();
         if (res.ok) {
-          alert("Você foi movido para o plano gratuito.");
+          alert(data.freeAllowed === false
+            ? (data.message || "Plano cancelado. O free não está mais disponível — assine um plano para reativar.")
+            : "Você foi movido para o plano gratuito.");
         } else {
           alert(data.error || "Erro ao mudar para plano gratuito");
         }
       } else {
-        setLocation("/cadastro?plano=free");
+        setLocation("/planos");
       }
       return;
     }
@@ -181,7 +185,7 @@ export default function Demo() {
 
   // Intercalar dinamicamente as faixas do Demo entre diferentes artistas
   const artistSongs = useMemo(() => {
-    const base = (songs || []).filter((s: any) => !s.isVip && !(s as any).isPrivate);
+    const base = (songs || []).filter((s: any) => !(featureFlags.vipEnabled && s.isVip) && !(s as any).isPrivate);
     if (base.length === 0) return [];
 
     const groups: { [key: string]: any[] } = {};
@@ -209,7 +213,7 @@ export default function Demo() {
     }
 
     return interleaved;
-  }, [songs]);
+  }, [songs, featureFlags.vipEnabled]);
 
   // Handle shared song autoplay, scroll, and highlight
   useEffect(() => {

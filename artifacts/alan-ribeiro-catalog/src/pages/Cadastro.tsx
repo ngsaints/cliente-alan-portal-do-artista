@@ -30,6 +30,7 @@ export default function Cadastro() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [dbPlans, setDbPlans] = useState<Plan[]>([]);
   const [couponCode, setCouponCode] = useState("");
@@ -63,6 +64,19 @@ export default function Cadastro() {
   }, [rawPlanParam]);
 
   useEffect(() => {
+    // Quem já está logado não precisa se cadastrar de novo para fazer upgrade:
+    // manda direto ao painel, onde a aba Plano gera a cobrança.
+    fetch("/api/artists/status", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.loggedIn) {
+          setLocation("/artista/dashboard");
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     fetch("/api/plans")
       .then((res) => res.json())
       .then((data) => {
@@ -82,7 +96,17 @@ export default function Cadastro() {
       .catch((err) => console.error("Erro ao carregar planos no cadastro:", err));
   }, []);
 
-  const isFreePlan = formData.plano === "free";
+  const isFreePlan = String(formData.plano || "").toLowerCase() === "free";
+
+  useEffect(() => {
+    // Free removido/desativado no admin: não deixa montar o formulário free.
+    if (!isFreePlan || dbPlans.length === 0) return;
+    const freeAvailable = dbPlans.some((p) => String(p.id || "").toLowerCase() === "free");
+    if (!freeAvailable) {
+      setError("O plano gratuito não está mais disponível. Escolha um plano pago.");
+      setTimeout(() => setLocation("/planos"), 1800);
+    }
+  }, [dbPlans, isFreePlan]);
 
   const handleValidateCoupon = async () => {
     if (!couponCode || !formData.plano) return;
@@ -137,6 +161,7 @@ export default function Cadastro() {
 
     setLoading(true);
     setError("");
+    setEmailAlreadyRegistered(false);
 
     try {
       const data = new FormData();
@@ -160,6 +185,20 @@ export default function Cadastro() {
       const result = await res.json();
 
       if (!res.ok) {
+        // Conta já existe: não é erro de cadastro — é upgrade pelo painel.
+        if (res.status === 409 && (result.code === "EMAIL_ALREADY_REGISTERED" || result.error === "Email já cadastrado")) {
+          setEmailAlreadyRegistered(true);
+          setError(result.message || "Você já tem conta com este email. Faça login e assine o plano pelo Painel do Artista.");
+          setLoading(false);
+          return;
+        }
+        // Free desativado no admin: leva o usuário para a página de planos pagos.
+        if (result.code === "FREE_PLAN_DISABLED") {
+          setError(result.error || "O plano gratuito não está mais disponível.");
+          setLoading(false);
+          setTimeout(() => setLocation("/planos"), 1800);
+          return;
+        }
         throw new Error(result.error || "Erro ao efetuar cadastro");
       }
 
@@ -244,9 +283,42 @@ export default function Cadastro() {
               </div>
             </div>
 
-            {error && (
+            {error && !emailAlreadyRegistered && (
               <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold">
                 {error}
+              </div>
+            )}
+
+            {emailAlreadyRegistered && (
+              <div className="p-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 space-y-3">
+                <p className="text-sm font-bold text-emerald-300">
+                  Você já tem conta — não precisa se cadastrar de novo 🎉
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {error || "Faça login com este email e assine o plano pela aba Plano do seu painel. Leva 1 minuto."}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLocation("/artista/login")}
+                    className="py-2.5 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider hover:bg-emerald-400 transition-colors cursor-pointer"
+                  >
+                    Fazer login
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLocation("/artista/dashboard")}
+                    className="py-2.5 rounded-xl border border-emerald-500/50 text-emerald-300 font-bold text-xs hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                  >
+                    Ir ao painel
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Esqueceu a senha?{" "}
+                  <Link href="/artista/forgot" className="text-primary font-bold hover:underline">
+                    Recuperar acesso
+                  </Link>
+                </p>
               </div>
             )}
 
@@ -272,7 +344,7 @@ export default function Cadastro() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setEmailAlreadyRegistered(false); }}
                   required
                   className="w-full bg-background border border-border/80 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="seu@email.com"
@@ -551,24 +623,26 @@ export default function Cadastro() {
               </div>
             </form>
 
-            {/* Alternativa Discreta no Rodapé do Formulário */}
-            <div className="pt-4 border-t border-border/30 text-center text-xs text-muted-foreground">
-              {isFreePlan ? (
-                <span>
-                  Quer ativar a conta profissional completa por apenas R$ 25,00/mês?{" "}
-                  <Link href="/cadastro?plano=premium" className="text-primary font-bold hover:underline">
-                    Clique aqui para o Plano Profissional
-                  </Link>
-                </span>
-              ) : (
-                <span>
-                  Quer apenas experimentar a plataforma gratuitamente primeiro?{" "}
-                  <Link href="/cadastro?plano=free" className="text-primary font-bold hover:underline">
-                    Clique aqui para o Plano Gratuito
-                  </Link>
-                </span>
-              )}
-            </div>
+            {/* Alternativa Discreta no Rodapé do Formulário — só quando o free ainda existe */}
+            {dbPlans.some((p) => String(p.id || "").toLowerCase() === "free") && (
+              <div className="pt-4 border-t border-border/30 text-center text-xs text-muted-foreground">
+                {isFreePlan ? (
+                  <span>
+                    Quer ativar a conta profissional completa?{" "}
+                    <Link href="/cadastro?plano=premium" className="text-primary font-bold hover:underline">
+                      Clique aqui para o Plano Profissional
+                    </Link>
+                  </span>
+                ) : (
+                  <span>
+                    Quer apenas experimentar a plataforma gratuitamente primeiro?{" "}
+                    <Link href="/cadastro?plano=free" className="text-primary font-bold hover:underline">
+                      Clique aqui para o Plano Gratuito
+                    </Link>
+                  </span>
+                )}
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
