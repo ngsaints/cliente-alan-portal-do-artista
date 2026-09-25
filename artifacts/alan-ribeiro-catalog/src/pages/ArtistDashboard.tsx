@@ -25,6 +25,7 @@ import { usePlayer, PlayerStyle } from "@/contexts/PlayerContext";
 import { useFeatureFlags } from "@/lib/featureFlags";
 import { useToast } from "@/hooks/use-toast";
 import { formatImageUrl } from "@/lib/utils";
+import { getProfileBackgroundStyle } from "@/lib/artistBackground";
 import { ViviStudio } from "@/components/ViviStudio";
 
 interface ArtistStats {
@@ -126,7 +127,7 @@ const FONTS = [
 ];
 
 const BACKGROUNDS = [
-  { value: "padrao", label: "Padrão", preview: "#ffffff" },
+  { value: "padrao", label: "Padrão", preview: "#111111" },
   { value: "gradiente-azul", label: "Gradiente Azul", preview: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" },
   { value: "gradiente-verde", label: "Gradiente Verde", preview: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" },
   { value: "gradiente-roxo", label: "Gradiente Roxo", preview: "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)" },
@@ -2923,33 +2924,7 @@ export default function ArtistDashboard() {
                         <div 
                           className="absolute inset-0"
                           style={{
-                            background: (editCustom as any).background === "padrao" ? "hsl(var(--background))" :
-                                       (editCustom as any).background === "escuro" ? "#1a1a2e" :
-                                       (editCustom as any).background === "escuro-azul" ? "#0f0f23" :
-                                       (editCustom as any).background === "preto" ? "#000000" :
-                                       (editCustom as any).background === "branco" ? "#ffffff" :
-                                       (editCustom as any).background === "bege" ? "#f5f0e1" :
-                                       (editCustom as any).background === "cinza-claro" ? "#e5e5e5" :
-                                       (editCustom as any).background === "azul-escuro" ? "#1e3a5f" :
-                                       (editCustom as any).background === "verde-escuro" ? "#1a4d1a" :
-                                       (editCustom as any).background === "roxo-escuro" ? "#2d1b4e" :
-                                       (editCustom as any).background === "verde-azul" ? "#1a4d4d" :
-                                       (editCustom as any).background === "lilas" ? "#4a1a6b" :
-                                       (editCustom as any).background === "cinza-escuro" ? "#2d2d2d" :
-                                       (editCustom as any).background === "azul-azul" ? "#1a3a5f" :
-                                       (editCustom as any).background === "vermelho-escuro" ? "#5f1a1a" :
-                                       (editCustom as any).background === "dourado" ? "#5f4a1a" :
-                                       (editCustom as any).background === "turquesa" ? "#1a5f5f" :
-                                       (editCustom as any).background === "gradiente-azul" ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" :
-                                       (editCustom as any).background === "gradiente-verde" ? "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" :
-                                       (editCustom as any).background === "gradiente-roxo" ? "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)" :
-                                       (editCustom as any).background === "gradiente-sol" ? "linear-gradient(135deg, #f5af19 0%, #f12711 100%)" :
-                                       (editCustom as any).background === "gradiente-oceano" ? "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)" :
-                                       (editCustom as any).background === "gradiente-rosa" ? "linear-gradient(135deg, #ff6a88 0%, #ff9a9e 100%)" :
-                                       (editCustom as any).background === "gradiente-aurora" ? "linear-gradient(135deg, #00c6ff 0%, #0072ff 50%, #00c6ff 100%)" :
-                                       (editCustom as any).background === "gradiente-tropical" ? "linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)" :
-                                       (editCustom as any).background === "gradiente-pink" ? "linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)" :
-                                       "hsl(var(--background))",
+                            background: getProfileBackgroundStyle((editCustom as any).background),
                           }}
                         />
                       )}

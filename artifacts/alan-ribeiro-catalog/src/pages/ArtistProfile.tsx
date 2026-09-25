@@ -16,6 +16,10 @@ import { InterestModal } from "@/components/InterestModal";
 import { useSEO } from "@/hooks/useSEO";
 import { Footer } from "@/components/Footer";
 import { formatImageUrl } from "@/lib/utils";
+import {
+  getProfileBackgroundStyle,
+  isLightProfileBackground,
+} from "@/lib/artistBackground";
 import { useFeatureFlags } from "@/lib/featureFlags";
 
 
@@ -354,39 +358,7 @@ export default function ArtistProfile() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const getBackgroundStyle = (layout: string | undefined): string => {
-    if (!layout || layout === "padrao") {
-      return "hsl(var(--background))";
-    }
-    const backgrounds: Record<string, string> = {
-      "gradiente-azul": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      "gradiente-verde": "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
-      "gradiente-roxo": "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)",
-      "gradiente-sol": "linear-gradient(135deg, #f5af19 0%, #f12711 100%)",
-      "gradiente-oceano": "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)",
-      "gradiente-rosa": "linear-gradient(135deg, #ff6a88 0%, #ff9a9e 100%)",
-      "gradiente-aurora": "linear-gradient(135deg, #00c6ff 0%, #0072ff 50%, #00c6ff 100%)",
-      "gradiente-tropical": "linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)",
-      "gradiente-pink": "linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)",
-      "escuro": "#1a1a2e",
-      "escuro-azul": "#0f0f23",
-      "preto": "#000000",
-      "branco": "#ffffff",
-      "bege": "#f5f0e1",
-      "cinza-claro": "#e5e5e5",
-      "azul-escuro": "#1e3a5f",
-      "verde-escuro": "#1a4d1a",
-      "roxo-escuro": "#2d1b4e",
-      "verde-azul": "#1a4d4d",
-      "lilas": "#4a1a6b",
-      "cinza-escuro": "#2d2d2d",
-      "azul-azul": "#1a3a5f",
-      "vermelho-escuro": "#5f1a1a",
-      "dourado": "#5f4a1a",
-      "turquesa": "#1a5f5f",
-    };
-    return backgrounds[layout] || (/^#/.test(layout || "") ? layout! : "hsl(var(--background))");
-  };
+  const getBackgroundStyle = (layout: string | undefined): string => getProfileBackgroundStyle(layout);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -410,9 +382,11 @@ export default function ArtistProfile() {
   // Use API data or fallback to default
   const artist = artistData || FALLBACK_ARTIST;
 
+  const lightBackground = isLightProfileBackground(artistData?.layout);
+
   return (
     <div 
-      className="min-h-screen pb-32"
+      className={`min-h-screen pb-32 ${lightBackground ? "theme-light" : ""}`}
       style={{ 
         fontFamily: artistData?.fonte || "inherit",
         background: getBackgroundStyle(artistData?.layout)
@@ -467,12 +441,14 @@ export default function ArtistProfile() {
         <div
           className={`absolute inset-0 bg-cover bg-center ${artist.bannerUrl ? 'cursor-pointer hover:opacity-95 transition-opacity' : ''}`}
           onClick={() => artist.bannerUrl && setActiveLightboxImage(formatImageUrl(artist.bannerUrl))}
-          style={{
-            backgroundImage: artist.bannerUrl
-              ? `url("${formatImageUrl(artist.bannerUrl)}")`
-              : "none",
-            backgroundColor: "#1a1a2e",
-          }}
+          style={
+            artist.bannerUrl
+              ? {
+                  backgroundImage: `url("${formatImageUrl(artist.bannerUrl)}")`,
+                  backgroundColor: "#1a1a2e",
+                }
+              : { background: getBackgroundStyle(artistData?.layout) }
+          }
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none" />
 

@@ -31,15 +31,12 @@ async function getPlanMusicLimit(plano: string): Promise<number> {
     if (rows.length > 0) {
       return Number(rows[0]?.limit ?? 0);
     }
+    // Plano sem linha no cadastro (ex.: artistas antigos em "free") = sem cota definida
+    console.warn(`[AI Music] Plano "${p}" sem cadastro em plans — gerações de IA bloqueadas até o admin definir a cota.`);
   } catch (err) {
-    console.warn("[AI Music] Falha ao ler limite do plano no banco, usando legado:", err);
+    console.warn("[AI Music] Falha ao ler limite do plano no banco:", err);
   }
-
-  // Fallback apenas para plano sem linha em `plans` (ex.: artistas antigos em "free")
-  if (p === "premium") return 30;
-  if (p === "pro" || p === "intermediario") return 15;
-  if (p === "basico") return 5;
-  return 1;
+  return 0;
 }
 
 // GET /api/ai/config/status - Retorna status dos gateways de IA
@@ -264,8 +261,12 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
     const musicTotalLimit = musicPlanLimit + (artist.aiMusicExtraCredits || 0);
 
     if (currentMusicUsed >= musicTotalLimit) {
+      const blocked =
+        musicTotalLimit <= 0
+          ? `Seu plano ${plano.toUpperCase()} não inclui gerações de música por IA. Faça upgrade de plano para criar seus hits com inteligência artificial.`
+          : `Você atingiu o limite de ${musicTotalLimit} geração(ões) de música do seu plano ${plano.toUpperCase()}. Faça um upgrade ou adquira créditos extras para continuar criando hits!`;
       res.status(403).json({
-        error: `Você atingiu o limite de ${musicTotalLimit} geração(ões) de música do seu plano ${plano.toUpperCase()}. Faça um upgrade ou adquira créditos extras para continuar criando hits!`,
+        error: blocked,
         creditsExhausted: true,
         used: currentMusicUsed,
         limit: musicTotalLimit,
