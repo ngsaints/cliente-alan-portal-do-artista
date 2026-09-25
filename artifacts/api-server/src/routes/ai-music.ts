@@ -24,7 +24,7 @@ async function getPlanMusicLimit(plano: string): Promise<number> {
   const p = (plano || "").toLowerCase();
   try {
     const rows = await db
-      .select({ limit: plansTable.aiCreditsLimit })
+      .select({ limit: plansTable.musicCreditsLimit })
       .from(plansTable)
       .where(sql`lower(${plansTable.nome}) = ${p}`);
     // Plano existe no cadastro: o valor do admin manda (inclusive 0 = sem gerações)
@@ -323,6 +323,11 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
         ...(isNextMonth ? { aiQueriesResetAt: now } : {}),
       })
       .where(eq(artistsTable.id, sessionArtistId));
+
+    console.log(
+      `[AI Music] Geração de hit — artista=${artist.name} (id ${sessionArtistId}) plano=${plano} ` +
+        `cota=${currentMusicUsed + 1}/${musicTotalLimit} titulo="${title.trim()}" prediction=${prediction.id}`
+    );
 
     res.status(201).json(savedDemo);
   } catch (error: any) {

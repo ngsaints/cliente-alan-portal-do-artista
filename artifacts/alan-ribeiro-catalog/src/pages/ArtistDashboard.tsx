@@ -525,7 +525,7 @@ export default function ArtistDashboard() {
         }
       } else {
         toast({
-          title: "Erro ao consultar a Vivi",
+          title: data.limitReached ? "Limite da Vivi atingido" : "Erro ao consultar a Vivi",
           description: data.error || "Não foi possível obter resposta no momento.",
           variant: "destructive"
         });

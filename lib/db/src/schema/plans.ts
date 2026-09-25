@@ -22,6 +22,8 @@ export const plansTable = pgTable("plans", {
   canUploadBanner: boolean("can_upload_banner").notNull().default(false),
   canUploadProfilePhoto: boolean("can_upload_profile_photo").notNull().default(false),
   aiCreditsLimit: integer("ai_credits_limit").notNull().default(10),
+  // Gerações de música por IA liberadas por mês (0 = sem gerações)
+  musicCreditsLimit: integer("music_credits_limit").notNull().default(0),
 });
 
 export const insertPlanSchema = createInsertSchema(plansTable).omit({ 

@@ -460,6 +460,22 @@ router.get("/artists/status", async (req, res): Promise<void> => {
 
     const isPaidActive = artist.planoAtivo;
 
+    // Mesmo teto de mensagens da Vivi usado em POST /artists/mentor:
+    // cota do plano (cadastro do admin) ou ajuste "vivi_monthly_limit"; 0 = ilimitado.
+    let viviDefaultLimit = 60;
+    try {
+      const settingRows = await db
+        .select({ value: appSettingsTable.value })
+        .from(appSettingsTable)
+        .where(eq(appSettingsTable.key, "vivi_monthly_limit"));
+      const parsed = Number(settingRows[0]?.value);
+      if (Number.isFinite(parsed)) viviDefaultLimit = parsed;
+    } catch {
+      // mantém o padrão
+    }
+    const planChatLimit = Number(plan?.aiCreditsLimit ?? 0);
+    const chatLimit = planChatLimit > 0 ? planChatLimit : viviDefaultLimit;
+
     res.json({
       loggedIn: true,
       artist: {
@@ -500,7 +516,7 @@ router.get("/artists/status", async (req, res): Promise<void> => {
         canUploadBanner: !!(isPaidActive && plan?.canUploadBanner),
         canUploadProfilePhoto: !!(isPaidActive && plan?.canUploadProfilePhoto),
         aiQueriesCount: artist.aiQueriesCount,
-        aiCreditsLimit: isPaidActive && plan?.aiCreditsLimit != null ? plan.aiCreditsLimit : 10,
+        aiCreditsLimit: chatLimit > 0 ? chatLimit : null,
       },
     });
   } catch (error) {
@@ -889,7 +905,7 @@ router.post("/artists/mentor", async (req, res): Promise<void> => {
     }
     const artist = artists[0];
 
-    // Vivi texto é GRÁTIS e ilimitada via OpenRouter free (openrouter/free + fallbacks :free).
+    // Vivi texto é GRÁTIS via OpenRouter free (openrouter/free + fallbacks :free).
     // Sem teto de plano para o chat — contagem mantida só para estatística.
 
     // 3. Verificar reset mensal dos créditos (30 dias)
@@ -910,13 +926,13 @@ router.post("/artists/mentor", async (req, res): Promise<void> => {
         .where(eq(artistsTable.id, artist.id));
     }
 
-    // 4. Sem bloqueio de saldo: Vivi texto é gratuita e ilimitada (custo zero no OpenRouter free).
+    // 4. Sem cobrança por mensagem (custo zero no OpenRouter free) — mas existe teto mensal por plano.
     // O contador aiQueriesCount continua sendo incrementado abaixo só para métricas.
 
     // 5. Definir o contexto do plano do artista (lido do cadastro de planos do admin)
     const normPlano = (artist.plano || "").toLowerCase();
     const planoNome = (artist.plano || "").toUpperCase();
-    let planRows: { nome: string; label: string; limiteMusicas: string; preco: string }[] = [];
+    let planRows: { nome: string; label: string; limiteMusicas: string; preco: string; aiCreditsLimit: number }[] = [];
     try {
       planRows = await db
         .select({
@@ -924,6 +940,7 @@ router.post("/artists/mentor", async (req, res): Promise<void> => {
           label: plansTable.label,
           limiteMusicas: plansTable.limiteMusicas,
           preco: plansTable.preco,
+          aiCreditsLimit: plansTable.aiCreditsLimit,
         })
         .from(plansTable)
         .where(eq(plansTable.ativo, true));
@@ -937,11 +954,39 @@ router.post("/artists/mentor", async (req, res): Promise<void> => {
       .sort((a, b) => Number(b.preco) - Number(a.preco));
     const planNames = (list: typeof paidPlans) => list.map((p) => p.label).join(", ");
 
+    // Limite de mensagens da Vivi por mês — definido pelo admin (Consultas IA/mês do plano)
+    // e, para artista sem plano cadastrado, pelo ajuste "vivi_monthly_limit" (0 = ilimitado).
+    let viviDefaultLimit = 60;
+    try {
+      const rows = await db
+        .select({ value: appSettingsTable.value })
+        .from(appSettingsTable)
+        .where(eq(appSettingsTable.key, "vivi_monthly_limit"));
+      const parsed = Number(rows[0]?.value);
+      if (Number.isFinite(parsed)) viviDefaultLimit = parsed;
+    } catch {
+      // mantém o padrão
+    }
+    const planChatLimit = Number(currentPlan?.aiCreditsLimit ?? 0);
+    const chatLimit = planChatLimit > 0 ? planChatLimit : viviDefaultLimit;
+
+    if (chatLimit > 0 && currentUsage >= chatLimit) {
+      const planoLabel = currentPlan?.label || planoNome;
+      res.status(403).json({
+        error: `Você atingiu o limite de ${chatLimit} mensagens da Vivi do plano ${planoLabel}. Volte no mês que vem ou faça upgrade de plano para continuar conversando com a mentora.`,
+        limitReached: true,
+        limit: chatLimit,
+        used: currentUsage,
+        plano: artist.plano,
+      });
+      return;
+    }
+
     let planContext = "";
     if (!currentPlan) {
       planContext =
         `O artista ${artist.name} está identificado no sistema como plano ${planoNome}, ` +
-        `que hoje não consta no cadastro de planos do admin. A Vivi é gratuita e ilimitada para todos. ` +
+        `que hoje não consta no cadastro de planos do admin. A Vivi é gratuita para todos os planos. ` +
         `Trate-o com boa vontade e, se fizer sentido, sugira verificar os planos disponíveis na plataforma.`;
     } else if (Number(currentPlan.preco) <= 0) {
       const upgradeHint = paidPlans.length
@@ -949,15 +994,15 @@ router.post("/artists/mentor", async (req, res): Promise<void> => {
         : "upgrade de plano";
       planContext =
         `O artista ${artist.name} está no plano ${currentPlan.label} (${currentPlan.limiteMusicas} músicas no catálogo). ` +
-        `A Vivi é gratuita e ilimitada. Incentive-o de forma amigável e motivadora a conhecer as vantagens do ${upgradeHint} para ter mais espaço no catálogo e personalização de cores/fontes.`;
+        `A Vivi é gratuita para todos os planos. Incentive-o de forma amigável e motivadora a conhecer as vantagens do ${upgradeHint} para ter mais espaço no catálogo e personalização de cores/fontes.`;
     } else if (paidPlans[0]?.nome === currentPlan.nome) {
       planContext =
         `O artista ${artist.name} está no plano ${currentPlan.label} (${currentPlan.limiteMusicas} músicas no catálogo), ` +
-        `o mais completo da plataforma. A Vivi é gratuita e ilimitada. Trate-o como um artista VIP com recursos totais.`;
+        `o mais completo da plataforma. A Vivi é gratuita para todos os planos. Trate-o como um artista VIP com recursos totais.`;
     } else {
       planContext =
         `O artista ${artist.name} está no plano ${currentPlan.label} (${currentPlan.limiteMusicas} músicas no catálogo). ` +
-        `A Vivi é gratuita e ilimitada. Dê os parabéns e, quando fizer sentido, sugira upgrade${paidPlans.length ? ` para ${planNames(paidPlans)}` : ""} para mais espaço e personalização.`;
+        `A Vivi é gratuita para todos os planos. Dê os parabéns e, quando fizer sentido, sugira upgrade${paidPlans.length ? ` para ${planNames(paidPlans)}` : ""} para mais espaço e personalização.`;
     }
 
     const planHeader = `[INFORMAÇÃO DO ARTISTA]
@@ -1002,7 +1047,7 @@ Fale de forma simples, motivadora, orientada a resultados e forneça dicas extre
 
     const reply = aiResult.content;
 
-    // 8. Contagem apenas para métricas (sem bloqueio — Vivi é grátis/ilimitada)
+    // 8. Consome 1 unidade do tete mensal do plano (bloqueado antes da chamada, se estourado)
     const newUsageCount = currentUsage + 1;
     await db
       .update(artistsTable)
@@ -1012,8 +1057,8 @@ Fale de forma simples, motivadora, orientada a resultados e forneça dicas extre
     res.json({
       reply,
       aiQueriesCount: newUsageCount,
-      aiCreditsLimit: null,
-      unlimited: true,
+      aiCreditsLimit: chatLimit > 0 ? chatLimit : null,
+      unlimited: chatLimit <= 0,
       free: true,
       model: aiResult.model,
     });

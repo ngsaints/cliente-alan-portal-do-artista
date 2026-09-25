@@ -33,6 +33,7 @@ router.get('/admin/engagement', async (req, res) => {
     const { rows } = await pool.query(`SELECT a.id, a.name, a.plano,
       e.last_active_at, COALESCE(e.shares, 0) AS shares, COALESCE(e.profile_views, 0) AS views,
       (SELECT count(*)::integer FROM songs s WHERE s.artista_id = a.id::text) AS songs,
+      (SELECT count(*)::integer FROM ai_music_demos d WHERE d.artista_id = a.id) AS ai_music,
       (NULLIF(trim(a.capa_url), '') IS NOT NULL AND a.capa_url NOT LIKE '%default%') AS photo,
       (NULLIF(trim(a.biografia), '') IS NOT NULL AND NULLIF(trim(a.contato), '') IS NOT NULL
         AND NULLIF(trim(a.cidade), '') IS NOT NULL AND NULLIF(trim(a.profissao), '') IS NOT NULL) AS profile,

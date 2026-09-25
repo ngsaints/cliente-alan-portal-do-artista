@@ -76,6 +76,7 @@ interface Plan {
   canUploadBanner: boolean;
   canUploadProfilePhoto: boolean;
   aiCreditsLimit?: number;
+  musicCreditsLimit?: number;
 }
 
 interface Interest {
@@ -1908,7 +1909,7 @@ function PlansTab() {
     descricao: "", fraseEfeito: "", ativo: true,
     canCustomizeFont: true, canCustomizeBackground: true, canCustomizeTextColor: true,
     canCustomizePlayerStyle: true, canCustomizePlayerColor: true,
-    canUploadBanner: false, canUploadProfilePhoto: false,
+    canUploadBanner: false, canUploadProfilePhoto: false, musicCreditsLimit: 0,
   });
   const { toast } = useToast();
 
@@ -1984,7 +1985,7 @@ function PlansTab() {
         descricao: "", fraseEfeito: "", ativo: true,
         canCustomizeFont: true, canCustomizeBackground: true, canCustomizeTextColor: true,
         canCustomizePlayerStyle: true, canCustomizePlayerColor: true,
-        canUploadBanner: false, canUploadProfilePhoto: false,
+        canUploadBanner: false, canUploadProfilePhoto: false, musicCreditsLimit: 0,
       });
       load();
     } else {
@@ -2062,8 +2063,12 @@ function PlansTab() {
               <input value={createData.personalizacaoPercent || ""} onChange={e => setCreateData({ ...createData, personalizacaoPercent: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="50" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Consultas IA / mês</label>
-              <input type="number" value={createData.aiCreditsLimit || ""} onChange={e => setCreateData({ ...createData, aiCreditsLimit: parseInt(e.target.value) || 0 })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="10" />
+              <label className="text-xs text-muted-foreground block mb-1">Mensagens Vivi / mês (0 = padrão)</label>
+              <input type="number" value={createData.aiCreditsLimit || ""} onChange={e => setCreateData({ ...createData, aiCreditsLimit: parseInt(e.target.value) || 0 })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="60" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Músicas IA / mês</label>
+              <input type="number" value={createData.musicCreditsLimit || ""} onChange={e => setCreateData({ ...createData, musicCreditsLimit: parseInt(e.target.value) || 0 })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" placeholder="0" />
             </div>
             <div className="lg:col-span-2">
               <label className="text-xs text-muted-foreground block mb-1">Frase de efeito</label>
@@ -2119,8 +2124,12 @@ function PlansTab() {
                       <input value={editData.personalizacaoPercent || ""} onChange={e => setEditData({ ...editData, personalizacaoPercent: e.target.value })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground">Consultas IA / mês</label>
+                      <label className="text-xs text-muted-foreground">Mensagens Vivi / mês (0 = padrão)</label>
                       <input type="number" value={editData.aiCreditsLimit || ""} onChange={e => setEditData({ ...editData, aiCreditsLimit: parseInt(e.target.value as any) || 0 })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Músicas IA / mês</label>
+                      <input type="number" value={editData.musicCreditsLimit || ""} onChange={e => setEditData({ ...editData, musicCreditsLimit: parseInt(e.target.value as any) || 0 })} className="w-full bg-input border border-border rounded-lg px-3 py-1.5 text-foreground text-sm" />
                     </div>
                   </div>
                   <div>
@@ -2170,7 +2179,7 @@ function PlansTab() {
                     {plan.preco === "0" ? "Grátis" : `R$ ${plan.preco}`}
                     {plan.preco !== "0" && <span className="text-sm text-muted-foreground font-normal">/mês</span>}
                   </p>
-                  <p className="text-sm text-muted-foreground mb-1">Até {plan.limiteMusicas} músicas · {plan.personalizacaoPercent}% personalização · {plan.aiCreditsLimit ?? 10} consultas IA/mês</p>
+                  <p className="text-sm text-muted-foreground mb-1">Até {plan.limiteMusicas} músicas · {plan.personalizacaoPercent}% personalização · {plan.musicCreditsLimit ?? 0} músicas IA/mês · {plan.aiCreditsLimit ?? 0} mensagens Vivi/mês</p>
                   <div className="flex flex-wrap gap-1 mb-3">
                     {plan.canCustomizeFont && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Fonte</span>}
                     {plan.canCustomizeBackground && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Fundo</span>}
@@ -2777,6 +2786,7 @@ const SETTING_LABELS: Record<string, string> = {
   demo_spotify: "Spotify",
   demo_cor: "Cor Tema da Página",
   openrouter_fallbacks: "Modelos de Contingência (Fallbacks Automáticos)",
+  vivi_monthly_limit: "Mensagens da Vivi / mês (plano sem cota)",
 };
 
 function getSettingLabel(key: string): string {
@@ -2793,6 +2803,7 @@ function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "openrouter_api_key") return "Chave obtida em openrouter.ai/keys.";
   if (key === "openrouter_model") return "Modelo utilizado pela Vivi para rimas, métricas e composição.";
   if (key === "openrouter_fallbacks") return "Modelos alternativos que serão acionados em ordem caso o principal esteja indisponível ou sofra rate-limit.";
+  if (key === "vivi_monthly_limit") return "Teto mensal de mensagens da Vivi para artistas cujo plano não define cota. 0 = ilimitado.";
   if (key === "replicate_api_key") return "Token de API obtido em replicate.com/account/api-tokens.";
   if (key === "replicate_music_model") return "Identificador do modelo na Replicate (padrão: minimax/music-2.6).";
   if (key === "image_ai_provider") return "Selecione se o gerador de imagem usará OpenRouter (recomendado) ou Replicate.";
@@ -3895,7 +3906,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           title: "Gateway OpenRouter (Texto, Letras e Chat Vivi)",
           icon: Sparkles,
           description: "Conexão com os melhores modelos de IA para mentoria, rimas, reescrita e métrica de composições.",
-          keys: ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks"],
+          keys: ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks", "vivi_monthly_limit"],
         },
         {
           title: "Gateway Replicate (MiniMax Music 2.6 - Geração de Demos)",

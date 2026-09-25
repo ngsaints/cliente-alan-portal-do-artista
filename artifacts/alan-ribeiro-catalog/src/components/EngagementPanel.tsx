@@ -9,6 +9,7 @@ type Row = {
   id: number;
   name: string;
   songs: number;
+  ai_music: number;
   photo: boolean;
   profile: boolean;
   shares: number;
@@ -341,6 +342,7 @@ export function EngagementPanel() {
                     <th className="text-left px-4 py-3">Artista</th>
                     <th className="text-left px-4 py-3">Última Atividade</th>
                     <th className="text-center px-4 py-3">Músicas</th>
+                    <th className="text-center px-4 py-3">Hits IA</th>
                     <th className="text-left px-4 py-3">Perfil & Foto</th>
                     <th className="text-center px-4 py-3">Links Copiados</th>
                     <th className="text-center px-4 py-3">Visitas</th>
@@ -377,6 +379,19 @@ export function EngagementPanel() {
                         }`}>
                           <Music className="w-3 h-3" />
                           {r.songs}
+                        </span>
+                      </td>
+
+                      {/* Hits gerados por IA */}
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          title={`${r.ai_music ?? 0} hit(s) gerado(s) por IA`}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            (r.ai_music ?? 0) > 0 ? "bg-fuchsia-500/10 text-fuchsia-400" : "bg-zinc-500/10 text-zinc-500"
+                          }`}
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          {r.ai_music ?? 0}
                         </span>
                       </td>
 

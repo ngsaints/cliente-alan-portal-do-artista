@@ -33,6 +33,7 @@ async function ensureDbSchema() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_ai_music_demos_artista ON ai_music_demos(artista_id);
+      ALTER TABLE plans ADD COLUMN IF NOT EXISTS music_credits_limit INTEGER NOT NULL DEFAULT 0;
     `);
     console.log("✅ [DB] Colunas e tabelas de IA verificadas com sucesso.");
   } catch (err: any) {

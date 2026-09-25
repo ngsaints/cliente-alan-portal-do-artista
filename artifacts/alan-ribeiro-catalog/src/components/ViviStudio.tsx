@@ -757,7 +757,9 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Falha ao consultar a mentora");
+        const e: any = new Error(err.error || "Falha ao consultar a mentora");
+        e.limitReached = !!err.limitReached;
+        throw e;
       }
 
       const data = await res.json();
@@ -765,7 +767,7 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       loadData();
     } catch (error: any) {
       toast({
-        title: "Erro na resposta da Vivi",
+        title: error?.limitReached ? "Limite da Vivi atingido" : "Erro na resposta da Vivi",
         description: error.message || "Tente novamente mais tarde.",
         variant: "destructive",
       });

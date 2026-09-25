@@ -363,7 +363,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         await db.update(appSettingsTable).set({ category: "email" }).where(eq(appSettingsTable.key, key));
       }
 
-      const keysToEnsure: { key: string; value: string; desc: string; isSecret?: string }[] = [
+      const keysToEnsure: { key: string; value: string; desc: string; isSecret?: string; category?: string }[] = [
         { key: "portal_name", value: "Portal do Artista", desc: "Nome do portal" },
         { key: "portal_url", value: "https://portaldoartista.com", desc: "URL do portal" },
         { key: "portal_email", value: "portaldoartistaoficial@gmail.com", desc: "E-mail de contato principal" },
@@ -391,6 +391,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "footer_platform_tagline", value: "A maior plataforma de gestão de carreira para artistas da música.", desc: "Rodapé: Slogan da Plataforma" },
         { key: "artist_vip_enabled", value: "true", desc: "Mostra o checkbox VIP no painel do artista" },
         { key: "artist_reservado_enabled", value: "true", desc: "Mostra o botão Reservado no painel do artista" },
+        { key: "vivi_monthly_limit", value: "60", desc: "Limite mensal de mensagens da Vivi por artista (0 = ilimitado)", category: "ai" },
       ];
       
       for (const item of keysToEnsure) {
@@ -400,7 +401,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
           .where(eq(appSettingsTable.key, item.key));
         if (existing.length === 0) {
           await db.insert(appSettingsTable).values({
-            category: "portal",
+            category: item.category || "portal",
             key: item.key,
             value: item.value,
             isSecret: item.isSecret || "false",
@@ -812,7 +813,7 @@ router.put("/admin/plans/:id", async (req, res): Promise<void> => {
       descricao, fraseEfeito, ativo,
       canCustomizeFont, canCustomizeBackground, canCustomizeTextColor,
       canCustomizePlayerStyle, canCustomizePlayerColor,
-      canUploadBanner, canUploadProfilePhoto, aiCreditsLimit
+      canUploadBanner, canUploadProfilePhoto, aiCreditsLimit, musicCreditsLimit
     } = req.body;
 
     const parseBool = (val: any, defaultVal: boolean): boolean => {
@@ -846,6 +847,7 @@ router.put("/admin/plans/:id", async (req, res): Promise<void> => {
         canUploadBanner: canUploadBanner !== undefined ? parseBool(canUploadBanner, false) : undefined,
         canUploadProfilePhoto: canUploadProfilePhoto !== undefined ? parseBool(canUploadProfilePhoto, false) : undefined,
         aiCreditsLimit: parseNum(aiCreditsLimit, 10),
+        musicCreditsLimit: musicCreditsLimit !== undefined ? parseNum(musicCreditsLimit, 0) : undefined,
       })
       .where(eq(plansTable.id, parseInt(id)))
       .returning();
@@ -882,7 +884,7 @@ router.post("/admin/plans", async (req, res): Promise<void> => {
       descricao, fraseEfeito, ativo,
       canCustomizeFont, canCustomizeBackground, canCustomizeTextColor,
       canCustomizePlayerStyle, canCustomizePlayerColor,
-      canUploadBanner, canUploadProfilePhoto, aiCreditsLimit
+      canUploadBanner, canUploadProfilePhoto, aiCreditsLimit, musicCreditsLimit
     } = req.body;
 
     const parseBool = (val: any, defaultVal: boolean): boolean => {
@@ -916,6 +918,7 @@ router.post("/admin/plans", async (req, res): Promise<void> => {
         canUploadBanner: parseBool(canUploadBanner, false),
         canUploadProfilePhoto: parseBool(canUploadProfilePhoto, false),
         aiCreditsLimit: parseNum(aiCreditsLimit, 10),
+        musicCreditsLimit: parseNum(musicCreditsLimit, 0),
       })
       .returning();
 
