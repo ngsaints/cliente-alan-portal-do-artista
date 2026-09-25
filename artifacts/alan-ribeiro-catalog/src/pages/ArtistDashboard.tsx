@@ -703,10 +703,12 @@ export default function ArtistDashboard() {
         (p) => String(p.id || "").toLowerCase() === String(artist.plano || "").toLowerCase()
       );
       const planLabel =
-        planInfo?.label || (artist.plano ? artist.plano.charAt(0).toUpperCase() + artist.plano.slice(1) : "Gratuito");
-      const musicas = planInfo?.limiteMusicas || artist.limiteMusicas || "2";
-      const aiLimit = artist.aiCreditsLimit || 50;
-      const welcome = `Olá, ${artist.name}! Eu sou a Vivi, sua mentora virtual aqui no Portal do Artista. No seu plano **${planLabel}**, você pode cadastrar até ${musicas} músicas e conta com ${aiLimit} consultas de IA por mês. Posso te ajudar a organizar sua carreira, gerar ideias de posts ou analisar suas letras. Como posso te apoiar hoje?`;
+        planInfo?.label || (artist.plano ? artist.plano.charAt(0).toUpperCase() + artist.plano.slice(1) : "Sem plano");
+      const musicas = planInfo?.limiteMusicas || artist.limiteMusicas;
+      const catalogoInfo = musicas
+        ? `você pode cadastrar até ${musicas} músicas`
+        : "o limite do seu catálogo é definido pelo administrador";
+      const welcome = `Olá, ${artist.name}! Eu sou a Vivi, sua mentora virtual aqui no Portal do Artista. No seu plano **${planLabel}**, ${catalogoInfo}. Minha conversa por aqui é gratuita e ilimitada e as gerações de música por IA seguem o limite do seu plano. Como posso te apoiar hoje?`;
       setChatMessages([{ role: "assistant", content: welcome }]);
     }
   }, [artist, dbPlans]);

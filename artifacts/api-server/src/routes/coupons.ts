@@ -7,8 +7,6 @@ const router: IRouter = Router();
 
 export const FREE_PLAN = "free";
 
-export const PLANOS_PAGOS = ["basico", "intermediario", "pro", "premium"] as const;
-
 router.get("/coupons", async (req, res): Promise<void> => {
   if (!req.session.logado) {
     res.status(401).json({ error: "Não autorizado" });

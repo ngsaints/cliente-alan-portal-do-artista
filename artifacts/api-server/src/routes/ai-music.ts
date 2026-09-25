@@ -19,7 +19,7 @@ import {
 
 const router: IRouter = Router();
 
-// Limites de geração de música por plano — vem do cadastro do admin (plans.ai_credits_limit)
+// Limites de geração de música por plano — 100% definido pelo admin em Planos (plans.ai_credits_limit)
 async function getPlanMusicLimit(plano: string): Promise<number> {
   const p = (plano || "").toLowerCase();
   try {
@@ -27,14 +27,15 @@ async function getPlanMusicLimit(plano: string): Promise<number> {
       .select({ limit: plansTable.aiCreditsLimit })
       .from(plansTable)
       .where(sql`lower(${plansTable.nome}) = ${p}`);
-    const dbLimit = rows.length > 0 && rows[0]?.limit != null ? Number(rows[0].limit) : null;
-    // 0 = campo ainda não configurado no admin → mantém o teto legado (evita zerar o plano por acidente)
-    if (dbLimit != null && dbLimit > 0) return dbLimit;
+    // Plano existe no cadastro: o valor do admin manda (inclusive 0 = sem gerações)
+    if (rows.length > 0) {
+      return Number(rows[0]?.limit ?? 0);
+    }
   } catch (err) {
     console.warn("[AI Music] Falha ao ler limite do plano no banco, usando legado:", err);
   }
 
-  // Fallback legado (plano sem linha em `plans`)
+  // Fallback apenas para plano sem linha em `plans` (ex.: artistas antigos em "free")
   if (p === "premium") return 30;
   if (p === "pro" || p === "intermediario") return 15;
   if (p === "basico") return 5;
