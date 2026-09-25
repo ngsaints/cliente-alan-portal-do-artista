@@ -391,6 +391,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "footer_platform_tagline", value: "A maior plataforma de gestão de carreira para artistas da música.", desc: "Rodapé: Slogan da Plataforma" },
         { key: "artist_vip_enabled", value: "true", desc: "Mostra o checkbox VIP no painel do artista" },
         { key: "artist_reservado_enabled", value: "true", desc: "Mostra o botão Reservado no painel do artista" },
+        { key: "onboarding_tour_enabled", value: "true", desc: "Mostra o tutorial com balões na primeira visita ao painel do artista" },
         { key: "vivi_monthly_limit", value: "60", desc: "Limite mensal de mensagens da Vivi por artista (0 = ilimitado)", category: "ai" },
       ];
       

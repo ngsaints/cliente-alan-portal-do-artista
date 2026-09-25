@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatImageUrl } from "@/lib/utils";
 import { getProfileBackgroundStyle } from "@/lib/artistBackground";
 import { ViviStudio } from "@/components/ViviStudio";
+import { OnboardingTour, type TourStep } from "@/components/OnboardingTour";
 
 interface ArtistStats {
   totalSongs: number;
@@ -194,6 +195,36 @@ const PLAYER_COLORS = [
 ];
 
 type TabId = "dashboard" | "songs" | "playlists" | "gallery" | "profile" | "plano" | "interesses" | "vip" | "mentor" | "artigos";
+
+const TOUR_STORAGE_KEY = "pd_onboarding_tour_v1";
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    target: "tabs",
+    title: "Navegue pelas abas",
+    text: "Músicas, galeria, perfil, plano e mentora ficam nesta barra. Use as setas para ver todas as opções.",
+  },
+  {
+    target: "vivi",
+    title: "Estúdio Vivi",
+    text: "Gere demos cantadas por IA, capas e fotos de perfil. Os créditos do seu plano aparecem dentro do estúdio.",
+  },
+  {
+    target: "diagnostico",
+    title: "Diagnóstico da carreira",
+    text: "Veja quanto seu perfil está completo e o que falta para transmitir mais credibilidade para fãs e contratantes.",
+  },
+  {
+    target: "mentor",
+    title: "Pergunte à Vivi",
+    text: "Converse sobre carreira, divulgação e música. A cota de mensagens segue o plano definido pelo administrador.",
+  },
+  {
+    target: "",
+    title: "Tudo pronto!",
+    text: "Comece pelo Estúdio Vivi ou enviando um MP3 que você já gravou. Em caso de dúvida, a Vivi e o suporte estão a um clique.",
+  },
+];
 
 function PlayerPreviewMini({ style, editCustom }: { style: string; editCustom: any }) {
   const playerCor = editCustom?.playerCor || "#f5c518";
@@ -397,6 +428,8 @@ export default function ArtistDashboard() {
 
   const [songs, setSongs] = useState<any[]>([]);
   const [openaiEnabled, setOpenaiEnabled] = useState(false);
+  const [tourEnabled, setTourEnabled] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const [supportChannels, setSupportChannels] = useState({ instagram: "", whatsapp: "", email: "" });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -697,6 +730,18 @@ export default function ArtistDashboard() {
       .catch((err) => console.error("Erro ao carregar planos no dashboard:", err));
   }, []);
 
+  // Tutorial de boas-vindas: primeira visita ao painel (pode ser desligado no admin).
+  useEffect(() => {
+    if (!tourEnabled || activeTab !== "dashboard") return;
+    try {
+      if (window.localStorage.getItem(TOUR_STORAGE_KEY)) return;
+    } catch {
+      return;
+    }
+    const t = window.setTimeout(() => setTourOpen(true), 800);
+    return () => window.clearTimeout(t);
+  }, [tourEnabled, activeTab]);
+
   useEffect(() => {
     if (artist && chatMessages.length === 1 && chatMessages[0].content.startsWith("Olá! Eu sou a Vivi")) {
       // Saudação gerada a partir do plano cadastrado pelo admin (label + limites).
@@ -728,6 +773,7 @@ export default function ArtistDashboard() {
       }
 
       setOpenaiEnabled(settingsRes.openaiEnabled !== false);
+      setTourEnabled(String(settingsRes.onboardingTourEnabled ?? "true") !== "false");
       setSupportChannels({
         instagram: settingsRes.suporteInstagram || "@Portaldoartista.oficial",
         whatsapp: settingsRes.suporteWhatsapp || "21 99589 7040",
@@ -1240,6 +1286,20 @@ export default function ArtistDashboard() {
         </div>
       )}
 
+      {/* Tutorial de boas-vindas do painel */}
+      <OnboardingTour
+        steps={TOUR_STEPS}
+        open={tourOpen}
+        onDone={() => {
+          setTourOpen(false);
+          try {
+            window.localStorage.setItem(TOUR_STORAGE_KEY, "1");
+          } catch {
+            // localStorage indisponível — o tutorial abre de novo na próxima visita
+          }
+        }}
+      />
+
       {/* Add to Playlist Modal - fora das tabs */}
       {showAddToPlaylist && songToAddToPlaylist && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -1367,6 +1427,7 @@ export default function ArtistDashboard() {
 
             <div
               ref={artistTabBarRef}
+              data-tour="tabs"
               className="flex gap-1.5 overflow-x-auto py-2 px-1 sm:px-7 scrollbar-none [&&::-webkit-scrollbar]:hidden [scrollbar-width:none] touch-pan-x scroll-smooth w-full"
             >
               {tabs.map((tab) => {
@@ -1434,6 +1495,7 @@ export default function ArtistDashboard() {
               <div className="space-y-6">
                 <button
                   type="button"
+                  data-tour="vivi"
                   onClick={() => setActiveTab("mentor")}
                   className="w-full text-left p-5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-purple-500/10 border border-amber-400/40 hover:border-amber-300 shadow-[0_0_24px_rgba(245,197,24,0.12)] transition-all group"
                 >
@@ -1500,7 +1562,7 @@ export default function ArtistDashboard() {
                 {/* Diagnóstico da Carreira & CTA Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Card do Diagnóstico */}
-                  <div className="md:col-span-2 bg-card border border-border/40 rounded-2xl p-6 space-y-4 shadow-xl">
+                  <div data-tour="diagnostico" className="md:col-span-2 bg-card border border-border/40 rounded-2xl p-6 space-y-4 shadow-xl">
                     <div className="flex items-center justify-between">
                       <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                         <Sparkles className="w-5 h-5 text-purple-400" />
@@ -1645,7 +1707,7 @@ export default function ArtistDashboard() {
 
                 {/* Pergunte ao Mentor IA (Vivi) */}
                 {openaiEnabled && (
-                  <div className="bg-gradient-to-r from-purple-900/10 via-indigo-900/5 to-purple-900/10 border border-purple-500/20 rounded-2xl p-6 space-y-4 shadow-xl">
+                  <div data-tour="mentor" className="bg-gradient-to-r from-purple-900/10 via-indigo-900/5 to-purple-900/10 border border-purple-500/20 rounded-2xl p-6 space-y-4 shadow-xl">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0 border border-purple-500/30">
                         <Bot className="w-5 h-5" />

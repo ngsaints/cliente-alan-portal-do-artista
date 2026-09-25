@@ -2705,6 +2705,7 @@ const SETTING_LABELS: Record<string, string> = {
   vip_password: "Senha da Área VIP",
   artist_vip_enabled: "Permitir marcar músicas como VIP",
   artist_reservado_enabled: "Permitir status Reservado nas músicas",
+  onboarding_tour_enabled: "Tutorial de boas-vindas no painel",
 
   // Suporte & Atendimento
   suporte_instagram: "Instagram Oficial de Suporte",
@@ -2813,6 +2814,7 @@ function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "portal_url") return "URL usada em links de retorno e compartilhamentos (ex: https://portaldoartista.com).";
   if (key === "artist_vip_enabled") return "Desligue para esconder o checkbox VIP do painel do artista. Músicas já marcadas VIP passam a aparecer normalmente no site.";
   if (key === "artist_reservado_enabled") return "Desligue para esconder o botão Reservado do painel. Músicas reservadas passam a aparecer como disponíveis.";
+  if (key === "onboarding_tour_enabled") return "Mostra os balões de onboarding na primeira visita do artista ao painel. Cada artista vê uma única vez (marcado no navegador).";
   if (key === "landing_video_url") return "Link do vídeo no YouTube (ex: https://www.youtube.com/watch?v=...) para a seção de demonstração do portal.";
   if (key === "landing_hero_video_url") return "Link do vídeo exibido no topo da página inicial (YouTube).";
   if (key === "openai_enabled") return "Habilita a API direta da OpenAI para a mentora virtual Vivi (Legado).";
@@ -3977,7 +3979,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           title: "Recursos do Painel do Artista",
           icon: Crown,
           description: "Ligue ou desligue botões que os artistas usam ao cadastrar músicas. Vale para todos os artistas da plataforma.",
-          keys: ["artist_vip_enabled", "artist_reservado_enabled"],
+          keys: ["artist_vip_enabled", "artist_reservado_enabled", "onboarding_tour_enabled"],
         },
       ];
     }
