@@ -121,9 +121,10 @@ export async function callOpenRouter(opts: OpenRouterOptions): Promise<OpenRoute
         : ["google/gemini-2.0-flash-001", "deepseek/deepseek-chat", "openai/gpt-4o-mini", "openrouter/auto"];
 
     // Monta cadeia com o modelo principal na primeira posição, seguido dos fallbacks
+    // O OpenRouter rejeita payloads com mais de 3 itens em "models" (400 Bad Request)
     const modelChain = [modelToUse, ...fallbackList];
     const uniqueModels = Array.from(new Set(modelChain.filter(Boolean)));
-    payload.models = uniqueModels;
+    payload.models = uniqueModels.slice(0, 3);
   }
 
   const headers: Record<string, string> = {

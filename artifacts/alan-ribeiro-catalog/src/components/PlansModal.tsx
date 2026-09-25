@@ -98,8 +98,10 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
     onSelectPlan?.(selectedPlan, couponResult ? couponCode : undefined);
   };
 
-  const isFree = String(selectedPlan || "").toLowerCase() === "free";
-  const canConfirm = selectedPlan && (!isFree || isFree);
+  // "Grátis" passa a ser definido pelo preço do plano no cadastro do admin (não pelo nome).
+  const selectedPlanObj = plans.find((p) => p.id === selectedPlan);
+  const isFree = selectedPlanObj ? parseFloat(String(selectedPlanObj.preco || "0")) === 0 : false;
+  const canConfirm = !!selectedPlan;
 
   return (
     <AnimatePresence>
@@ -144,7 +146,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
               )}
               {!loading && plans.map((plan) => {
                 const isSelected = selectedPlan === plan.id;
-                const planIsFree = String(plan.id || "").toLowerCase() === "free";
+                const planIsFree = parseFloat(String(plan.preco || "0")) === 0;
                 const showDiscount = couponResult && isSelected && !planIsFree;
 
                 return (
@@ -300,9 +302,12 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                   {(() => {
                     const plan = plans.find(p => p.id === selectedPlan);
                     if (!plan) return "Confirmar";
-                    const planLabel = plan.id === "free" ? "Gratuito" : plan.label;
+                    const planLabel = plan.label;
                     const finalPrice = couponResult ? couponResult.finalPrice : plan.preco;
-                    const planPrice = plan.id === "free" ? "R$ 0,00" : `R$ ${parseFloat(finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`;
+                    const planPrice =
+                      parseFloat(String(plan.preco || "0")) === 0
+                        ? "R$ 0,00"
+                        : `R$ ${parseFloat(finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`;
                     return isFree ? `Começar Grátis (${planPrice})` : `Confirmar Plano ${planLabel} (${planPrice})`;
                   })()}
                 </button>

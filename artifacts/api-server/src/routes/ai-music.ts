@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, aiMusicDemosTable, songsTable, artistsTable, subscriptionsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { db, aiMusicDemosTable, songsTable, artistsTable, subscriptionsTable, plansTable } from "@workspace/db";
+import { eq, desc, sql } from "drizzle-orm";
 import { getCreditPackages, fulfillAiCreditPurchase } from "../lib/ai-credits.js";
 import { getPaymentById } from "../lib/asaas-client.js";
 import { 
@@ -19,13 +19,26 @@ import {
 
 const router: IRouter = Router();
 
-// Retorna limites padrão de geração de música por plano
-function getPlanMusicLimit(plano: string): number {
-  const p = plano.toLowerCase();
+// Limites de geração de música por plano — vem do cadastro do admin (plans.ai_credits_limit)
+async function getPlanMusicLimit(plano: string): Promise<number> {
+  const p = (plano || "").toLowerCase();
+  try {
+    const rows = await db
+      .select({ limit: plansTable.aiCreditsLimit })
+      .from(plansTable)
+      .where(sql`lower(${plansTable.nome}) = ${p}`);
+    const dbLimit = rows.length > 0 && rows[0]?.limit != null ? Number(rows[0].limit) : null;
+    // 0 = campo ainda não configurado no admin → mantém o teto legado (evita zerar o plano por acidente)
+    if (dbLimit != null && dbLimit > 0) return dbLimit;
+  } catch (err) {
+    console.warn("[AI Music] Falha ao ler limite do plano no banco, usando legado:", err);
+  }
+
+  // Fallback legado (plano sem linha em `plans`)
   if (p === "premium") return 30;
   if (p === "pro" || p === "intermediario") return 15;
   if (p === "basico") return 5;
-  return 1; // Plano Gratuito (Free)
+  return 1;
 }
 
 // GET /api/ai/config/status - Retorna status dos gateways de IA
@@ -121,7 +134,7 @@ router.get("/ai/credits/balance", async (req, res): Promise<void> => {
     const textLimit: number | null = null;
 
     // Limites de música
-    const musicLimit = getPlanMusicLimit(plano);
+    const musicLimit = await getPlanMusicLimit(plano);
     const musicExtra = artist.aiMusicExtraCredits || 0;
     const musicTotalLimit = musicLimit + musicExtra;
     const musicRemaining = Math.max(0, musicTotalLimit - musicUsed);
@@ -246,7 +259,7 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
     const isNextMonth = now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear();
 
     let currentMusicUsed = isNextMonth ? 0 : (artist.aiMusicQueriesCount || 0);
-    const musicPlanLimit = getPlanMusicLimit(plano);
+    const musicPlanLimit = await getPlanMusicLimit(plano);
     const musicTotalLimit = musicPlanLimit + (artist.aiMusicExtraCredits || 0);
 
     if (currentMusicUsed >= musicTotalLimit) {

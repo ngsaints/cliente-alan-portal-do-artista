@@ -214,7 +214,7 @@ export default function ArtistLogin() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {dbPlans.length === 0 ? <div className="col-span-2 text-center py-8 text-muted-foreground">Carregando planos...</div> : dbPlans.filter(p => p.id !== "free").map((plan) => {
+            {dbPlans.length === 0 ? <div className="col-span-2 text-center py-8 text-muted-foreground">Carregando planos...</div> : dbPlans.map((plan) => {
               const isSelected = selectedPlan === plan.id;
               const isPremium = plan.id === "premium";
               return (
@@ -342,7 +342,8 @@ export default function ArtistLogin() {
             </button>
           </div>
         </div>
-        {selectedPlan !== "free" && (
+        {/* Cupom só existe para planos pagos (preço > 0, definido pelo admin) */}
+        {parseFloat(String(dbPlans.find((p) => p.id === selectedPlan)?.preco || "0")) > 0 && (
           <div className="pt-2 border-t border-border/40 space-y-3">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">
@@ -594,8 +595,11 @@ export default function ArtistLogin() {
                       {(() => {
                         const plan = dbPlans.find(p => p.id === selectedPlan);
                         if (!plan) return "Continuar";
-                        const planLabel = plan.id === "free" ? "Gratuito" : plan.label;
-                        const planPrice = plan.id === "free" ? "R$ 0,00" : `R$ ${parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`;
+                        const planLabel = plan.label;
+                        const planPrice =
+                          parseFloat(String(plan.preco || "0")) === 0
+                            ? "R$ 0,00"
+                            : `R$ ${parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`;
                         return `Continuar com o plano ${planLabel} (${planPrice})`;
                       })()}
                     </button>

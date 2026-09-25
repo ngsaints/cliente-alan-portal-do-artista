@@ -490,28 +490,15 @@ router.get("/admin/artists", async (req, res): Promise<void> => {
   }
 
   try {
-    // Sincronizar limites padrões do Free (4) e Premium (50) no plansTable
-    await db.update(plansTable).set({ limiteMusicas: "4" }).where(eq(plansTable.nome, "free"));
-    await db.update(plansTable).set({ limiteMusicas: "50" }).where(eq(plansTable.nome, "premium"));
-
-    // Atualizar artistas no banco que estejam com limites antigos
-    await db.update(artistsTable).set({ limiteMusicas: "4" }).where(eq(artistsTable.plano, "free"));
-    await db.update(artistsTable).set({ limiteMusicas: "50" }).where(eq(artistsTable.plano, "premium"));
-
+    // Limites vêm exclusivamente do cadastro de planos do admin (sem sobrescrever aqui).
     const [artists, allPlans] = await Promise.all([
       db.select().from(artistsTable).orderBy(artistsTable.createdAt),
       db.select().from(plansTable),
     ]);
 
-    const planLimitsMap: Record<string, string> = {
-      free: "4",
-      premium: "50",
-      basico: "20",
-      intermediario: "60",
-      pro: "100",
-    };
+    const planLimitsMap: Record<string, string> = {};
     for (const p of allPlans) {
-      planLimitsMap[p.nome] = String(p.limiteMusicas);
+      planLimitsMap[String(p.nome).toLowerCase()] = String(p.limiteMusicas);
     }
 
     const artistIds = artists.map(a => a.id);
@@ -543,7 +530,8 @@ router.get("/admin/artists", async (req, res): Promise<void> => {
       planoAtivo: a.planoAtivo,
       canPostArticles: a.canPostArticles === true,
       musicaCount: a.musicaCount,
-      limiteMusicas: planLimitsMap[a.plano] || a.limiteMusicas || "4",
+      limiteMusicas:
+        planLimitsMap[String(a.plano || "").toLowerCase()] || a.limiteMusicas || "0",
       createdAt: a.createdAt,
       couponCode: couponByArtist[String(a.id)] || null,
       aiMusicExtraCredits: a.aiMusicExtraCredits || 0,

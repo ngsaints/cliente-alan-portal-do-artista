@@ -1092,6 +1092,8 @@ function ArtistsTab() {
   const [artistStatusFilter, setArtistStatusFilter] = useState("todos");
   const [artistPage, setArtistPage] = useState(1);
   const [artistPageSize, setArtistPageSize] = useState(10);
+  // Planos vêm do banco (gerenciados pelo admin) — nada hardcoded aqui.
+  const [planList, setPlanList] = useState<{ nome: string; label: string; ativo?: boolean }[]>([]);
   const { toast } = useToast();
 
   const load = () => {
@@ -1102,7 +1104,25 @@ function ArtistsTab() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  const loadPlans = () => {
+    fetch("/api/admin/plans", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => setPlanList(Array.isArray(d) ? d : []))
+      .catch(() => setPlanList([]));
+  };
+
+  useEffect(() => { load(); loadPlans(); }, []);
+
+  // Opções de plano ativas (para edição/concessão) + nomes que já existem nos artistas
+  // (assim nenhum plano real fica de fora do filtro, mesmo se estiver inativo).
+  const activePlanNames = planList.filter((p) => p.ativo !== false).map((p) => p.nome);
+  const planNamesFromArtists = Array.from(
+    new Set(artists.map((a) => String(a.plano || "").toLowerCase()).filter(Boolean))
+  );
+  const editPlanOptions = Array.from(new Set([...activePlanNames, ...planNamesFromArtists]));
+  const planFilterOptions = Array.from(new Set([...activePlanNames, ...planNamesFromArtists]));
+  const planLabelOf = (nome: string) =>
+    planList.find((p) => String(p.nome).toLowerCase() === String(nome).toLowerCase())?.label || nome;
 
   const handleEdit = (a: Artist) => {
     setEditingId(a.id);
@@ -1140,7 +1160,7 @@ function ArtistsTab() {
   const handleOpenGrant = (a: Artist) => {
     setGrantArtistId(a.id);
     setGrantArtistName(a.name);
-    setGrantPlano("premium");
+    setGrantPlano(activePlanNames[0] || "premium");
     setGrantDuracao("1");
     setGrantModalOpen(true);
   };
@@ -1205,8 +1225,6 @@ function ArtistsTab() {
       setCreditsSaving(false);
     }
   };
-
-  const PLANOS = ["free", "basico", "intermediario", "pro", "premium"];
 
   const filteredArtists = artists.filter((a) => {
     const q = artistSearch.trim().toLowerCase();
@@ -1375,11 +1393,11 @@ function ArtistsTab() {
                 className="bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="todos">Todos os Planos</option>
-                <option value="free">Plano Free</option>
-                <option value="basico">Plano Básico</option>
-                <option value="intermediario">Plano Intermediário</option>
-                <option value="pro">Plano Pro</option>
-                <option value="premium">Plano Premium</option>
+                {planFilterOptions.map((p) => (
+                  <option key={p} value={p}>
+                    {planLabelOf(p)}
+                  </option>
+                ))}
               </select>
 
               {/* Filtro de Status */}
@@ -1466,9 +1484,9 @@ function ArtistsTab() {
                           onChange={(e) => setEditPlano(e.target.value)}
                           className="bg-input border border-border rounded-lg px-2 py-1 text-foreground text-xs"
                         >
-                          {PLANOS.map((p) => (
+                          {editPlanOptions.map((p) => (
                             <option key={p} value={p}>
-                              {p}
+                              {planLabelOf(p)}
                             </option>
                           ))}
                         </select>
@@ -1756,8 +1774,10 @@ function ArtistsTab() {
                   onChange={(e) => setGrantPlano(e.target.value)}
                   className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary"
                 >
-                  {PLANOS.filter(p => p !== "free").map(p => (
-                    <option key={p} value={p}>{p}</option>
+                  {activePlanNames.map((p) => (
+                    <option key={p} value={p}>
+                      {planLabelOf(p)}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -5615,7 +5635,16 @@ function CouponModal({ coupon, onClose, onSaved }: { coupon: Coupon | null; onCl
     description: coupon?.description || "",
   });
   const [saving, setSaving] = useState(false);
+  // Planos vêm do banco (gerenciados pelo admin).
+  const [planOptions, setPlanOptions] = useState<{ nome: string; label: string }[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetch("/api/admin/plans", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => setPlanOptions(Array.isArray(d) ? d : []))
+      .catch(() => setPlanOptions([]));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -5766,11 +5795,10 @@ function CouponModal({ coupon, onClose, onSaved }: { coupon: Coupon | null; onCl
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">Planos Aplicáveis (vazio = todos)</label>
             <div className="space-y-1.5">
               {[
-                { id: "free", label: "Grátis" },
-                { id: "basico", label: "Básico" },
-                { id: "intermediario", label: "Intermediário" },
-                { id: "pro", label: "Profissional" },
-                { id: "premium", label: "Premium" },
+                ...planOptions.map((p) => ({ id: p.nome, label: p.label || p.nome })),
+                ...(form.applicablePlans ? form.applicablePlans.split(",").map((p: string) => p.trim()).filter(Boolean) : [])
+                  .filter((n: string) => !planOptions.some((p) => p.nome === n))
+                  .map((n: string) => ({ id: n, label: `${n} (plano excluído)` })),
               ].map((plan) => {
                 const plans = form.applicablePlans ? form.applicablePlans.split(",").map((p: string) => p.trim()).filter(Boolean) : [];
                 const checked = plans.includes(plan.id);

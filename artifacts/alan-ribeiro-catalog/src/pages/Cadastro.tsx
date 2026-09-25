@@ -99,14 +99,16 @@ export default function Cadastro() {
   const isFreePlan = String(formData.plano || "").toLowerCase() === "free";
 
   useEffect(() => {
-    // Free removido/desativado no admin: não deixa montar o formulário free.
-    if (!isFreePlan || dbPlans.length === 0) return;
-    const freeAvailable = dbPlans.some((p) => String(p.id || "").toLowerCase() === "free");
-    if (!freeAvailable) {
-      setError("O plano gratuito não está mais disponível. Escolha um plano pago.");
+    // Plano excluído/desativado pelo admin: não deixa montar o formulário de um plano inexistente.
+    if (dbPlans.length === 0) return;
+    const planExists = dbPlans.some(
+      (p) => String(p.id || "").toLowerCase() === String(formData.plano || "").toLowerCase()
+    );
+    if (!planExists) {
+      setError("Este plano não está mais disponível. Escolha um plano abaixo.");
       setTimeout(() => setLocation("/planos"), 1800);
     }
-  }, [dbPlans, isFreePlan]);
+  }, [dbPlans, formData.plano]);
 
   const handleValidateCoupon = async () => {
     if (!couponCode || !formData.plano) return;
@@ -216,12 +218,8 @@ export default function Cadastro() {
     }
   };
 
-  const activePlanObj = dbPlans.find(p => p.id === formData.plano) || {
-    id: isFreePlan ? "free" : "premium",
-    label: isFreePlan ? "Gratuito (Experimental)" : "Premium (Profissional)",
-    preco: isFreePlan ? "0.00" : "25.00",
-    limiteMusicas: isFreePlan ? 4 : 50,
-  };
+  // Plano vem do cadastro do admin (nenhum fallback hardcoded).
+  const activePlanObj = dbPlans.find(p => p.id === formData.plano);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/80 pb-32">
@@ -239,7 +237,7 @@ export default function Cadastro() {
               {isFreePlan ? "Plano Experimental" : "Ativação Instantânea"}
             </div>
             <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
-              {isFreePlan ? "Cadastro do Plano Gratuito" : "Assinatura do Perfil Profissional"}
+              {activePlanObj ? `Cadastro do plano ${activePlanObj.label}` : "Cadastro de Plano"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {isFreePlan ? "Crie sua conta em 1 minuto para conhecer a plataforma." : "Preencha os dados abaixo para ativar sua página e catálogo profissional."}
@@ -268,8 +266,8 @@ export default function Cadastro() {
                 <span className="text-[10px] font-black uppercase tracking-wider text-primary px-2 py-0.5 rounded bg-primary/20">
                   Plano Selecionado
                 </span>
-                <h3 className="text-xl font-extrabold text-white mt-1">{activePlanObj.label}</h3>
-                {activePlanObj.limiteMusicas > 0 && (
+                <h3 className="text-xl font-extrabold text-white mt-1">{activePlanObj?.label || "Carregando plano..."}</h3>
+                {!!activePlanObj && activePlanObj.limiteMusicas > 0 && (
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Até {activePlanObj.limiteMusicas} músicas catalogadas
                   </p>
@@ -277,9 +275,13 @@ export default function Cadastro() {
               </div>
               <div className="text-right">
                 <span className="text-2xl font-black text-primary">
-                  {isFreePlan ? "GRÁTIS" : `R$ ${couponResult ? parseFloat(couponResult.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : parseFloat(activePlanObj.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                  {isFreePlan
+                    ? "GRÁTIS"
+                    : activePlanObj
+                      ? `R$ ${couponResult ? parseFloat(couponResult.finalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : parseFloat(activePlanObj.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                      : "—"}
                 </span>
-                {!isFreePlan && <span className="text-xs text-muted-foreground block">/mês</span>}
+                {!isFreePlan && !!activePlanObj && <span className="text-xs text-muted-foreground block">/mês</span>}
               </div>
             </div>
 
@@ -623,26 +625,6 @@ export default function Cadastro() {
               </div>
             </form>
 
-            {/* Alternativa Discreta no Rodapé do Formulário — só quando o free ainda existe */}
-            {dbPlans.some((p) => String(p.id || "").toLowerCase() === "free") && (
-              <div className="pt-4 border-t border-border/30 text-center text-xs text-muted-foreground">
-                {isFreePlan ? (
-                  <span>
-                    Quer ativar a conta profissional completa?{" "}
-                    <Link href="/cadastro?plano=premium" className="text-primary font-bold hover:underline">
-                      Clique aqui para o Plano Profissional
-                    </Link>
-                  </span>
-                ) : (
-                  <span>
-                    Quer apenas experimentar a plataforma gratuitamente primeiro?{" "}
-                    <Link href="/cadastro?plano=free" className="text-primary font-bold hover:underline">
-                      Clique aqui para o Plano Gratuito
-                    </Link>
-                  </span>
-                )}
-              </div>
-            )}
           </motion.div>
         </div>
       </section>

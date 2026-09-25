@@ -77,16 +77,6 @@ router.post("/plans/seed", async (req, res): Promise<void> => {
   try {
     const defaultPlans = [
       {
-        nome: "free",
-        label: "Free Experimental",
-        preco: "0",
-        limiteMusicas: "2",
-        personalizacaoPercent: "10",
-        descricao: "2 músicas para testar a plataforma",
-        fraseEfeito: "Experimente e veja seu trabalho ganhar destaque!",
-        ativo: true,
-      },
-      {
         nome: "basico",
         label: "Básico",
         preco: "24.99",

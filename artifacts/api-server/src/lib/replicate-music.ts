@@ -54,6 +54,29 @@ function getReplicateClient(apiKey: string): Replicate {
   });
 }
 
+// HTTP 402 = conta do Replicate sem saldo. Devolve mensagem útil pro artista.
+function isInsufficientCreditError(err: any): boolean {
+  const parts = [
+    err?.message,
+    err?.response?.status,
+    err?.status,
+    typeof err?.response?.data === "string" ? err.response.data : JSON.stringify(err?.response?.data ?? {}),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return /\b402\b|insufficient credit|payment required/i.test(parts);
+}
+
+function toFriendlyError(err: any, context: string): Error {
+  if (isInsufficientCreditError(err)) {
+    console.error(`[Replicate] ${context}: conta sem créditos (HTTP 402).`, err?.message || err);
+    return new Error(
+      "O serviço de geração musical (Replicate) está sem créditos. Recarregue a conta no painel do Replicate e tente novamente, ou ajuste a chave/modelo nas configurações do Painel Administrativo."
+    );
+  }
+  return new Error(`${context}: ${err?.message || String(err)}`);
+}
+
 /**
  * Inicia uma predição no Replicate para gerar música com o MiniMax Music 2.6
  */
@@ -109,7 +132,7 @@ export async function startMusicGeneration(input: MiniMaxMusicInput): Promise<Re
     };
   } catch (err: any) {
     console.error("Erro ao iniciar predição no Replicate via SDK:", err);
-    throw new Error(`Falha ao iniciar geração musical no Replicate: ${err.message || String(err)}`);
+    throw toFriendlyError(err, "Falha ao iniciar geração musical no Replicate");
   }
 }
 
@@ -144,7 +167,7 @@ export async function getPredictionStatus(predictionId: string): Promise<Replica
     };
   } catch (err: any) {
     console.error("Erro ao consultar status da predição no Replicate via SDK:", err);
-    throw new Error(`Erro ao consultar status da geração: ${err.message || String(err)}`);
+    throw toFriendlyError(err, "Erro ao consultar status da geração");
   }
 }
 

@@ -53,7 +53,7 @@ export default function Landing() {
   const faqs = [
     {
       q: "Preciso de cartão de crédito para testar?",
-      a: "Não! O Portal do Artista possui plano Gratuito e você pode se cadastrar sem precisar cadastrar cartão de crédito."
+      a: "Não! Criar sua conta é gratuito e a cobrança só acontece quando você assina um plano — com cartão de crédito ou PIX."
     },
     {
       q: "Posso cancelar quando quiser?",

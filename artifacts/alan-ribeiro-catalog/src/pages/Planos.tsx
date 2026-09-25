@@ -14,6 +14,8 @@ interface Plan {
   preco: string;
   limiteMusicas: number;
   personalizacaoPercent: number;
+  descricao?: string;
+  fraseEfeito?: string;
   tagline: string;
   color: string;
   cardStyle: string;
@@ -23,7 +25,7 @@ interface Plan {
 export default function Planos() {
   const [, setLocation] = useLocation();
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [heroFeaturedPlan, setHeroFeaturedPlan] = useState<string>("premium");
+  const [heroFeaturedPlan, setHeroFeaturedPlan] = useState<string>("");
   const [faqOpen, setFaqOpen] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
 
@@ -50,24 +52,11 @@ export default function Planos() {
       .then((data) => {
         if (Array.isArray(data)) {
           const mapped = data.map((p: any) => {
-            let tagline = "Solução completa para sua música.";
-            let color = "bg-primary/20 text-primary border-primary/30";
-            let cardStyle = "border-border/40 bg-card/40 hover:border-primary/40";
-            
-            if (String(p.nome || "").toLowerCase() === "free") {
-              tagline = "Plano experimental e limitado para conhecer a experiência.";
-              color = "bg-muted text-muted-foreground border-border";
-            } else if (p.nome === "basico") {
-              tagline = "Sua jornada profissional começa aqui.";
-              color = "bg-green-500/20 text-green-400 border-green-500/30";
-            } else if (p.nome === "pro") {
-              tagline = "Grandes músicas merecem grandes apresentações.";
-              color = "bg-blue-500/20 text-blue-400 border-blue-500/30";
-            } else if (p.nome === "premium") {
-              tagline = "Para quem quer viver da música.";
-              color = "bg-amber-500/20 text-amber-400 border-amber-500/30";
-              cardStyle = "border-primary bg-gradient-to-b from-primary/15 via-card/90 to-card/95 ring-2 ring-primary/40 shadow-[0_0_35px_rgba(245,197,24,0.25)]";
-            }
+            // Textos e destaque vêm do cadastro de planos do admin.
+            const tagline =
+              p.fraseEfeito || p.descricao || "Solução completa para sua música.";
+            const color = "bg-primary/20 text-primary border-primary/30";
+            const cardStyle = "border-border/40 bg-card/40 hover:border-primary/40";
 
             return {
               id: p.nome,
@@ -76,6 +65,8 @@ export default function Planos() {
               preco: p.preco,
               limiteMusicas: parseInt(p.limiteMusicas) || 0,
               personalizacaoPercent: parseInt(p.personalizacaoPercent) || 0,
+              descricao: p.descricao,
+              fraseEfeito: p.fraseEfeito,
               tagline,
               color,
               cardStyle,
@@ -103,8 +94,8 @@ export default function Planos() {
       a: "Sim! Sem fidelidade ou burocracia. Você pode fazer upgrade ou cancelar diretamente no seu Painel do Artista com 1 clique."
     },
     {
-      q: "O plano Gratuito cobra alguma taxa?",
-      a: "Não. O plano Gratuito é 100% grátis e permite até 4 músicas no catálogo para você experimentar e ter seu perfil oficial sem custo."
+      q: "Todos os planos incluem perfil e player?",
+      a: "Sim. Todo plano dá acesso ao seu perfil oficial, link único e player de música. O que muda entre eles é o número de músicas, os recursos de personalização e os limites de IA."
     },
     {
       q: "Quais formas de pagamento são aceitas?",
@@ -141,8 +132,8 @@ export default function Planos() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
             {plans.map((plan) => {
-              const isFeatured = plan.nome === heroFeaturedPlan;
-              const isFree = String(plan.nome || "").toLowerCase() === "free";
+              // Destaque definido pelo admin (hero_featured_plan); se vazio, destaca o primeiro.
+              const isFeatured = plan.nome === (heroFeaturedPlan || plans[0]?.nome);
 
               return (
                 <motion.div
@@ -165,14 +156,16 @@ export default function Planos() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${plan.color}`}>
-                        {isFree ? "EXPERIMENTE GRÁTIS" : plan.label}
+                        {plan.label}
                       </span>
                     </div>
 
                     <div>
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-black text-white">
-                          {isFree ? "R$ 0,00" : `R$ ${parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                          {parseFloat(plan.preco || "0") === 0
+                            ? "R$ 0,00"
+                            : `R$ ${parseFloat(plan.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                         </span>
                         <span className="text-xs text-muted-foreground">/mês</span>
                       </div>
@@ -202,7 +195,9 @@ export default function Planos() {
                     }`}
                   >
                     <Zap className="w-3.5 h-3.5 fill-current" />
-                    {isFree ? "EXPERIMENTE GRÁTIS" : `ASSINAR ${plan.label.replace(/ASSINAR/gi, "").trim().toUpperCase()}`}
+                    {parseFloat(plan.preco || "0") === 0
+                      ? "COMEÇAR GRÁTIS"
+                      : `ASSINAR ${plan.label.replace(/ASSINAR/gi, "").trim().toUpperCase()}`}
                   </button>
                 </motion.div>
               );

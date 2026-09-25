@@ -460,7 +460,7 @@ export function AjudaTab({ artistId }: { artistId: number }) {
 
   const faq = [
     { q: "Como adicionar uma música?", a: "Vá até a aba Músicas, clique em 'Adicionar' e preencha os campos solicitados. O arquivo MP3 e a capa são os itens principais." },
-    { q: "Como funciona o limite de músicas?", a: "Cada plano tem um limite de músicas. O plano gratuito permite 2 músicas. Para aumentar, faça upgrade na aba Plano." },
+    { q: "Como funciona o limite de músicas?", a: "Cada plano tem seu próprio limite de músicas no catálogo. Para aumentar, faça upgrade na aba Plano." },
     { q: "Como registrar um custo ou receita?", a: "Na aba CRM > Financeiro, clique em 'Custo' ou 'Receita' e preencha a descrição e o valor. O sistema calcula o saldo automaticamente." },
     { q: "Como usar o calendário?", a: "Na aba CRM > Calendário, clique em qualquer data para adicionar um evento com título, horário e observações." },
     { q: "O que são liberações?", a: "Liberações são o controle de músicas que você enviou para outros artistas. Registre a data de envio e quando for liberada para não perder prazos." },

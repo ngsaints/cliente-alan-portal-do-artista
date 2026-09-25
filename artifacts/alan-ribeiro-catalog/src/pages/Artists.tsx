@@ -48,6 +48,8 @@ export default function Artists() {
   const [citySearch, setCitySearch] = useState("");
   const [sectionTitle, setSectionTitle] = useState("TODOS ARTISTAS");
   const [sectionSubtitle, setSectionSubtitle] = useState("Descubra e acompanhe cantores e compositores de todo o Brasil");
+  // Ranking de planos vem do banco (admin gerencia planos): maior preço = maior destaque.
+  const [planRank, setPlanRank] = useState<Record<string, number>>({});
 
   useSEO({
     title: "Compositores e Artistas Independentes | Portal do Artista",
@@ -76,6 +78,23 @@ export default function Artists() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/plans")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!Array.isArray(data)) return;
+        const byPrice = [...data].sort(
+          (a: any, b: any) => parseFloat(b.preco || "0") - parseFloat(a.preco || "0")
+        );
+        const rank: Record<string, number> = {};
+        byPrice.forEach((p: any, i: number) => {
+          rank[String(p.nome).toLowerCase()] = byPrice.length - i;
+        });
+        setPlanRank(rank);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -109,8 +128,9 @@ export default function Artists() {
   const cidades = allCities;
 
   const sortedArtists = [...filteredArtists].sort((a, b) => {
-    const planoOrder: Record<string, number> = { premium: 5, pro: 4, intermediario: 3, basico: 2, free: 1 };
-    return (planoOrder[b.plano] || 0) - (planoOrder[a.plano] || 0);
+    const rankA = planRank[String(a.plano || "").toLowerCase()] ?? -1;
+    const rankB = planRank[String(b.plano || "").toLowerCase()] ?? -1;
+    return rankB - rankA;
   });
 
   return (
@@ -249,9 +269,6 @@ export default function Artists() {
                       <div className="absolute top-3 right-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${
                           artist.plano === 'premium' ? 'bg-yellow-500/80 text-black' :
-                          artist.plano === 'pro' ? 'bg-purple-500/80 text-white' :
-                          artist.plano === 'intermediario' ? 'bg-blue-500/80 text-white' :
-                          artist.plano === 'basico' ? 'bg-green-500/80 text-white' :
                           'bg-muted text-muted-foreground'
                         }`}>
                           {artist.plano.toUpperCase()}

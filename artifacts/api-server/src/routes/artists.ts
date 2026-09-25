@@ -489,16 +489,18 @@ router.get("/artists/status", async (req, res): Promise<void> => {
         musicaCount: artist.musicaCount,
         vipSenha: artist.vipSenha,
         cardStyle: (artist as any).cardStyle,
-        personalizacaoPercent: isPaidActive ? (plan?.personalizacaoPercent ?? "10") : "10",
-        canCustomizeFont: isPaidActive ? (plan?.canCustomizeFont ?? true) : false,
-        canCustomizeBackground: isPaidActive ? (plan?.canCustomizeBackground ?? true) : false,
-        canCustomizeTextColor: isPaidActive ? (plan?.canCustomizeTextColor ?? true) : false,
-        canCustomizePlayerStyle: isPaidActive ? (plan?.canCustomizePlayerStyle ?? true) : false,
-        canCustomizePlayerColor: isPaidActive ? (plan?.canCustomizePlayerColor ?? true) : false,
-        canUploadBanner: isPaidActive ? (plan?.canUploadBanner ?? false) : false,
-        canUploadProfilePhoto: isPaidActive ? (plan?.canUploadProfilePhoto ?? false) : false,
+        personalizacaoPercent: isPaidActive && plan ? plan.personalizacaoPercent : "10",
+        // Permissões só valem quando o plano do artista existe no cadastro do admin
+        // (mesma regra do PUT /artists/profile — evita UI destravada que não salva).
+        canCustomizeFont: !!(isPaidActive && plan?.canCustomizeFont),
+        canCustomizeBackground: !!(isPaidActive && plan?.canCustomizeBackground),
+        canCustomizeTextColor: !!(isPaidActive && plan?.canCustomizeTextColor),
+        canCustomizePlayerStyle: !!(isPaidActive && plan?.canCustomizePlayerStyle),
+        canCustomizePlayerColor: !!(isPaidActive && plan?.canCustomizePlayerColor),
+        canUploadBanner: !!(isPaidActive && plan?.canUploadBanner),
+        canUploadProfilePhoto: !!(isPaidActive && plan?.canUploadProfilePhoto),
         aiQueriesCount: artist.aiQueriesCount,
-        aiCreditsLimit: isPaidActive ? (plan?.aiCreditsLimit ?? 10) : 10,
+        aiCreditsLimit: isPaidActive && plan?.aiCreditsLimit != null ? plan.aiCreditsLimit : 10,
       },
     });
   } catch (error) {
@@ -911,21 +913,56 @@ router.post("/artists/mentor", async (req, res): Promise<void> => {
     // 4. Sem bloqueio de saldo: Vivi texto é gratuita e ilimitada (custo zero no OpenRouter free).
     // O contador aiQueriesCount continua sendo incrementado abaixo só para métricas.
 
-    // 5. Definir o contexto do plano do artista
+    // 5. Definir o contexto do plano do artista (lido do cadastro de planos do admin)
+    const normPlano = (artist.plano || "").toLowerCase();
+    const planoNome = (artist.plano || "").toUpperCase();
+    let planRows: { nome: string; label: string; limiteMusicas: string; preco: string }[] = [];
+    try {
+      planRows = await db
+        .select({
+          nome: plansTable.nome,
+          label: plansTable.label,
+          limiteMusicas: plansTable.limiteMusicas,
+          preco: plansTable.preco,
+        })
+        .from(plansTable)
+        .where(eq(plansTable.ativo, true));
+    } catch (err) {
+      console.warn("[Vivi] Falha ao carregar planos para o contexto:", err);
+    }
+
+    const currentPlan = planRows.find((p) => p.nome.toLowerCase() === normPlano) || null;
+    const paidPlans = planRows
+      .filter((p) => Number(p.preco) > 0)
+      .sort((a, b) => Number(b.preco) - Number(a.preco));
+    const planNames = (list: typeof paidPlans) => list.map((p) => p.label).join(", ");
+
     let planContext = "";
-    if (artist.plano === "free") {
-      planContext = `O artista ${artist.name} está no plano GRATUITO (Free) com a Vivi liberada de forma gratuita e ilimitada. Incentive-o de forma amigável e motivadora a conhecer as vantagens de fazer upgrade para o plano Básico (20 músicas) ou Premium para ter mais espaço no catálogo e personalização de cores/fontes.`;
-    } else if (artist.plano === "basico") {
-      planContext = `O artista ${artist.name} está no plano BÁSICO com a Vivi liberada de forma gratuita e ilimitada. Dê os parabéns por ter dado esse passo profissional e ajude-o a divulgar.`;
-    } else if (artist.plano === "intermediario" || artist.plano === "pro") {
-      planContext = `O artista ${artist.name} está no plano PRO/INTERMEDIÁRIO com a Vivi liberada de forma gratuita e ilimitada. Dê dicas mais completas e avançadas sobre divulgação e engajamento.`;
-    } else if (artist.plano === "premium") {
-      planContext = `O artista ${artist.name} está no plano PREMIUM com a Vivi liberada de forma gratuita e ilimitada. Trate-o como um artista VIP com recursos totais.`;
+    if (!currentPlan) {
+      planContext =
+        `O artista ${artist.name} está identificado no sistema como plano ${planoNome}, ` +
+        `que hoje não consta no cadastro de planos do admin. A Vivi é gratuita e ilimitada para todos. ` +
+        `Trate-o com boa vontade e, se fizer sentido, sugira verificar os planos disponíveis na plataforma.`;
+    } else if (Number(currentPlan.preco) <= 0) {
+      const upgradeHint = paidPlans.length
+        ? `upgrade para o plano ${planNames(paidPlans.slice(-1))} (${paidPlans.slice(-1)[0].limiteMusicas} músicas) ou ${planNames(paidPlans.slice(0, 1))}`
+        : "upgrade de plano";
+      planContext =
+        `O artista ${artist.name} está no plano ${currentPlan.label} (${currentPlan.limiteMusicas} músicas no catálogo). ` +
+        `A Vivi é gratuita e ilimitada. Incentive-o de forma amigável e motivadora a conhecer as vantagens do ${upgradeHint} para ter mais espaço no catálogo e personalização de cores/fontes.`;
+    } else if (paidPlans[0]?.nome === currentPlan.nome) {
+      planContext =
+        `O artista ${artist.name} está no plano ${currentPlan.label} (${currentPlan.limiteMusicas} músicas no catálogo), ` +
+        `o mais completo da plataforma. A Vivi é gratuita e ilimitada. Trate-o como um artista VIP com recursos totais.`;
+    } else {
+      planContext =
+        `O artista ${artist.name} está no plano ${currentPlan.label} (${currentPlan.limiteMusicas} músicas no catálogo). ` +
+        `A Vivi é gratuita e ilimitada. Dê os parabéns e, quando fizer sentido, sugira upgrade${paidPlans.length ? ` para ${planNames(paidPlans)}` : ""} para mais espaço e personalização.`;
     }
 
     const planHeader = `[INFORMAÇÃO DO ARTISTA]
 Nome do artista: ${artist.name}
-Plano atual: ${artist.plano.toUpperCase()}
+Plano atual: ${planoNome}
 ${planContext}
 
 `;
