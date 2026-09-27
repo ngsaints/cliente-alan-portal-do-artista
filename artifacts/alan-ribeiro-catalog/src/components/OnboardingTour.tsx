@@ -5,69 +5,135 @@ export type TourStep = {
   target: string;
   title: string;
   text: string;
+  /** Aba do painel que precisa estar aberta para o alvo existir. */
+  tab?: string;
 };
 
 type Box = { top: number; left: number; width: number; height: number };
 
 const BUBBLE_WIDTH = 320;
 
+/** Teclas que rolam a página — bloqueadas para o artista não perder o destaque. */
+const SCROLL_KEYS = new Set([
+  " ",
+  "ArrowDown",
+  "ArrowUp",
+  "PageDown",
+  "PageUp",
+  "Home",
+  "End",
+  "ArrowLeft",
+  "ArrowRight",
+]);
+
 export function OnboardingTour({
   steps,
   open,
   onDone,
+  onStepChange,
 }: {
   steps: TourStep[];
   open: boolean;
   onDone: () => void;
+  onStepChange?: (step: TourStep) => void;
 }) {
   const [index, setIndex] = useState(0);
   const [box, setBox] = useState<Box | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const step = steps[index];
 
+  const onStepChangeRef = useRef(onStepChange);
+  onStepChangeRef.current = onStepChange;
+
+  const findTarget = useCallback(
+    () => (step && step.target ? document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`) : null),
+    [step],
+  );
+
   const measure = useCallback(() => {
-    const el = step ? document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`) : null;
+    const el = findTarget();
     if (!el) {
       setBox(null);
       return;
     }
     const r = el.getBoundingClientRect();
     setBox({ top: r.top, left: r.left, width: r.width, height: r.height });
-  }, [step]);
+  }, [findTarget]);
 
   useLayoutEffect(() => {
     if (open) setIndex(0);
   }, [open]);
 
-  // Ao trocar de passo: traz o alvo para a tela, mede e reage a scroll/resize.
+  // Se a lista de passos mudar durante o tour (ex.: flags carregando), não deixa o índice estourar.
+  useEffect(() => {
+    setIndex((i) => Math.min(i, Math.max(0, steps.length - 1)));
+  }, [steps.length]);
+
+  // Avisa o painel qual passo está ativo (para trocar de aba quando o passo pedir).
   useEffect(() => {
     if (!open || !step) return;
-    const el = document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`);
-    if (el) {
+    onStepChangeRef.current?.(step);
+  }, [open, step?.tab, step?.target]);
+
+  // Ao trocar de passo: espera o alvo existir (a aba pode estar trocando), mede e segue scroll/resize.
+  useEffect(() => {
+    if (!open || !step) return;
+
+    let tries = 0;
+    const bringAndMeasure = () => {
+      const el = findTarget();
+      if (!el) {
+        setBox(null);
+        return false;
+      }
       const r = el.getBoundingClientRect();
       if (r.top < 96 || r.bottom > window.innerHeight - 48) {
-        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        el.scrollIntoView({ block: "center", behavior: tries === 0 ? "smooth" : "auto" });
       }
-    }
-    measure();
+      setBox({ top: r.top, left: r.left, width: r.width, height: r.height });
+      return true;
+    };
+
+    bringAndMeasure();
+    const retry = window.setInterval(() => {
+      tries += 1;
+      if (bringAndMeasure() || tries >= 30) window.clearInterval(retry);
+    }, 100);
+
     const t1 = window.setTimeout(measure, 420);
     const onMove = () => measure();
     window.addEventListener("resize", onMove);
     window.addEventListener("scroll", onMove, true);
     return () => {
+      window.clearInterval(retry);
       window.clearTimeout(t1);
       window.removeEventListener("resize", onMove);
       window.removeEventListener("scroll", onMove, true);
     };
-  }, [open, step, measure]);
+  }, [open, step, measure, findTarget]);
 
-  // Trava a rolagem do fundo enquanto o tutorial está aberto.
+  // Bloqueia a rolagem do fundo (mouse/toclado) sem impedir o scrollIntoView do alvo.
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const fromBubble = (target: EventTarget | null) =>
+      bubbleRef.current && target instanceof Node ? bubbleRef.current.contains(target) : false;
+    const onWheel = (e: WheelEvent) => {
+      if (!fromBubble(e.target)) e.preventDefault();
+    };
+    const onTouch = (e: TouchEvent) => {
+      if (!fromBubble(e.target)) e.preventDefault();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (!SCROLL_KEYS.has(e.key)) return;
+      if (!fromBubble(e.target)) e.preventDefault();
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchmove", onTouch, { passive: false });
+    window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchmove", onTouch);
+      window.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
@@ -81,7 +147,7 @@ export function OnboardingTour({
     const top = above ? box.top - 20 : box.top + box.height + 20;
     const left = Math.min(
       Math.max(16, box.left + box.width / 2 - BUBBLE_WIDTH / 2),
-      window.innerWidth - BUBBLE_WIDTH - 16
+      window.innerWidth - BUBBLE_WIDTH - 16,
     );
     el.style.top = `${Math.max(12, Math.min(top, window.innerHeight - h - 12))}px`;
     el.style.left = `${left}px`;

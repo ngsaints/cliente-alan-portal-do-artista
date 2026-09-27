@@ -1,5 +1,5 @@
 import { trackEngagement, copyArtistLink } from "@/lib/engagement";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { 
@@ -196,35 +196,101 @@ const PLAYER_COLORS = [
 
 type TabId = "dashboard" | "songs" | "playlists" | "gallery" | "profile" | "plano" | "interesses" | "vip" | "mentor" | "artigos";
 
-const TOUR_STORAGE_KEY = "pd_onboarding_tour_v1";
+const TOUR_STORAGE_KEY = "pd_onboarding_tour_v2";
 
-const TOUR_STEPS: TourStep[] = [
-  {
-    target: "tabs",
-    title: "Navegue pelas abas",
-    text: "Músicas, galeria, perfil, plano e mentora ficam nesta barra. Use as setas para ver todas as opções.",
-  },
-  {
-    target: "vivi",
-    title: "Estúdio Vivi",
-    text: "Gere demos cantadas por IA, capas e fotos de perfil. Os créditos do seu plano aparecem dentro do estúdio.",
-  },
-  {
-    target: "diagnostico",
-    title: "Diagnóstico da carreira",
-    text: "Veja quanto seu perfil está completo e o que falta para transmitir mais credibilidade para fãs e contratantes.",
-  },
-  {
-    target: "mentor",
-    title: "Pergunte à Vivi",
-    text: "Converse sobre carreira, divulgação e música. A cota de mensagens segue o plano definido pelo administrador.",
-  },
-  {
-    target: "",
-    title: "Tudo pronto!",
-    text: "Comece pelo Estúdio Vivi ou enviando um MP3 que você já gravou. Em caso de dúvida, a Vivi e o suporte estão a um clique.",
-  },
-];
+type TourOptions = { vipEnabled: boolean; chatEnabled: boolean };
+
+/** Passos do tutorial. Cada passo declara a aba que precisa estar aberta (`tab`). */
+function buildTourSteps({ vipEnabled, chatEnabled }: TourOptions): TourStep[] {
+  return [
+    {
+      tab: "dashboard",
+      target: "tabs",
+      title: "Por onde andar",
+      text: "Tudo fica nesta barra de abas: Músicas, Playlists, Galeria, Perfil, Plano e mais. Clique no nome da aba para trocar de tela.",
+    },
+    {
+      tab: "dashboard",
+      target: "vivi",
+      title: "Estúdio Vivi (IA)",
+      text: "Aqui você gera demos cantadas, capas e fotos de perfil com inteligência artificial. Os créditos do seu plano aparecem dentro do estúdio.",
+    },
+    {
+      tab: "dashboard",
+      target: "diagnostico",
+      title: "Diagnóstico da carreira",
+      text: "Mostra o quanto o seu perfil está completo e o que falta para passar mais credibilidade para fãs e contratantes.",
+    },
+    ...(chatEnabled
+      ? [
+          {
+            tab: "dashboard",
+            target: "mentor",
+            title: "Pergunte à Vivi",
+            text: "Dúvidas de carreira, divulgação ou legenda de Reels? Ela responde na hora. A cota segue o plano definido pelo administrador.",
+          },
+        ]
+      : []),
+    {
+      tab: "songs",
+      target: "songs",
+      title: "Suas músicas",
+      text: "Aqui você envia o MP3 com capa, título e descrição. Também dá para marcar música como VIP e ver quantas vagas o seu plano tem.",
+    },
+    {
+      tab: "playlists",
+      target: "playlists",
+      title: "Suas playlists",
+      text: "Organize as músicas em playlists para o fã não perder tempo procurando. Clique em Nova Playlist para começar.",
+    },
+    {
+      tab: "gallery",
+      target: "gallery",
+      title: "Sua galeria de fotos",
+      text: "Mostre fotos de shows, bastidores e divulgação. Quanto mais fotos, mais profissional aparece o seu perfil.",
+    },
+    {
+      tab: "profile",
+      target: "perfil",
+      title: "Seu perfil",
+      text: "Foto, biografia, cidade e redes sociais. É a primeira coisa que o fã e o contratante veem — preencha tudo.",
+    },
+    {
+      tab: "profile",
+      target: "temas",
+      title: "Temas e aparência",
+      text: "Escolha o fundo, a fonte, a cor e o estilo do player do seu site. Muda na hora e fica do seu jeito.",
+    },
+    ...(vipEnabled
+      ? [
+          {
+            tab: "vip",
+            target: "vip",
+            title: "Conteúdo VIP",
+            text: "Defina uma senha para liberar músicas exclusivas só para quem tem acesso. É assim que você cobra conteúdo premium.",
+          },
+        ]
+      : []),
+    {
+      tab: "plano",
+      target: "plano",
+      title: "Seu plano",
+      text: "Aqui você vê quantas músicas cabem no plano, os créditos de IA e faz o upgrade. Pagamento por PIX, boleto ou cartão.",
+    },
+    {
+      tab: "interesses",
+      target: "interesses",
+      title: "Interesses e propostas",
+      text: "Aqui chegam fãs, contratantes e produtores interessados no seu trabalho. Responda rápido para não perder a oportunidade.",
+    },
+    {
+      tab: "dashboard",
+      target: "",
+      title: "Tudo pronto!",
+      text: "Comece enviando um MP3 ou abrindo o Estúdio Vivi. Em dúvida, fale com a Vivi ou com o suporte — estamos a um clique.",
+    },
+  ];
+}
 
 function PlayerPreviewMini({ style, editCustom }: { style: string; editCustom: any }) {
   const playerCor = editCustom?.playerCor || "#f5c518";
@@ -694,6 +760,11 @@ export default function ArtistDashboard() {
   const featureFlags = useFeatureFlags();
   const vipEnabled = featureFlags.vipEnabled;
   const reservadoEnabled = featureFlags.reservadoEnabled;
+
+  const tourSteps = useMemo(
+    () => buildTourSteps({ vipEnabled, chatEnabled: openaiEnabled }),
+    [vipEnabled, openaiEnabled],
+  );
 
   useEffect(() => {
     if (!vipEnabled && activeTab === "vip") setActiveTab("dashboard");
@@ -1288,8 +1359,11 @@ export default function ArtistDashboard() {
 
       {/* Tutorial de boas-vindas do painel */}
       <OnboardingTour
-        steps={TOUR_STEPS}
+        steps={tourSteps}
         open={tourOpen}
+        onStepChange={(s) => {
+          if (s.tab && s.tab !== activeTab) setActiveTab(s.tab as TabId);
+        }}
         onDone={() => {
           setTourOpen(false);
           try {
@@ -1937,7 +2011,7 @@ export default function ArtistDashboard() {
             {/* Songs */}
             {activeTab === "songs" && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div data-tour="songs" className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-foreground">Minhas Músicas ({songs.length}/{artist?.limiteMusicas})</h3>
                   <div className="flex items-center gap-2">
                     <button
@@ -2237,7 +2311,7 @@ export default function ArtistDashboard() {
             {/* Playlists */}
             {activeTab === "playlists" && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div data-tour="playlists" className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-foreground">Minhas Playlists</h3>
                   <button
                     onClick={() => setShowCreatePlaylist(true)}
@@ -2396,7 +2470,7 @@ export default function ArtistDashboard() {
             {activeTab === "profile" && (
               <div className="space-y-6">
                 {/* Photo uploads */}
-                <div className="bg-card border border-border/40 rounded-xl p-6 space-y-4">
+                <div data-tour="perfil" className="bg-card border border-border/40 rounded-xl p-6 space-y-4">
                   <h3 className="text-lg font-bold text-foreground">Fotos do Perfil</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
@@ -2539,7 +2613,7 @@ export default function ArtistDashboard() {
                 </div>
 
                 {/* Personalização */}
-                <div className="bg-card border border-border/40 rounded-xl p-6 space-y-4">
+                <div data-tour="temas" className="bg-card border border-border/40 rounded-xl p-6 space-y-4">
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                     <Palette className="w-5 h-5 text-primary" />
                     Personalização
@@ -3222,7 +3296,7 @@ export default function ArtistDashboard() {
             {/* VIP */}
             {activeTab === "vip" && (
               <div className="space-y-6">
-                <div className="bg-card border border-border/40 rounded-xl p-6">
+                <div data-tour="vip" className="bg-card border border-border/40 rounded-xl p-6">
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2 mb-4">
                     <Crown className="w-5 h-5 text-yellow-500" />
                     Senha de Acesso VIP
@@ -3291,7 +3365,7 @@ export default function ArtistDashboard() {
 
             {/* Plano */}
             {activeTab === "plano" && (
-              <div className="bg-card border border-border/40 rounded-xl p-6">
+              <div data-tour="plano" className="bg-card border border-border/40 rounded-xl p-6">
                 <h3 className="text-lg font-bold text-foreground mb-4">Meu Plano</h3>
                 <div className="flex items-center gap-4 p-4 bg-primary/10 border border-primary/20 rounded-xl mb-6">
                   <Crown className="w-8 h-8 text-primary" />
@@ -3771,7 +3845,7 @@ function ArtistInteresses({ artistId }: { artistId: number }) {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div data-tour="interesses" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-xl font-bold text-foreground flex items-center gap-2 font-display">
             Interesses & Propostas Recebidas
@@ -4182,7 +4256,7 @@ function GalleryTab({ artistId }: { artistId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div data-tour="gallery" className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Image className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">Galeria de Fotos</h3>

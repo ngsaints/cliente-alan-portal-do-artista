@@ -1,11 +1,52 @@
-# Backlog — O Que Falta Fazer
+# Backlog — Portal do Artista
 
-> **Última atualização**: 21/04/2026
+> **Última atualização**: 26/09/2026
 
 ---
 
-## Concluído
+## Como funciona (combinado com o Alan)
 
+1. **Uma lista só**: todo pedido novo entra aqui na **Fila**. Nada é começado fora da fila.
+2. **Ciclo fixo**: entrega na **sexta-feira**. 1 a 2 itens por ciclo.
+3. **Escopo dito antes**: cada item tem estimativa (S = até 1 dia, M = 2–3 dias, L = 1 semana).
+4. **Regra**: nunca começar algo novo antes de fechar o item em andamento.
+5. Pedido novo = "está na fila, entra no ciclo X". Sem entrar no meio.
+
+---
+
+## Ciclo atual (em andamento)
+
+| # | Item | Tamanho | Status |
+|---|------|---------|--------|
+| 1 | **Tutorial completo do painel** — 5 → 13 balões, ensina abas, Estúdio Vivi, diagnóstico, músicas, playlists, galeria, perfil, **temas/aparência**, VIP, plano, interesses e conclusão. Troca de aba automática durante o tour (chave `pd_onboarding_tour_v2` para quem já viu a versão antiga rever). | M | ✅ feito 26/09 |
+| 2 | **Vivi proativa** — quando o diagnóstico mostra perfil incompleto, a Vivi manda mensagem sugerindo o próximo passo (segura o artista no painel) | M | ⬜ fila |
+| 3 | **PWA instalável** — manifest + service worker: ícone na tela do celular e notificação push (é o que mais prende gente pelo custo) | M | ⬜ fila |
+| 4 | **Admin acompanha o chat da Vivi** — admin vê as threads e pode assumir a conversa do artista | L | ⬜ fila |
+
+---
+
+## Fila (próximos ciclos — ordem decidida a cada sexta)
+
+> Pedido novo: anexar aqui com estimativa. Só entra no ciclo quando sai da fila para "Ciclo atual".
+
+- [ ] **Trial com créditos grátis** (S/M) — artista testa o Estúdio Vivi sem cartão
+- [ ] **Bug: aba "Meus Artigos" vazia** — a aba aparece quando `canPostArticles`, mas o `ArtistDashboard` não renderiza conteúdo nela (S)
+- [ ] **Trilha de onboarding com progresso** (%) — o tutorial vira checklist visível
+- [ ] **Retorno semanal** — conteúdo novo + lembrete para o artista voltar (M)
+- [ ] **Moderação de palavras no chat da Vivi** (S)
+- [ ] **App nativo (Capacitor)** — só depois do PWA, decidir com base em uso real (L)
+- [ ] Registro de marca / domínios extras (fora de código)
+
+---
+
+## Concluído (recente)
+
+- [x] Remove plano free; listas e limites gerenciáveis pelo admin
+- [x] Limites de IA seguem 100% o cadastro de planos do admin
+- [x] Fundo claro volta a funcionar; cota de IA só do admin
+- [x] Chat da Vivi com cota por plano e hits de IA rastreados
+- [x] Tutorial de boas-vindas com balões no primeiro acesso (`OnboardingTour`)
+- [x] Chaves VIP/Reservado ligáveis no admin (`Configurações → Portal`)
 - [x] Página de cadastro de artista (multi-step)
 - [x] Login/logout de artista com sessão
 - [x] Dashboard do artista (gerenciamento de músicas)
@@ -21,128 +62,59 @@
 - [x] Área VIP
 - [x] Player de áudio global persistente
 - [x] API endpoints para artistas (CRUD, auth, perfil)
-- [x] **Sessão de artistas com city filter padronizado** (cidades gerenciadas pelo admin via tabela `cities`)
-- [x] **Carrossel de banners CTA** (sistema de banners configuráveis)
-- [x] **Hero da home reformulado** (foco em artista, CTAs duplos)
-- [x] **Upload de músicas via `/api/artist/:id/songs`** (autenticação via sessão artista)
-- [x] **Edição de músicas pelo artista** (`PUT /api/artist/:id/songs/:songId`)
-- [x] **Preço para compositores** (checkbox "definir valor", badge "A combinar")
-- [x] **Fix: ArtistProfile filtering songs by artistId numérico** (antes usava slug como id)
-- [x] **Botão "Tenho Interesse" no topo do card** (posição top-3 right-3)
+- [x] Sessão de artistas com city filter padronizado (tabela `cities`)
+- [x] Carrossel de banners CTA
+- [x] Hero da home reformulado (foco em artista, CTAs duplos)
+- [x] Upload/edição de músicas via `/api/artist/:id/songs`
+- [x] Preço para compositores (checkbox "definir valor", badge "A combinar")
+- [x] Botão "Tenho Interesse" no topo do card
+- [x] Curtir música (`POST /api/songs/:id/like`)
+- [x] Dashboard de metas do CRM (`docs/CRM_METAS_*.md`)
+- [x] **Player no celular**: `artifacts/player-app-mobile/`
 
 ---
 
-## Prioridade Alta
+## Arquivo — itens antigos (21/04/2026), revisar antes de usar
 
-### 1. Bug: Race condition de sessão após cadastro
-- Após cadastro, redirect para dashboard pode acontecer antes da sessão ser salva
-- `GET /api/artists/status` retorna `loggedIn: false` intermitentemente
-- **Fix**: chamar `req.session.save()` explicitamente antes do `res.status(201)` no registro
-- **Arquivo**: `artifacts/api-server/src/routes/artists.ts`
+> Itens abaixo são da versão antiga deste backlog. Alguns podem já estar feitos (ex.: sitemap.xml,
+> robots.txt, pagamento). **Revisar um por um antes de mover para a fila.**
 
-### 2. Bug: Typo `artistaId` vs `artistId` em interests
-- `interests.ts` usa `req.session.artistaId` mas login/registro seta `req.session.artistId`
-- Resultado: autorização de artista em interesses sempre falha (401)
-- **Arquivo**: `artifacts/api-server/src/routes/interests.ts`
+**Bugs (prioridade alta)**
+- Race condition de sessão após cadastro (`artists.ts` — `req.session.save()` antes da resposta)
+- Typo `artistaId` vs `artistId` em `interests.ts`
+- Sessão não declara tipos (`artistId`, `artistEmail`, `artistName`)
 
-### 3. Bug: Sessão não declara tipos corretos
-- `declare module "express-session"` só declara `logado: boolean`
-- Faltam `artistId`, `artistEmail`, `artistName`
-- **Arquivo**: `artifacts/api-server/src/routes/auth.ts`
+**Pagamento**
+- MercadoPago: preferência, webhook, `/planos`, ativação automática (hoje o portal usa Asaas)
 
----
+**SEO**
+- OG tags dinâmicas, Twitter cards, sitemap.xml, robots.txt, imagem OG por artista
 
-## Prioridade Média
+**Email**
+- SMTP (Resend/SendGrid), boas-vindas, novo interesse
 
-### 4. Sistema de Pagamento (MercadoPago)
-- [ ] Instalar SDK `mercadopago`
-- [ ] `POST /api/payments/create-preference` — Criar preferência
-- [ ] `POST /api/webhooks/mercadopago` — Notificações
-- [ ] Página `/planos` — Cards com botão "Assinar"
-- [ ] Checkout Pro (redirect para MP)
-- [ ] Ativação automática do plano após pagamento
-- [ ] Tabela `subscriptions` no banco
-- [ ] Lógica de expiração/cancelamento
+**Social**
+- Compartilhar (WhatsApp/Twitter), seguir artista, contador de plays
 
-### 5. Open Graph / SEO
-- [ ] OG tags dinâmicas por artista
-- [ ] Twitter cards
-- [ ] Sitemap.xml
-- [ ] robots.txt
-- [ ] Imagem OG dinâmica com nome/foto do artista
+**Analytics**
+- Gráficos de plays, top músicas, origem dos ouvintes, artistas ativos
 
-### 6. Sistema de Email
-- [ ] Configurar SMTP (Resend, SendGrid)
-- [ ] Email de boas-vindas ao artista
-- [ ] Email de reset de senha (já funcional)
-- [ ] Email de novo interesse
+**Técnico**
+- Rate limiting em auth, Zod em todos os endpoints, paginação, cache, backup automático,
+  skeleton loaders, error boundaries, lazy loading de imagens
 
-### 7. Sistema Social
-- [x] Curtir música (já implementado — `POST /api/songs/:id/like`)
-- [ ] Compartilhar (link, WhatsApp, Twitter)
-- [ ] Seguir artista
-- [ ] Contador de plays
+**Mobile**
+- Home responsiva, grid 1 coluna, player acessível, touch targets 44px
 
----
+**Segurança**
+- bcrypt salt 12, rate limit login, CSRF, CORS, sanitização XSS, Helmet,
+  sessões com Redis, log de auditoria
 
-## Prioridade Baixa
+**Slug**
+- Edição pelo painel, redirect 301 `/artista/{id}` → `/a/{slug}`, validação
 
-### 8. Analytics / Dashboard de Stats
-- [ ] Gráficos de plays por dia/semana/mês
-- [ ] Top músicas mais ouvidas
-- [ ] Origem dos ouvintes
-- [ ] Total de artistas ativos (admin)
-
-### 9. Melhorias Técnicas
-- [ ] Rate limiting em rotas de auth
-- [ ] Validação Zod em todos os endpoints
-- [ ] Pagination em listagens grandes
-- [ ] Cache de queries frequentes (Redis)
-- [ ] Upload com validação (tipo, tamanho)
-- [ ] Backup automático do banco (cron)
-- [ ] Skeleton loaders no frontend
-- [ ] Error boundaries (React)
-- [ ] Toast de sucesso em todas as ações
-- [ ] PWA / offline support
-- [ ] Lazy loading de imagens
-
-### 10. Mobile / Responsividade
-- [ ] Verificar home responsiva
-- [ ] Cards em grid 1-coluna no mobile
-- [ ] Player acessível no mobile
-- [ ] Touch targets adequados (min 44px)
-
-### 11. Segurança
-- [ ] Hash bcrypt com salt round 12
-- [ ] Rate limiting em login (max 5/min)
-- [ ] CSRF protection
-- [ ] CORS configurado
-- [ ] Input sanitization (XSS)
-- [ ] Helmet.js headers
-- [ ] Sessões com Redis (ao invés de memory store)
-- [ ] Log de auditoria
-
-### 12. URL Customizada (Slug) — Melhorias
-- [ ] Artista pode editar o slug no painel
-- [ ] Redirect de `/artista/{id}` para `/a/{slug}` (301)
-- [ ] Validação: só letras, números, hifens
-
-### 13. Funcionalidades de Música
-- [ ] 4 tipos de player (Padrão, Minimalista, Waveform, Lista)
-- [ ] Fila de reprodução
-- [ ] Shuffle / Repeat
-- [ ] Progresso salvo
-- [ ] Upload com drag & drop
-- [ ] Upload em batch
-
----
-
-## Migrations Recentes
-
-| Migration | Descrição |
-|----------|-----------|
-| `004_cta_banners.sql` | Tabela e seed de banners CTA |
-| `006_cities.sql` | Tabela de cidades gerenciadas pelo admin |
+**Música**
+- Fila de reprodução, shuffle/repeat, progresso salvo, drag & drop, upload em batch
 
 ---
 
@@ -156,28 +128,9 @@
 
 ---
 
-## Features Recentes (21/04/2026)
+## Migrations
 
-### Carrossel de Banners CTA
-- Banners configurados via tabela `cta_banners` no admin
-- Campos: texto, cor_fundo, cor_texto, botao_texto, botao_link, imagem_fundo_url, intervalo_segundos
-- Padrão: links apuntan para `/artista/login?tab=cadastro`
-
-### Cidade Padronizada
-- Tabela `cities` gerenciada pelo admin
-- Filtro de artistas por cidade usa a tabela oficial (não mais extração do cadastro)
-- Combobox com busca (cmdk + Popover)
-
-### Preço para Compositores
-- Checkbox "Definir valor" no formulário de música
-- Se desmarcado: badge "A combinar" no card
-- Se marcado: campos Valor X (Uso Livre) e Valor Y (Uso Exclusivo)
-
-### Hero da Home
-- Headline foca em "cantores e compositores"
-- CTAs duplos: "Criar Meu Portal" + "Ver Catálogo"
-- Search abaixo dos CTAs
-
-### Botão "Tenho Interesse"
-- Posicionado no topo direito do card (top-3 right-3)
-- Presente em Home.tsx e ArtistProfile.tsx
+| Migration | Descrição |
+|----------|-----------|
+| `004_cta_banners.sql` | Tabela e seed de banners CTA |
+| `006_cities.sql` | Tabela de cidades gerenciadas pelo admin |
