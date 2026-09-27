@@ -1,6 +1,6 @@
 # Backlog — Portal do Artista
 
-> **Última atualização**: 26/09/2026
+> **Última atualização**: 27/09/2026
 
 ---
 
@@ -19,7 +19,7 @@
 | # | Item | Tamanho | Status |
 |---|------|---------|--------|
 | 1 | **Tutorial completo do painel** — 5 → 13 balões, ensina abas, Estúdio Vivi, diagnóstico, músicas, playlists, galeria, perfil, **temas/aparência**, VIP, plano, interesses e conclusão. Troca de aba automática durante o tour (chave `pd_onboarding_tour_v2` para quem já viu a versão antiga rever). | M | ✅ feito 26/09 |
-| 2 | **Vivi proativa** — quando o diagnóstico mostra perfil incompleto, a Vivi manda mensagem sugerindo o próximo passo (segura o artista no painel) | M | ⬜ fila |
+| 2 | **Vivi proativa** — card "Vivi diz" no Diagnóstico com a mensagem da Vivi (percentual + próximo passo), botão que leva ao lugar certo e o mesmo contexto já dentro do chat do Estúdio. Sem chamada de IA (custo zero). Bonus: pergunta rápida do dashboard agora cai na conversa da Vivi (antes era enviada e a resposta não aparecia — queimava cota à toa). | M | ✅ feito 27/09 |
 | 3 | **PWA instalável** — manifest + service worker: ícone na tela do celular e notificação push (é o que mais prende gente pelo custo) | M | ⬜ fila |
 | 4 | **Admin acompanha o chat da Vivi** — admin vê as threads e pode assumir a conversa do artista | L | ⬜ fila |
 
@@ -29,6 +29,7 @@
 
 > Pedido novo: anexar aqui com estimativa. Só entra no ciclo quando sai da fila para "Ciclo atual".
 
+- [ ] **TV de novidades ("TVzinha")** (M) — pedido do Alan em 27/09. **Na fila, ainda falta detalhar.** Ver detalhes em [TV de novidades](#tv-de-novidades-pedido-do-alan-2709)
 - [ ] **Trial com créditos grátis** (S/M) — artista testa o Estúdio Vivi sem cartão
 - [ ] **Bug: aba "Meus Artigos" vazia** — a aba aparece quando `canPostArticles`, mas o `ArtistDashboard` não renderiza conteúdo nela (S)
 - [ ] **Trilha de onboarding com progresso** (%) — o tutorial vira checklist visível
@@ -39,8 +40,44 @@
 
 ---
 
+## TV de novidades (pedido do Alan, 27/09)
+
+> Status: **na fila — ainda falta detalhar com ele antes de estimar de verdade.**
+> Tamanho provável: **M (2–3 dias)**.
+
+### O que ele pediu (resumo do áudio)
+- Uma **"televisãozinha"** que apareça **em todas as páginas**: home, perfil do compositor, perfil do artista, página da música — tudo.
+- Nele ele posta **vídeos**: tutorial ("como mexer no perfil"), novidade, lançamento.
+- Funciona como **newsletter em vídeo** — jeito dele comunicar sem responder um a um.
+- Motivo: ~20 assinantes (maioria R$10) e ele está **respondendo dúvidas 24h**. Precisa reter a base: "entraram, não podem sair".
+
+### Desenho preliminar (não aprovado ainda)
+- Widget fixo (canto inferior) em todas as páginas + **badge de novidade**
+- Clicou → vídeo em modal; **"não mostrar de novo"** grava no navegador
+- Admin cadastra vídeo (tabela `tv_videos`: título, url, descrição, link, ativo, ordem) — mesmo padrão do CRUD de banners (`routes/banners.ts`)
+- Vídeo por **link do YouTube (unlisted)** em vez de upload: não pesa no servidor, custo R$0
+- Widget `TVWidget.tsx` montado no layout público + painel
+- Opcional: painel de "quem assistiu" (senão é chute, não métrica)
+
+### Decisões pendentes (preciso da Dani/Alan respondendo)
+1. **Onde aparece**: todas as páginas públicas, painel do artista, ou as duas?
+2. **Formato**: YouTube unlisted (recomendado) ou upload de MP4 no servidor?
+3. **Posição/comportamento**: flutuante no canto, banner no topo, ou os dois? Some depois de assistir?
+4. **Quem publica**: só o Alan no admin? Precisa agendar data de publicação?
+5. **Texto + CTA** junto do vídeo (ex.: botão "Ver tutorial no painel")?
+6. **Métrica**: precisa saber quem assistiu? (se não, é só visual)
+7. **Ciclo**: em qual sexta ela entra?
+
+### Atenção
+- A TV **ensina e comunica**, mas **não** substitui a **Vivi proativa** (item 2), que é o que responde dúvida pessoal sem o Alan. Ela também **não** substitui o **PWA push** (item 3), que é o que mais segura assinante no dia a dia.
+
+---
+
 ## Concluído (recente)
 
+- [x] **Vivi proativa** (27/09) — card "Vivi diz" no Diagnóstico + contexto no chat do Estúdio; pergunta rápida do dashboard agora responde na conversa (antes a resposta não aparecia e queimava cota de IA)
+- [x] **Tutorial do painel expandido** (26/09) — 13 balões, troca de aba automática, chave `pd_onboarding_tour_v2`
+- [x] **Backlog reescrito** (26/09) — regras do ciclo de entrega, fila única e pedido da TV de novidades anotado
 - [x] Remove plano free; listas e limites gerenciáveis pelo admin
 - [x] Limites de IA seguem 100% o cadastro de planos do admin
 - [x] Fundo claro volta a funcionar; cota de IA só do admin

@@ -563,94 +563,15 @@ export default function ArtistDashboard() {
   const [planCouponError, setPlanCouponError] = useState("");
   const [validatingPlanCoupon, setValidatingPlanCoupon] = useState(false);
 
-  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([
-    { role: "assistant", content: "Olá! Eu sou a Vivi, mentora virtual do PORTALDOARTISTA.COM. Estou aqui para ajudar você a organizar sua carreira, divulgar suas músicas e aproveitar todas as ferramentas da plataforma. Como posso te ajudar hoje?" }
-  ]);
-  const [currentTool, setCurrentTool] = useState<string>("chat");
-  const [chatLoading, setChatLoading] = useState(false);
-  const [chatInput, setChatInput] = useState("");
   const [quickQuestion, setQuickQuestion] = useState<string | null>(null);
+  const [viviWantsChat, setViviWantsChat] = useState(false);
 
+  /** Pergunta digitada no card do dashboard: abre a conversa da Vivi com a pergunta pronta. */
   const handleQuickMentorQuestion = (text: string) => {
     setQuickQuestion(text);
+    setViviWantsChat(true);
     setActiveTab("mentor");
   };
-
-  const handleSelectTool = (toolName: string) => {
-    setCurrentTool(toolName);
-    let intro = "Olá! Eu sou a Vivi. Escolha uma das ferramentas ao lado ou faça uma pergunta livre sobre sua carreira.";
-    if (toolName === "biografia") {
-      intro = "Cole sua biografia profissional atual ou conte-me sua história para eu reescrevê-la de forma impactante!";
-    } else if (toolName === "potencial") {
-      intro = "Envie a letra, gênero ou tema da sua música para eu analisar seu apelo comercial e público-alvo.";
-    } else if (toolName === "legenda") {
-      intro = "Diga sobre o que é a sua música ou publicação para eu gerar opções de legendas para Instagram, TikTok e Facebook.";
-    } else if (toolName === "reels") {
-      intro = "Fale do tema que quer gravar para eu criar um roteiro de vídeo de Reels/TikTok dinâmico de até 60 segundos.";
-    } else if (toolName === "hashtags") {
-      intro = "Digite o tema ou estilo do seu post para eu listar hashtags estratégicas.";
-    } else if (toolName === "release") {
-      intro = "Me conte sobre seu novo lançamento, show ou conquista para eu redigir um press release completo.";
-    } else if (toolName === "titulos") {
-      intro = "Conte sobre o tema ou a letra da música para eu sugerir 5 títulos marcantes.";
-    }
-    
-    setChatMessages([
-      { role: "assistant", content: intro }
-    ]);
-  };
-
-  const triggerVivi = async (messagesList: { role: "user" | "assistant"; content: string }[], toolName: string) => {
-    setChatLoading(true);
-    try {
-      const res = await fetch("/api/artists/mentor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          messages: messagesList,
-          tool: toolName
-        })
-      });
-      
-      const data = await res.json();
-      if (res.ok) {
-        setChatMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
-        if (artist) {
-          setArtist({
-            ...artist,
-            aiQueriesCount: data.aiQueriesCount
-          });
-        }
-      } else {
-        toast({
-          title: data.limitReached ? "Limite da Vivi atingido" : "Erro ao consultar a Vivi",
-          description: data.error || "Não foi possível obter resposta no momento.",
-          variant: "destructive"
-        });
-      }
-    } catch (err) {
-      console.error("Error communicating with Vivi:", err);
-      toast({
-        title: "Erro de conexão",
-        description: "Falha ao se conectar com a mentora virtual.",
-        variant: "destructive"
-      });
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === "mentor" && quickQuestion) {
-      const question = quickQuestion;
-      setQuickQuestion(null);
-      setCurrentTool("chat");
-      const newMsgs = [...chatMessages, { role: "user" as const, content: question }];
-      setChatMessages(newMsgs);
-      triggerVivi(newMsgs, "chat");
-    }
-  }, [activeTab, quickQuestion]);
 
   const getProfileCompletion = () => {
     if (!artist) return { percent: 0, items: [] as { label: string; status: "success" | "warning" | "error" }[] };
@@ -748,6 +669,43 @@ export default function ArtistDashboard() {
     
     return { percent: score, items };
   };
+
+  /**
+   * Vivi proativa: mensagem personalizada a partir do Diagnóstico (custo zero, sem chamada de IA).
+   * Serve para o artista saber qual é o próximo passo sem precisar perguntar.
+   */
+  const viviNudge = (() => {
+    if (!artist) return null;
+    const { percent, items } = getProfileCompletion();
+    const pending = items.filter((i) => i.status !== "success").map((i) => i.label);
+    const hasSongs = songs.length > 0;
+
+    if (percent < 100) {
+      const falta = pending.slice(0, 3).join(" • ");
+      return {
+        text: `Olá, ${artist.name}! Olhei o seu perfil e ele está em ${percent}%. Para ficar completo e passar mais credibilidade, falta pouco: ${falta}. Resolvemos agora?`,
+        hint: `Meu perfil está em ${percent}% e ainda falta: ${pending.join("; ") || "pouco"}. Me ajuda a decidir por onde começar.`,
+        primary: { label: "Completar perfil", tab: "profile" as TabId },
+        secondary: { label: "Falar com a Vivi", tab: "mentor" as TabId, chat: true },
+      };
+    }
+
+    if (!hasSongs) {
+      return {
+        text: `Perfil 100% — ficou lindo, ${artist.name}! Agora a vitrine está vazia: publique a primeira música e o portal começa a trabalhar por você.`,
+        hint: "Meu perfil está 100% completo, mas ainda não tenho nenhuma música publicada. Qual é o melhor próximo passo?",
+        primary: { label: "Enviar MP3", tab: "songs" as TabId },
+        secondary: { label: "Gerar com IA", tab: "mentor" as TabId, chat: false },
+      };
+    }
+
+    return {
+      text: `Perfil 100% e ${songs.length} música(s) no catálogo, ${artist.name}. Agora é manter o ritmo: publique algo novo e compartilhe seu link para os fãs voltarem.`,
+      hint: `Meu perfil está completo e tenho ${songs.length} música(s) no catálogo. O que eu faço para aumentar os plays esta semana?`,
+      primary: { label: "Ver minhas músicas", tab: "songs" as TabId },
+      secondary: { label: "Gerar nova demo", tab: "mentor" as TabId, chat: false },
+    };
+  })();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [selectedPlaylist, setSelectedPlaylist] = useState<any | null>(null);
   const [playlistSongs, setPlaylistSongs] = useState<any[]>([]);
@@ -812,23 +770,6 @@ export default function ArtistDashboard() {
     const t = window.setTimeout(() => setTourOpen(true), 800);
     return () => window.clearTimeout(t);
   }, [tourEnabled, activeTab]);
-
-  useEffect(() => {
-    if (artist && chatMessages.length === 1 && chatMessages[0].content.startsWith("Olá! Eu sou a Vivi")) {
-      // Saudação gerada a partir do plano cadastrado pelo admin (label + limites).
-      const planInfo = dbPlans.find(
-        (p) => String(p.id || "").toLowerCase() === String(artist.plano || "").toLowerCase()
-      );
-      const planLabel =
-        planInfo?.label || (artist.plano ? artist.plano.charAt(0).toUpperCase() + artist.plano.slice(1) : "Sem plano");
-      const musicas = planInfo?.limiteMusicas || artist.limiteMusicas;
-      const catalogoInfo = musicas
-        ? `você pode cadastrar até ${musicas} músicas`
-        : "o limite do seu catálogo é definido pelo administrador";
-      const welcome = `Olá, ${artist.name}! Eu sou a Vivi, sua mentora virtual aqui no Portal do Artista. No seu plano **${planLabel}**, ${catalogoInfo}. Minha conversa por aqui é gratuita e ilimitada e as gerações de música por IA seguem o limite do seu plano. Como posso te apoiar hoje?`;
-      setChatMessages([{ role: "assistant", content: welcome }]);
-    }
-  }, [artist, dbPlans]);
 
   const loadData = async () => {
     try {
@@ -1674,6 +1615,38 @@ export default function ArtistDashboard() {
                         </div>
                       ))}
                     </div>
+
+                    {/* Vivi proativa: próximo passo em forma de conversa */}
+                    {viviNudge && (
+                      <div className="flex gap-3 rounded-xl border border-amber-400/30 bg-amber-400/[0.06] p-4">
+                        <div className="w-9 h-9 rounded-xl bg-amber-400 text-black flex items-center justify-center shrink-0 shadow-md">
+                          <Bot className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 space-y-2.5">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Vivi diz</p>
+                          <p className="text-xs text-foreground leading-relaxed">{viviNudge.text}</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab(viviNudge.primary.tab)}
+                              className="px-3.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-black text-xs font-extrabold transition-colors"
+                            >
+                              {viviNudge.primary.label}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (viviNudge.secondary.chat) setViviWantsChat(true);
+                                setActiveTab(viviNudge.secondary.tab);
+                              }}
+                              className="px-3.5 py-1.5 rounded-lg border border-amber-400/40 text-amber-300 hover:bg-amber-400/10 text-xs font-bold transition-colors"
+                            >
+                              {viviNudge.secondary.label}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-card border border-border/40 rounded-2xl p-6 space-y-3">
@@ -3517,6 +3490,11 @@ export default function ArtistDashboard() {
                 artist={artist} 
                 onRefreshArtist={loadData} 
                 onOpenUpgradeModal={() => setActiveTab("plano")} 
+                openChat={viviWantsChat}
+                onChatOpened={() => setViviWantsChat(false)}
+                proactiveHint={viviNudge?.hint}
+                pendingQuestion={quickQuestion}
+                onPendingQuestionConsumed={() => setQuickQuestion(null)}
               />
             )}
 

@@ -43,6 +43,16 @@ interface ViviStudioProps {
   artist: any;
   onRefreshArtist?: () => void;
   onOpenUpgradeModal?: () => void;
+  /** Entra já na conversa com a Vivi (usado pelo card "Vivi diz" do dashboard). */
+  openChat?: boolean;
+  /** Avisa o painel que a conversa foi aberta por `openChat` (para desligar o pedido). */
+  onChatOpened?: () => void;
+  /** Mensagem proativa da Vivi (diagnóstico do perfil) no início da conversa. */
+  proactiveHint?: string;
+  /** Pergunta vinda do card do dashboard: entra na conversa e é respondida na hora. */
+  pendingQuestion?: string | null;
+  /** Avisa o painel que a pergunta pendente foi consumida. */
+  onPendingQuestionConsumed?: () => void;
 }
 
 interface DemoItem {
@@ -101,9 +111,18 @@ const TAGS = [
   "[Outro]",
 ];
 
-export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: ViviStudioProps) {
+export function ViviStudio({
+  artist,
+  onRefreshArtist,
+  onOpenUpgradeModal,
+  openChat,
+  onChatOpened,
+  proactiveHint,
+  pendingQuestion,
+  onPendingQuestionConsumed,
+}: ViviStudioProps) {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"studio" | "mentor" | "images">("studio");
+  const [activeTab, setActiveTab] = useState<"studio" | "mentor" | "images">(openChat ? "mentor" : "studio");
 
   // Form State
   const [titulo, setTitulo] = useState("");
@@ -141,7 +160,16 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       role: "assistant",
       content: `Olá, ${artist?.name || "Artista"}! Eu sou a Vivi, sua assistente de composição e mentora no Portal do Artista.\n\nNo **Estúdio de Criação**, posso te ajudar a transformar qualquer letra em uma hit completo com voz e instrumentos usando IA de última geração (MiniMax Music 2.6). Se precisar de dicas de arranjo, ideias de rima ou marketing, estou aqui!`,
     },
+    ...(proactiveHint ? [{ role: "assistant" as const, content: proactiveHint }] : []),
   ]);
+
+  // Card "Vivi diz" do dashboard pede para entrar direto na conversa.
+  useEffect(() => {
+    if (!openChat) return;
+    setActiveTab("mentor");
+    onChatOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openChat]);
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [selectedTool, setSelectedTool] = useState<string>("chat");
@@ -736,15 +764,8 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
   };
 
   // Mentor Chat Message
-  const handleSendChatMessage = async () => {
-    if (!chatInput.trim() || isChatLoading) return;
-
-    const userMsg = { role: "user" as const, content: chatInput.trim() };
-    const newMessages = [...chatMessages, userMsg];
-    setChatMessages(newMessages);
-    setChatInput("");
+  const sendChatToVivi = async (newMessages: Array<{ role: "user" | "assistant"; content: string }>) => {
     setIsChatLoading(true);
-
     try {
       const res = await fetch("/api/artists/mentor", {
         method: "POST",
@@ -775,6 +796,28 @@ export function ViviStudio({ artist, onRefreshArtist, onOpenUpgradeModal }: Vivi
       setIsChatLoading(false);
     }
   };
+
+  const handleSendChatMessage = () => {
+    if (!chatInput.trim() || isChatLoading) return;
+
+    const userMsg = { role: "user" as const, content: chatInput.trim() };
+    const newMessages = [...chatMessages, userMsg];
+    setChatMessages(newMessages);
+    setChatInput("");
+    void sendChatToVivi(newMessages);
+  };
+
+  // Pergunta digitada no card do dashboard: entra na conversa e já sai respondida.
+  useEffect(() => {
+    if (!pendingQuestion) return;
+    const question = pendingQuestion;
+    onPendingQuestionConsumed?.();
+    setActiveTab("mentor");
+    const newMessages = [...chatMessages, { role: "user" as const, content: question }];
+    setChatMessages(newMessages);
+    void sendChatToVivi(newMessages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingQuestion]);
 
   return (
     <div className="space-y-6">
