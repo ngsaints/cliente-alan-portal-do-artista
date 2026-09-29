@@ -3257,7 +3257,44 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [testingReplicate, setTestingReplicate] = useState<"integration" | "credit" | null>(null);
+
+  type CatalogModel = {
+    id: string;
+    owner: string;
+    name: string;
+    description: string;
+    url: string;
+    price: { usd: number | null; unitLabel: string | null; medianUsd: number | null };
+    songCostUsd: number | null;
+    songCostBrl: number | null;
+  };
+  type MusicPlanRow = {
+    id: number;
+    nome: string;
+    label: string;
+    preco: string;
+    musicCreditsLimit: number;
+    replicateModel: string | null;
+  };
+  type MusicTestResult = {
+    ok: boolean;
+    model: string;
+    modelSource: string;
+    predictionId: string | null;
+    audioUrl: string | null;
+    durationMs: number | null;
+    error: string | null;
+    cost?: { songBrl: number | null; songUsd: number | null; usdBrl: number };
+  };
+
+  const [testingReplicate, setTestingReplicate] = useState<"integration" | "credit" | "music" | null>(null);
+  const [musicTest, setMusicTest] = useState<MusicTestResult | null>(null);
+  const [catalog, setCatalog] = useState<CatalogModel[] | null>(null);
+  const [catalogRate, setCatalogRate] = useState<number | null>(null);
+  const [catalogQuery, setCatalogQuery] = useState("music generation");
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [musicPlans, setMusicPlans] = useState<MusicPlanRow[]>([]);
+  const [savingPlanId, setSavingPlanId] = useState<number | null>(null);
   const [demoFiles, setDemoFiles] = useState<Record<string, File>>({});
   const [demoBannersList, setDemoBannersList] = useState<{ id: string; url?: string; file?: File; filePreview?: string; mobileUrl?: string; mobileFile?: File; mobileFilePreview?: string; link: string }[]>([]);
   const { toast } = useToast();
@@ -3297,9 +3334,77 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       .finally(() => setLoading(false));
   };
 
+  // Catálogo de modelos de música + modelo usado por cada plano (aba IA)
+  const loadMusicStudio = (query?: string) => {
+    const q = (query ?? catalogQuery).trim() || "music generation";
+    setCatalogLoading(true);
+    fetch(`/api/admin/replicate/catalog?q=${encodeURIComponent(q)}`, { credentials: "include" })
+      .then((r) => r.json().then((d: any) => ({ ok: r.ok, d })))
+      .then(({ ok, d }) => {
+        if (!ok) throw new Error(d?.error || "Falha ao buscar");
+        if (Array.isArray(d?.models)) {
+          setCatalog(d.models);
+          setCatalogRate(typeof d.usdBrl === "number" ? d.usdBrl : null);
+        }
+      })
+      .catch(() => toast({ title: "Não consegui buscar os modelos de música", variant: "destructive" }))
+      .finally(() => setCatalogLoading(false));
+
+    fetch("/api/admin/plans", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d: any) => {
+        if (Array.isArray(d)) {
+          setMusicPlans(
+            d.map((p: any) => ({
+              id: Number(p.id),
+              nome: String(p.nome || ""),
+              label: String(p.label || p.nome || ""),
+              preco: String(p.preco ?? "0"),
+              musicCreditsLimit: Number(p.musicCreditsLimit ?? 0),
+              replicateModel: p.replicateModel ?? null,
+            }))
+          );
+        }
+      })
+      .catch(() => undefined);
+  };
+
   useEffect(() => {
     loadSettings();
+    if (category === "ai") loadMusicStudio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
+
+  const savePlanModel = async (planId: number, model: string) => {
+    setSavingPlanId(planId);
+    try {
+      const res = await fetch(`/api/admin/plans/${planId}/music`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ replicateModel: model }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Falha ao salvar");
+      setMusicPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, replicateModel: data.replicateModel ?? null } : p)));
+      toast({
+        title: "Modelo atualizado",
+        description: model ? `${data.label || data.nome} agora usa ${model}.` : `${data.label || data.nome} voltou a usar o modelo padrão.`,
+      });
+    } catch (error: any) {
+      toast({ title: "Erro ao salvar o modelo", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingPlanId(null);
+    }
+  };
+
+  // Custo estimado de 1 música do modelo usado pelo plano (ou do modelo global)
+  const globalMusicModel = values["replicate_music_model"] || "minimax/music-2.6";
+  const planSongCostBrl = (plan: MusicPlanRow): number | null => {
+    if (!catalog) return null;
+    const model = catalog.find((m) => m.id === (plan.replicateModel || globalMusicModel));
+    return model ? model.songCostBrl : null;
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -3901,13 +4006,20 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
     );
   };
 
-  // Teste da integração Replicate: "integration" = grátis, "credit" = paga (alguns centavos)
-  const handleTestReplicate = async (mode: "integration" | "credit" = "integration") => {
+  // Teste da integração Replicate: "integration" = grátis, "credit"/"music" = pagos
+  const handleTestReplicate = async (mode: "integration" | "credit" | "music" = "integration", plano?: string) => {
     if (mode === "credit") {
       const confirmed = window.confirm(
         "Confirmar? Isso dispara uma predição barata de verdade na Replicate (flux-schnell) e consome alguns centavos do saldo da conta."
       );
       if (!confirmed) return;
+    }
+    if (mode === "music") {
+      const confirmText = plano
+        ? `Confirmar? Isso gera uma música de verdade com o modelo do plano ${plano} (custa por volta de R$ 0,80) e leva ~1 a 2 minutos.`
+        : "Confirmar? Isso gera uma música de verdade na Replicate (custa por volta de R$ 0,80) e leva ~1 a 2 minutos.";
+      if (!window.confirm(confirmText)) return;
+      setMusicTest(null);
     }
 
     setTestingReplicate(mode);
@@ -3916,12 +4028,22 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode }),
+        body: JSON.stringify({ mode, ...(plano ? { plano } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Falha ao verificar");
 
-      if (mode === "credit") {
+      if (mode === "music") {
+        setMusicTest(data);
+        if (data.ok) {
+          toast({
+            title: "Música gerada com sucesso",
+            description: `Modelo ${data.model} · ${(data.durationMs / 1000).toFixed(0)}s · ~R$ ${data.cost?.songBrl ?? "?"} por música.`,
+          });
+        } else {
+          toast({ title: "A geração falhou", description: data.error || "Tente novamente.", variant: "destructive" });
+        }
+      } else if (mode === "credit") {
         if (data.ok) {
           toast({ title: "Saldo confirmado no Replicate", description: `${data.note} predição ${data.predictionId}` });
         } else {
@@ -4142,7 +4264,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                 </div>
 
                 {group.action === "test-replicate" && (
-                  <div className="border-t border-border/60 pt-4 space-y-3">
+                  <div className="border-t border-border/60 pt-4 space-y-5">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                       <button
                         type="button"
@@ -4169,9 +4291,225 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                         {testingReplicate === "credit" ? "Testando saldo..." : "Confirmar saldo (pago)"}
                       </button>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Único jeito pela API: dispara uma predição barata de verdade e consome <strong>alguns centavos</strong>.
-                        Sucesso = há saldo; HTTP 402 = sem saldo.
+                        Dispara uma predição barata de verdade e consome <strong>alguns centavos</strong>. Sucesso = há saldo; HTTP 402 = sem saldo.
                       </p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleTestReplicate("music")}
+                        disabled={testingReplicate !== null}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 font-bold text-xs sm:text-sm rounded-xl transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                      >
+                        {testingReplicate === "music" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                        {testingReplicate === "music" ? "Gerando música... (1 a 2 min)" : "Testar geração de música (pago)"}
+                      </button>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Mesmo caminho do Vivi Studio: gera um hit de verdade, toca aqui e mostra o custo (~R$ 0,80 por música).
+                      </p>
+                    </div>
+
+                    {testingReplicate === "music" && (
+                      <p className="text-xs text-amber-400 flex items-center gap-2">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> A Replicate está gerando... isso pode levar até 2 minutos, não feche a página.
+                      </p>
+                    )}
+
+                    {musicTest && !musicTest.ok && (
+                      <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 space-y-1">
+                        <p className="text-sm font-bold text-red-400 flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" /> A geração de teste falhou
+                        </p>
+                        <p className="text-xs text-muted-foreground">{musicTest.error}</p>
+                      </div>
+                    )}
+
+                    {musicTest && musicTest.ok && (
+                      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-3">
+                        <p className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4" /> Música pronta — modelo {musicTest.model}
+                          {musicTest.modelSource === "plano" && (
+                            <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30">do plano</span>
+                          )}
+                        </p>
+                        {musicTest.audioUrl && <audio controls src={musicTest.audioUrl} className="w-full" />}
+                        <p className="text-xs text-muted-foreground">
+                          {musicTest.durationMs ? `${(musicTest.durationMs / 1000).toFixed(0)}s · ` : ""}
+                          Custo estimado: ~R$ {musicTest.cost?.songBrl ?? "?"} por música
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Modelo por plano + gasto x ganho */}
+                    <div className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-3">
+                      <div>
+                        <h4 className="text-sm font-bold flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-primary" /> Qual modelo cada plano usa — gasto × ganho
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          Troque o modelo do plano e veja quanto sobra por artista. Dólar hoje: R$ {catalogRate ?? "—"}
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        {musicPlans.length === 0 && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-2">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando planos...
+                          </p>
+                        )}
+                        {musicPlans.map((plan) => {
+                          const quota = plan.musicCreditsLimit;
+                          const cost1 = planSongCostBrl(plan);
+                          const preco = Number(plan.preco) || 0;
+                          const custoMensal = cost1 !== null && quota > 0 ? cost1 * quota : null;
+                          const lucro = custoMensal !== null ? preco - custoMensal : null;
+                          const margem = lucro !== null && preco > 0 ? Math.round((lucro / preco) * 100) : null;
+                          return (
+                            <div key={plan.id} className="rounded-lg border border-border/50 bg-card/40 p-3 grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-bold">{plan.label}</span>
+                                  <span className="text-[11px] text-muted-foreground">
+                                    R$ {preco.toFixed(2)}/mês · {quota} música(s)/mês
+                                  </span>
+                                </div>
+                                <select
+                                  value={plan.replicateModel || ""}
+                                  disabled={savingPlanId === plan.id}
+                                  onChange={(e) => savePlanModel(plan.id, e.target.value)}
+                                  className="w-full bg-input border border-border rounded-lg px-3 py-2 text-foreground text-xs cursor-pointer disabled:opacity-50"
+                                >
+                                  <option value="">Modelo padrão ({globalMusicModel})</option>
+                                  {(catalog || []).map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.id} — R$ {m.songCostBrl ?? "?"}/música
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="text-xs leading-relaxed space-y-1">
+                                {cost1 === null ? (
+                                  <p className="text-muted-foreground">Custo por música: — (busque os modelos abaixo)</p>
+                                ) : (
+                                  <>
+                                    <p className="text-muted-foreground">
+                                      Custo/música <strong className="text-foreground">R$ {cost1.toFixed(2)}</strong> · por mês{" "}
+                                      <strong className="text-foreground">R$ {(custoMensal ?? 0).toFixed(2)}</strong>
+                                    </p>
+                                    <p className={lucro !== null && lucro >= 0 ? "text-emerald-400" : "text-red-400"}>
+                                      Receita R$ {preco.toFixed(2)} →{" "}
+                                      <strong>
+                                        {lucro !== null && lucro >= 0 ? "lucro" : "prejuízo"} de R$ {Math.abs(lucro ?? 0).toFixed(2)}
+                                      </strong>{" "}
+                                      por artista ({margem !== null ? `${margem}%` : "—"})
+                                    </p>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Catálogo de modelos de música */}
+                    <div className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div>
+                          <h4 className="text-sm font-bold flex items-center gap-2">
+                            <Search className="w-4 h-4 text-primary" /> Catálogo de modelos de música
+                          </h4>
+                          <p className="text-xs text-muted-foreground">
+                            Busca direto no Replicate, com custo por música em reais. Clique em "usar no plano" para aplicar.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => loadMusicStudio()}
+                          disabled={catalogLoading}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/15 hover:bg-primary/25 border border-primary/35 text-primary font-bold text-xs rounded-lg transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          {catalogLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                          Atualizar
+                        </button>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <input
+                          value={catalogQuery}
+                          onChange={(e) => setCatalogQuery(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") loadMusicStudio();
+                          }}
+                          placeholder="ex.: music generation"
+                          className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-foreground text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => loadMusicStudio()}
+                          disabled={catalogLoading}
+                          className="px-3 py-2 bg-card border border-border rounded-lg text-xs font-bold hover:bg-accent transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          Buscar
+                        </button>
+                      </div>
+
+                      {!catalog && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-2">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando catálogo...
+                        </p>
+                      )}
+                      {catalog && catalog.length === 0 && (
+                        <p className="text-xs text-muted-foreground">Nenhum modelo encontrado. Tente outra busca.</p>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {(catalog || []).map((m) => (
+                          <div key={m.id} className="rounded-lg border border-border/50 bg-card/40 p-3 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold truncate">{m.id}</p>
+                                <p className="text-[11px] text-muted-foreground line-clamp-2">{m.description || "Sem descrição."}</p>
+                              </div>
+                              <a
+                                href={m.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary text-[11px] inline-flex items-center gap-1 shrink-0 hover:underline"
+                              >
+                                site <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs">
+                                ≈ <strong className="text-foreground">R$ {m.songCostBrl ?? "—"}</strong> por música
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">{m.price.unitLabel ?? ""}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {musicPlans.map((p) => {
+                                const active = p.replicateModel === m.id;
+                                return (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => savePlanModel(p.id, active ? "" : m.id)}
+                                    disabled={savingPlanId === p.id}
+                                    className={`text-[10px] px-2 py-1 rounded-md border font-bold transition-all disabled:opacity-50 cursor-pointer ${
+                                      active
+                                        ? "bg-primary text-black border-primary"
+                                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary/50"
+                                    }`}
+                                  >
+                                    {active ? `✓ ${p.label}` : `usar no ${p.label}`}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}

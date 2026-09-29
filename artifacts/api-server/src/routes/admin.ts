@@ -953,25 +953,92 @@ router.delete("/admin/plans/:id", async (req, res): Promise<void> => {
   }
 });
 
-// ─── Verificação de integração Replicate (grátis: não consome crédito) ─────────
+// ─── Replicate: verificação, catálogo de modelos e testes de geração ─────────
 router.post("/admin/replicate/test", async (req, res): Promise<void> => {
   try {
     if (!req.session.logado) { res.status(401).json({ error: "Não autorizado" }); return; }
 
-    const { testReplicateIntegration, testReplicateCredit } = await import("../lib/replicate-music.js");
-    const mode = req.body?.mode === "credit" ? "credit" : "integration";
+    const { testReplicateIntegration, testReplicateCredit, testMusicGeneration } = await import("../lib/replicate-music.js");
+    const { getModelPrice, estimateSongCostUsd, getUsdBrlRate } = await import("../lib/replicate-catalog.js");
+    const modeRaw = req.body?.mode;
+    const mode = modeRaw === "credit" || modeRaw === "music" ? modeRaw : "integration";
+
     if (mode === "credit") {
       const report = await testReplicateCredit();
       console.log(`[Admin] Teste Replicate (pago) → ok=${report.ok} predicao=${report.predictionId ?? "-"} ${report.error || report.note}`);
       res.json(report);
       return;
     }
+
+    if (mode === "music") {
+      const report = await testMusicGeneration({
+        plano: typeof req.body?.plano === "string" ? req.body.plano : undefined,
+        prompt: typeof req.body?.prompt === "string" ? req.body.prompt : undefined,
+        lyrics: typeof req.body?.lyrics === "string" ? req.body.lyrics : undefined,
+      });
+      const price = await getModelPrice(report.model);
+      const songUsd = estimateSongCostUsd(price);
+      const rate = await getUsdBrlRate();
+      const cost = {
+        price,
+        usdBrl: rate.value,
+        songUsd,
+        songBrl: songUsd === null ? null : Math.round(songUsd * rate.value * 100) / 100,
+      };
+      console.log(
+        `[Admin] Teste de geração de música → ok=${report.ok} modelo=${report.model} (${report.modelSource}) ` +
+          `predicao=${report.predictionId ?? "-"} ${report.durationMs ?? "-"}ms ${report.error || report.audioUrl || ""}`
+      );
+      res.json({ ...report, cost });
+      return;
+    }
+
     const report = await testReplicateIntegration();
     console.log(`[Admin] Teste Replicate (grátis) → ok=${report.ok} conta=${report.account ?? "-"} modelo=${report.model} erros=${report.errors.length}`);
     res.json(report);
   } catch (error: any) {
     console.error("Erro ao testar integração Replicate:", error);
     res.status(500).json({ error: error.message ?? "Erro ao verificar a integração com o Replicate" });
+  }
+});
+
+// GET /admin/replicate/catalog?q=music — modelos de música com custo estimado por hit
+router.get("/admin/replicate/catalog", async (req, res): Promise<void> => {
+  try {
+    if (!req.session.logado) { res.status(401).json({ error: "Não autorizado" }); return; }
+    const { getMusicCatalog } = await import("../lib/replicate-catalog.js");
+    const query = String(req.query.q ?? req.query.query ?? "music generation");
+    res.json(await getMusicCatalog(query));
+  } catch (error: any) {
+    console.error("Erro ao montar catálogo do Replicate:", error);
+    res.status(500).json({ error: error.message ?? "Erro ao buscar os modelos de música" });
+  }
+});
+
+// PUT /admin/plans/:id/music — modelo de música usado por cada plano
+router.put("/admin/plans/:id/music", async (req, res): Promise<void> => {
+  try {
+    if (!req.session.logado) { res.status(401).json({ error: "Não autorizado" }); return; }
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Plano inválido" }); return; }
+
+    const raw = req.body?.replicateModel;
+    const replicateModel = raw === null || raw === undefined || String(raw).trim() === ""
+      ? null
+      : String(raw).trim().slice(0, 120);
+
+    const updated = await db
+      .update(plansTable)
+      .set({ replicateModel })
+      .where(eq(plansTable.id, id))
+      .returning();
+
+    if (!updated.length) { res.status(404).json({ error: "Plano não encontrado" }); return; }
+    console.log(`[Admin] Plano ${updated[0].nome} → modelo de música ${replicateModel ?? "(global)"}`);
+    res.json(updated[0]);
+  } catch (error: any) {
+    console.error("Erro ao salvar modelo do plano:", error);
+    res.status(500).json({ error: error.message ?? "Erro ao salvar o modelo do plano" });
   }
 });
 

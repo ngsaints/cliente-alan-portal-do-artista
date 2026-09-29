@@ -111,6 +111,16 @@ const TAGS = [
   "[Outro]",
 ];
 
+// Atalhos de instrução de estilo (o artista também pode escrever livremente)
+const PROMPT_SUGGESTIONS = [
+  "intro lenta só com piano",
+  "violão de aço e sanfona marcantes",
+  "solo de viola caipira no meio",
+  "refrão grandioso com coro",
+  "verso acústico e refrão elétrico",
+  "final com coro épico",
+];
+
 export function ViviStudio({
   artist,
   onRefreshArtist,
@@ -132,6 +142,16 @@ export function ViviStudio({
   const [bpm, setBpm] = useState(120);
   const [clima, setClima] = useState("Romântico");
   const [promptExtra, setPromptExtra] = useState("");
+
+  // Adiciona um atalho às instruções sem apagar o que o artista já escreveu
+  const addInstruction = (text: string) => {
+    setPromptExtra((prev) => {
+      const cur = prev.trim();
+      if (!cur) return text;
+      if (cur.toLowerCase().includes(text.toLowerCase())) return cur;
+      return `${cur.replace(/[,.;]$/, "")}, ${text}`;
+    });
+  };
 
   // Loading States
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -386,6 +406,7 @@ export function ViviStudio({
           mood: clima,
           bpm,
           voice: voz,
+          instructions: promptExtra,
         }),
       });
 
@@ -556,6 +577,7 @@ export function ViviStudio({
           mood: clima,
           bpm,
           voice: voz,
+          instructions: promptExtra,
         }),
       });
 
@@ -1052,6 +1074,56 @@ export function ViviStudio({
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Instruções personalizadas do artista (vai direto pra IA de geração) */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-muted-foreground block uppercase tracking-wider">
+                    Suas instruções de estilo (opcional)
+                  </label>
+                  {promptExtra.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setPromptExtra("")}
+                      className="text-[11px] text-muted-foreground hover:text-red-400 transition-colors"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground mb-2 leading-relaxed">
+                  Diga exatamente como quer o som: instrumentos, entrada dos arranjos, solos, referências.
+                  Suas instruções valem na geração do hit <strong className="text-foreground">e</strong> quando a Vivi compor ou aprimorar a letra.
+                </p>
+                <div className="flex flex-wrap gap-1.5 mb-2.5">
+                  {PROMPT_SUGGESTIONS.map((s) => {
+                    const active = promptExtra.toLowerCase().includes(s.toLowerCase());
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => addInstruction(s)}
+                        className={`px-2 py-0.5 rounded-lg border text-[10px] transition-all ${
+                          active
+                            ? "bg-amber-400/20 border-amber-400 text-amber-300"
+                            : "bg-secondary/60 border-border/80 text-muted-foreground hover:text-amber-300 hover:border-amber-400/50"
+                        }`}
+                      >
+                        {active ? "✓ " : "+ "}
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+                <textarea
+                  value={promptExtra}
+                  onChange={(e) => setPromptExtra(e.target.value)}
+                  rows={3}
+                  maxLength={600}
+                  placeholder='Ex.: "começa só com piano, entra a viola no refrão, solo de viola caipira no meio e coro épico no final"'
+                  className="w-full px-4 py-3 bg-secondary/20 border border-border focus:border-amber-400 rounded-2xl text-foreground text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-amber-400"
+                />
               </div>
 
               {/* Área da Letra com Botões de Injeção de Tags */}

@@ -35,6 +35,7 @@ async function ensureDbSchema() {
       );
       CREATE INDEX IF NOT EXISTS idx_ai_music_demos_artista ON ai_music_demos(artista_id);
       ALTER TABLE plans ADD COLUMN IF NOT EXISTS music_credits_limit INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE plans ADD COLUMN IF NOT EXISTS replicate_model TEXT;
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS overdue_at TIMESTAMPTZ;
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS overdue_notified_at TIMESTAMPTZ;
     `);

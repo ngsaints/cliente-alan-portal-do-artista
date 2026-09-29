@@ -233,6 +233,7 @@ export async function optimizeLyricsForMiniMax(params: {
   mood?: string;
   bpm?: number;
   voice?: string;
+  instructions?: string;
 }): Promise<{
   optimizedLyrics: string;
   suggestedPrompt: string;
@@ -267,7 +268,7 @@ Gênero pretendido: ${params.genre}
 Clima/Mood: ${params.mood || "Emocionante"}
 Voz: ${params.voice || "Masculina"}
 BPM desejado: ${params.bpm || 120}
-
+${params.instructions?.trim() ? `Instruções personalizadas do artista (respeite fielmente na estrutura e no prompt): ${params.instructions.trim()}\n` : ""}
 Letra original do compositor:
 """
 ${params.lyrics}
@@ -312,6 +313,7 @@ export interface ComposeLyricsParams {
   mood?: string;
   voice?: string;
   bpm?: number;
+  instructions?: string;
 }
 
 export interface ComposeLyricsResult {
@@ -356,6 +358,7 @@ Regras vitais:
 Clima/Mood: ${params.mood || "Animado"}
 Voz pretendida: ${params.voice || "Masculina"}
 BPM: ${params.bpm || 120}
+${params.instructions?.trim() ? `Instruções personalizadas do artista (respeite fielmente na letra e no prompt sugerido): ${params.instructions.trim()}\n` : ""}
 Ideia/Tema do Artista:
 "${params.idea}"
 

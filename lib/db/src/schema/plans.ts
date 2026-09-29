@@ -24,6 +24,8 @@ export const plansTable = pgTable("plans", {
   aiCreditsLimit: integer("ai_credits_limit").notNull().default(10),
   // Gerações de música por IA liberadas por mês (0 = sem gerações)
   musicCreditsLimit: integer("music_credits_limit").notNull().default(0),
+  // Modelo do Replicate usado por este plano (NULL = modelo global replicate_music_model)
+  replicateModel: text("replicate_model"),
 });
 
 export const insertPlanSchema = createInsertSchema(plansTable).omit({ 

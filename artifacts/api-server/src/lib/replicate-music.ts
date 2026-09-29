@@ -1,6 +1,6 @@
-import { appSettingsTable } from "@workspace/db";
+import { appSettingsTable, plansTable } from "@workspace/db";
 import { db } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import path from "path";
 import fs from "fs";
 import Replicate from "replicate";
@@ -45,19 +45,40 @@ async function getSettingValue(key: string): Promise<string | null> {
   }
 }
 
-export async function getReplicateConfig(): Promise<{
+/** Modelo de música escolhido pelo admin para um plano (null = usar o global). */
+export async function getPlanMusicModel(plano?: string): Promise<string | null> {
+  if (!plano) return null;
+  try {
+    const rows = await db
+      .select({ model: plansTable.replicateModel })
+      .from(plansTable)
+      .where(sql`lower(${plansTable.nome}) = lower(${plano})`);
+    const model = rows[0]?.model?.trim();
+    return model ? model : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getReplicateConfig(plano?: string): Promise<{
   apiKey: string | null;
   model: string;
   enabled: boolean;
+  modelSource: "plano" | "global";
 }> {
   const replicateKey = (await getSettingValue("replicate_api_key")) || process.env.REPLICATE_API_TOKEN || null;
-  const replicateModel = (await getSettingValue("replicate_music_model")) || "minimax/music-2.6";
+  const globalModel = (await getSettingValue("replicate_music_model")) || "minimax/music-2.6";
   const replicateEnabled = (await getSettingValue("replicate_enabled")) !== "false";
+
+  // Plano pode mandar no próprio modelo (ex.: start = modelo barato, premium = melhor)
+  const planModel = await getPlanMusicModel(plano);
+  const model = planModel || globalModel;
 
   return {
     apiKey: replicateKey,
-    model: replicateModel,
+    model,
     enabled: !!replicateKey && replicateEnabled,
+    modelSource: planModel ? "plano" : "global",
   };
 }
 
@@ -135,10 +156,100 @@ function toFriendlyError(err: any, context: string, apiKey?: string, model?: str
 }
 
 /**
+ * Prompt enviado ao MiniMax Music 2.6.
+ * O modelo responde muito melhor a uma descrição densa (estilo + instrumentação + clima +
+ * andamento + voz + produção) do que à lista simples que usávamos antes.
+ * As instruções personalizadas do artista entram por último, literalmente, sem filtro.
+ */
+const GENRE_STYLE_HINTS: [RegExp, string][] = [
+  [/^sertanejo\s*universit/i, "university sertanejo, rhythmic acoustic guitar, light percussion, catchy chorus"],
+  [/^sertanejo/i, "brazilian sertanejo, steel-string acoustic guitar, viola caipira, accordion fills"],
+  [/^mod[ãa]o/i, "caipira modão, viola caipira, acoustic guitar, sentimental melody"],
+  [/^piseiro/i, "brazilian piseiro, electronic bass, syncopated beat, bright synth lead"],
+  [/^forr/i, "forró, zabumba, triangle and accordion, danceable groove"],
+  [/^pagod/i, "pagode, cavaquinho, pandeiro, brazilian percussion"],
+  [/^pop/i, "modern pop, clean guitars, synth layers, memorable hook"],
+  [/^gospel|worship/i, "contemporary gospel, piano and pads, wide choir, uplifting build"],
+  [/^rock/i, "rock band, electric guitars, punchy drums, strong riff"],
+  [/^trap|hip\s?hop/i, "trap and hip hop, 808 bass, crisp hi-hats"],
+  [/^funk/i, "brazilian funk, heavy 808 bass, syncopated drums"],
+  [/^mpb/i, "MPB with bossa colors, nylon-string guitar, delicate arrangement"],
+  [/^eletr|^edm|^dance/i, "electronic dance music, four-on-the-floor kick, sidechained synths"],
+];
+
+const MOOD_STYLE_HINTS: [RegExp, string][] = [
+  [/rom[âa]ntic/i, "romantic, warm and tender"],
+  [/sofr/i, "heartbroken, raw and soulful"],
+  [/danc|festa|animad|alto astral/i, "upbeat, joyful and danceable"],
+  [/apaixon/i, "passionate, intense and emotional"],
+  [/brut|r[úu]stic/i, "raw, rustic and powerful"],
+  [/nostalg/i, "nostalgic, bittersweet"],
+  [/trist|melanc|balada/i, "melancholic, intimate and reflective"],
+];
+
+const VOICE_STYLE_HINTS: [RegExp, string][] = [
+  [/dupla|dueto/i, "male and female duet with close harmony"],
+  [/femin/i, "expressive female vocal, clear and emotional"],
+  [/mascul/i, "warm male vocal, expressive and confident"],
+];
+
+const PRODUCTION_HINT = "clean studio production, professional mix, natural dynamics";
+
+function matchHint(list: [RegExp, string][], value: string): string | null {
+  const v = (value || "").trim();
+  if (!v) return null;
+  const hit = list.find(([re]) => re.test(v));
+  return hit ? hit[1] : null;
+}
+
+export function buildMusicPrompt(input: MiniMaxMusicInput): string {
+  const parts: string[] = [];
+  const push = (value?: string | null) => {
+    const v = (value || "").trim();
+    if (v) parts.push(v);
+  };
+
+  const genre = (input.genre || "").trim();
+  push(genre);
+  push(matchHint(GENRE_STYLE_HINTS, genre));
+
+  const mood = (input.mood || "").trim();
+  if (mood) push(`${mood} mood`);
+  push(matchHint(MOOD_STYLE_HINTS, mood));
+
+  const voice = (input.voice || "").trim();
+  const instrumental = voice.toLowerCase().includes("instrumental");
+  if (instrumental) push("instrumental, no vocals");
+  else {
+    push(matchHint(VOICE_STYLE_HINTS, voice) || (voice ? `vocal ${voice}` : null));
+  }
+
+  if (input.bpm) push(`${input.bpm} BPM`);
+  push(PRODUCTION_HINT);
+
+  // Instruções personalizadas do artista: entram como estão (é o que ele pediu).
+  push((input.prompt || "").trim());
+
+  const seen = new Set<string>();
+  const unique = parts.filter((p) => {
+    const key = p.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // O campo prompt do MiniMax aceita até 2000 caracteres.
+  return unique.join(", ").slice(0, 1950);
+}
+
+/**
  * Inicia uma predição no Replicate para gerar música com o MiniMax Music 2.6
  */
-export async function startMusicGeneration(input: MiniMaxMusicInput): Promise<ReplicatePredictionResponse> {
-  const config = await getReplicateConfig();
+export async function startMusicGeneration(
+  input: MiniMaxMusicInput,
+  opts: { plano?: string } = {}
+): Promise<ReplicatePredictionResponse> {
+  const config = await getReplicateConfig(opts.plano);
   if (!config.apiKey) {
     console.error("[Replicate] Chave de API não configurada — defina replicate_api_key no Painel Administrativo.");
     void sendAdminAlert(
@@ -159,21 +270,8 @@ export async function startMusicGeneration(input: MiniMaxMusicInput): Promise<Re
     throw noCreditError();
   }
 
-  // Montar prompt completo refinado para o MiniMax
-  const stylePromptParts: string[] = [];
-  if (input.genre) stylePromptParts.push(input.genre);
-  if (input.mood) stylePromptParts.push(`clima ${input.mood}`);
-  if (input.voice) {
-    if (input.voice.toLowerCase().includes("instrumental")) {
-      stylePromptParts.push("instrumental sem voz");
-    } else {
-      stylePromptParts.push(`voz ${input.voice}`);
-    }
-  }
-  if (input.bpm) stylePromptParts.push(`${input.bpm} BPM`);
-  if (input.prompt) stylePromptParts.push(input.prompt);
-
-  const fullPrompt = stylePromptParts.join(", ");
+  // Prompt musical refinado (ver buildMusicPrompt)
+  const fullPrompt = buildMusicPrompt(input);
 
   // Normalizar modelo (ex: minimax/music-2.6 ou minimax/music-01)
   const modelName = (config.model.includes("/") ? config.model : `minimax/${config.model}`) as `${string}/${string}`;
@@ -398,6 +496,114 @@ export async function testReplicateCredit(): Promise<ReplicateCreditReport> {
     report.error = `Predição de teste falhou (saldo pode estar ok): ${last?.error || "erro desconhecido"}`;
   } else {
     report.error = `Timeout: predição ${prediction.id} ainda "${last?.status || "?"}" após ${Math.round(report.durationMs / 1000)}s.`;
+  }
+  return report;
+}
+
+export interface MusicGenerationTestResult {
+  ok: boolean;
+  model: string;
+  modelSource: "plano" | "global";
+  predictionId: string | null;
+  audioUrl: string | null;
+  durationMs: number | null;
+  status: string | null;
+  error: string | null;
+}
+
+const MUSIC_TEST_TIMEOUT_MS = 3 * 60 * 1000;
+
+/**
+ * Teste PAGO: roda o mesmo caminho do Vivi Studio de ponta a ponta —
+ * cria a predição, acompanha, baixa o áudio e devolve o link tocável.
+ * Uso: Painel Administrativo ("Testar geração de música").
+ */
+export async function testMusicGeneration(
+  opts: { plano?: string; prompt?: string; lyrics?: string; title?: string } = {}
+): Promise<MusicGenerationTestResult> {
+  const config = await getReplicateConfig(opts.plano);
+  const report: MusicGenerationTestResult = {
+    ok: false,
+    model: config.model,
+    modelSource: config.modelSource,
+    predictionId: null,
+    audioUrl: null,
+    durationMs: null,
+    status: null,
+    error: null,
+  };
+  if (!config.apiKey) {
+    report.error = "replicate_api_key não configurada no Painel Administrativo.";
+    return report;
+  }
+
+  const input: Record<string, any> = {
+    prompt: opts.prompt?.trim() || "sertanejo acústico romântico, guitarra limpa, voz masculina suave",
+    lyrics: opts.lyrics?.trim() || "[Verso]\nNoite calma, seu nome na canção\n[Refrão]\nVou cantar até o sol nascer",
+    bitrate: 256000,
+    sample_rate: 44100,
+    audio_format: "mp3",
+    is_instrumental: false,
+    lyrics_optimizer: false,
+  };
+
+  const replicate = getReplicateClient(config.apiKey);
+  const started = Date.now();
+  let prediction: any = null;
+
+  try {
+    prediction = await (replicate as any).predictions.create({ model: config.model, input });
+  } catch (err: any) {
+    if (isInsufficientCreditError(err)) {
+      await reportInsufficientCredit(config.apiKey, config.model, err?.message || String(err));
+      report.error = "HTTP 402: a conta Replicate está sem saldo. Recarregue em https://replicate.com/account/billing";
+      return report;
+    }
+    // Modelos comunitários não aceitam "model": cai para o endpoint do próprio modelo.
+    try {
+      const slash = config.model.indexOf("/");
+      prediction = await (replicate as any).models.predictions.create(
+        config.model.slice(0, slash),
+        config.model.slice(slash + 1),
+        { input }
+      );
+    } catch (err2: any) {
+      report.error = `Falha ao criar a geração: ${err2?.message || err?.message || err}`;
+      return report;
+    }
+  }
+
+  report.predictionId = prediction?.id || null;
+  let last: any = prediction;
+  while (last?.status !== "succeeded" && last?.status !== "failed" && last?.status !== "canceled") {
+    if (Date.now() - started > MUSIC_TEST_TIMEOUT_MS) break;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    try {
+      last = await (replicate as any).predictions.get(prediction.id);
+    } catch (err: any) {
+      report.error = `Erro ao acompanhar a geração: ${err?.message || err}`;
+      return report;
+    }
+  }
+  report.durationMs = Date.now() - started;
+  report.status = last?.status || null;
+
+  if (last?.status === "succeeded") {
+    const remote = Array.isArray(last.output) ? last.output[0] : last.output;
+    if (remote && typeof remote === "string") {
+      try {
+        report.audioUrl = await downloadAndSaveGeneratedAudio(remote, opts.title?.trim() || "teste admin");
+      } catch (err: any) {
+        report.error = `Áudio gerado, mas o download falhou: ${err?.message || err}`;
+        return report;
+      }
+    }
+    report.ok = !!report.audioUrl;
+    if (!report.ok) report.error = "Predição concluída, mas o Replicate não devolveu o áudio.";
+  } else if (last?.status === "failed" || last?.status === "canceled") {
+    report.error = `Geração falhou: ${last?.error || "erro desconhecido"}`;
+  } else {
+    report.error = `Tempo esgotado (${Math.round(report.durationMs / 1000)}s): geração ainda "${last?.status || "?"}".`;
   }
   return report;
 }

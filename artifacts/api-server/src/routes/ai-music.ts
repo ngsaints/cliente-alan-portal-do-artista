@@ -187,7 +187,7 @@ router.post("/ai/lyrics/optimize", async (req, res): Promise<void> => {
       return;
     }
 
-    const { title, lyrics, genre, mood, bpm, voice } = req.body;
+    const { title, lyrics, genre, mood, bpm, voice, instructions } = req.body;
     if (!lyrics || typeof lyrics !== "string" || lyrics.trim().length === 0) {
       res.status(400).json({ error: "A letra da música é obrigatória para otimização." });
       return;
@@ -200,6 +200,7 @@ router.post("/ai/lyrics/optimize", async (req, res): Promise<void> => {
       mood,
       bpm: Number(bpm) || 120,
       voice: voice || "Masculina",
+      instructions: typeof instructions === "string" ? instructions.trim().slice(0, 800) : undefined,
     });
 
     res.json(result);
@@ -218,7 +219,7 @@ router.post("/ai/lyrics/compose", async (req, res): Promise<void> => {
       return;
     }
 
-    const { idea, genre, mood, bpm, voice } = req.body;
+    const { idea, genre, mood, bpm, voice, instructions } = req.body;
     if (!idea || typeof idea !== "string" || idea.trim().length === 0) {
       res.status(400).json({ error: "Informe a ideia ou tema da música para a Vivi compor." });
       return;
@@ -230,6 +231,7 @@ router.post("/ai/lyrics/compose", async (req, res): Promise<void> => {
       mood: mood || "Animado",
       bpm: Number(bpm) || 120,
       voice: voice || "Masculina",
+      instructions: typeof instructions === "string" ? instructions.trim().slice(0, 800) : undefined,
     });
 
     res.json(result);
@@ -293,15 +295,18 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
       return;
     }
 
-    // Iniciar predição no Replicate
-    const prediction = await startMusicGeneration({
-      prompt: prompt || "",
-      lyrics,
-      genre: genre || "Sertanejo",
-      mood: mood || "Romântico",
-      bpm: Number(bpm) || 120,
-      voice: voice || "Masculina",
-    });
+    // Iniciar predição no Replicate (cada plano pode usar o seu próprio modelo)
+    const prediction = await startMusicGeneration(
+      {
+        prompt: prompt || "",
+        lyrics,
+        genre: genre || "Sertanejo",
+        mood: mood || "Romântico",
+        bpm: Number(bpm) || 120,
+        voice: voice || "Masculina",
+      },
+      { plano }
+    );
 
     let initialAudioUrl: string | null = null;
     let initialStatus = prediction.status;
