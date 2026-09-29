@@ -953,6 +953,28 @@ router.delete("/admin/plans/:id", async (req, res): Promise<void> => {
   }
 });
 
+// ─── Verificação de integração Replicate (grátis: não consome crédito) ─────────
+router.post("/admin/replicate/test", async (req, res): Promise<void> => {
+  try {
+    if (!req.session.logado) { res.status(401).json({ error: "Não autorizado" }); return; }
+
+    const { testReplicateIntegration, testReplicateCredit } = await import("../lib/replicate-music.js");
+    const mode = req.body?.mode === "credit" ? "credit" : "integration";
+    if (mode === "credit") {
+      const report = await testReplicateCredit();
+      console.log(`[Admin] Teste Replicate (pago) → ok=${report.ok} predicao=${report.predictionId ?? "-"} ${report.error || report.note}`);
+      res.json(report);
+      return;
+    }
+    const report = await testReplicateIntegration();
+    console.log(`[Admin] Teste Replicate (grátis) → ok=${report.ok} conta=${report.account ?? "-"} modelo=${report.model} erros=${report.errors.length}`);
+    res.json(report);
+  } catch (error: any) {
+    console.error("Erro ao testar integração Replicate:", error);
+    res.status(500).json({ error: error.message ?? "Erro ao verificar a integração com o Replicate" });
+  }
+});
+
 // ─── Sincronizar assinaturas pendentes com Asaas (manual / admin) ──────────
 router.post("/admin/sync-subscriptions", async (req, res): Promise<void> => {
   try {

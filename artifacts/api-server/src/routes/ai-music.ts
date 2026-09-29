@@ -39,6 +39,24 @@ async function getPlanMusicLimit(plano: string): Promise<number> {
   return 0;
 }
 
+// Devolve 1 cota de música quando a geração falha — o artista pagou por um hit que não recebeu.
+// Só estorna se a demo foi criada no mesmo ciclo mensal da cota (evita mexer na cota do mês seguinte).
+async function refundMusicCredit(artistId: number, demoCreatedAt: Date): Promise<void> {
+  try {
+    const now = new Date();
+    const created = new Date(demoCreatedAt);
+    if (created.getMonth() !== now.getMonth() || created.getFullYear() !== now.getFullYear()) return;
+
+    await db
+      .update(artistsTable)
+      .set({ aiMusicQueriesCount: sql`GREATEST(${artistsTable.aiMusicQueriesCount} - 1, 0)` })
+      .where(eq(artistsTable.id, artistId));
+    console.log(`[AI Music] Cota devolvida ao artista ${artistId} após falha da geração.`);
+  } catch (err) {
+    console.warn(`[AI Music] Falha ao devolver cota do artista ${artistId}:`, err);
+  }
+}
+
 // GET /api/ai/config/status - Retorna status dos gateways de IA
 router.get("/ai/config/status", async (_req, res): Promise<void> => {
   try {
@@ -332,7 +350,12 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
     res.status(201).json(savedDemo);
   } catch (error: any) {
     console.error("Erro ao gerar música:", error);
-    res.status(500).json({ error: error.message || "Erro ao iniciar geração de música" });
+    const status = typeof error?.status === "number" ? error.status : 500;
+    const code = typeof error?.code === "string" ? error.code : undefined;
+    res.status(status).json({
+      error: error.message || "Erro ao iniciar geração de música",
+      ...(code ? { code } : {}),
+    });
   }
 });
 
@@ -355,6 +378,12 @@ router.get("/ai/music/status/:id", async (req, res): Promise<void> => {
 
     const demo = demos[0];
     if (demo.status === "completed" && demo.audioUrl) {
+      res.json(demo);
+      return;
+    }
+
+    // Estado terminal: não repollar o Replicate nem reprocessar o reembolso.
+    if (demo.status === "failed") {
       res.json(demo);
       return;
     }
@@ -397,6 +426,9 @@ router.get("/ai/music/status/:id", async (req, res): Promise<void> => {
         })
         .where(eq(aiMusicDemosTable.id, demoId))
         .returning();
+
+      // O artista não recebeu o áudio: devolve a cota consumida na submissão.
+      await refundMusicCredit(demo.artistaId, demo.createdAt);
 
       res.json(failedDemo);
       return;

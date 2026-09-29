@@ -14,6 +14,8 @@ export const subscriptionsTable = pgTable("subscriptions", {
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  overdueAt: timestamp("overdue_at", { withTimezone: true }),
+  overdueNotifiedAt: timestamp("overdue_notified_at", { withTimezone: true }),
   couponCode: text("coupon_code"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

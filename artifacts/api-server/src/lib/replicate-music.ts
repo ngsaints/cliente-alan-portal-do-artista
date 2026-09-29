@@ -5,6 +5,19 @@ import path from "path";
 import fs from "fs";
 import Replicate from "replicate";
 import { uploadToR2, generateR2Key, r2Enabled } from "./r2-storage.js";
+import { sendAdminAlert } from "./email.js";
+
+/** Erro de infraestrutura do gateway (não é culpa do artista). */
+export class ReplicateServiceError extends Error {
+  readonly code: string;
+  readonly status: number;
+  constructor(message: string, code: string, status: number) {
+    super(message);
+    this.name = "ReplicateServiceError";
+    this.code = code;
+    this.status = status;
+  }
+}
 
 export interface MiniMaxMusicInput {
   prompt: string;
@@ -67,12 +80,56 @@ function isInsufficientCreditError(err: any): boolean {
   return /\b402\b|insufficient credit|payment required/i.test(parts);
 }
 
-function toFriendlyError(err: any, context: string): Error {
+// O artista não precisa saber de billing: é indisponibilidade temporária do gateway.
+const NO_CREDIT_ARTIST_MESSAGE =
+  "A geração de hits está temporariamente indisponível. Nossa equipe já foi avisada — tente novamente em alguns minutos.";
+
+const CREDIT_FAIL_FAST_MS = 5 * 60 * 1000;
+const ADMIN_ALERT_INTERVAL_MS = 30 * 60 * 1000;
+let creditBlockedUntil = 0;
+let creditFailureCount = 0;
+let lastAdminAlertAt = 0;
+let lastCreditErrorAt = 0;
+
+function noCreditError(): ReplicateServiceError {
+  return new ReplicateServiceError(NO_CREDIT_ARTIST_MESSAGE, "REPLICATE_NO_CREDIT", 503);
+}
+
+/** Marca a falha de crédito, evita repetir a chamada e avisa o admin (no máx. 1x/30min). */
+async function reportInsufficientCredit(apiKey: string, model: string, detail: string): Promise<void> {
+  creditFailureCount += 1;
+  creditBlockedUntil = Date.now() + CREDIT_FAIL_FAST_MS;
+  lastCreditErrorAt = Date.now();
+  console.error(
+    `[Replicate] Conta sem créditos (HTTP 402). Fail-fast por ${CREDIT_FAIL_FAST_MS / 60000} min | ` +
+      `modelo=${model} | ocorrências=${creditFailureCount}`
+  );
+
+  if (Date.now() - lastAdminAlertAt < ADMIN_ALERT_INTERVAL_MS) return;
+  lastAdminAlertAt = Date.now();
+
+  void sendAdminAlert(
+    "Replicate sem créditos — geração de hits pausada",
+    [
+      "A conta do Replicate está sem saldo e a geração de músicas foi pausada automaticamente.",
+      "",
+      `Modelo: ${model}`,
+      `Chave: ${apiKey.slice(0, 8)}…`,
+      `Ocorrências nesta sessão: ${creditFailureCount}`,
+      `Última resposta: ${detail.slice(0, 500)}`,
+      "",
+      "Recarga: https://replicate.com/account/billing",
+      "Enquanto não houver saldo, novas tentativas são bloqueadas por 5 minutos para não gerar ruído.",
+      "",
+      "Portal do Artista",
+    ].join("\n")
+  );
+}
+
+function toFriendlyError(err: any, context: string, apiKey?: string, model?: string): Error {
   if (isInsufficientCreditError(err)) {
-    console.error(`[Replicate] ${context}: conta sem créditos (HTTP 402).`, err?.message || err);
-    return new Error(
-      "O serviço de geração musical (Replicate) está sem créditos. Recarregue a conta no painel do Replicate e tente novamente, ou ajuste a chave/modelo nas configurações do Painel Administrativo."
-    );
+    void reportInsufficientCredit(apiKey || "desconhecida", model || "desconhecido", err?.message || String(err));
+    return noCreditError();
   }
   return new Error(`${context}: ${err?.message || String(err)}`);
 }
@@ -83,7 +140,23 @@ function toFriendlyError(err: any, context: string): Error {
 export async function startMusicGeneration(input: MiniMaxMusicInput): Promise<ReplicatePredictionResponse> {
   const config = await getReplicateConfig();
   if (!config.apiKey) {
-    throw new Error("Chave de API do Replicate não configurada. Adicione sua chave nas configurações do Painel Administrativo.");
+    console.error("[Replicate] Chave de API não configurada — defina replicate_api_key no Painel Administrativo.");
+    void sendAdminAlert(
+      "Replicate sem chave de API — geração de hits indisponível",
+      "A chave replicate_api_key não está configurada, então a geração de músicas está bloqueada.\n\n" +
+        "Cadastre a chave em Admin → Configurações → Replicate.\n\nPortal do Artista"
+    );
+    throw new ReplicateServiceError(
+      "A geração de hits está indisponível no momento. Tente novamente mais tarde.",
+      "REPLICATE_NOT_CONFIGURED",
+      503
+    );
+  }
+
+  // Fail-fast: evita martelar a API (e encher o log) enquanto a conta está sem saldo.
+  if (Date.now() < creditBlockedUntil) {
+    console.warn("[Replicate] Fail-fast: conta sem créditos recentemente — nova chamada ao Replicate evitada.");
+    throw noCreditError();
   }
 
   // Montar prompt completo refinado para o MiniMax
@@ -123,6 +196,9 @@ export async function startMusicGeneration(input: MiniMaxMusicInput): Promise<Re
       input: modelInput,
     });
 
+    // Chamada ok: libera o fail-fast de créditos.
+    creditBlockedUntil = 0;
+
     return {
       id: prediction.id,
       status: prediction.status as ReplicatePredictionResponse["status"],
@@ -131,8 +207,12 @@ export async function startMusicGeneration(input: MiniMaxMusicInput): Promise<Re
       logs: prediction.logs || null,
     };
   } catch (err: any) {
+    if (isInsufficientCreditError(err)) {
+      await reportInsufficientCredit(config.apiKey, modelName, err?.message || String(err));
+      throw noCreditError();
+    }
     console.error("Erro ao iniciar predição no Replicate via SDK:", err);
-    throw toFriendlyError(err, "Falha ao iniciar geração musical no Replicate");
+    throw toFriendlyError(err, "Falha ao iniciar geração musical no Replicate", config.apiKey, modelName);
   }
 }
 
@@ -166,9 +246,160 @@ export async function getPredictionStatus(predictionId: string): Promise<Replica
       logs: prediction.logs || null,
     };
   } catch (err: any) {
+    if (isInsufficientCreditError(err)) {
+      await reportInsufficientCredit(config.apiKey, config.model, err?.message || String(err));
+      throw noCreditError();
+    }
     console.error("Erro ao consultar status da predição no Replicate via SDK:", err);
-    throw toFriendlyError(err, "Erro ao consultar status da geração");
+    throw toFriendlyError(err, "Erro ao consultar status da geração", config.apiKey, config.model);
   }
+}
+
+export interface ReplicateIntegrationReport {
+  ok: boolean;
+  enabled: boolean;
+  hasKey: boolean;
+  keyHint: string | null;
+  model: string;
+  account: string | null;
+  modelAccessible: boolean;
+  creditBlocked: boolean;
+  creditFailures: number;
+  lastCreditErrorAt: string | null;
+  errors: string[];
+}
+
+/**
+ * Verificação de integração para o Painel Administrativo.
+ * É gratuita: só consulta conta e modelo — não cria predições e não consome crédito.
+ * A API do Replicate não expõe saldo, então "há crédito" só se confirma numa geração paga;
+ * o que dá para reportar aqui é a chave, o modelo e o estado do bloqueio por 402.
+ */
+export async function testReplicateIntegration(): Promise<ReplicateIntegrationReport> {
+  const config = await getReplicateConfig();
+  const errors: string[] = [];
+  const report: ReplicateIntegrationReport = {
+    ok: false,
+    enabled: config.enabled,
+    hasKey: !!config.apiKey,
+    keyHint: config.apiKey ? `${config.apiKey.slice(0, 8)}…` : null,
+    model: config.model,
+    account: null,
+    modelAccessible: false,
+    creditBlocked: creditBlockedUntil > Date.now(),
+    creditFailures: creditFailureCount,
+    lastCreditErrorAt: lastCreditErrorAt ? new Date(lastCreditErrorAt).toISOString() : null,
+    errors,
+  };
+
+  if (!config.apiKey) {
+    errors.push("replicate_api_key não configurada no Painel Administrativo.");
+    return report;
+  }
+  if (!config.enabled) {
+    errors.push("Gateway Replicate desativado (replicate_enabled = false).");
+  }
+
+  const replicate = getReplicateClient(config.apiKey);
+  try {
+    const account: any = await (replicate as any).accounts.current();
+    report.account = account?.username || account?.type || "autenticado";
+  } catch (err: any) {
+    errors.push(`Chave recusada pela Replicate: ${err?.message || err}`);
+  }
+
+  const fullName = config.model.includes("/") ? config.model : `minimax/${config.model}`;
+  const slash = fullName.indexOf("/");
+  try {
+    await (replicate as any).models.get(fullName.slice(0, slash), fullName.slice(slash + 1));
+    report.modelAccessible = true;
+  } catch (err: any) {
+    errors.push(`Modelo "${fullName}" inacessível: ${err?.message || err}`);
+  }
+
+  if (report.creditBlocked) {
+    errors.push("Bloqueio por falta de crédito ativo: a geração está pausada por 5 minutos após o último HTTP 402.");
+  }
+
+  report.ok = errors.length === 0;
+  return report;
+}
+
+/**
+ * Teste PAGO (alguns centavos): cria uma predição barata de verdade para descobrir
+ * se há saldo na conta. Só roda quando o admin clica — nunca em request de artista.
+ */
+const CREDIT_PROBE_MODEL = "black-forest-labs/flux-schnell";
+const CREDIT_PROBE_TIMEOUT_MS = 60 * 1000;
+
+export interface ReplicateCreditReport {
+  ok: boolean;
+  model: string;
+  predictionId: string | null;
+  durationMs: number | null;
+  note: string;
+  error: string | null;
+}
+
+export async function testReplicateCredit(): Promise<ReplicateCreditReport> {
+  const config = await getReplicateConfig();
+  const report: ReplicateCreditReport = {
+    ok: false,
+    model: CREDIT_PROBE_MODEL,
+    predictionId: null,
+    durationMs: null,
+    note: "",
+    error: null,
+  };
+  if (!config.apiKey) {
+    report.error = "replicate_api_key não configurada no Painel Administrativo.";
+    return report;
+  }
+
+  const replicate = getReplicateClient(config.apiKey);
+  const started = Date.now();
+  let prediction: any;
+  try {
+    prediction = await (replicate as any).predictions.create({
+      model: CREDIT_PROBE_MODEL,
+      input: { prompt: "credit check" },
+    });
+  } catch (err: any) {
+    if (isInsufficientCreditError(err)) {
+      await reportInsufficientCredit(config.apiKey, CREDIT_PROBE_MODEL, err?.message || String(err));
+      report.error = "HTTP 402: a conta Replicate está sem saldo. Recarregue em https://replicate.com/account/billing";
+    } else {
+      report.error = `Falha ao criar a predição de teste: ${err?.message || err}`;
+    }
+    return report;
+  }
+
+  report.predictionId = prediction.id;
+  let last: any = prediction;
+  while (last?.status !== "succeeded" && last?.status !== "failed" && last?.status !== "canceled") {
+    if (Date.now() - started > CREDIT_PROBE_TIMEOUT_MS) break;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      last = await (replicate as any).predictions.get(prediction.id);
+    } catch (err: any) {
+      report.error = `Erro ao acompanhar a predição: ${err?.message || err}`;
+      return report;
+    }
+  }
+  report.durationMs = Date.now() - started;
+
+  if (last?.status === "succeeded") {
+    report.ok = true;
+    // Saldo confirmado: libera o fail-fast de 402 imediatamente.
+    creditBlockedUntil = 0;
+    creditFailureCount = 0;
+    report.note = `Saldo confirmado: predição ${prediction.id} concluída em ${(report.durationMs / 1000).toFixed(1)}s.`;
+  } else if (last?.status === "failed") {
+    report.error = `Predição de teste falhou (saldo pode estar ok): ${last?.error || "erro desconhecido"}`;
+  } else {
+    report.error = `Timeout: predição ${prediction.id} ainda "${last?.status || "?"}" após ${Math.round(report.durationMs / 1000)}s.`;
+  }
+  return report;
 }
 
 /**

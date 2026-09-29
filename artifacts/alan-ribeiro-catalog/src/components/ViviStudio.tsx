@@ -640,7 +640,9 @@ export function ViviStudio({
         if (errData.creditsExhausted && onOpenUpgradeModal) {
           onOpenUpgradeModal();
         }
-        throw new Error(errData.error || "Falha ao iniciar geração do hit");
+        const gatewayError: any = new Error(errData.error || "Falha ao iniciar geração do hit");
+        gatewayError.code = errData.code;
+        throw gatewayError;
       }
 
       const initialDemo: DemoItem = await res.json();
@@ -652,8 +654,10 @@ export function ViviStudio({
     } catch (error: any) {
       setIsGenerating(false);
       setGenerationStep("");
+      const gatewayDown =
+        error?.code === "REPLICATE_NO_CREDIT" || error?.code === "REPLICATE_NOT_CONFIGURED";
       toast({
-        title: "Não foi possível gerar o hit",
+        title: gatewayDown ? "Geração temporariamente indisponível" : "Não foi possível gerar o hit",
         description: error.message || "Verifique sua conexão ou tente novamente.",
         variant: "destructive",
       });

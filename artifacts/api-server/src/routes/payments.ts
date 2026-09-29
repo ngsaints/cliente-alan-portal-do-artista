@@ -13,10 +13,10 @@ import {
 } from "../lib/asaas-client.js";
 import { applyCompletePlanPriceFloor } from "../lib/plan-price.js";
 import { fulfillAiCreditPurchase, parseCreditExternalRef } from "../lib/ai-credits.js";
+import { FREE_PLAN, expireSubscription, handleAsaasPaymentOverdue } from "../lib/subscriptions.js";
 
 const router: IRouter = Router();
 
-const FREE_PLAN = "free";
 export { FREE_PLAN };
 
 router.get("/payments/plans", async (_req, res): Promise<void> => {
@@ -576,7 +576,8 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
     } else if (event === "SUBSCRIPTION_CREATED" || event === "SUBSCRIPTION_UPDATED") {
       console.log(`Webhook Asaas: ${event} para subscription ${subscription?.id}`);
     } else if (event === "PAYMENT_OVERDUE") {
-      console.log(`Webhook Asaas: payment overdue ${payment?.id}`);
+      // Marca o atraso, reverte o plano se vencido e avisa o artista (throttle de 7 dias).
+      await handleAsaasPaymentOverdue(payment, subscription);
     }
 
     res.json({ status: "ok" });
@@ -596,34 +597,15 @@ router.get("/payments/subscription/:artistId", async (req, res): Promise<void> =
       .orderBy(sql`${subscriptionsTable.createdAt} DESC`);
 
     const active = subscriptions.find(s => s.status === "active");
-    const expired = active && active.expiresAt && new Date(active.expiresAt) < new Date();
+    const expired = !!(active && active.expiresAt && new Date(active.expiresAt) < new Date());
 
-    if (expired) {
-      await db
-        .update(subscriptionsTable)
-        .set({ status: "expired" })
-        .where(eq(subscriptionsTable.id, active.id));
-
-      const [freePlan] = await db.select().from(plansTable).where(eq(plansTable.nome, FREE_PLAN));
-      const freeAllowed = !!freePlan && freePlan.ativo !== false;
-
-      await db
-        .update(artistsTable)
-        .set({
-          plano: FREE_PLAN,
-          planoAtivo: freeAllowed,
-          limiteMusicas: freeAllowed && freePlan ? String(freePlan.limiteMusicas) : "0",
-          personalizacaoPercent: freeAllowed && freePlan ? String(freePlan.personalizacaoPercent) : "0",
-          updatedAt: new Date(),
-        })
-        .where(eq(artistsTable.id, parseInt(artistId)));
-
-      console.log(`⏰ Assinatura expirada para artista ${artistId} — plano revertido para ${FREE_PLAN} (ativo=${freeAllowed})`);
+    if (expired && active) {
+      await expireSubscription(active);
     }
 
     res.json({
       subscriptions,
-      activeSubscription: active ? { ...active, expired: false } : null,
+      activeSubscription: active && !expired ? { ...active, expired: false } : null,
     });
   } catch (error) {
     console.error("Error fetching subscription:", error);

@@ -3257,6 +3257,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testingReplicate, setTestingReplicate] = useState<"integration" | "credit" | null>(null);
   const [demoFiles, setDemoFiles] = useState<Record<string, File>>({});
   const [demoBannersList, setDemoBannersList] = useState<{ id: string; url?: string; file?: File; filePreview?: string; mobileUrl?: string; mobileFile?: File; mobileFilePreview?: string; link: string }[]>([]);
   const { toast } = useToast();
@@ -3900,8 +3901,61 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
     );
   };
 
+  // Teste da integração Replicate: "integration" = grátis, "credit" = paga (alguns centavos)
+  const handleTestReplicate = async (mode: "integration" | "credit" = "integration") => {
+    if (mode === "credit") {
+      const confirmed = window.confirm(
+        "Confirmar? Isso dispara uma predição barata de verdade na Replicate (flux-schnell) e consome alguns centavos do saldo da conta."
+      );
+      if (!confirmed) return;
+    }
+
+    setTestingReplicate(mode);
+    try {
+      const res = await fetch("/api/admin/replicate/test", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Falha ao verificar");
+
+      if (mode === "credit") {
+        if (data.ok) {
+          toast({ title: "Saldo confirmado no Replicate", description: `${data.note} predição ${data.predictionId}` });
+        } else {
+          toast({
+            title: "Sem saldo no Replicate",
+            description: data.error || "Recarregue em replicate.com/account/billing",
+            variant: "destructive",
+          });
+        }
+      } else if (data.ok) {
+        toast({
+          title: "Integração com o Replicate OK",
+          description: `Conta ${data.account} · chave ${data.keyHint} · modelo ${data.model} acessível.`,
+        });
+      } else {
+        toast({
+          title: "Integração com o Replicate com problema",
+          description: (data.errors || []).join(" "),
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: mode === "credit" ? "Erro ao confirmar saldo" : "Erro ao verificar a integração",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingReplicate(null);
+    }
+  };
+
   // Definição de grupos temáticos para layout limpo em cards
-  const groups: { title: string; icon: React.ElementType; description?: string; keys: string[] }[] = (() => {
+  const groups: { title: string; icon: React.ElementType; description?: string; keys: string[]; action?: "test-replicate" }[] = (() => {
     if (category === "ai") {
       return [
         {
@@ -3915,6 +3969,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           icon: Music,
           description: "Geração de áudios cantados de alta fidelidade com voz humana e instrumentos a partir da letra.",
           keys: ["replicate_enabled", "replicate_api_key", "replicate_music_model"],
+          action: "test-replicate",
         },
         {
           title: "Gerador de Capas & Fotos IA (Estúdio Visual)",
@@ -4085,6 +4140,41 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                   {groupSettings.map((s) => renderField(s))}
                 </div>
+
+                {group.action === "test-replicate" && (
+                  <div className="border-t border-border/60 pt-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleTestReplicate("integration")}
+                        disabled={testingReplicate !== null}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary/15 hover:bg-primary/25 border border-primary/35 text-primary font-bold text-xs sm:text-sm rounded-xl transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                      >
+                        {testingReplicate === "integration" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Terminal className="w-4 h-4" />}
+                        {testingReplicate === "integration" ? "Verificando..." : "Verificar integração"}
+                      </button>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Grátis: confere a chave, a conta e o modelo no Replicate <strong>sem gerar nada</strong>.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleTestReplicate("credit")}
+                        disabled={testingReplicate !== null}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-500 font-bold text-xs sm:text-sm rounded-xl transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                      >
+                        {testingReplicate === "credit" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                        {testingReplicate === "credit" ? "Testando saldo..." : "Confirmar saldo (pago)"}
+                      </button>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Único jeito pela API: dispara uma predição barata de verdade e consome <strong>alguns centavos</strong>.
+                        Sucesso = há saldo; HTTP 402 = sem saldo.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
