@@ -3698,7 +3698,8 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
         toast({ title: "Configurações salvas com sucesso!" });
         loadSettings();
       } else {
-        toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+        const body = await res.json().catch(() => null);
+        toast({ title: "Erro ao salvar configurações", description: body?.error || `HTTP ${res.status}`, variant: "destructive" });
       }
     } else {
       const res = await fetch("/api/admin/settings", {
@@ -3712,7 +3713,8 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
         toast({ title: "Configurações salvas com sucesso!" });
         loadSettings();
       } else {
-        toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+        const body = await res.json().catch(() => null);
+        toast({ title: "Erro ao salvar configurações", description: body?.error || `HTTP ${res.status}`, variant: "destructive" });
       }
     }
   };

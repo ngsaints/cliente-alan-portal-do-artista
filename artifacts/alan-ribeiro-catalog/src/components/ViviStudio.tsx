@@ -121,6 +121,32 @@ const PROMPT_SUGGESTIONS = [
   "final com coro épico",
 ];
 
+/**
+ * Nome amigável do modelo de música que o admin configurou (id vindo do backend).
+ * kie:V6 → "Suno V6"; minimax/music-2.5 → "MiniMax 2.5";
+ * openrouter:google/lyria-3-pro-preview → "Lyria 3 Pro Preview".
+ */
+function formatMusicModelLabel(id?: string | null): string | null {
+  const raw = (id || "").trim();
+  if (!raw) return null;
+  const titleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+
+  if (raw.startsWith("kie:")) {
+    const version = raw.slice(4).replace(/_/g, " ").toLowerCase();
+    return `Suno ${titleCase(version)}`;
+  }
+  if (raw.startsWith("minimax/")) {
+    const version = raw.split("/")[1] || raw;
+    return `MiniMax ${titleCase(version.replace(/^music-/, ""))}`;
+  }
+
+  const withoutProvider = raw.includes(":") ? raw.slice(raw.indexOf(":") + 1) : raw;
+  const lastSegment = withoutProvider.includes("/")
+    ? withoutProvider.slice(withoutProvider.lastIndexOf("/") + 1)
+    : withoutProvider;
+  return titleCase(lastSegment.replace(/[-_]/g, " ")) || raw;
+}
+
 export function ViviStudio({
   artist,
   onRefreshArtist,
@@ -142,6 +168,9 @@ export function ViviStudio({
   const [bpm, setBpm] = useState(120);
   const [clima, setClima] = useState("Romântico");
   const [promptExtra, setPromptExtra] = useState("");
+
+  // Modelo de música ativo (vem do admin/plano) — null até carregar, aí some o selo
+  const [musicModelLabel, setMusicModelLabel] = useState<string | null>(null);
 
   // Adiciona um atalho às instruções sem apagar o que o artista já escreveu
   const addInstruction = (text: string) => {
@@ -181,7 +210,7 @@ export function ViviStudio({
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
     {
       role: "assistant",
-      content: `Olá, ${artist?.name || "Artista"}! Eu sou a Vivi, sua assistente de composição e mentora no Portal do Artista.\n\nNo **Estúdio de Criação**, posso te ajudar a transformar qualquer letra em uma hit completo com voz e instrumentos usando IA de última geração (MiniMax Music 2.6). Se precisar de dicas de arranjo, ideias de rima ou marketing, estou aqui!`,
+      content: `Olá, ${artist?.name || "Artista"}! Eu sou a Vivi, sua assistente de composição e mentora no Portal do Artista.\n\nNo **Estúdio de Criação**, posso te ajudar a transformar qualquer letra em um hit completo com voz e instrumentos reais. Se precisar de dicas de arranjo, ideias de rima ou marketing, estou aqui!`,
     },
     ...(proactiveHint ? [{ role: "assistant" as const, content: proactiveHint }] : []),
   ]);
@@ -428,7 +457,7 @@ export function ViviStudio({
 
       toast({
         title: "Letra inédita composta com sucesso!",
-        description: `"${data.title}" foi estruturada com estrofes, refrão chiclete e tags para o MiniMax Music 2.6.`,
+        description: `"${data.title}" foi estruturada com estrofes, refrão chiclete e tags prontas para virar hit.`,
       });
     } catch (err: any) {
       toast({
@@ -504,6 +533,9 @@ export function ViviStudio({
 
       if (configRes && configRes.ok) {
         const cfgData = await configRes.json().catch(() => null);
+        if (cfgData?.music?.model) {
+          setMusicModelLabel(formatMusicModelLabel(cfgData.music.model));
+        }
         if (cfgData?.image?.model) {
           const raw = String(cfgData.image.model);
           const shortName = raw.includes("/") ? raw.split("/")[1] : raw;
@@ -615,7 +647,7 @@ export function ViviStudio({
 
       toast({
         title: "Letra aprimorada com sucesso!",
-        description: "Estruturei as tags [Intro], [Verse], [Chorus] e otimizei a métrica para o MiniMax Music 2.6.",
+        description: "Estruturei as tags [Intro], [Verse], [Chorus] e otimizei a métrica da sua letra.",
       });
     } catch (error: any) {
       toast({
@@ -952,9 +984,11 @@ export function ViviStudio({
                 <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
                   Estúdio Vivi <span className="text-amber-400">&</span> Hits IA
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40">
-                  MiniMax 2.6
-                </span>
+                {musicModelLabel && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                    {musicModelLabel}
+                  </span>
+                )}
               </div>
               <p className="text-sm text-muted-foreground mt-1 max-w-xl">
                 Crie letras perfeitas com a mentoria da Vivi e gere hits completos com voz humana e instrumentos reais.
@@ -1051,7 +1085,9 @@ export function ViviStudio({
                   <Sliders className="w-4 h-4 text-amber-400" />
                   <h3 className="font-bold text-foreground text-base">Parâmetros da Composição</h3>
                 </div>
-                <span className="text-xs text-muted-foreground font-mono">MiniMax Music 2.6</span>
+                {musicModelLabel && (
+                  <span className="text-xs text-muted-foreground font-mono">{musicModelLabel}</span>
+                )}
               </div>
 
               {/* Título */}
