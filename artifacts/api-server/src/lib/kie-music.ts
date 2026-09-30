@@ -410,7 +410,7 @@ const FAILED_STATUSES: Record<string, string> = {
 const statusCache = new Map<string, { at: number; value: ReplicatePredictionResponse & { alreadySaved?: boolean } }>();
 
 /** Gera um link de download temporário (20 min) para o arquivo gerado no kie.ai. */
-async function resolveDownloadUrl(apiKey: string, audioUrl: string): Promise<string> {
+export async function resolveDownloadUrl(apiKey: string, audioUrl: string): Promise<string> {
   try {
     const { status, body } = await kieFetch(
       apiKey,
@@ -424,6 +424,17 @@ async function resolveDownloadUrl(apiKey: string, audioUrl: string): Promise<str
   }
   return audioUrl;
 }
+
+/**
+ * Converte a URL de um arquivo gerado pelo kie.ai em um link de download temporário (válido por 20 minutos).
+ * Chama POST /api/v1/common/download-url usando a chave configurada no sistema.
+ */
+export async function getKieDownloadUrl(fileUrl: string): Promise<string> {
+  const config = await getKieMusicConfig();
+  if (!config.apiKey) throw new Error("Chave do kie.ai (kie_api_key) não configurada no sistema.");
+  return await resolveDownloadUrl(config.apiKey, fileUrl);
+}
+
 
 /** Consulta o estado de uma geração do kie.ai (id `kie:<taskId>`). */
 export async function getKiePredictionStatus(
@@ -674,3 +685,124 @@ export async function testKieMusicGeneration(
   }
   return report;
 }
+
+export interface KieBase64UploadResult {
+  fileName: string;
+  filePath: string;
+  downloadUrl: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt?: string;
+}
+
+/**
+ * Envia um arquivo em Base64 para o kie.ai (POST /api/file-base64-upload)
+ * e retorna a URL pública temporária (válida por 24h a 3 dias).
+ *
+ * Suporta tanto string Base64 pura quanto Data URL (ex: data:image/png;base64,... ou data:audio/mpeg;base64,...).
+ * Ideal para fornecer imagens de referência ou áudios de guia/remix para modelos de IA.
+ */
+export async function uploadKieBase64File(
+  base64Data: string,
+  fileName?: string,
+  uploadPath = "staging"
+): Promise<KieBase64UploadResult> {
+  const config = await getKieMusicConfig();
+  if (!config.apiKey) {
+    throw new Error("Chave do kie.ai (kie_api_key) não configurada no sistema.");
+  }
+
+  const payload: Record<string, unknown> = {
+    base64Data,
+    uploadPath: uploadPath.replace(/^\/+|\/+$/g, "") || "staging",
+  };
+  if (fileName) {
+    payload.fileName = fileName.trim();
+  }
+
+  const { status, body } = await kieFetch(
+    config.apiKey,
+    "/api/file-base64-upload",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    20000
+  );
+
+  if (status >= 400 || !body?.success) {
+    const errorMsg = detailOf(body) || `Falha no upload Base64 para o kie.ai (HTTP ${status})`;
+    throw new Error(errorMsg);
+  }
+
+  const data = body.data || {};
+  return {
+    fileName: data.fileName || fileName || "upload",
+    filePath: data.filePath || "",
+    downloadUrl: data.downloadUrl || data.fileUrl || "",
+    fileSize: Number(data.fileSize) || 0,
+    mimeType: data.mimeType || "",
+    uploadedAt: data.uploadedAt || new Date().toISOString(),
+  };
+}
+
+export interface KieUrlUploadResult {
+  fileName: string;
+  filePath: string;
+  downloadUrl: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt?: string;
+}
+
+/**
+ * Faz o upload de um arquivo remoto a partir de uma URL pública (HTTP/HTTPS) para o kie.ai (POST /api/file-url-upload).
+ * O kie.ai baixa o arquivo diretamente (timeout de 30s, recomendado até 100MB) e o armazena na sua CDN temporária.
+ *
+ * Ideal para importar recursos da web, mídias externas ou URLs de áudio/imagem para processamento imediato pela IA.
+ */
+export async function uploadKieUrlFile(
+  fileUrl: string,
+  fileName?: string,
+  uploadPath = "staging"
+): Promise<KieUrlUploadResult> {
+  const config = await getKieMusicConfig();
+  if (!config.apiKey) {
+    throw new Error("Chave do kie.ai (kie_api_key) não configurada no sistema.");
+  }
+
+  const payload: Record<string, unknown> = {
+    fileUrl: fileUrl.trim(),
+    uploadPath: uploadPath.replace(/^\/+|\/+$/g, "") || "staging",
+  };
+  if (fileName) {
+    payload.fileName = fileName.trim();
+  }
+
+  const { status, body } = await kieFetch(
+    config.apiKey,
+    "/api/file-url-upload",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    35000 // Timeout estendido para download remoto pelo kie.ai
+  );
+
+  if (status >= 400 || !body?.success) {
+    const errorMsg = detailOf(body) || `Falha no upload por URL para o kie.ai (HTTP ${status})`;
+    throw new Error(errorMsg);
+  }
+
+  const data = body.data || {};
+  return {
+    fileName: data.fileName || fileName || "downloaded-file",
+    filePath: data.filePath || "",
+    downloadUrl: data.downloadUrl || data.fileUrl || "",
+    fileSize: Number(data.fileSize) || 0,
+    mimeType: data.mimeType || "",
+    uploadedAt: data.uploadedAt || new Date().toISOString(),
+  };
+}
+
+

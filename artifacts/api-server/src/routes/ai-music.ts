@@ -15,6 +15,12 @@ import {
   getReplicateConfig 
 } from "../lib/replicate-music.js";
 import { startMusicGeneration, getMusicPredictionStatus } from "../lib/music-gateway.js";
+import { 
+  uploadKieBase64File, 
+  uploadKieUrlFile, 
+  getKieCredits, 
+  getKieDownloadUrl 
+} from "../lib/kie-music.js";
 
 const router: IRouter = Router();
 
@@ -771,4 +777,90 @@ router.post("/ai/credits/confirm-payment", async (req, res): Promise<void> => {
   }
 });
 
+// POST /api/ai/kie/upload-base64 - Upload temporário via Base64 para o kie.ai
+router.post("/ai/kie/upload-base64", async (req, res): Promise<void> => {
+  try {
+    const isArtist = Boolean((req.session as any)?.artistId);
+    const isAdmin = Boolean((req.session as any)?.admin || (req.session as any)?.logado);
+    if (!isArtist && !isAdmin) {
+      res.status(401).json({ error: "Faça login para utilizar este serviço." });
+      return;
+    }
+    const { base64Data, fileName, uploadPath } = req.body || {};
+    if (!base64Data || typeof base64Data !== "string") {
+      res.status(400).json({ error: "base64Data é obrigatório e deve ser uma string Base64 ou Data URL." });
+      return;
+    }
+    const result = await uploadKieBase64File(base64Data, fileName, uploadPath);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[kie.ai] Erro no upload Base64:", error);
+    res.status(500).json({ error: error.message || "Falha ao enviar arquivo para o kie.ai" });
+  }
+});
+
+// POST /api/ai/kie/upload-url - Upload temporário de arquivo via URL para o kie.ai
+router.post("/ai/kie/upload-url", async (req, res): Promise<void> => {
+  try {
+    const isArtist = Boolean((req.session as any)?.artistId);
+    const isAdmin = Boolean((req.session as any)?.admin || (req.session as any)?.logado);
+    if (!isArtist && !isAdmin) {
+      res.status(401).json({ error: "Faça login para utilizar este serviço." });
+      return;
+    }
+    const { fileUrl, fileName, uploadPath } = req.body || {};
+    if (!fileUrl || typeof fileUrl !== "string" || !/^https?:\/\//i.test(fileUrl.trim())) {
+      res.status(400).json({ error: "fileUrl é obrigatório e deve ser uma URL HTTP/HTTPS válida." });
+      return;
+    }
+    const result = await uploadKieUrlFile(fileUrl, fileName, uploadPath);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error("[kie.ai] Erro no upload por URL:", error);
+    res.status(500).json({ error: error.message || "Falha ao enviar arquivo por URL para o kie.ai" });
+  }
+});
+
+// GET /api/ai/kie/credits - Consulta o saldo de créditos da conta kie.ai
+router.get("/ai/kie/credits", async (req, res): Promise<void> => {
+  try {
+    const isArtist = Boolean((req.session as any)?.artistId);
+    const isAdmin = Boolean((req.session as any)?.admin || (req.session as any)?.logado);
+    if (!isArtist && !isAdmin) {
+      res.status(401).json({ error: "Faça login para utilizar este serviço." });
+      return;
+    }
+    const credits = await getKieCredits();
+    res.json({ success: true, credits });
+  } catch (error: any) {
+    console.error("[kie.ai] Erro ao consultar créditos:", error);
+    res.status(500).json({ error: error.message || "Falha ao consultar créditos do kie.ai" });
+  }
+});
+
+// POST /api/ai/kie/download-url - Gera link de download temporário (20 min) para arquivo gerado no kie.ai
+router.post("/ai/kie/download-url", async (req, res): Promise<void> => {
+  try {
+    const isArtist = Boolean((req.session as any)?.artistId);
+    const isAdmin = Boolean((req.session as any)?.admin || (req.session as any)?.logado);
+    if (!isArtist && !isAdmin) {
+      res.status(401).json({ error: "Faça login para utilizar este serviço." });
+      return;
+    }
+    const { url } = req.body || {};
+    if (!url || typeof url !== "string") {
+      res.status(400).json({ error: "url é obrigatória." });
+      return;
+    }
+    const downloadUrl = await getKieDownloadUrl(url);
+    res.json({ success: true, downloadUrl });
+  } catch (error: any) {
+    console.error("[kie.ai] Erro ao obter link de download:", error);
+    res.status(500).json({ error: error.message || "Falha ao obter link de download do kie.ai" });
+  }
+});
+
 export default router;
+
+
+
