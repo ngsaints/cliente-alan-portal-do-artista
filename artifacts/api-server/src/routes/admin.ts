@@ -15,7 +15,7 @@ function inferCategory(key: string): string {
   if (key.startsWith("demo_")) return "demo";
   if (key.startsWith("asaas_")) return "asaas";
   if (key.startsWith("r2_")) return "r2";
-  if (key.startsWith("openrouter_") || key.startsWith("replicate_") || key.startsWith("openai_") || key.startsWith("ai_")) return "ai";
+  if (key.startsWith("openrouter_") || key.startsWith("replicate_") || key.startsWith("openai_") || key.startsWith("ai_") || key.startsWith("kie_") || key.startsWith("image_ai_")) return "ai";
   if (key.startsWith("portal_smtp_") || key.startsWith("smtp_") || key.startsWith("email_") || key.startsWith("resend_")) return "email";
   if (key.startsWith("portal_") || key.startsWith("landing_") || key.startsWith("footer_") || key.startsWith("suporte_")) return "portal";
   if (key.startsWith("clarity_")) return "clarity";
@@ -246,11 +246,22 @@ router.put("/admin/settings", upload.fields([
       }
 
       // Chaves sensíveis ganham isSecret na criação (o GET passa a mascarar o value)
-      const looksSecret = /(_api_key|_apikey|_secret|_token|_password|_private|_credential)/i.test(key);
+      const looksSecret = /(_api_key|_apikey|_secret|_token|_password|_private|_credential|_hmac_key)/i.test(key);
       await db
         .insert(appSettingsTable)
         .values({ key, value, category: inferCategory(key), isSecret: looksSecret ? "true" : "false", updatedAt: new Date() })
         .onConflictDoUpdate({ target: appSettingsTable.key, set: { value, category: inferCategory(key), updatedAt: new Date() } });
+
+      // Sincroniza imediatamente com o processo em memória para não precisar reiniciar o servidor nem rodar export no terminal
+      if (value && typeof value === "string") {
+        const trimmed = value.trim();
+        if (key === "kie_api_key") process.env.KIE_API_KEY = trimmed;
+        if (key === "kie_webhook_hmac_key") process.env.KIE_WEBHOOK_HMAC_KEY = trimmed;
+        if (key === "openrouter_api_key") process.env.OPENROUTER_API_KEY = trimmed;
+        if (key === "replicate_api_key") process.env.REPLICATE_API_TOKEN = trimmed;
+        if (key === "asaas_api_key") process.env.ASAAS_API_KEY = trimmed;
+        if (key === "resend_api_key") process.env.RESEND_API_KEY = trimmed;
+      }
     }
 
     // Clean up any accidental metadata rows from the database
@@ -333,6 +344,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "replicate_music_model", value: "minimax/music-2.6", desc: "Modelo de Música do Replicate (ex: minimax/music-2.6)", isSecret: "false" },
         { key: "kie_enabled", value: "true", desc: "Ativar kie.ai (Suno) no gerador de hits", isSecret: "false" },
         { key: "kie_api_key", value: "", desc: "Chave de API kie.ai (Suno)", isSecret: "true" },
+        { key: "kie_webhook_hmac_key", value: "", desc: "Chave HMAC do Webhook kie.ai (Suno)", isSecret: "true" },
         { key: "image_ai_provider", value: "openrouter", desc: "Provedor de IA para Capas e Fotos (openrouter ou replicate)", isSecret: "false" },
         { key: "image_ai_model", value: "black-forest-labs/flux-1-schnell", desc: "Modelo de Imagem para Capas e Fotos (OpenRouter ou Replicate)", isSecret: "false" },
         { key: "openai_enabled", value: "false", desc: "Ativar Mentora Virtual (OpenAI Legado)", isSecret: "false" },
@@ -379,7 +391,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
 
     if (category === "portal") {
       // Migrate any AI keys to 'ai' category and SMTP keys to 'email'
-      const aiKeyNames = ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks", "replicate_enabled", "replicate_api_key", "replicate_music_model", "kie_enabled", "kie_api_key", "openai_enabled", "openai_api_key", "ai_credit_pack_5_price", "ai_credit_pack_5_credits", "ai_credit_pack_15_price", "ai_credit_pack_15_credits", "ai_credit_pack_40_price", "ai_credit_pack_40_credits"];
+      const aiKeyNames = ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks", "replicate_enabled", "replicate_api_key", "replicate_music_model", "kie_enabled", "kie_api_key", "kie_webhook_hmac_key", "openai_enabled", "openai_api_key", "ai_credit_pack_5_price", "ai_credit_pack_5_credits", "ai_credit_pack_15_price", "ai_credit_pack_15_credits", "ai_credit_pack_40_price", "ai_credit_pack_40_credits"];
       for (const key of aiKeyNames) {
         await db.update(appSettingsTable).set({ category: "ai" }).where(eq(appSettingsTable.key, key));
       }

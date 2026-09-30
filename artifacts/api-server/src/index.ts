@@ -8,7 +8,27 @@ initLogger();
 import app from "./app";
 import { startReactivation } from './lib/reactivation';
 import { startSubscriptionExpiry } from './lib/subscriptions';
-import { pool } from "@workspace/db";
+import { pool, db, appSettingsTable } from "@workspace/db";
+
+async function syncAppSettingsToEnv() {
+  if (!db) return;
+  try {
+    const rows = await db.select().from(appSettingsTable);
+    for (const r of rows) {
+      if (!r.value) continue;
+      const val = r.value.trim();
+      if (r.key === "kie_api_key") process.env.KIE_API_KEY = val;
+      if (r.key === "kie_webhook_hmac_key") process.env.KIE_WEBHOOK_HMAC_KEY = val;
+      if (r.key === "openrouter_api_key") process.env.OPENROUTER_API_KEY = val;
+      if (r.key === "replicate_api_key") process.env.REPLICATE_API_TOKEN = val;
+      if (r.key === "asaas_api_key") process.env.ASAAS_API_KEY = val;
+      if (r.key === "resend_api_key") process.env.RESEND_API_KEY = val;
+    }
+    console.log("✅ [Settings] Chaves cadastradas no painel sincronizadas com o ambiente da aplicação.");
+  } catch (err: any) {
+    console.warn("⚠️ [Settings] Aviso ao sincronizar configurações do painel:", err.message || err);
+  }
+}
 
 async function ensureDbSchema() {
   if (!pool) return;
@@ -54,8 +74,9 @@ if (Number.isNaN(port) || port <= 0) {
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
-  // Garante as colunas antes de subir os jobs que as utilizam.
-  void ensureDbSchema().then(() => {
+  // Garante as colunas e sincroniza chaves do painel antes de subir os jobs.
+  void ensureDbSchema().then(async () => {
+    await syncAppSettingsToEnv();
     startReactivation();
     startSubscriptionExpiry();
   });
