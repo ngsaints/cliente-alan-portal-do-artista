@@ -18,7 +18,8 @@ import { startMusicGeneration, getMusicPredictionStatus } from "../lib/music-gat
 import { 
   uploadKieBase64File, 
   uploadKieUrlFile, 
-  getKieCredits, 
+  getKieCredits,
+  getKieCreditDetails, 
   getKieDownloadUrl 
 } from "../lib/kie-music.js";
 
@@ -821,7 +822,7 @@ router.post("/ai/kie/upload-url", async (req, res): Promise<void> => {
   }
 });
 
-// GET /api/ai/kie/credits - Consulta o saldo de créditos da conta kie.ai
+// GET /api/ai/kie/credits - Consulta o saldo de créditos da conta kie.ai (OpenAPI: /api/v1/chat/credit)
 router.get("/ai/kie/credits", async (req, res): Promise<void> => {
   try {
     const isArtist = Boolean((req.session as any)?.artistId);
@@ -830,8 +831,25 @@ router.get("/ai/kie/credits", async (req, res): Promise<void> => {
       res.status(401).json({ error: "Faça login para utilizar este serviço." });
       return;
     }
-    const credits = await getKieCredits();
-    res.json({ success: true, credits });
+    const details = await getKieCreditDetails();
+    if (!details.ok) {
+      const httpStatus = details.code >= 400 && details.code <= 599 ? details.code : 400;
+      res.status(httpStatus).json({
+        success: false,
+        code: details.code,
+        msg: details.msg,
+        credits: details.credits,
+        error: details.error || details.msg,
+      });
+      return;
+    }
+    res.json({
+      success: true,
+      code: 200,
+      msg: "success",
+      credits: details.credits,
+      data: details.credits,
+    });
   } catch (error: any) {
     console.error("[kie.ai] Erro ao consultar créditos:", error);
     res.status(500).json({ error: error.message || "Falha ao consultar créditos do kie.ai" });

@@ -269,9 +269,23 @@ function serviceErrorFor(status: number, model: string, detail: string): KieServ
       422
     );
   }
+  if (status === 408) {
+    return new KieServiceError(
+      "O servidor da Suno demorou para responder (timeout > 10 min). Tente gerar novamente em instantes.",
+      "KIE_TIMEOUT",
+      504
+    );
+  }
+  if (status === 501) {
+    return new KieServiceError(
+      "A tarefa de geração falhou no servidor do provedor. Tente gerar novamente.",
+      "KIE_GENERATION_FAILED",
+      502
+    );
+  }
   if (status === 455 || status === 500 || status === 505) {
     return new KieServiceError(
-      "A geração de hits está indisponível no momento (provedor em manutenção). Tente novamente em alguns minutos.",
+      "A geração de hits está indisponível no momento (provedor em manutenção ou serviço desativado). Tente novamente em alguns minutos.",
       "KIE_UNAVAILABLE",
       503
     );
@@ -514,17 +528,69 @@ export async function getKiePredictionStatus(
 
 // ─── Créditos / verificação (grátis) ────────────────────────────────────────
 
-export async function getKieCredits(apiKey?: string | null): Promise<number | null> {
+export interface KieCreditDetails {
+  ok: boolean;
+  code: number;
+  msg: string;
+  credits: number | null;
+  error?: string;
+}
+
+/**
+ * Consulta detalhada do saldo de créditos da conta kie.ai (GET /api/v1/chat/credit).
+ * Trata os códigos de resposta especificados no OpenAPI (200, 401, 402, 404, 408, 422, 429, 455, 500, 501, 505).
+ */
+export async function getKieCreditDetails(apiKey?: string | null): Promise<KieCreditDetails> {
   const key = apiKey ?? (await getKieMusicConfig()).apiKey;
-  if (!key) return null;
+  if (!key) {
+    return {
+      ok: false,
+      code: 401,
+      msg: "Chave do kie.ai (kie_api_key) não configurada no sistema.",
+      credits: null,
+      error: "Chave ausente",
+    };
+  }
   try {
     const { status, body } = await kieFetch(key, "/api/v1/chat/credit", {}, 10000);
-    if (status !== 200) return null;
-    const value = Number(body?.data);
-    return Number.isFinite(value) ? value : null;
-  } catch {
-    return null;
+    const code = Number(body?.code) || status;
+    const msg = String(body?.msg || detailOf(body) || (code === 200 ? "success" : `HTTP ${status}`));
+
+    if (code === 200 && body?.data !== null && body?.data !== undefined) {
+      const val = Number(body.data);
+      return {
+        ok: true,
+        code: 200,
+        msg,
+        credits: Number.isFinite(val) ? val : 0,
+      };
+    }
+
+    return {
+      ok: false,
+      code,
+      msg,
+      credits: code === 402 ? 0 : null,
+      error: msg,
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      code: 500,
+      msg: err?.message || "Falha na comunicação com o kie.ai",
+      credits: null,
+      error: err?.message,
+    };
   }
+}
+
+/**
+ * Consulta simples do saldo de créditos da conta kie.ai (GET /api/v1/chat/credit).
+ * Retorna o número de créditos restantes ou null em caso de falha/chave inválida.
+ */
+export async function getKieCredits(apiKey?: string | null): Promise<number | null> {
+  const details = await getKieCreditDetails(apiKey);
+  return details.ok ? details.credits : (details.code === 402 ? 0 : null);
 }
 
 /**
@@ -563,12 +629,15 @@ export async function testKieIntegration(): Promise<ReplicateIntegrationReport> 
   }
 
   try {
-    const credits = await getKieCredits(config.apiKey);
-    if (credits === null) {
-      errors.push("kie.ai recusou a verificação da conta (confira a chave).");
+    const details = await getKieCreditDetails(config.apiKey);
+    if (!details.ok && details.code !== 402) {
+      errors.push(`kie.ai recusou a verificação da conta (código ${details.code}: ${details.msg}).`);
     } else {
+      const credits = details.credits ?? 0;
       report.account = `saldo ${credits} créditos`;
-      if (credits <= 0) errors.push("A conta do kie.ai está sem créditos — recarregue em https://kie.ai/credits.");
+      if (credits <= 0 || details.code === 402) {
+        errors.push("A conta do kie.ai está sem créditos — recarregue em https://kie.ai/credits.");
+      }
     }
   } catch (err: any) {
     errors.push(`Erro ao consultar créditos do kie.ai: ${err?.message || err}`);
