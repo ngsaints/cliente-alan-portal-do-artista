@@ -905,6 +905,66 @@ export interface KieWebhookVerificationResult {
   timestamp?: string;
 }
 
+/** Janela de tolerância do timestamp (segundos). Aceita KIE_WEBHOOK_TOLERANCE_SECONDS. */
+const DEFAULT_WEBHOOK_TOLERANCE_SECONDS = 300;
+
+function webhookToleranceSeconds(): number {
+  const raw = Number(process.env.KIE_WEBHOOK_TOLERANCE_SECONDS);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_WEBHOOK_TOLERANCE_SECONDS;
+}
+
+/**
+ * Assinaturas já processadas (taskId.timestamp.assinatura) -> instante de expiração.
+ * Impede replay de uma assinatura válida dentro da janela de tolerância.
+ */
+const processedWebhookSignatures = new Map<string, number>();
+const MAX_PROCESSED_SIGNATURES = 5000;
+
+function pruneProcessedSignatures(nowSeconds: number): void {
+  for (const [key, expiresAt] of processedWebhookSignatures) {
+    if (expiresAt <= nowSeconds) processedWebhookSignatures.delete(key);
+  }
+  // Teto de memória mesmo se o prune não liberar espaço (entries vivem pouco tempo).
+  if (processedWebhookSignatures.size > MAX_PROCESSED_SIGNATURES) {
+    const excess = processedWebhookSignatures.size - MAX_PROCESSED_SIGNATURES;
+    let removed = 0;
+    for (const key of processedWebhookSignatures.keys()) {
+      if (removed >= excess) break;
+      processedWebhookSignatures.delete(key);
+      removed++;
+    }
+  }
+}
+
+function headerValue(
+  headers: Record<string, string | string[] | undefined>,
+  name: string
+): string | undefined {
+  const raw = headers[name] ?? headers[name.toLowerCase()] ?? headers[name.toUpperCase()];
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function kieWebhookReplayKey(taskId: string, timestamp: string, signature: string): string {
+  return `${taskId}.${timestamp}.${signature}`;
+}
+
+/**
+ * Libera a marca de replay de uma entrega que falhou no processamento.
+ * Sem isso, um 500 temporário faria o kie.ai ser bloqueado ao reenviar o mesmo callback.
+ * Chamado apenas quando o handler devolve erro — entregas bem-sucedidas seguem bloqueadas.
+ */
+export function releaseKieWebhookReplay(
+  headers: Record<string, string | string[] | undefined>,
+  body: any
+): void {
+  const timestamp = headerValue(headers, "x-webhook-timestamp");
+  const signature = headerValue(headers, "x-webhook-signature");
+  const taskId = body?.data?.task_id || body?.data?.taskId || body?.taskId;
+  if (!timestamp || !signature || !taskId) return;
+  processedWebhookSignatures.delete(kieWebhookReplayKey(String(taskId), timestamp, signature));
+}
+
 /**
  * Valida a assinatura de segurança HMAC-SHA256 enviada nos headers do Webhook do kie.ai.
  *
@@ -915,18 +975,18 @@ export interface KieWebhookVerificationResult {
  * Algoritmo:
  * base64(HMAC-SHA256(taskId + "." + timestamp, webhookHmacKey))
  *
- * Utiliza crypto.timingSafeEqual para comparação em tempo constante contra timing attacks.
+ * Proteções:
+ * - crypto.timingSafeEqual sobre os bytes decodificados (comparação em tempo constante);
+ * - janela de timestamp (replay de requisição antiga é recusada);
+ * - assinatura já vista dentro da janela é recusada (replay da mesma entrega).
  */
 export function verifyKieWebhookSignature(
   headers: Record<string, string | string[] | undefined>,
   body: any,
   secret: string
 ): KieWebhookVerificationResult {
-  const timestampHeader = headers["x-webhook-timestamp"] || headers["X-Webhook-Timestamp"];
-  const signatureHeader = headers["x-webhook-signature"] || headers["X-Webhook-Signature"];
-
-  const timestamp = Array.isArray(timestampHeader) ? timestampHeader[0] : timestampHeader;
-  const receivedSignature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
+  const timestamp = headerValue(headers, "x-webhook-timestamp");
+  const receivedSignature = headerValue(headers, "x-webhook-signature");
 
   if (!timestamp || !receivedSignature) {
     return { valid: false, error: "Missing signature headers" };
@@ -937,6 +997,22 @@ export function verifyKieWebhookSignature(
     return { valid: false, error: "Missing task_id" };
   }
 
+  const sentAt = Number(timestamp);
+  if (!Number.isInteger(sentAt) || sentAt <= 0) {
+    return { valid: false, error: "Invalid timestamp", taskId, timestamp };
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const tolerance = webhookToleranceSeconds();
+  if (Math.abs(nowSeconds - sentAt) > tolerance) {
+    return {
+      valid: false,
+      error: `Timestamp outside allowed window (+/-${tolerance}s)`,
+      taskId,
+      timestamp,
+    };
+  }
+
   try {
     const dataToSign = `${taskId}.${timestamp}`;
     const computedSignature = crypto
@@ -944,19 +1020,28 @@ export function verifyKieWebhookSignature(
       .update(dataToSign)
       .digest("base64");
 
-    const expectedBuf = Buffer.from(computedSignature);
-    const receivedBuf = Buffer.from(receivedSignature);
+    // Compara os bytes decodificados: base64 tem representações não canônicas
+    // (padding/espaços diferentes) que quebrariam uma comparação literal.
+    const expectedBuf = Buffer.from(computedSignature, "base64");
+    const receivedBuf = Buffer.from(receivedSignature, "base64");
 
-    if (expectedBuf.length !== receivedBuf.length) {
-      return { valid: false, error: "Invalid signature", taskId, timestamp: String(timestamp) };
+    if (expectedBuf.length === 0 || expectedBuf.length !== receivedBuf.length) {
+      return { valid: false, error: "Invalid signature", taskId, timestamp };
     }
 
-    const isValid = crypto.timingSafeEqual(expectedBuf, receivedBuf);
-    if (!isValid) {
-      return { valid: false, error: "Invalid signature", taskId, timestamp: String(timestamp) };
+    if (!crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
+      return { valid: false, error: "Invalid signature", taskId, timestamp };
     }
 
-    return { valid: true, taskId, timestamp: String(timestamp) };
+    // Replay: mesma assinatura entregue mais de uma vez na janela.
+    pruneProcessedSignatures(nowSeconds);
+    const replayKey = kieWebhookReplayKey(taskId, timestamp, receivedSignature);
+    if (processedWebhookSignatures.has(replayKey)) {
+      return { valid: false, error: "Replay detected", taskId, timestamp };
+    }
+    processedWebhookSignatures.set(replayKey, nowSeconds + tolerance);
+
+    return { valid: true, taskId, timestamp };
   } catch (err: any) {
     return { valid: false, error: `Signature verification error: ${err?.message || err}`, taskId };
   }

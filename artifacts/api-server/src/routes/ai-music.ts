@@ -23,6 +23,7 @@ import {
   getKieDownloadUrl,
   getKieWebhookHmacKey,
   verifyKieWebhookSignature,
+  releaseKieWebhookReplay,
   setKieStatusCache,
   resolveDownloadUrl,
   getKieMusicConfig,
@@ -70,12 +71,21 @@ async function refundMusicCredit(artistId: number, demoCreatedAt: Date): Promise
 }
 
 // GET /api/ai/config/status - Retorna status dos gateways de IA
-router.get("/ai/config/status", async (_req, res): Promise<void> => {
+router.get("/ai/config/status", async (req, res): Promise<void> => {
   try {
     const { getImageModelConfig } = await import("../lib/replicate-image.js");
+
+    // Modelo efetivo do artista: o plano dele manda sobre o modelo global do admin.
+    let plano: string | undefined;
+    const sessionArtistId = req.session.artistId;
+    if (sessionArtistId) {
+      const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, sessionArtistId));
+      plano = artists[0]?.plano || undefined;
+    }
+
     const [openrouter, replicate, openrouterCredits, imageConfig] = await Promise.all([
       getOpenRouterConfig(),
-      getReplicateConfig(),
+      getReplicateConfig(plano),
       getOpenRouterCredits(),
       getImageModelConfig(),
     ]);
@@ -95,6 +105,14 @@ router.get("/ai/config/status", async (_req, res): Promise<void> => {
         // Provedor deduzido do modelo escolhido: replicate | openrouter | kie
         provider: replicate.provider,
         modelSource: replicate.modelSource,
+      },
+      // Modelo que vai gerar o hit deste artista (plano, senão o global do admin)
+      music: {
+        model: replicate.model,
+        provider: replicate.provider,
+        modelSource: replicate.modelSource,
+        enabled: replicate.enabled,
+        plan: plano ?? null,
       },
       image: {
         provider: imageConfig.provider,
@@ -892,17 +910,24 @@ async function handleKieWebhook(req: any, res: any): Promise<void> {
   try {
     const hmacKey = await getKieWebhookHmacKey();
 
-    if (hmacKey) {
-      const verification = verifyKieWebhookSignature(req.headers, req.body, hmacKey);
-      if (!verification.valid) {
-        console.warn(`[kie.ai Webhook] Assinatura HMAC rejeitada: ${verification.error}`);
-        res.status(401).json({ error: verification.error || "Invalid signature" });
-        return;
-      }
-      console.log(`[kie.ai Webhook] Assinatura HMAC verificada com sucesso (taskId=${verification.taskId})`);
-    } else {
-      console.warn("[kie.ai Webhook] Aviso: kie_webhook_hmac_key não configurada — requisição aceita sem validação HMAC.");
+    // Fail-closed: sem chave HMAC o callback não é confiável e não pode
+    // alterar status de hit nem devolver cota. Configure
+    // `kie_webhook_hmac_key` no painel admin (ou KIE_WEBHOOK_HMAC_KEY).
+    if (!hmacKey) {
+      console.error(
+        "[kie.ai Webhook] kie_webhook_hmac_key ausente — requisição recusada (fail-closed). Configure no painel admin em Configurações → IA."
+      );
+      res.status(503).json({ error: "Webhook HMAC key not configured" });
+      return;
     }
+
+    const verification = verifyKieWebhookSignature(req.headers, req.body, hmacKey);
+    if (!verification.valid) {
+      console.warn(`[kie.ai Webhook] Assinatura HMAC rejeitada: ${verification.error}`);
+      res.status(401).json({ error: verification.error || "Invalid signature" });
+      return;
+    }
+    console.log(`[kie.ai Webhook] Assinatura HMAC verificada com sucesso (taskId=${verification.taskId})`);
 
     const { code, msg, data } = req.body || {};
     const callbackData = data && typeof data === "object" ? data : {};
@@ -989,6 +1014,9 @@ async function handleKieWebhook(req: any, res: any): Promise<void> {
     res.status(200).json({ status: "received", taskId });
   } catch (error: any) {
     console.error("[kie.ai Webhook] Erro ao processar webhook:", error);
+    // Libera a marca de replay: o kie.ai pode reenviar este callback e ele
+    // precisa ser processado (a recusa seria só para entregas já concluídas).
+    releaseKieWebhookReplay(req.headers, req.body);
     res.status(500).json({ error: error.message || "Internal webhook processing error" });
   }
 }
