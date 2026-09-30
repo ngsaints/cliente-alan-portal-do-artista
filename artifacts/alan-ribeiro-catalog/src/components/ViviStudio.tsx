@@ -173,6 +173,9 @@ export function ViviStudio({
   const [audioDuration, setAudioDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lyricsTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  /** Intervalo do polling de status — um só por vez (evita loops duplicados). */
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollFailuresRef = useRef(0);
 
   // Mentor Chat State
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
@@ -523,6 +526,15 @@ export function ViviStudio({
         if (dData.length > 0 && !currentDemo) {
           setCurrentDemo(dData[0]);
         }
+
+        // Retoma o polling de uma geração que ficou em andamento (reload/reabertura do Estúdio)
+        const inFlight = dData.find(
+          (d: DemoItem) => d.status === "processing" || d.status === "starting"
+        );
+        if (inFlight && !pollTimerRef.current) {
+          setCurrentDemo(inFlight);
+          pollDemoStatus(inFlight.id);
+        }
       }
     } catch (err) {
       console.error("Erro ao carregar dados do Estúdio Vivi:", err);
@@ -532,6 +544,13 @@ export function ViviStudio({
   useEffect(() => {
     loadData();
   }, [artist?.id]);
+
+  // Ao desmontar, encerra o polling em andamento
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
+  }, []);
 
   // Tag Injection
   const injectTag = (tag: string) => {
@@ -640,7 +659,7 @@ export function ViviStudio({
     }
 
     setIsGenerating(true);
-    setGenerationStep("Iniciando sintetizador vocal e arranjos no MiniMax Music 2.6...");
+    setGenerationStep("Iniciando a geração do seu hit (voz, instrumentos e arranjos)...");
 
     try {
       const res = await fetch("/api/ai/music/generate", {
@@ -676,8 +695,18 @@ export function ViviStudio({
     } catch (error: any) {
       setIsGenerating(false);
       setGenerationStep("");
-      const gatewayDown =
-        error?.code === "REPLICATE_NO_CREDIT" || error?.code === "REPLICATE_NOT_CONFIGURED";
+      // Códigos de infraestrutura (chave/saldo/provedor fora) — não é culpa do artista.
+      const gatewayDown = [
+        "REPLICATE_NO_CREDIT",
+        "REPLICATE_NOT_CONFIGURED",
+        "REPLICATE_DISABLED",
+        "KIE_NO_CREDIT",
+        "KIE_NOT_CONFIGURED",
+        "KIE_NOT_AUTHORIZED",
+        "KIE_UNAVAILABLE",
+        "OPENROUTER_NO_CREDIT",
+        "OPENROUTER_NOT_CONFIGURED",
+      ].includes(error?.code);
       toast({
         title: gatewayDown ? "Geração temporariamente indisponível" : "Não foi possível gerar o hit",
         description: error.message || "Verifique sua conexão ou tente novamente.",
@@ -687,7 +716,16 @@ export function ViviStudio({
   };
 
   // Polling helper
+  const stopPolling = () => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+    pollFailuresRef.current = 0;
+  };
+
   const pollDemoStatus = async (demoId: number) => {
+    stopPolling();
     const steps = [
       "Interpretando letra e harmonia musical...",
       "Gravando instrumentos e arranjos (bateria, violão, sanfona)...",
@@ -696,41 +734,85 @@ export function ViviStudio({
     ];
 
     let stepIndex = 0;
-    const interval = setInterval(async () => {
+    setIsGenerating(true);
+    setGenerationStep(steps[0]);
+
+    pollTimerRef.current = setInterval(async () => {
       stepIndex = (stepIndex + 1) % steps.length;
       setGenerationStep(steps[stepIndex]);
 
       try {
         const res = await fetch(`/api/ai/music/status/${demoId}`);
-        if (res.ok) {
-          const updated: DemoItem = await res.json();
-          setCurrentDemo(updated);
-          setDemos((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
-
-          if (updated.status === "completed" && updated.audioUrl) {
-            clearInterval(interval);
-            setIsGenerating(false);
-            setGenerationStep("");
-            loadData();
-            if (onRefreshArtist) onRefreshArtist();
-
-            toast({
-              title: "Seu hit está pronto!",
-              description: `Ouça agora "${updated.titulo}" e salve direto no seu catálogo musical.`,
-            });
-          } else if (updated.status === "failed") {
-            clearInterval(interval);
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => null);
+          // Problema de infraestrutura (chave/saldo/provedor fora): tentar de novo não resolve.
+          const fatal = [
+            "REPLICATE_NO_CREDIT",
+            "REPLICATE_NOT_CONFIGURED",
+            "REPLICATE_DISABLED",
+            "KIE_NO_CREDIT",
+            "KIE_NOT_CONFIGURED",
+            "KIE_NOT_AUTHORIZED",
+            "KIE_UNAVAILABLE",
+            "OPENROUTER_NO_CREDIT",
+            "OPENROUTER_NOT_CONFIGURED",
+          ].includes(errBody?.code);
+          if (fatal) {
+            stopPolling();
             setIsGenerating(false);
             setGenerationStep("");
             toast({
-              title: "A geração falhou",
-              description: updated.error || "O motor de IA não pôde processar este áudio.",
+              title: "Geração temporariamente indisponível",
+              description: errBody?.error || "O provedor de música está fora. Tente novamente em alguns minutos.",
               variant: "destructive",
             });
+            return;
           }
+          throw new Error(`HTTP ${res.status}`);
+        }
+        pollFailuresRef.current = 0;
+
+        const updated: DemoItem = await res.json();
+        setCurrentDemo(updated);
+        setDemos((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+
+        if (updated.status === "completed" && updated.audioUrl) {
+          stopPolling();
+          setIsGenerating(false);
+          setGenerationStep("");
+          loadData();
+          if (onRefreshArtist) onRefreshArtist();
+
+          toast({
+            title: "Seu hit está pronto!",
+            description: `Ouça agora "${updated.titulo}" e salve direto no seu catálogo musical.`,
+          });
+        } else if (updated.status === "failed") {
+          stopPolling();
+          setIsGenerating(false);
+          setGenerationStep("");
+          toast({
+            title: "A geração falhou",
+            description: updated.error || "O motor de IA não pôde processar este áudio.",
+            variant: "destructive",
+          });
         }
       } catch (err) {
+        pollFailuresRef.current += 1;
         console.error("Erro no polling da demo:", err);
+        // 15 falhas seguidas (~1 min): para o loop em vez de martelar a API.
+        // A música continua no servidor — ao recarregar a página o polling volta.
+        if (pollFailuresRef.current >= 15) {
+          stopPolling();
+          setIsGenerating(false);
+          setGenerationStep("");
+          toast({
+            title: "Não conseguimos acompanhar a geração",
+            description:
+              "Sua música segue em processamento no servidor. Recarregue a página em alguns minutos para ver o resultado.",
+            variant: "destructive",
+          });
+        }
       }
     }, 4000);
   };

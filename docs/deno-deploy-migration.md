@@ -114,6 +114,7 @@ Ao criar o projeto no painel do **Deno Deploy** (Settings → Environment Variab
 ### Gateways de IA (Vivi Studio)
 - `OPENROUTER_API_KEY`: Chave de API do OpenRouter (para texto e refino de letras)
 - `REPLICATE_API_TOKEN`: Token de autenticação da Replicate (para MiniMax Music 2.6)
+- `KIE_API_KEY`: Chave de API do kie.ai (Suno) — alternativa ao campo do painel (`kie_api_key`)
 
 ### Pagamentos Asaas
 - `ASAAS_API_KEY`: Chave de API do Asaas

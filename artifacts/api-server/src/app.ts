@@ -60,6 +60,7 @@ app.use(
 
 import sitemapRouter from "./routes/sitemap";
 import { uploadsHandler } from "./routes/uploadsHandler";
+import { ensureAdminStudioArtist } from "./lib/admin-studio";
 
 // Serve local uploads with multi-folder search & image fallback for missing files
 app.use("/api/uploads", uploadsHandler);
@@ -69,6 +70,9 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Serve root sitemap.xml and robots.txt
 app.use(sitemapRouter);
+
+// Admin no painel ganha um artista de teste para usar o Estúdio Vivi como o usuário final
+app.use("/api", ensureAdminStudioArtist);
 
 app.use("/api", router);
 

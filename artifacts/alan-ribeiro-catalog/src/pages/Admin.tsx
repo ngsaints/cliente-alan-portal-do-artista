@@ -1,5 +1,7 @@
 import { EngagementPanel } from "@/components/EngagementPanel";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { ViviStudio } from "@/components/ViviStudio";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { formatImageUrl } from "@/lib/utils";
@@ -2683,9 +2685,11 @@ const SETTING_LABELS: Record<string, string> = {
   openrouter_enabled: "Ativar Gateway OpenRouter",
   openrouter_api_key: "Chave de API OpenRouter",
   openrouter_model: "Modelo do OpenRouter",
-  replicate_enabled: "Ativar Gateway Replicate (MiniMax)",
+  replicate_enabled: "Ativar Replicate (backup do gerador de hits)",
   replicate_api_key: "Token de Acesso Replicate",
-  replicate_music_model: "Modelo Vocal & Instrumental",
+  replicate_music_model: "Modelo padrão do gerador de hits",
+  kie_enabled: "Ativar kie.ai / Suno (gerador de hits)",
+  kie_api_key: "Chave de API kie.ai (Suno)",
   image_ai_provider: "Provedor do Gerador de Capas e Fotos",
   image_ai_model: "Modelo do Gerador de Capas e Fotos",
   openai_enabled: "Ativar OpenAI Legado",
@@ -2806,11 +2810,13 @@ function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "openrouter_fallbacks") return "Modelos alternativos que serão acionados em ordem caso o principal esteja indisponível ou sofra rate-limit.";
   if (key === "vivi_monthly_limit") return "Teto mensal de mensagens da Vivi para artistas cujo plano não define cota. 0 = ilimitado.";
   if (key === "replicate_api_key") return "Token de API obtido em replicate.com/account/api-tokens.";
-  if (key === "replicate_music_model") return "Identificador do modelo na Replicate (padrão: minimax/music-2.6).";
+  if (key === "replicate_music_model") return "Modelo usado para gerar as músicas cantadas. Busque digitando no campo — o provedor (Replicate, OpenRouter ou kie.ai) é definido sozinho pelo modelo escolhido.";
+  if (key === "kie_api_key") return "Chave obtida em kie.ai/api-key. Habilita os modelos Suno (V6, V6 Mini e V6 Wild) no gerador de hits.";
+  if (key === "kie_enabled") return "Deixe ligado para permitir gerar hits pelo kie.ai (Suno). Se a chave faltar ou o saldo acabar, o sistema cai no Replicate sozinho.";
   if (key === "image_ai_provider") return "Selecione se o gerador de imagem usará OpenRouter (recomendado) ou Replicate.";
   if (key === "image_ai_model") return "Slug do modelo de geração de imagem (ex: black-forest-labs/flux-1-schnell, bytedance-seed/seedream-4.5 ou stabilityai/stable-diffusion-xl).";
   if (key === "openrouter_enabled") return "Habilita a IA para chat, análise e composição com a Vivi.";
-  if (key === "replicate_enabled") return "Habilita a geração de músicas cantadas completas no Estúdio Vivi.";
+  if (key === "replicate_enabled") return "Mantém o Replicate disponível como provedor de backup quando o modelo padrão é do OpenRouter ou do kie.ai (e para a verificação de integração).";
   if (key === "portal_url") return "URL usada em links de retorno e compartilhamentos (ex: https://portaldoartista.com).";
   if (key === "artist_vip_enabled") return "Desligue para esconder o checkbox VIP do painel do artista. Músicas já marcadas VIP passam a aparecer normalmente no site.";
   if (key === "artist_reservado_enabled") return "Desligue para esconder o botão Reservado do painel. Músicas reservadas passam a aparecer como disponíveis.";
@@ -3251,6 +3257,221 @@ function OpenRouterModelSelector({
   );
 }
 
+type MusicModelOption = {
+  id: string;
+  provider?: string;
+  name?: string;
+  description?: string;
+  songCostBrl?: number | null;
+  price?: { usd: number | null; unitLabel: string | null; medianUsd: number | null };
+};
+
+/**
+ * Quem gera a música para um id de modelo. Espelha `normalizeMusicModelId` do backend
+ * para os ids antigos (gravados sem prefixo, ex.: "google/lyria-3-pro") caírem na aba certa.
+ */
+function providerOfModelId(id: string | null | undefined): string {
+  const value = (id || "").trim();
+  if (value.startsWith("kie:")) return "kie";
+  if (value.startsWith("openrouter:")) return "openrouter";
+  if (/^google\/lyria/i.test(value)) return "openrouter";
+  if (/^V\d(_[A-Za-z0-9]+)?$/.test(value)) return "kie";
+  return "replicate";
+}
+
+function ProviderBadge({ provider }: { provider?: string | null }) {
+  const isOpenRouter = provider === "openrouter";
+  const isKie = provider === "kie";
+  const label = isKie ? "kie.ai" : isOpenRouter ? "OpenRouter" : "Replicate";
+  const emoji = isKie ? "🟧" : isOpenRouter ? "🟪" : "🟦";
+  const tones = isKie
+    ? "bg-amber-500/15 border-amber-400/40 text-amber-300"
+    : isOpenRouter
+      ? "bg-purple-500/15 border-purple-400/40 text-purple-300"
+      : "bg-sky-500/15 border-sky-400/40 text-sky-300";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded-md border shrink-0 ${tones}`}
+    >
+      <span aria-hidden="true">{emoji}</span>
+      {label}
+    </span>
+  );
+}
+
+function MusicModelCombobox({
+  value,
+  options,
+  loading,
+  disabled,
+  allowDefault,
+  defaultLabel,
+  defaultModel,
+  placeholder,
+  onSearch,
+  onSelect,
+}: {
+  value: string;
+  options: MusicModelOption[];
+  loading?: boolean;
+  disabled?: boolean;
+  allowDefault?: boolean;
+  defaultLabel?: string;
+  /** Modelo usado quando o campo está vazio — só para mostrar o provedor certo. */
+  defaultModel?: string;
+  placeholder?: string;
+  onSearch: (query: string) => void;
+  onSelect: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef(onSearch);
+  searchRef.current = onSearch;
+
+  // Busca com debounce (400ms) enquanto o campo está aberto
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => searchRef.current(query.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [query, open]);
+
+  // Fecha o dropdown ao clicar fora
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  const selected = options.find((o) => o.id === value) || null;
+  const providerOf = (o: MusicModelOption) => o.provider || providerOfModelId(o.id);
+  const groups = [
+    { key: "replicate", label: "Replicate", list: options.filter((o) => providerOf(o) === "replicate") },
+    { key: "openrouter", label: "OpenRouter", list: options.filter((o) => providerOf(o) === "openrouter") },
+    { key: "kie", label: "kie.ai", list: options.filter((o) => providerOf(o) === "kie") },
+  ];
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          setOpen((v) => !v);
+          setQuery("");
+        }}
+        className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 bg-background/60 border border-border/80 rounded-xl text-left text-sm hover:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50 cursor-pointer"
+      >
+        <span className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+          {value ? (
+            <>
+              <span className="truncate font-mono text-xs sm:text-sm font-semibold">{value}</span>
+              <ProviderBadge provider={selected?.provider ?? providerOfModelId(value)} />
+              {typeof selected?.songCostBrl === "number" && (
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  ≈ R$ {selected.songCostBrl}/música
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="truncate text-muted-foreground text-xs sm:text-sm">
+                {defaultLabel || "Modelo padrão"}
+              </span>
+              <ProviderBadge provider={providerOfModelId(defaultModel || value)} />
+            </>
+          )}
+        </span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-40 mt-1 left-0 right-0 rounded-xl border border-border/80 bg-card shadow-2xl overflow-hidden">
+          <div className="p-2 border-b border-border/60">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={placeholder || "Digite para buscar o modelo..."}
+                className="w-full bg-background/60 border border-border/70 rounded-lg pl-8 pr-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground/60"
+              />
+            </div>
+          </div>
+
+          <div className="max-h-64 overflow-y-auto p-1.5">
+            {allowDefault && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSelect("");
+                  setOpen(false);
+                }}
+                className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left hover:bg-accent transition-all"
+              >
+                <span className="text-xs text-muted-foreground">{defaultLabel || "Modelo padrão"}</span>
+                {!value && <CheckCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
+              </button>
+            )}
+
+            {loading && options.length === 0 && (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-2 px-2.5 py-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Buscando modelos...
+              </p>
+            )}
+
+            {groups.map((group) =>
+              group.list.length > 0 ? (
+                <div key={group.key} className="mb-1">
+                  <p className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground">
+                    {group.key === "openrouter" ? "🟪" : group.key === "kie" ? "🟧" : "🟦"} {group.label}
+                  </p>
+                  {group.list.map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      title={o.description}
+                      onClick={() => {
+                        onSelect(o.id);
+                        setOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left hover:bg-accent transition-all"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-mono font-semibold text-foreground">{o.id}</span>
+                        <span className="block truncate text-[10px] text-muted-foreground">{o.description || o.name || ""}</span>
+                      </span>
+                      <span className="text-[10px] text-muted-foreground shrink-0 text-right leading-tight">
+                        {typeof o.songCostBrl === "number" ? <>R$ {o.songCostBrl}<br />/música</> : "—"}
+                      </span>
+                      {o.id === value && <CheckCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              ) : null
+            )}
+
+            {!loading && options.length === 0 && (
+              <p className="text-[11px] text-muted-foreground px-2.5 py-2">
+                Nenhum modelo encontrado{query ? ` para "${query}"` : ""}.
+              </p>
+            )}
+          </div>
+
+          <div className="border-t border-border/60 px-3 py-2 text-[10px] text-muted-foreground flex items-center justify-between gap-2">
+            <span>{loading ? "Buscando..." : `${options.length} modelo(s)`}</span>
+            <span>🟦 Replicate · 🟪 OpenRouter · 🟧 kie.ai</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCategory; onNavigate?: (tab: MainTab) => void }) {
   const [settings, setSettings] = useState<Setting[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -3276,25 +3497,15 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
     musicCreditsLimit: number;
     replicateModel: string | null;
   };
-  type MusicTestResult = {
-    ok: boolean;
-    model: string;
-    modelSource: string;
-    predictionId: string | null;
-    audioUrl: string | null;
-    durationMs: number | null;
-    error: string | null;
-    cost?: { songBrl: number | null; songUsd: number | null; usdBrl: number };
-  };
-
-  const [testingReplicate, setTestingReplicate] = useState<"integration" | "credit" | "music" | null>(null);
-  const [musicTest, setMusicTest] = useState<MusicTestResult | null>(null);
+  const [testingReplicate, setTestingReplicate] = useState<"integration" | null>(null);
   const [catalog, setCatalog] = useState<CatalogModel[] | null>(null);
+  const [catalogCache, setCatalogCache] = useState<Record<string, CatalogModel>>({});
   const [catalogRate, setCatalogRate] = useState<number | null>(null);
   const [catalogQuery, setCatalogQuery] = useState("music generation");
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [musicPlans, setMusicPlans] = useState<MusicPlanRow[]>([]);
   const [savingPlanId, setSavingPlanId] = useState<number | null>(null);
+  const [showStudio, setShowStudio] = useState(false);
   const [demoFiles, setDemoFiles] = useState<Record<string, File>>({});
   const [demoBannersList, setDemoBannersList] = useState<{ id: string; url?: string; file?: File; filePreview?: string; mobileUrl?: string; mobileFile?: File; mobileFilePreview?: string; link: string }[]>([]);
   const { toast } = useToast();
@@ -3334,9 +3545,9 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       .finally(() => setLoading(false));
   };
 
-  // Catálogo de modelos de música + modelo usado por cada plano (aba IA)
-  const loadMusicStudio = (query?: string) => {
-    const q = (query ?? catalogQuery).trim() || "music generation";
+  // Busca de modelos de música (Replicate + OpenRouter) — alimenta o combobox com debounce
+  const searchMusicCatalog = (query: string) => {
+    const q = query || catalogQuery || "music generation";
     setCatalogLoading(true);
     fetch(`/api/admin/replicate/catalog?q=${encodeURIComponent(q)}`, { credentials: "include" })
       .then((r) => r.json().then((d: any) => ({ ok: r.ok, d })))
@@ -3344,11 +3555,31 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
         if (!ok) throw new Error(d?.error || "Falha ao buscar");
         if (Array.isArray(d?.models)) {
           setCatalog(d.models);
-          setCatalogRate(typeof d.usdBrl === "number" ? d.usdBrl : null);
+          if (typeof d.usdBrl === "number") setCatalogRate(d.usdBrl);
+          setCatalogCache((prev) => {
+            const next = { ...prev };
+            d.models.forEach((m: CatalogModel) => {
+              next[m.id] = m;
+            });
+            return next;
+          });
         }
       })
       .catch(() => toast({ title: "Não consegui buscar os modelos de música", variant: "destructive" }))
       .finally(() => setCatalogLoading(false));
+  };
+
+  // Combina os resultados da última busca com o cache (evita perder o custo de um modelo já visto)
+  const musicModelOptions = (selectedId?: string | null): CatalogModel[] => {
+    const base = catalog ?? [];
+    const cached = selectedId ? catalogCache[selectedId] : null;
+    if (cached && !base.some((m) => m.id === cached.id)) return [cached, ...base];
+    return base;
+  };
+
+  // Catálogo de modelos de música + modelo usado por cada plano (aba IA)
+  const loadMusicStudio = (query?: string) => {
+    searchMusicCatalog(query ?? catalogQuery);
 
     fetch("/api/admin/plans", { credentials: "include" })
       .then((r) => r.json())
@@ -3374,6 +3605,16 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
     if (category === "ai") loadMusicStudio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
+
+  // Estúdio aberto em tela cheia: trava o scroll da página do painel por baixo
+  useEffect(() => {
+    if (!showStudio) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [showStudio]);
 
   const savePlanModel = async (planId: number, model: string) => {
     setSavingPlanId(planId);
@@ -3401,9 +3642,9 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
   // Custo estimado de 1 música do modelo usado pelo plano (ou do modelo global)
   const globalMusicModel = values["replicate_music_model"] || "minimax/music-2.6";
   const planSongCostBrl = (plan: MusicPlanRow): number | null => {
-    if (!catalog) return null;
-    const model = catalog.find((m) => m.id === (plan.replicateModel || globalMusicModel));
-    return model ? model.songCostBrl : null;
+    const modelId = plan.replicateModel || globalMusicModel;
+    const model = catalogCache[modelId] ?? catalog?.find((m) => m.id === modelId);
+    return model ? (model.songCostBrl ?? null) : null;
   };
 
   const handleSave = async () => {
@@ -3741,6 +3982,40 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
       );
     }
 
+    if (s.key === "replicate_music_model") {
+      return (
+        <div key={s.key} className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <label className="text-xs sm:text-sm font-bold text-foreground">
+              {getSettingLabel(s.key)}
+            </label>
+            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 flex items-center gap-1">
+              <Music className="w-2.5 h-2.5" /> 🟦 Replicate + 🟪 OpenRouter + 🟧 kie.ai
+            </span>
+          </div>
+
+          {getSettingDescription(s.key, s.description) && (
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              {getSettingDescription(s.key, s.description)}
+            </p>
+          )}
+
+          <MusicModelCombobox
+            value={values[s.key] || ""}
+            options={musicModelOptions(values[s.key] || "")}
+            loading={catalogLoading}
+            disabled={saving}
+            allowDefault
+            defaultLabel={`Modelo padrão (${globalMusicModel})`}
+            defaultModel={globalMusicModel}
+            placeholder="busque: lyria, music, sertanejo..."
+            onSearch={searchMusicCatalog}
+            onSelect={(id) => setValues({ ...values, [s.key]: id })}
+          />
+        </div>
+      );
+    }
+
     if (s.key === "openrouter_model") {
       return (
         <div key={s.key} className="space-y-1.5">
@@ -4006,68 +4281,34 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
     );
   };
 
-  // Teste da integração Replicate: "integration" = grátis, "credit"/"music" = pagos
-  const handleTestReplicate = async (mode: "integration" | "credit" | "music" = "integration", plano?: string) => {
-    if (mode === "credit") {
-      const confirmed = window.confirm(
-        "Confirmar? Isso dispara uma predição barata de verdade na Replicate (flux-schnell) e consome alguns centavos do saldo da conta."
-      );
-      if (!confirmed) return;
-    }
-    if (mode === "music") {
-      const confirmText = plano
-        ? `Confirmar? Isso gera uma música de verdade com o modelo do plano ${plano} (custa por volta de R$ 0,80) e leva ~1 a 2 minutos.`
-        : "Confirmar? Isso gera uma música de verdade na Replicate (custa por volta de R$ 0,80) e leva ~1 a 2 minutos.";
-      if (!window.confirm(confirmText)) return;
-      setMusicTest(null);
-    }
-
-    setTestingReplicate(mode);
+  // Verificação grátis da integração: confere chave, conta e modelo sem gerar nada
+  const handleTestReplicate = async () => {
+    setTestingReplicate("integration");
     try {
       const res = await fetch("/api/admin/replicate/test", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, ...(plano ? { plano } : {}) }),
+        body: JSON.stringify({ mode: "integration" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Falha ao verificar");
 
-      if (mode === "music") {
-        setMusicTest(data);
-        if (data.ok) {
-          toast({
-            title: "Música gerada com sucesso",
-            description: `Modelo ${data.model} · ${(data.durationMs / 1000).toFixed(0)}s · ~R$ ${data.cost?.songBrl ?? "?"} por música.`,
-          });
-        } else {
-          toast({ title: "A geração falhou", description: data.error || "Tente novamente.", variant: "destructive" });
-        }
-      } else if (mode === "credit") {
-        if (data.ok) {
-          toast({ title: "Saldo confirmado no Replicate", description: `${data.note} predição ${data.predictionId}` });
-        } else {
-          toast({
-            title: "Sem saldo no Replicate",
-            description: data.error || "Recarregue em replicate.com/account/billing",
-            variant: "destructive",
-          });
-        }
-      } else if (data.ok) {
+      if (data.ok) {
         toast({
-          title: "Integração com o Replicate OK",
+          title: "Integração OK",
           description: `Conta ${data.account} · chave ${data.keyHint} · modelo ${data.model} acessível.`,
         });
       } else {
         toast({
-          title: "Integração com o Replicate com problema",
+          title: "Integração com problema",
           description: (data.errors || []).join(" "),
           variant: "destructive",
         });
       }
     } catch (error: any) {
       toast({
-        title: mode === "credit" ? "Erro ao confirmar saldo" : "Erro ao verificar a integração",
+        title: "Erro ao verificar a integração",
         description: error.message || "Tente novamente.",
         variant: "destructive",
       });
@@ -4087,10 +4328,10 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           keys: ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks", "vivi_monthly_limit"],
         },
         {
-          title: "Gateway Replicate (MiniMax Music 2.6 - Geração de Demos)",
+          title: "Gerador de Hits (Replicate + OpenRouter + kie.ai)",
           icon: Music,
-          description: "Geração de áudios cantados de alta fidelidade com voz humana e instrumentos a partir da letra.",
-          keys: ["replicate_enabled", "replicate_api_key", "replicate_music_model"],
+          description: "Músicas cantadas de alta fidelidade (voz humana + instrumentos) a partir da letra. O campo de modelo busca ao digitar e já mostra de qual provedor cada um é (🟦 Replicate, 🟪 OpenRouter, 🟧 kie.ai).",
+          keys: ["replicate_enabled", "replicate_api_key", "replicate_music_model", "kie_enabled", "kie_api_key"],
           action: "test-replicate",
         },
         {
@@ -4268,7 +4509,23 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => handleTestReplicate("integration")}
+                        onClick={() => setShowStudio(true)}
+                        disabled={testingReplicate !== null}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 text-black font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-amber-500/25 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Abrir o Estúdio Vivi
+                      </button>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Abre <strong>exatamente a mesma tela que o artista usa</strong> (letra, Vivi, geração de hit, capas) dentro do painel.
+                        Usa o plano premium de teste — as músicas geradas aqui ficam só no admin.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleTestReplicate()}
                         disabled={testingReplicate !== null}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-primary/15 hover:bg-primary/25 border border-primary/35 text-primary font-bold text-xs sm:text-sm rounded-xl transition-all disabled:opacity-50 cursor-pointer shrink-0"
                       >
@@ -4276,70 +4533,10 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                         {testingReplicate === "integration" ? "Verificando..." : "Verificar integração"}
                       </button>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Grátis: confere a chave, a conta e o modelo no Replicate <strong>sem gerar nada</strong>.
+                        Grátis: confere a chave, o saldo e o modelo (Replicate, OpenRouter ou kie.ai) <strong>sem gerar nada</strong>.
                       </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleTestReplicate("credit")}
-                        disabled={testingReplicate !== null}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-500 font-bold text-xs sm:text-sm rounded-xl transition-all disabled:opacity-50 cursor-pointer shrink-0"
-                      >
-                        {testingReplicate === "credit" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                        {testingReplicate === "credit" ? "Testando saldo..." : "Confirmar saldo (pago)"}
-                      </button>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Dispara uma predição barata de verdade e consome <strong>alguns centavos</strong>. Sucesso = há saldo; HTTP 402 = sem saldo.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleTestReplicate("music")}
-                        disabled={testingReplicate !== null}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 font-bold text-xs sm:text-sm rounded-xl transition-all disabled:opacity-50 cursor-pointer shrink-0"
-                      >
-                        {testingReplicate === "music" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                        {testingReplicate === "music" ? "Gerando música... (1 a 2 min)" : "Testar geração de música (pago)"}
-                      </button>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Mesmo caminho do Vivi Studio: gera um hit de verdade, toca aqui e mostra o custo (~R$ 0,80 por música).
-                      </p>
-                    </div>
-
-                    {testingReplicate === "music" && (
-                      <p className="text-xs text-amber-400 flex items-center gap-2">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> A Replicate está gerando... isso pode levar até 2 minutos, não feche a página.
-                      </p>
-                    )}
-
-                    {musicTest && !musicTest.ok && (
-                      <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 space-y-1">
-                        <p className="text-sm font-bold text-red-400 flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" /> A geração de teste falhou
-                        </p>
-                        <p className="text-xs text-muted-foreground">{musicTest.error}</p>
-                      </div>
-                    )}
-
-                    {musicTest && musicTest.ok && (
-                      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-3">
-                        <p className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4" /> Música pronta — modelo {musicTest.model}
-                          {musicTest.modelSource === "plano" && (
-                            <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30">do plano</span>
-                          )}
-                        </p>
-                        {musicTest.audioUrl && <audio controls src={musicTest.audioUrl} className="w-full" />}
-                        <p className="text-xs text-muted-foreground">
-                          {musicTest.durationMs ? `${(musicTest.durationMs / 1000).toFixed(0)}s · ` : ""}
-                          Custo estimado: ~R$ {musicTest.cost?.songBrl ?? "?"} por música
-                        </p>
-                      </div>
-                    )}
 
                     {/* Modelo por plano + gasto x ganho */}
                     <div className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-3">
@@ -4374,23 +4571,22 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                                     R$ {preco.toFixed(2)}/mês · {quota} música(s)/mês
                                   </span>
                                 </div>
-                                <select
+                                <MusicModelCombobox
                                   value={plan.replicateModel || ""}
+                                  options={musicModelOptions(plan.replicateModel || "")}
+                                  loading={catalogLoading}
                                   disabled={savingPlanId === plan.id}
-                                  onChange={(e) => savePlanModel(plan.id, e.target.value)}
-                                  className="w-full bg-input border border-border rounded-lg px-3 py-2 text-foreground text-xs cursor-pointer disabled:opacity-50"
-                                >
-                                  <option value="">Modelo padrão ({globalMusicModel})</option>
-                                  {(catalog || []).map((m) => (
-                                    <option key={m.id} value={m.id}>
-                                      {m.id} — R$ {m.songCostBrl ?? "?"}/música
-                                    </option>
-                                  ))}
-                                </select>
+                                  allowDefault
+                                  defaultLabel={`Modelo padrão (${globalMusicModel})`}
+                                  defaultModel={globalMusicModel}
+                                  placeholder="busque: lyria, music, sertanejo..."
+                                  onSearch={searchMusicCatalog}
+                                  onSelect={(id) => savePlanModel(plan.id, id)}
+                                />
                               </div>
                               <div className="text-xs leading-relaxed space-y-1">
                                 {cost1 === null ? (
-                                  <p className="text-muted-foreground">Custo por música: — (busque os modelos abaixo)</p>
+                                  <p className="text-muted-foreground">Custo por música: — (busque o modelo acima)</p>
                                 ) : (
                                   <>
                                     <p className="text-muted-foreground">
@@ -4413,104 +4609,6 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                       </div>
                     </div>
 
-                    {/* Catálogo de modelos de música */}
-                    <div className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div>
-                          <h4 className="text-sm font-bold flex items-center gap-2">
-                            <Search className="w-4 h-4 text-primary" /> Catálogo de modelos de música
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            Busca direto no Replicate, com custo por música em reais. Clique em "usar no plano" para aplicar.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => loadMusicStudio()}
-                          disabled={catalogLoading}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/15 hover:bg-primary/25 border border-primary/35 text-primary font-bold text-xs rounded-lg transition-all disabled:opacity-50 cursor-pointer"
-                        >
-                          {catalogLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                          Atualizar
-                        </button>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <input
-                          value={catalogQuery}
-                          onChange={(e) => setCatalogQuery(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") loadMusicStudio();
-                          }}
-                          placeholder="ex.: music generation"
-                          className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-foreground text-xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => loadMusicStudio()}
-                          disabled={catalogLoading}
-                          className="px-3 py-2 bg-card border border-border rounded-lg text-xs font-bold hover:bg-accent transition-all disabled:opacity-50 cursor-pointer"
-                        >
-                          Buscar
-                        </button>
-                      </div>
-
-                      {!catalog && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-2">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando catálogo...
-                        </p>
-                      )}
-                      {catalog && catalog.length === 0 && (
-                        <p className="text-xs text-muted-foreground">Nenhum modelo encontrado. Tente outra busca.</p>
-                      )}
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {(catalog || []).map((m) => (
-                          <div key={m.id} className="rounded-lg border border-border/50 bg-card/40 p-3 space-y-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold truncate">{m.id}</p>
-                                <p className="text-[11px] text-muted-foreground line-clamp-2">{m.description || "Sem descrição."}</p>
-                              </div>
-                              <a
-                                href={m.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary text-[11px] inline-flex items-center gap-1 shrink-0 hover:underline"
-                              >
-                                site <ExternalLink className="w-3 h-3" />
-                              </a>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs">
-                                ≈ <strong className="text-foreground">R$ {m.songCostBrl ?? "—"}</strong> por música
-                              </span>
-                              <span className="text-[10px] text-muted-foreground">{m.price.unitLabel ?? ""}</span>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {musicPlans.map((p) => {
-                                const active = p.replicateModel === m.id;
-                                return (
-                                  <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => savePlanModel(p.id, active ? "" : m.id)}
-                                    disabled={savingPlanId === p.id}
-                                    className={`text-[10px] px-2 py-1 rounded-md border font-bold transition-all disabled:opacity-50 cursor-pointer ${
-                                      active
-                                        ? "bg-primary text-black border-primary"
-                                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary/50"
-                                    }`}
-                                  >
-                                    {active ? `✓ ${p.label}` : `usar no ${p.label}`}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
@@ -4577,6 +4675,32 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           </button>
         </div>
       </div>
+
+      {/* Estúdio Vivi em tela cheia — mesma interface que o artista vê */}
+      {showStudio &&
+        createPortal(
+          <div className="fixed inset-0 z-[60] overflow-y-auto bg-background">
+            <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-bold truncate">Estúdio Vivi — modo administrador</p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  Sessão do artista de teste "Studio de Testes (Admin)" · plano premium · fora da listagem pública
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStudio(false)}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl text-xs font-bold hover:bg-accent transition-all cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" /> Fechar
+              </button>
+            </div>
+            <div className="mx-auto max-w-5xl px-3 sm:px-6 py-6 pb-16">
+              <ViviStudio artist={{ id: 0, name: "Admin" }} />
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

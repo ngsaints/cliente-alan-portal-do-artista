@@ -1,13 +1,14 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import { db, artistsTable, plansTable, subscriptionsTable, couponsTable, appSettingsTable } from "@workspace/db";
-import { eq, sql, and, inArray } from "drizzle-orm";
+import { eq, sql, and, inArray, ne } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
 import sharp from "sharp";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getEmailConfig, getPortalUrl } from "../lib/email.js";
+import { ADMIN_STUDIO_EMAIL } from "../lib/admin-studio.js";
 import { findOrCreateCustomer, createSubscription, getAsaasCredentials, getSubscriptionPayments, getPaymentPixQrCode } from "../lib/asaas-client.js";
 import { callOpenRouter, VIVI_FREE_MODEL, VIVI_FREE_FALLBACKS } from "../lib/openrouter.js";
 
@@ -725,7 +726,8 @@ const getPublicArtists = async (req: any, res: any): Promise<void> => {
         musicaCount: artistsTable.musicaCount,
       })
       .from(artistsTable)
-      .where(eq(artistsTable.planoAtivo, true));
+      // planoAtivo=false já esconde o artista de teste do admin da listagem pública
+      .where(and(eq(artistsTable.planoAtivo, true), ne(artistsTable.email, ADMIN_STUDIO_EMAIL)));
 
     // Normalize capaUrl for every artist
     artists = artists.map(a => ({

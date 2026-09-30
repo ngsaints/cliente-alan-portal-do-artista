@@ -11,11 +11,10 @@ import {
   getOpenRouterCredits,
 } from "../lib/openrouter.js";
 import { 
-  startMusicGeneration, 
-  getPredictionStatus, 
   downloadAndSaveGeneratedAudio, 
   getReplicateConfig 
 } from "../lib/replicate-music.js";
+import { startMusicGeneration, getMusicPredictionStatus } from "../lib/music-gateway.js";
 
 const router: IRouter = Router();
 
@@ -80,6 +79,9 @@ router.get("/ai/config/status", async (_req, res): Promise<void> => {
         configured: !!replicate.apiKey,
         model: replicate.model,
         enabled: replicate.enabled,
+        // Provedor deduzido do modelo escolhido: replicate | openrouter | kie
+        provider: replicate.provider,
+        modelSource: replicate.modelSource,
       },
       image: {
         provider: imageConfig.provider,
@@ -241,7 +243,7 @@ router.post("/ai/lyrics/compose", async (req, res): Promise<void> => {
   }
 });
 
-// POST /api/ai/music/generate - Dispara a geração de demo no Replicate MiniMax Music 2.6
+// POST /api/ai/music/generate - Dispara a geração de demo (Replicate, OpenRouter ou kie.ai)
 router.post("/ai/music/generate", async (req, res): Promise<void> => {
   try {
     const sessionArtistId = req.session.artistId;
@@ -295,9 +297,10 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
       return;
     }
 
-    // Iniciar predição no Replicate (cada plano pode usar o seu próprio modelo)
+    // Iniciar geração — o provedor sai do modelo escolhido (Replicate, OpenRouter ou kie.ai)
     const prediction = await startMusicGeneration(
       {
+        title: title.trim(),
         prompt: prompt || "",
         lyrics,
         genre: genre || "Sertanejo",
@@ -311,7 +314,7 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
     let initialAudioUrl: string | null = null;
     let initialStatus = prediction.status;
 
-    // Se o Replicate respondeu imediatamente com sucesso
+    // Se o provedor respondeu imediatamente com sucesso
     if (prediction.status === "succeeded" && prediction.output) {
       const remoteUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
       if (remoteUrl && typeof remoteUrl === "string") {
@@ -387,7 +390,7 @@ router.get("/ai/music/status/:id", async (req, res): Promise<void> => {
       return;
     }
 
-    // Estado terminal: não repollar o Replicate nem reprocessar o reembolso.
+    // Estado terminal: não repollar o provedor nem reprocessar o reembolso.
     if (demo.status === "failed") {
       res.json(demo);
       return;
@@ -398,15 +401,18 @@ router.get("/ai/music/status/:id", async (req, res): Promise<void> => {
       return;
     }
 
-    // Consultar status no Replicate
-    const statusResult = await getPredictionStatus(demo.predictionId);
+    // Consultar status da geração (kie: tarefa remota, orw: job em memória, senão Replicate)
+    const statusResult = await getMusicPredictionStatus(demo.predictionId);
 
     if (statusResult.status === "succeeded" && statusResult.output) {
       const remoteUrl = Array.isArray(statusResult.output) ? statusResult.output[0] : statusResult.output;
       let finalAudioUrl = demo.audioUrl;
 
       if (remoteUrl && typeof remoteUrl === "string") {
-        finalAudioUrl = await downloadAndSaveGeneratedAudio(remoteUrl, demo.titulo);
+        // OpenRouter já salvou o arquivo no job (R2/local); Replicate devolve URL remota.
+        finalAudioUrl = statusResult.alreadySaved
+          ? remoteUrl
+          : await downloadAndSaveGeneratedAudio(remoteUrl, demo.titulo);
       }
 
       const [updatedDemo] = await db
@@ -446,7 +452,14 @@ router.get("/ai/music/status/:id", async (req, res): Promise<void> => {
     });
   } catch (error: any) {
     console.error("Erro ao verificar status da demo:", error);
-    res.status(500).json({ error: error.message || "Erro ao verificar status" });
+    // Repassa o código do provedor (ex.: KIE_NO_CREDIT) para o Estúdio parar o polling
+    // em vez de ficar tentando contra um gateway que está fora.
+    const status = typeof error?.status === "number" ? error.status : 500;
+    const code = typeof error?.code === "string" ? error.code : undefined;
+    res.status(status).json({
+      error: error.message || "Erro ao verificar status",
+      ...(code ? { code } : {}),
+    });
   }
 });
 

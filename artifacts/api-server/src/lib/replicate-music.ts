@@ -6,6 +6,7 @@ import fs from "fs";
 import Replicate from "replicate";
 import { uploadToR2, generateR2Key, r2Enabled } from "./r2-storage.js";
 import { sendAdminAlert } from "./email.js";
+import { normalizeMusicModelId, resolveMusicProvider, stripProviderPrefix, type MusicProvider } from "./music-provider.js";
 
 /** Erro de infraestrutura do gateway (não é culpa do artista). */
 export class ReplicateServiceError extends Error {
@@ -26,6 +27,8 @@ export interface MiniMaxMusicInput {
   genre?: string;
   bpm?: number;
   mood?: string;
+  /** Título da música (usado como nome do arquivo de áudio salvo). */
+  title?: string;
 }
 
 export interface ReplicatePredictionResponse {
@@ -65,6 +68,8 @@ export async function getReplicateConfig(plano?: string): Promise<{
   model: string;
   enabled: boolean;
   modelSource: "plano" | "global";
+  /** Quem gera a música (deduzido do id do modelo escolhido). */
+  provider: MusicProvider;
 }> {
   const replicateKey = (await getSettingValue("replicate_api_key")) || process.env.REPLICATE_API_TOKEN || null;
   const globalModel = (await getSettingValue("replicate_music_model")) || "minimax/music-2.6";
@@ -72,13 +77,15 @@ export async function getReplicateConfig(plano?: string): Promise<{
 
   // Plano pode mandar no próprio modelo (ex.: start = modelo barato, premium = melhor)
   const planModel = await getPlanMusicModel(plano);
-  const model = planModel || globalModel;
+  // Normaliza ids antigos gravados sem prefixo (ex.: "google/lyria-3-pro")
+  const model = normalizeMusicModelId(planModel || globalModel);
 
   return {
     apiKey: replicateKey,
     model,
     enabled: !!replicateKey && replicateEnabled,
     modelSource: planModel ? "plano" : "global",
+    provider: resolveMusicProvider(model),
   };
 }
 
@@ -86,6 +93,16 @@ function getReplicateClient(apiKey: string): Replicate {
   return new Replicate({
     auth: apiKey,
   });
+}
+
+/** GET simples com timeout e Bearer (usado na verificação do OpenRouter). */
+async function fetchWithTimeoutJson(url: string, apiKey: string): Promise<any> {
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
 // HTTP 402 = conta do Replicate sem saldo. Devolve mensagem útil pro artista.
@@ -243,13 +260,53 @@ export function buildMusicPrompt(input: MiniMaxMusicInput): string {
 }
 
 /**
+ * Prompt para modelos que só aceitam `prompt` (Lyria, schema {prompt, images, seed}).
+ * A letra entra junto da descrição, porque nesses modelos não existe campo `lyrics`.
+ */
+export function buildPromptOnlyInput(input: MiniMaxMusicInput): string {
+  const base = buildMusicPrompt(input);
+  const lyrics = (input.lyrics || "").trim();
+  if (!lyrics) return base;
+  return `${base}\n\nLetra da musica:\n${lyrics}`.slice(0, 4000);
+}
+
+/** Modelos do Replicate que não aceitam `lyrics` e recebem tudo pelo prompt. */
+const PROMPT_ONLY_RE = /lyria|musicgen|^google\//i;
+
+/**
+ * Payload de entrada por família de modelo.
+ * MiniMax (minimax/music-2.6) tem campos próprios (lyrics, bitrate, sample_rate...);
+ * Lyria e similares aceitam só `prompt` — mandar campos extras derruba a predição.
+ */
+export function buildReplicateModelInput(
+  bareModel: string,
+  input: MiniMaxMusicInput,
+  fullPrompt: string
+): Record<string, unknown> {
+  if (PROMPT_ONLY_RE.test(bareModel)) {
+    return { prompt: buildPromptOnlyInput(input) };
+  }
+  return {
+    prompt: fullPrompt,
+    lyrics: input.lyrics.trim() || "[Instrumental]",
+    bitrate: 256000,
+    sample_rate: 44100,
+    audio_format: "mp3",
+    is_instrumental: input.voice ? input.voice.toLowerCase().includes("instrumental") : false,
+    lyrics_optimizer: false,
+  };
+}
+
+/**
  * Inicia uma predição no Replicate para gerar música com o MiniMax Music 2.6
  */
 export async function startMusicGeneration(
   input: MiniMaxMusicInput,
-  opts: { plano?: string } = {}
+  opts: { plano?: string; modelOverride?: string } = {}
 ): Promise<ReplicatePredictionResponse> {
-  const config = await getReplicateConfig(opts.plano);
+  const base = await getReplicateConfig(opts.plano);
+  // Fallback do gateway: força um modelo Replicate quando o escolhido é do OpenRouter.
+  const config = opts.modelOverride ? { ...base, model: opts.modelOverride } : base;
   if (!config.apiKey) {
     console.error("[Replicate] Chave de API não configurada — defina replicate_api_key no Painel Administrativo.");
     void sendAdminAlert(
@@ -270,23 +327,25 @@ export async function startMusicGeneration(
     throw noCreditError();
   }
 
+  if (!config.enabled) {
+    console.error("[Replicate] Gateway desativado no painel (replicate_enabled = false) — geração bloqueada.");
+    throw new ReplicateServiceError(
+      "A geração de hits está indisponível no momento. Tente novamente mais tarde.",
+      "REPLICATE_DISABLED",
+      503
+    );
+  }
   // Prompt musical refinado (ver buildMusicPrompt)
   const fullPrompt = buildMusicPrompt(input);
 
-  // Normalizar modelo (ex: minimax/music-2.6 ou minimax/music-01)
-  const modelName = (config.model.includes("/") ? config.model : `minimax/${config.model}`) as `${string}/${string}`;
+  // Normalizar modelo (ex: minimax/music-2.6 ou minimax/music-01) — remove o prefixo do provedor
+  const bareModel = stripProviderPrefix(config.model);
+  const modelName = (bareModel.includes("/") ? bareModel : `minimax/${bareModel}`) as `${string}/${string}`;
 
   const replicate = getReplicateClient(config.apiKey);
 
-  const modelInput = {
-    prompt: fullPrompt,
-    lyrics: input.lyrics.trim() || "[Instrumental]",
-    bitrate: 256000,
-    sample_rate: 44100,
-    audio_format: "mp3",
-    is_instrumental: input.voice ? input.voice.toLowerCase().includes("instrumental") : false,
-    lyrics_optimizer: false,
-  };
+  // Payload varia por família: MiniMax aceita lyrics/bitrate, Lyria só aceita prompt.
+  const modelInput = buildReplicateModelInput(bareModel, input, fullPrompt);
 
   try {
     const prediction = await replicate.predictions.create({
@@ -390,6 +449,9 @@ export async function testReplicateIntegration(): Promise<ReplicateIntegrationRe
     errors,
   };
 
+  // Obs.: quando o modelo escolhido é do OpenRouter ou do kie.ai, quem responde por aqui
+  // é o music-gateway (testOpenRouterIntegration / testKieIntegration) — este caminho é só Replicate.
+
   if (!config.apiKey) {
     errors.push("replicate_api_key não configurada no Painel Administrativo.");
     return report;
@@ -397,7 +459,6 @@ export async function testReplicateIntegration(): Promise<ReplicateIntegrationRe
   if (!config.enabled) {
     errors.push("Gateway Replicate desativado (replicate_enabled = false).");
   }
-
   const replicate = getReplicateClient(config.apiKey);
   try {
     const account: any = await (replicate as any).accounts.current();
@@ -417,6 +478,23 @@ export async function testReplicateIntegration(): Promise<ReplicateIntegrationRe
 
   if (report.creditBlocked) {
     errors.push("Bloqueio por falta de crédito ativo: a geração está pausada por 5 minutos após o último HTTP 402.");
+  }
+
+  // A chave do OpenRouter também é usada pela Vivi e pela geração Lyria (mesmo com modelo Replicate no global).
+  const orKey = (await getSettingValue("openrouter_api_key")) || process.env.OPENROUTER_API_KEY || null;
+  if (!orKey) {
+    errors.push("openrouter_api_key ausente — Vivi e geração Lyria não funcionam.");
+  } else if (!orKey.startsWith("sk-or-")) {
+    errors.push(
+      `openrouter_api_key inválida (começa com "${orKey.slice(0, 3)}…" em vez de "sk-or-") — parece a chave de outro provedor colada no campo errado.`
+    );
+  } else {
+    try {
+      const orProbe = await fetchWithTimeoutJson("https://openrouter.ai/api/v1/auth/key", orKey);
+      if (!orProbe?.data?.label) errors.push("OpenRouter respondeu de forma inesperada ao verificar a chave.");
+    } catch (err: any) {
+      errors.push(`OpenRouter recusou a chave: ${err?.message || err}`);
+    }
   }
 
   report.ok = errors.length === 0;
@@ -536,23 +614,27 @@ export async function testMusicGeneration(
     report.error = "replicate_api_key não configurada no Painel Administrativo.";
     return report;
   }
+  if (!config.enabled) {
+    report.error = "Gateway Replicate desativado no Painel Administrativo (replicate_enabled = false).";
+    return report;
+  }
 
-  const input: Record<string, any> = {
+  const bareModel = stripProviderPrefix(config.model);
+  const miniInput: MiniMaxMusicInput = {
     prompt: opts.prompt?.trim() || "sertanejo acústico romântico, guitarra limpa, voz masculina suave",
     lyrics: opts.lyrics?.trim() || "[Verso]\nNoite calma, seu nome na canção\n[Refrão]\nVou cantar até o sol nascer",
-    bitrate: 256000,
-    sample_rate: 44100,
-    audio_format: "mp3",
-    is_instrumental: false,
-    lyrics_optimizer: false,
+    genre: "",
+    mood: "",
+    voice: "Masculina",
   };
+  const input = buildReplicateModelInput(bareModel, miniInput, miniInput.prompt as string);
 
   const replicate = getReplicateClient(config.apiKey);
   const started = Date.now();
   let prediction: any = null;
 
   try {
-    prediction = await (replicate as any).predictions.create({ model: config.model, input });
+    prediction = await (replicate as any).predictions.create({ model: bareModel, input });
   } catch (err: any) {
     if (isInsufficientCreditError(err)) {
       await reportInsufficientCredit(config.apiKey, config.model, err?.message || String(err));
@@ -561,10 +643,10 @@ export async function testMusicGeneration(
     }
     // Modelos comunitários não aceitam "model": cai para o endpoint do próprio modelo.
     try {
-      const slash = config.model.indexOf("/");
+      const slash = bareModel.indexOf("/");
       prediction = await (replicate as any).models.predictions.create(
-        config.model.slice(0, slash),
-        config.model.slice(slash + 1),
+        bareModel.slice(0, slash),
+        bareModel.slice(slash + 1),
         { input }
       );
     } catch (err2: any) {
@@ -609,27 +691,33 @@ export async function testMusicGeneration(
 }
 
 /**
+ * Salva um buffer de áudio gerado (Replicate ou OpenRouter) no R2 ou localmente
+ * e devolve a URL permanente.
+ */
+export async function saveGeneratedAudioBuffer(buffer: Buffer, title: string): Promise<string> {
+  const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 30);
+  const fileName = `demo_${Date.now()}_${cleanTitle}.mp3`;
+
+  if (r2Enabled) {
+    const key = generateR2Key("audio", fileName);
+    return await uploadToR2(buffer, key, "audio/mpeg");
+  }
+  const audioDir = path.join(process.cwd(), "uploads/audio");
+  fs.mkdirSync(audioDir, { recursive: true });
+  fs.writeFileSync(path.join(audioDir, fileName), buffer);
+  return `/api/uploads/audio/${fileName}`;
+}
+
+/**
  * Baixa o áudio gerado pelo Replicate e salva localmente ou no R2 para ter link permanente
  */
 export async function downloadAndSaveGeneratedAudio(remoteAudioUrl: string, title: string): Promise<string> {
   try {
     const res = await fetch(remoteAudioUrl);
     if (!res.ok) throw new Error(`Falha ao baixar áudio gerado (${res.status})`);
-    
-    const arrayBuffer = await res.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 30);
-    const fileName = `demo_${Date.now()}_${cleanTitle}.mp3`;
 
-    if (r2Enabled) {
-      const key = generateR2Key("audio", fileName);
-      return await uploadToR2(buffer, key, "audio/mpeg");
-    } else {
-      const audioDir = path.join(process.cwd(), "uploads/audio");
-      fs.mkdirSync(audioDir, { recursive: true });
-      fs.writeFileSync(path.join(audioDir, fileName), buffer);
-      return `/api/uploads/audio/${fileName}`;
-    }
+    const arrayBuffer = await res.arrayBuffer();
+    return await saveGeneratedAudioBuffer(Buffer.from(arrayBuffer), title);
   } catch (err) {
     console.warn("Aviso: Não foi possível salvar áudio localmente, usando URL remota:", err);
     return remoteAudioUrl;

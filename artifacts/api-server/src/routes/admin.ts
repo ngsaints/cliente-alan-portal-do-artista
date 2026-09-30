@@ -224,9 +224,32 @@ router.put("/admin/settings", upload.fields([
       if (!key || key === "undefined") continue;
       if (key === "demo_capa_url" || key === "demo_banner_url" || key === "demo_banners_metadata") continue;
 
+      // Evita colar a chave de um provedor no campo do outro (já aconteceu e parou a geração)
+      const trimmedValue = (value || "").trim();
+      if (key === "openrouter_api_key" && trimmedValue && !trimmedValue.startsWith("sk-or-")) {
+        res.status(400).json({
+          error: "Chave do OpenRouter inválida: deve começar com \"sk-or-\". Verifique se você copiou a chave certa (openrouter.ai/settings/keys).",
+        });
+        return;
+      }
+      if (key === "replicate_api_key" && trimmedValue && !trimmedValue.startsWith("r8_")) {
+        res.status(400).json({
+          error: "Chave do Replicate inválida: deve começar com \"r8_\". Verifique se você copiou a chave certa (replicate.com/account/api-tokens).",
+        });
+        return;
+      }
+      if (key === "kie_api_key" && trimmedValue && (trimmedValue.startsWith("r8_") || trimmedValue.startsWith("sk-or-"))) {
+        res.status(400).json({
+          error: "Chave do kie.ai inválida: parece a chave de outro provedor colada no campo errado. Cole a chave obtida em kie.ai/api-key.",
+        });
+        return;
+      }
+
+      // Chaves sensíveis ganham isSecret na criação (o GET passa a mascarar o value)
+      const looksSecret = /(_api_key|_apikey|_secret|_token|_password|_private|_credential)/i.test(key);
       await db
         .insert(appSettingsTable)
-        .values({ key, value, category: inferCategory(key), isSecret: "false", updatedAt: new Date() })
+        .values({ key, value, category: inferCategory(key), isSecret: looksSecret ? "true" : "false", updatedAt: new Date() })
         .onConflictDoUpdate({ target: appSettingsTable.key, set: { value, category: inferCategory(key), updatedAt: new Date() } });
     }
 
@@ -308,6 +331,8 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "replicate_enabled", value: "true", desc: "Ativar Gateway Replicate (MiniMax Music 2.6 - Geração de Demos)", isSecret: "false" },
         { key: "replicate_api_key", value: "", desc: "Chave de API Replicate (Token)", isSecret: "true" },
         { key: "replicate_music_model", value: "minimax/music-2.6", desc: "Modelo de Música do Replicate (ex: minimax/music-2.6)", isSecret: "false" },
+        { key: "kie_enabled", value: "true", desc: "Ativar kie.ai (Suno) no gerador de hits", isSecret: "false" },
+        { key: "kie_api_key", value: "", desc: "Chave de API kie.ai (Suno)", isSecret: "true" },
         { key: "image_ai_provider", value: "openrouter", desc: "Provedor de IA para Capas e Fotos (openrouter ou replicate)", isSecret: "false" },
         { key: "image_ai_model", value: "black-forest-labs/flux-1-schnell", desc: "Modelo de Imagem para Capas e Fotos (OpenRouter ou Replicate)", isSecret: "false" },
         { key: "openai_enabled", value: "false", desc: "Ativar Mentora Virtual (OpenAI Legado)", isSecret: "false" },
@@ -354,7 +379,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
 
     if (category === "portal") {
       // Migrate any AI keys to 'ai' category and SMTP keys to 'email'
-      const aiKeyNames = ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks", "replicate_enabled", "replicate_api_key", "replicate_music_model", "openai_enabled", "openai_api_key", "ai_credit_pack_5_price", "ai_credit_pack_5_credits", "ai_credit_pack_15_price", "ai_credit_pack_15_credits", "ai_credit_pack_40_price", "ai_credit_pack_40_credits"];
+      const aiKeyNames = ["openrouter_enabled", "openrouter_api_key", "openrouter_model", "openrouter_fallbacks", "replicate_enabled", "replicate_api_key", "replicate_music_model", "kie_enabled", "kie_api_key", "openai_enabled", "openai_api_key", "ai_credit_pack_5_price", "ai_credit_pack_5_credits", "ai_credit_pack_15_price", "ai_credit_pack_15_credits", "ai_credit_pack_40_price", "ai_credit_pack_40_credits"];
       for (const key of aiKeyNames) {
         await db.update(appSettingsTable).set({ category: "ai" }).where(eq(appSettingsTable.key, key));
       }
@@ -958,8 +983,9 @@ router.post("/admin/replicate/test", async (req, res): Promise<void> => {
   try {
     if (!req.session.logado) { res.status(401).json({ error: "Não autorizado" }); return; }
 
-    const { testReplicateIntegration, testReplicateCredit, testMusicGeneration } = await import("../lib/replicate-music.js");
-    const { getModelPrice, estimateSongCostUsd, getUsdBrlRate } = await import("../lib/replicate-catalog.js");
+    const { testReplicateCredit } = await import("../lib/replicate-music.js");
+    const { getMusicCatalog } = await import("../lib/replicate-catalog.js");
+    const { runIntegrationTest, runMusicGenerationTest } = await import("../lib/music-gateway.js");
     const modeRaw = req.body?.mode;
     const mode = modeRaw === "credit" || modeRaw === "music" ? modeRaw : "integration";
 
@@ -971,34 +997,40 @@ router.post("/admin/replicate/test", async (req, res): Promise<void> => {
     }
 
     if (mode === "music") {
-      const report = await testMusicGeneration({
+      const report = await runMusicGenerationTest({
         plano: typeof req.body?.plano === "string" ? req.body.plano : undefined,
         prompt: typeof req.body?.prompt === "string" ? req.body.prompt : undefined,
         lyrics: typeof req.body?.lyrics === "string" ? req.body.lyrics : undefined,
       });
-      const price = await getModelPrice(report.model);
-      const songUsd = estimateSongCostUsd(price);
-      const rate = await getUsdBrlRate();
+      // Custo por música sai do catálogo (cobre Replicate e OpenRouter)
+      const catalog = await getMusicCatalog("music generation");
+      const found = catalog.models.find(
+        (m) => m.id === report.model || m.id.endsWith(`:${report.model}`)
+      );
       const cost = {
-        price,
-        usdBrl: rate.value,
-        songUsd,
-        songBrl: songUsd === null ? null : Math.round(songUsd * rate.value * 100) / 100,
+        price: found?.price ?? null,
+        provider: found?.provider ?? report.provider,
+        usdBrl: catalog.usdBrl,
+        songUsd: found?.songCostUsd ?? null,
+        songBrl: found?.songCostBrl ?? null,
       };
       console.log(
-        `[Admin] Teste de geração de música → ok=${report.ok} modelo=${report.model} (${report.modelSource}) ` +
+        `[Admin] Teste de geração de música → ok=${report.ok} provedor=${report.provider} modelo=${report.model} (${report.modelSource}) ` +
           `predicao=${report.predictionId ?? "-"} ${report.durationMs ?? "-"}ms ${report.error || report.audioUrl || ""}`
       );
       res.json({ ...report, cost });
       return;
     }
 
-    const report = await testReplicateIntegration();
-    console.log(`[Admin] Teste Replicate (grátis) → ok=${report.ok} conta=${report.account ?? "-"} modelo=${report.model} erros=${report.errors.length}`);
+    const report = await runIntegrationTest();
+    console.log(
+      `[Admin] Teste integração (grátis) → provedor=${report.provider} ok=${report.ok} conta=${report.account ?? "-"} ` +
+        `modelo=${report.model} erros=${report.errors.length}`
+    );
     res.json(report);
   } catch (error: any) {
-    console.error("Erro ao testar integração Replicate:", error);
-    res.status(500).json({ error: error.message ?? "Erro ao verificar a integração com o Replicate" });
+    console.error("Erro ao testar integração do gerador de hits:", error);
+    res.status(500).json({ error: error.message ?? "Erro ao verificar a integração do gerador de hits" });
   }
 });
 
