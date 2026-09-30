@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { appSettingsTable } from "@workspace/db";
 import { db } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -413,7 +414,7 @@ export async function startKieMusicGeneration(
 
 // ─── Status ─────────────────────────────────────────────────────────────────
 
-const FAILED_STATUSES: Record<string, string> = {
+export const FAILED_STATUSES: Record<string, string> = {
   CREATE_TASK_FAILED: "O kie.ai não conseguiu criar a geração. Tente novamente em instantes.",
   GENERATE_AUDIO_FAILED: "O kie.ai não conseguiu gerar o áudio desta vez. Sua cota foi devolvida — tente de novo.",
   CALLBACK_EXCEPTION: "A geração foi interrompida pelo provedor. Tente gerar novamente.",
@@ -422,6 +423,14 @@ const FAILED_STATUSES: Record<string, string> = {
 };
 
 const statusCache = new Map<string, { at: number; value: ReplicatePredictionResponse & { alreadySaved?: boolean } }>();
+
+/** Atualiza a predição no cache em memória (ex.: ao receber webhook de conclusão do kie.ai). */
+export function setKieStatusCache(
+  taskId: string,
+  result: ReplicatePredictionResponse & { alreadySaved?: boolean }
+): void {
+  statusCache.set(taskId, { at: Date.now(), value: result });
+}
 
 /** Gera um link de download temporário (20 min) para o arquivo gerado no kie.ai. */
 export async function resolveDownloadUrl(apiKey: string, audioUrl: string): Promise<string> {
@@ -873,5 +882,85 @@ export async function uploadKieUrlFile(
     uploadedAt: data.uploadedAt || new Date().toISOString(),
   };
 }
+
+// ─── Webhook HMAC Security Verification ────────────────────────────────────
+
+/**
+ * Obtém a chave secreta HMAC para validação dos callbacks de Webhook do kie.ai.
+ * Busca primeiro em `kie_webhook_hmac_key` (banco de configurações) e depois nas variáveis de ambiente.
+ */
+export async function getKieWebhookHmacKey(): Promise<string | null> {
+  return (
+    (await getSettingValue("kie_webhook_hmac_key")) ||
+    process.env.KIE_WEBHOOK_HMAC_KEY ||
+    process.env.WEBHOOK_HMAC_KEY ||
+    null
+  );
+}
+
+export interface KieWebhookVerificationResult {
+  valid: boolean;
+  error?: string;
+  taskId?: string;
+  timestamp?: string;
+}
+
+/**
+ * Valida a assinatura de segurança HMAC-SHA256 enviada nos headers do Webhook do kie.ai.
+ *
+ * Headers esperados:
+ * - X-Webhook-Timestamp: timestamp unix em segundos
+ * - X-Webhook-Signature: assinatura HMAC-SHA256 codificada em Base64
+ *
+ * Algoritmo:
+ * base64(HMAC-SHA256(taskId + "." + timestamp, webhookHmacKey))
+ *
+ * Utiliza crypto.timingSafeEqual para comparação em tempo constante contra timing attacks.
+ */
+export function verifyKieWebhookSignature(
+  headers: Record<string, string | string[] | undefined>,
+  body: any,
+  secret: string
+): KieWebhookVerificationResult {
+  const timestampHeader = headers["x-webhook-timestamp"] || headers["X-Webhook-Timestamp"];
+  const signatureHeader = headers["x-webhook-signature"] || headers["X-Webhook-Signature"];
+
+  const timestamp = Array.isArray(timestampHeader) ? timestampHeader[0] : timestampHeader;
+  const receivedSignature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
+
+  if (!timestamp || !receivedSignature) {
+    return { valid: false, error: "Missing signature headers" };
+  }
+
+  const taskId = body?.data?.task_id || body?.data?.taskId || body?.taskId;
+  if (!taskId) {
+    return { valid: false, error: "Missing task_id" };
+  }
+
+  try {
+    const dataToSign = `${taskId}.${timestamp}`;
+    const computedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(dataToSign)
+      .digest("base64");
+
+    const expectedBuf = Buffer.from(computedSignature);
+    const receivedBuf = Buffer.from(receivedSignature);
+
+    if (expectedBuf.length !== receivedBuf.length) {
+      return { valid: false, error: "Invalid signature", taskId, timestamp: String(timestamp) };
+    }
+
+    const isValid = crypto.timingSafeEqual(expectedBuf, receivedBuf);
+    if (!isValid) {
+      return { valid: false, error: "Invalid signature", taskId, timestamp: String(timestamp) };
+    }
+
+    return { valid: true, taskId, timestamp: String(timestamp) };
+  } catch (err: any) {
+    return { valid: false, error: `Signature verification error: ${err?.message || err}`, taskId };
+  }
+}
+
 
 

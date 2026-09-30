@@ -20,7 +20,13 @@ import {
   uploadKieUrlFile, 
   getKieCredits,
   getKieCreditDetails, 
-  getKieDownloadUrl 
+  getKieDownloadUrl,
+  getKieWebhookHmacKey,
+  verifyKieWebhookSignature,
+  setKieStatusCache,
+  resolveDownloadUrl,
+  getKieMusicConfig,
+  FAILED_STATUSES 
 } from "../lib/kie-music.js";
 
 const router: IRouter = Router();
@@ -877,6 +883,119 @@ router.post("/ai/kie/download-url", async (req, res): Promise<void> => {
     res.status(500).json({ error: error.message || "Falha ao obter link de download do kie.ai" });
   }
 });
+
+/**
+ * Manipulador compartilhado para o Webhook do kie.ai (POST /api/webhooks/kie e POST /api/ai/kie/webhook).
+ * Valida a assinatura HMAC-SHA256 via headers X-Webhook-Timestamp e X-Webhook-Signature.
+ */
+async function handleKieWebhook(req: any, res: any): Promise<void> {
+  try {
+    const hmacKey = await getKieWebhookHmacKey();
+
+    if (hmacKey) {
+      const verification = verifyKieWebhookSignature(req.headers, req.body, hmacKey);
+      if (!verification.valid) {
+        console.warn(`[kie.ai Webhook] Assinatura HMAC rejeitada: ${verification.error}`);
+        res.status(401).json({ error: verification.error || "Invalid signature" });
+        return;
+      }
+      console.log(`[kie.ai Webhook] Assinatura HMAC verificada com sucesso (taskId=${verification.taskId})`);
+    } else {
+      console.warn("[kie.ai Webhook] Aviso: kie_webhook_hmac_key não configurada — requisição aceita sem validação HMAC.");
+    }
+
+    const { code, msg, data } = req.body || {};
+    const callbackData = data && typeof data === "object" ? data : {};
+    const taskId = String(callbackData.task_id || callbackData.taskId || req.body?.taskId || "");
+    const callbackType = callbackData.callbackType || "";
+
+    if (!taskId) {
+      res.status(400).json({ error: "Missing task_id" });
+      return;
+    }
+
+    console.log(`[kie.ai Webhook] Callback recebido — taskId=${taskId} code=${code} type=${callbackType}`);
+
+    const predictionId = `kie:${taskId}`;
+
+    // Buscar demo correspondente no banco
+    const demos = await db
+      .select()
+      .from(aiMusicDemosTable)
+      .where(eq(aiMusicDemosTable.predictionId, predictionId));
+
+    const demo = demos[0];
+    const remoteStatus = String(callbackData.status || (code === 200 ? "SUCCESS" : "FAILED"));
+
+    if (remoteStatus === "SUCCESS" || code === 200) {
+      const tracks: any[] = Array.isArray(callbackData?.response?.sunoData)
+        ? callbackData.response.sunoData
+        : [];
+      const remoteAudio = tracks[0]?.audioUrl || callbackData.audioUrl || callbackData.fileUrl || null;
+
+      if (remoteAudio) {
+        const config = await getKieMusicConfig();
+        const resolvedUrl = config.apiKey ? await resolveDownloadUrl(config.apiKey, remoteAudio) : remoteAudio;
+
+        let finalAudioUrl = resolvedUrl;
+        if (demo) {
+          finalAudioUrl = await downloadAndSaveGeneratedAudio(resolvedUrl, demo.titulo);
+          await db
+            .update(aiMusicDemosTable)
+            .set({
+              status: "completed",
+              audioUrl: finalAudioUrl,
+            })
+            .where(eq(aiMusicDemosTable.id, demo.id));
+          console.log(`[kie.ai Webhook] Hit salvo com sucesso — demoId=${demo.id} audio=${finalAudioUrl}`);
+        }
+
+        setKieStatusCache(taskId, {
+          id: predictionId,
+          status: "succeeded",
+          output: finalAudioUrl,
+          error: null,
+          logs: null,
+          alreadySaved: !!demo,
+        });
+      }
+    } else if (FAILED_STATUSES[remoteStatus] || (code && code !== 200)) {
+      const errMessage = String(
+        callbackData.errorMessage || msg || FAILED_STATUSES[remoteStatus] || "Falha na geração do áudio"
+      );
+
+      if (demo && demo.status !== "failed" && demo.status !== "completed") {
+        await db
+          .update(aiMusicDemosTable)
+          .set({
+            status: "failed",
+            error: errMessage,
+          })
+          .where(eq(aiMusicDemosTable.id, demo.id));
+
+        await refundMusicCredit(demo.artistaId, demo.createdAt);
+        console.log(`[kie.ai Webhook] Falha registrada e cota devolvida — demoId=${demo.id} erro=${errMessage}`);
+      }
+
+      setKieStatusCache(taskId, {
+        id: predictionId,
+        status: "failed",
+        output: null,
+        error: errMessage,
+        logs: null,
+      });
+    }
+
+    res.status(200).json({ status: "received", taskId });
+  } catch (error: any) {
+    console.error("[kie.ai Webhook] Erro ao processar webhook:", error);
+    res.status(500).json({ error: error.message || "Internal webhook processing error" });
+  }
+}
+
+// Endpoints do Webhook do kie.ai (ambos aceitos)
+router.post("/webhooks/kie", handleKieWebhook);
+router.post("/ai/kie/webhook", handleKieWebhook);
 
 export default router;
 

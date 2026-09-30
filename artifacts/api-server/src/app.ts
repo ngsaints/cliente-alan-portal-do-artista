@@ -71,6 +71,12 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // Serve root sitemap.xml and robots.txt
 app.use(sitemapRouter);
 
+// Webhooks externos sem o prefixo /api (ex.: /webhooks/kie e /webhooks/asaas)
+app.use("/webhooks", (req, res, next) => {
+  req.url = `/webhooks${req.url}`;
+  router(req, res, next);
+});
+
 // Admin no painel ganha um artista de teste para usar o Estúdio Vivi como o usuário final
 app.use("/api", ensureAdminStudioArtist);
 

@@ -2691,6 +2691,7 @@ const SETTING_LABELS: Record<string, string> = {
   replicate_music_model: "Modelo padrão do gerador de hits",
   kie_enabled: "Ativar kie.ai / Suno (gerador de hits)",
   kie_api_key: "Chave de API kie.ai (Suno)",
+  kie_webhook_hmac_key: "Chave HMAC do Webhook kie.ai",
   image_ai_provider: "Provedor do Gerador de Capas e Fotos",
   image_ai_model: "Modelo do Gerador de Capas e Fotos",
   openai_enabled: "Ativar OpenAI Legado",
@@ -2813,6 +2814,7 @@ function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "replicate_api_key") return "Token de API obtido em replicate.com/account/api-tokens.";
   if (key === "replicate_music_model") return "Modelo usado para gerar as músicas cantadas. Busque digitando no campo — o provedor (Replicate, OpenRouter ou kie.ai) é definido sozinho pelo modelo escolhido.";
   if (key === "kie_api_key") return "Chave obtida em kie.ai/api-key. Habilita os modelos Suno (V6, V6 Mini e V6 Wild) no gerador de hits.";
+  if (key === "kie_webhook_hmac_key") return "Chave HMAC gerada em kie.ai/settings. Garante a autenticidade e integridade dos callbacks de conclusão de música via assinatura HMAC-SHA256.";
   if (key === "kie_enabled") return "Deixe ligado para permitir gerar hits pelo kie.ai (Suno). Se a chave faltar ou o saldo acabar, o sistema cai no Replicate sozinho.";
   if (key === "image_ai_provider") return "Selecione se o gerador de imagem usará OpenRouter (recomendado) ou Replicate.";
   if (key === "image_ai_model") return "Slug do modelo de geração de imagem (ex: black-forest-labs/flux-1-schnell, bytedance-seed/seedream-4.5 ou stabilityai/stable-diffusion-xl).";
@@ -4329,7 +4331,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           title: "Gerador de Hits (Replicate + OpenRouter + kie.ai)",
           icon: Music,
           description: "Músicas cantadas de alta fidelidade (voz humana + instrumentos) a partir da letra. O campo de modelo busca ao digitar e já mostra de qual provedor cada um é (🟦 Replicate, 🟪 OpenRouter, 🟧 kie.ai).",
-          keys: ["replicate_enabled", "replicate_api_key", "replicate_music_model", "kie_enabled", "kie_api_key"],
+          keys: ["replicate_enabled", "replicate_api_key", "replicate_music_model", "kie_enabled", "kie_api_key", "kie_webhook_hmac_key"],
           action: "test-replicate",
         },
         {
