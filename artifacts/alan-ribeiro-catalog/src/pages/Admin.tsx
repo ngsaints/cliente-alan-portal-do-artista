@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
 import { useCities } from "@/hooks/useCities";
 import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -3325,7 +3326,6 @@ function MusicModelCombobox({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef(onSearch);
   searchRef.current = onSearch;
 
@@ -3336,16 +3336,6 @@ function MusicModelCombobox({
     return () => clearTimeout(timer);
   }, [query, open]);
 
-  // Fecha o dropdown ao clicar fora
-  useEffect(() => {
-    if (!open) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [open]);
-
   const selected = options.find((o) => o.id === value) || null;
   const providerOf = (o: MusicModelOption) => o.provider || providerOfModelId(o.id);
   const groups = [
@@ -3355,122 +3345,130 @@ function MusicModelCombobox({
   ];
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => {
-          setOpen((v) => !v);
-          setQuery("");
-        }}
-        className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 bg-background/60 border border-border/80 rounded-xl text-left text-sm hover:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50 cursor-pointer"
-      >
-        <span className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-          {value ? (
-            <>
-              <span className="truncate font-mono text-xs sm:text-sm font-semibold">{value}</span>
-              <ProviderBadge provider={selected?.provider ?? providerOfModelId(value)} />
-              {typeof selected?.songCostBrl === "number" && (
-                <span className="text-[10px] text-muted-foreground shrink-0">
-                  ≈ R$ {selected.songCostBrl}/música
+    <Popover
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) setQuery("");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 bg-background/60 border border-border/80 rounded-xl text-left text-sm hover:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50 cursor-pointer"
+        >
+          <span className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+            {value ? (
+              <>
+                <span className="truncate font-mono text-xs sm:text-sm font-semibold">{value}</span>
+                <ProviderBadge provider={selected?.provider ?? providerOfModelId(value)} />
+                {typeof selected?.songCostBrl === "number" && (
+                  <span className="text-[10px] text-muted-foreground shrink-0">
+                    ≈ R$ {selected.songCostBrl}/música
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="truncate text-muted-foreground text-xs sm:text-sm">
+                  {defaultLabel || "Modelo padrão"}
                 </span>
-              )}
-            </>
-          ) : (
-            <>
-              <span className="truncate text-muted-foreground text-xs sm:text-sm">
-                {defaultLabel || "Modelo padrão"}
-              </span>
-              <ProviderBadge provider={providerOfModelId(defaultModel || value)} />
-            </>
-          )}
-        </span>
-        <ChevronDown className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      {open && (
-        <div className="absolute z-40 mt-1 left-0 right-0 rounded-xl border border-border/80 bg-card shadow-2xl overflow-hidden">
-          <div className="p-2 border-b border-border/60">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                autoFocus
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={placeholder || "Digite para buscar o modelo..."}
-                className="w-full bg-background/60 border border-border/70 rounded-lg pl-8 pr-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground/60"
-              />
-            </div>
-          </div>
-
-          <div className="max-h-64 overflow-y-auto p-1.5">
-            {allowDefault && (
-              <button
-                type="button"
-                onClick={() => {
-                  onSelect("");
-                  setOpen(false);
-                }}
-                className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left hover:bg-accent transition-all"
-              >
-                <span className="text-xs text-muted-foreground">{defaultLabel || "Modelo padrão"}</span>
-                {!value && <CheckCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
-              </button>
+                <ProviderBadge provider={providerOfModelId(defaultModel || value)} />
+              </>
             )}
+          </span>
+          <ChevronDown className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+      </PopoverTrigger>
 
-            {loading && options.length === 0 && (
-              <p className="text-[11px] text-muted-foreground flex items-center gap-2 px-2.5 py-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Buscando modelos...
-              </p>
-            )}
-
-            {groups.map((group) =>
-              group.list.length > 0 ? (
-                <div key={group.key} className="mb-1">
-                  <p className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground">
-                    {group.key === "openrouter" ? "🟪" : group.key === "kie" ? "🟧" : "🟦"} {group.label}
-                  </p>
-                  {group.list.map((o) => (
-                    <button
-                      key={o.id}
-                      type="button"
-                      title={o.description}
-                      onClick={() => {
-                        onSelect(o.id);
-                        setOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left hover:bg-accent transition-all"
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-mono font-semibold text-foreground">{o.id}</span>
-                        <span className="block truncate text-[10px] text-muted-foreground">{o.description || o.name || ""}</span>
-                      </span>
-                      <span className="text-[10px] text-muted-foreground shrink-0 text-right leading-tight">
-                        {typeof o.songCostBrl === "number" ? <>R$ {o.songCostBrl}<br />/música</> : "—"}
-                      </span>
-                      {o.id === value && <CheckCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
-                    </button>
-                  ))}
-                </div>
-              ) : null
-            )}
-
-            {!loading && options.length === 0 && (
-              <p className="text-[11px] text-muted-foreground px-2.5 py-2">
-                Nenhum modelo encontrado{query ? ` para "${query}"` : ""}.
-              </p>
-            )}
-          </div>
-
-          <div className="border-t border-border/60 px-3 py-2 text-[10px] text-muted-foreground flex items-center justify-between gap-2">
-            <span>{loading ? "Buscando..." : `${options.length} modelo(s)`}</span>
-            <span>🟦 Replicate · 🟪 OpenRouter · 🟧 kie.ai</span>
+      <PopoverContent
+        align="start"
+        side="bottom"
+        sideOffset={6}
+        className="z-[100] w-[var(--radix-popover-trigger-width)] min-w-[340px] max-w-[95vw] p-0 rounded-xl border border-border/80 bg-card shadow-2xl overflow-hidden"
+      >
+        <div className="p-2 border-b border-border/60">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={placeholder || "Digite para buscar o modelo..."}
+              className="w-full bg-background/60 border border-border/70 rounded-lg pl-8 pr-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground/60"
+            />
           </div>
         </div>
-      )}
-    </div>
+
+        <div className="max-h-64 overflow-y-auto p-1.5">
+          {allowDefault && (
+            <button
+              type="button"
+              onClick={() => {
+                onSelect("");
+                setOpen(false);
+              }}
+              className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left hover:bg-accent transition-all cursor-pointer"
+            >
+              <span className="text-xs text-muted-foreground">{defaultLabel || "Modelo padrão"}</span>
+              {!value && <CheckCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
+            </button>
+          )}
+
+          {loading && options.length === 0 && (
+            <p className="text-[11px] text-muted-foreground flex items-center gap-2 px-2.5 py-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Buscando modelos...
+            </p>
+          )}
+
+          {groups.map((group) =>
+            group.list.length > 0 ? (
+              <div key={group.key} className="mb-1">
+                <p className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground">
+                  {group.key === "openrouter" ? "🟪" : group.key === "kie" ? "🟧" : "🟦"} {group.label}
+                </p>
+                {group.list.map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    title={o.description}
+                    onClick={() => {
+                      onSelect(o.id);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left hover:bg-accent transition-all cursor-pointer"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-mono font-semibold text-foreground">{o.id}</span>
+                      <span className="block truncate text-[10px] text-muted-foreground">{o.description || o.name || ""}</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground shrink-0 text-right leading-tight">
+                      {typeof o.songCostBrl === "number" ? <>R$ {o.songCostBrl}<br />/música</> : "—"}
+                    </span>
+                    {o.id === value && <CheckCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            ) : null
+          )}
+
+          {!loading && options.length === 0 && (
+            <p className="text-[11px] text-muted-foreground px-2.5 py-2">
+              Nenhum modelo encontrado{query ? ` para "${query}"` : ""}.
+            </p>
+          )}
+        </div>
+
+        <div className="border-t border-border/60 px-3 py-2 text-[10px] text-muted-foreground flex items-center justify-between gap-2">
+          <span>{loading ? "Buscando..." : `${options.length} modelo(s)`}</span>
+          <span>🟦 Replicate · 🟪 OpenRouter · 🟧 kie.ai</span>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
+
 
 function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCategory; onNavigate?: (tab: MainTab) => void }) {
   const [settings, setSettings] = useState<Setting[]>([]);
@@ -4556,10 +4554,10 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                           </p>
                         )}
                         {musicPlans.map((plan) => {
-                          const quota = plan.musicCreditsLimit;
+                          const quota = Number(plan.musicCreditsLimit) || 0;
                           const cost1 = planSongCostBrl(plan);
                           const preco = Number(plan.preco) || 0;
-                          const custoMensal = cost1 !== null && quota > 0 ? cost1 * quota : null;
+                          const custoMensal = cost1 !== null ? (quota > 0 ? cost1 * quota : 0) : null;
                           const lucro = custoMensal !== null ? preco - custoMensal : null;
                           const margem = lucro !== null && preco > 0 ? Math.round((lucro / preco) * 100) : null;
                           return (
@@ -4592,6 +4590,11 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                                     <p className="text-muted-foreground">
                                       Custo/música <strong className="text-foreground">R$ {cost1.toFixed(2)}</strong> · por mês{" "}
                                       <strong className="text-foreground">R$ {(custoMensal ?? 0).toFixed(2)}</strong>
+                                      {quota === 0 && (
+                                        <span className="text-[10px] text-muted-foreground/80 ml-1">
+                                          (0 músicas no plano)
+                                        </span>
+                                      )}
                                     </p>
                                     <p className={lucro !== null && lucro >= 0 ? "text-emerald-400" : "text-red-400"}>
                                       Receita R$ {preco.toFixed(2)} →{" "}
