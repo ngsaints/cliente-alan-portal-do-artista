@@ -1,0 +1,36 @@
+21:03:03
+[WARN]
+[kie.ai Webhook] Assinatura HMAC rejeitada: Missing signature headers
+21:03:03
+[WARN]
+[kie.ai Webhook] Assinatura HMAC rejeitada: Missing signature headers
+21:25:56
+[INFO]
+Server listening on port 3001
+21:25:56
+[INFO]
+✅ [DB] Colunas e tabelas de IA verificadas com sucesso.
+21:25:56
+[INFO]
+✅ [Settings] Chaves cadastradas no painel sincronizadas com o ambiente da aplicação.
+21:27:09
+[INFO]
+Server listening on port 3001
+21:27:09
+[INFO]
+✅ [DB] Colunas e tabelas de IA verificadas com sucesso.
+21:27:09
+[INFO]
+✅ [Settings] Chaves cadastradas no painel sincronizadas com o ambiente da aplicação.
+21:27:09
+[INFO]
+[kie.ai] Varredura de hits ativa — fecha demos pendentes do kie.ai a cada 60s.
+21:33:14
+[INFO]
+[kie.ai Webhook] Callback taskId=smoketest-e2e-001 type=complete status=success audio=sim code=200 | ip=2.24.205.194 ua=curl/8.5.0
+21:33:14
+[WARN]
+[kie.ai Webhook] Áudio recebido sem demo correspondente (taskId=smoketest-e2e-001) — nada a salvar.
+21:33:54
+[WARN]
+[kie.ai Webhook] Assinatura HMAC rejeitada: Missing signature headers | kie.ai não enviou os headers: habilite a assinatura HMAC em kie.ai/settings e cadastre a mesma chave como kie_webhook_hmac_key | ip=2.24.205.194 ua=curl/8.5.0
