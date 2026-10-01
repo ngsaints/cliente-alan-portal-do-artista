@@ -12,7 +12,7 @@ import {
   type ReplicatePredictionResponse,
 } from "./replicate-music.js";
 import { KIE_MODEL_PREFIX, stripProviderPrefix } from "./music-provider.js";
-import { sendAdminAlert } from "./email.js";
+import { sendAdminAlert, getPortalUrl } from "./email.js";
 
 /**
  * Provedor kie.ai (API Suno).
@@ -95,6 +95,7 @@ let creditBlockedUntil = 0;
 let creditFailureCount = 0;
 let lastAdminAlertAt = 0;
 let lastCreditErrorAt = 0;
+let callBackUrlLogged = false;
 
 /** Erro de infraestrutura do gateway (não é culpa do artista). */
 export class KieServiceError extends Error {
@@ -333,20 +334,56 @@ export function buildKieInput(input: MiniMaxMusicInput, model: string): Record<s
 
 // ─── Criação da tarefa ──────────────────────────────────────────────────────
 
-async function createKieTask(apiKey: string, payload: Record<string, unknown>): Promise<string> {
-  const primary = await kieFetch(
-    apiKey,
-    "/api/v1/jobs/createTask",
-    { method: "POST", body: JSON.stringify({ model: KIE_TASK_MODEL, input: payload }) }
-  );
-  const primaryTaskId = primary.body?.data?.taskId;
-  if (primary.status === 200 && primaryTaskId) return String(primaryTaskId);
-
-  // Problema de conta/chave: o endpoint legado vai falhar igual — evita 2 chamadas e alerta duplo.
-  if (primary.status === 401 || primary.status === 402 || primary.status === 403 || primary.status === 429) {
-    const service = serviceErrorFor(primary.status, String(payload.model), detailOf(primary.body));
-    if (service) throw service;
+/**
+ * URL pública para o kie.ai entregar o callback de conclusão (campo de topo
+ * `callBackUrl` do createTask). O nginx encaminha `/webhooks/*` para a API.
+ * Sem ela o hit só termina quando o Estúdio consultar o status — se o artista
+ * fechar a aba, a geração fica pendente.
+ * Retorna string vazia em ambiente local (kie.ai não alcança localhost).
+ */
+async function kieCallBackUrl(): Promise<string> {
+  try {
+    const explicit = (process.env.KIE_CALLBACK_URL || "").trim();
+    if (explicit) return /^https:\/\//i.test(explicit) ? explicit : "";
+    const base = (await getPortalUrl()).trim().replace(/\/+$/, "");
+    if (!/^https:\/\//i.test(base)) return "";
+    if (/\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)([:/]|$)/i.test(base)) return "";
+    return `${base}/webhooks/kie`;
+  } catch {
+    return "";
   }
+}
+
+async function createKieTask(apiKey: string, payload: Record<string, unknown>): Promise<string> {
+  const callBackUrl = await kieCallBackUrl();
+  if (!callBackUrlLogged) {
+    callBackUrlLogged = true;
+    console.log(`[kie.ai] callBackUrl do createTask: ${callBackUrl || "desativado (só polling)"}`);
+  }
+
+  let primary: KieHttpResult | null = null;
+  // Se o kie.ai recusar a URL opcional (validação de campo), repetimos sem ela:
+  // um campo opcional nunca pode derrubar a geração do artista.
+  for (const url of callBackUrl ? [callBackUrl, ""] : [""]) {
+    primary = await kieFetch(apiKey, "/api/v1/jobs/createTask", {
+      method: "POST",
+      body: JSON.stringify({
+        model: KIE_TASK_MODEL,
+        input: payload,
+        ...(url ? { callBackUrl: url } : {}),
+      }),
+    });
+    const primaryTaskId = primary.body?.data?.taskId;
+    if (primary.status === 200 && primaryTaskId) return String(primaryTaskId);
+
+    // Problema de conta/chave: o endpoint legado vai falhar igual — evita 2 chamadas e alerta duplo.
+    if (primary.status === 401 || primary.status === 402 || primary.status === 403 || primary.status === 429) {
+      const service = serviceErrorFor(primary.status, String(payload.model), detailOf(primary.body));
+      if (service) throw service;
+    }
+    if (!url || (primary.status !== 400 && primary.status !== 422)) break;
+  }
+  const lastPrimary = primary;
 
   // Endpoint legado (formato plano, `customMode` camelCase) — cobre contas/modelos antigos.
   const legacyPayload: Record<string, unknown> = {
@@ -356,7 +393,7 @@ async function createKieTask(apiKey: string, payload: Record<string, unknown>): 
     title: payload.title,
     style: payload.style,
     prompt: payload.style,
-    callBackUrl: "",
+    callBackUrl,
   };
   if (payload.lyrics) legacyPayload.lyrics = payload.lyrics;
   if (payload.vocal_gender) legacyPayload.vocal_gender = payload.vocal_gender;
@@ -369,8 +406,8 @@ async function createKieTask(apiKey: string, payload: Record<string, unknown>): 
   const legacyTaskId = legacy.body?.data?.taskId;
   if (legacy.status === 200 && legacyTaskId) return String(legacyTaskId);
 
-  const status = primary.status >= 400 ? primary.status : legacy.status;
-  const detail = detailOf(primary.body) || detailOf(legacy.body);
+  const status = lastPrimary && lastPrimary.status >= 400 ? lastPrimary.status : legacy.status;
+  const detail = (lastPrimary ? detailOf(lastPrimary.body) : "") || detailOf(legacy.body);
   const service = serviceErrorFor(status, String(payload.model), detail);
   if (service) throw service;
   throw new KieServiceError(
@@ -420,7 +457,92 @@ export const FAILED_STATUSES: Record<string, string> = {
   CALLBACK_EXCEPTION: "A geração foi interrompida pelo provedor. Tente gerar novamente.",
   SENSITIVE_WORD_ERROR:
     "O kie.ai rejeitou a música por conteúdo inadequado. Ajuste a letra (evite letras de terceiros) e gere de novo.",
+  FAILED: "O kie.ai não conseguiu concluir a geração. Sua cota foi devolvida — tente de novo.",
+  CANCELED: "A geração foi cancelada pelo provedor. Sua cota foi devolvida — tente de novo.",
+  CANCELLED: "A geração foi cancelada pelo provedor. Sua cota foi devolvida — tente de novo.",
 };
+
+/**
+ * Mensagem amigável para um status remoto de falha (qualquer caixa).
+ * `null` quando o status não é uma falha — assim nenhum status novo do kie.ai
+ * deixa o hit preso em "processing" para sempre.
+ */
+export function kieFailedMessage(status: string): string | null {
+  const key = String(status || "").trim().toUpperCase();
+  if (FAILED_STATUSES[key]) return FAILED_STATUSES[key];
+  if (/FAIL|CANCEL|ERROR|TIMEOUT/.test(key)) return FAILED_STATUSES.FAILED;
+  return null;
+}
+
+export type KieCallbackStatus = "success" | "failed" | "pending";
+
+export interface KieCallbackInfo {
+  /** task_id entregue pelo kie.ai (sem o prefixo `kie:`). */
+  taskId: string;
+  /** "first" (1ª faixa pronta), "complete" (todas) ou "" (legado). */
+  callbackType: string;
+  audioUrl: string | null;
+  duration: number | null;
+  status: KieCallbackStatus;
+  failureMessage: string | null;
+}
+
+function firstTrackUrl(tracks: any[]): string | null {
+  for (const track of tracks) {
+    const url = track?.audio_url || track?.audioUrl || track?.file_url || track?.fileUrl || track?.url;
+    if (typeof url === "string" && url.trim()) return url.trim();
+  }
+  return null;
+}
+
+/**
+ * Interpreta o corpo do callback do kie.ai.
+ *
+ * O contrato oficial (schema de `ai-music-api/generate`) entrega:
+ *   { code, msg, data: { callbackType, task_id, data: [ { audio_url, duration, ... } ] } }
+ * O `record-info` (polling) usa `data.response.sunoData[]` — aceitamos as duas
+ * formas, inclusive com chaves em camelCase, para o callback não virar código morto.
+ */
+export function parseKieCallback(body: any): KieCallbackInfo {
+  const data = body?.data && typeof body.data === "object" ? body.data : {};
+  const taskId = String(data.task_id || data.taskId || body?.taskId || "");
+  const callbackType = String(data.callbackType || "");
+
+  const tracks: any[] = Array.isArray(data.data)
+    ? data.data
+    : Array.isArray(data.response?.sunoData)
+      ? data.response.sunoData
+      : Array.isArray(data.sunoData)
+        ? data.sunoData
+        : Array.isArray(body?.response?.sunoData)
+          ? body.response.sunoData
+          : [];
+
+  const looseUrl = [data.audioUrl, data.fileUrl, body?.audioUrl, body?.fileUrl].find(
+    (u) => typeof u === "string" && u.trim()
+  );
+  const audioUrl = firstTrackUrl(tracks) || (looseUrl ? String(looseUrl).trim() : null);
+
+  const rawDuration = tracks[0]?.duration ?? data.duration;
+  const duration = Number.isFinite(Number(rawDuration)) && Number(rawDuration) > 0 ? Number(rawDuration) : null;
+
+  const code = Number(body?.code);
+  const failedByCode = Number.isFinite(code) && code !== 200;
+  const failedMessage = kieFailedMessage(data.status || "") || (failedByCode ? String(body?.msg || "").slice(0, 300) || null : null);
+
+  let status: KieCallbackStatus = "pending";
+  if (failedMessage) status = "failed";
+  else if (audioUrl) status = "success";
+
+  return {
+    taskId,
+    callbackType,
+    audioUrl,
+    duration,
+    status,
+    failureMessage: status === "failed" ? failedMessage : null,
+  };
+}
 
 const statusCache = new Map<string, { at: number; value: ReplicatePredictionResponse & { alreadySaved?: boolean } }>();
 
@@ -498,7 +620,7 @@ export async function getKiePredictionStatus(
 
   if (remoteStatus === "SUCCESS") {
     const tracks: any[] = Array.isArray(data?.response?.sunoData) ? data.response.sunoData : [];
-    const audioUrl = tracks[0]?.audioUrl || null;
+    const audioUrl = tracks[0]?.audioUrl || tracks[0]?.audio_url || null;
     if (audioUrl) {
       result = {
         id: predictionId,
@@ -518,13 +640,14 @@ export async function getKiePredictionStatus(
         logs: null,
       };
     }
-  } else if (FAILED_STATUSES[remoteStatus]) {
+  } else if (kieFailedMessage(remoteStatus)) {
     const providerMessage = String(data?.errorMessage || "").slice(0, 300);
+    const failedMessage = kieFailedMessage(remoteStatus)!;
     result = {
       id: predictionId,
       status: "failed",
       output: null,
-      error: providerMessage ? `${FAILED_STATUSES[remoteStatus]} (${providerMessage})` : FAILED_STATUSES[remoteStatus],
+      error: providerMessage ? `${failedMessage} (${providerMessage})` : failedMessage,
       logs: null,
     };
   } else {
@@ -732,7 +855,7 @@ export async function testKieMusicGeneration(
         return report;
       }
       last = body?.data;
-      if (last?.status === "SUCCESS" || FAILED_STATUSES[last?.status]) break;
+      if (last?.status === "SUCCESS" || kieFailedMessage(last?.status || "")) break;
     } catch (err: any) {
       report.error = `Erro ao acompanhar a geração: ${err?.message || err}`;
       report.durationMs = Date.now() - started;
@@ -744,7 +867,7 @@ export async function testKieMusicGeneration(
 
   if (last?.status === "SUCCESS") {
     const tracks: any[] = Array.isArray(last?.response?.sunoData) ? last.response.sunoData : [];
-    const remote = tracks[0]?.audioUrl;
+    const remote = tracks[0]?.audioUrl || tracks[0]?.audio_url;
     if (remote) {
       try {
         const url = await resolveDownloadUrl(config.apiKey, remote);
@@ -756,8 +879,8 @@ export async function testKieMusicGeneration(
     }
     report.ok = !!report.audioUrl;
     if (!report.ok) report.error = "Tarefa concluída, mas o kie.ai não devolveu o áudio.";
-  } else if (last?.status && FAILED_STATUSES[last.status]) {
-    report.error = FAILED_STATUSES[last.status];
+  } else if (last?.status && kieFailedMessage(last.status)) {
+    report.error = kieFailedMessage(last.status)!;
   } else {
     report.error = `Tempo esgotado (${Math.round(report.durationMs / 1000)}s): geração ainda "${last?.status || "?"}".`;
   }

@@ -27,8 +27,9 @@ import {
   setKieStatusCache,
   resolveDownloadUrl,
   getKieMusicConfig,
-  FAILED_STATUSES 
+  parseKieCallback
 } from "../lib/kie-music.js";
+import { saveDemoSuccess, saveDemoFailure } from "../lib/music-demo-sync.js";
 
 const router: IRouter = Router();
 
@@ -50,24 +51,6 @@ async function getPlanMusicLimit(plano: string): Promise<number> {
     console.warn("[AI Music] Falha ao ler limite do plano no banco:", err);
   }
   return 0;
-}
-
-// Devolve 1 cota de música quando a geração falha — o artista pagou por um hit que não recebeu.
-// Só estorna se a demo foi criada no mesmo ciclo mensal da cota (evita mexer na cota do mês seguinte).
-async function refundMusicCredit(artistId: number, demoCreatedAt: Date): Promise<void> {
-  try {
-    const now = new Date();
-    const created = new Date(demoCreatedAt);
-    if (created.getMonth() !== now.getMonth() || created.getFullYear() !== now.getFullYear()) return;
-
-    await db
-      .update(artistsTable)
-      .set({ aiMusicQueriesCount: sql`GREATEST(${artistsTable.aiMusicQueriesCount} - 1, 0)` })
-      .where(eq(artistsTable.id, artistId));
-    console.log(`[AI Music] Cota devolvida ao artista ${artistId} após falha da geração.`);
-  } catch (err) {
-    console.warn(`[AI Music] Falha ao devolver cota do artista ${artistId}:`, err);
-  }
 }
 
 // GET /api/ai/config/status - Retorna status dos gateways de IA
@@ -435,43 +418,32 @@ router.get("/ai/music/status/:id", async (req, res): Promise<void> => {
     // Consultar status da geração (kie: tarefa remota, orw: job em memória, senão Replicate)
     const statusResult = await getMusicPredictionStatus(demo.predictionId);
 
-    if (statusResult.status === "succeeded" && statusResult.output) {
+    if (statusResult.status === "succeeded") {
       const remoteUrl = Array.isArray(statusResult.output) ? statusResult.output[0] : statusResult.output;
-      let finalAudioUrl = demo.audioUrl;
 
-      if (remoteUrl && typeof remoteUrl === "string") {
+      if (typeof remoteUrl === "string" && remoteUrl) {
         // OpenRouter já salvou o arquivo no job (R2/local); Replicate devolve URL remota.
-        finalAudioUrl = statusResult.alreadySaved
-          ? remoteUrl
-          : await downloadAndSaveGeneratedAudio(remoteUrl, demo.titulo);
+        const updatedDemo = await saveDemoSuccess(demo, remoteUrl, {
+          alreadySaved: statusResult.alreadySaved ?? false,
+        });
+        res.json(updatedDemo);
+        return;
       }
 
-      const [updatedDemo] = await db
-        .update(aiMusicDemosTable)
-        .set({
-          status: "completed",
-          audioUrl: finalAudioUrl,
-        })
-        .where(eq(aiMusicDemosTable.id, demoId))
-        .returning();
-
-      res.json(updatedDemo);
+      // Sucesso sem áudio: marca como falha para devolver a cota em vez de
+      // gravar um hit "completed" sem playback.
+      res.json(
+        await saveDemoFailure(demo, "O provedor concluiu a geração mas não devolveu o áudio. Tente gerar de novo.")
+      );
       return;
     }
 
     if (statusResult.status === "failed" || statusResult.status === "canceled") {
-      const [failedDemo] = await db
-        .update(aiMusicDemosTable)
-        .set({
-          status: "failed",
-          error: statusResult.error || "A geração da música foi cancelada ou falhou.",
-        })
-        .where(eq(aiMusicDemosTable.id, demoId))
-        .returning();
-
-      // O artista não recebeu o áudio: devolve a cota consumida na submissão.
-      await refundMusicCredit(demo.artistaId, demo.createdAt);
-
+      // O artista não recebeu o áudio: saveDemoFailure devolve a cota consumida na submissão.
+      const failedDemo = await saveDemoFailure(
+        demo,
+        statusResult.error || "A geração da música foi cancelada ou falhou."
+      );
       res.json(failedDemo);
       return;
     }
@@ -907,6 +879,8 @@ router.post("/ai/kie/download-url", async (req, res): Promise<void> => {
  * Valida a assinatura HMAC-SHA256 via headers X-Webhook-Timestamp e X-Webhook-Signature.
  */
 async function handleKieWebhook(req: any, res: any): Promise<void> {
+  // Origem do callback: sem ip/ua não dá para separar teste local (curl) de tráfego real do kie.ai.
+  const source = `ip=${req.ip || "?"} ua=${req.get?.("user-agent") || "-"}`;
   try {
     const hmacKey = await getKieWebhookHmacKey();
 
@@ -915,7 +889,7 @@ async function handleKieWebhook(req: any, res: any): Promise<void> {
     // `kie_webhook_hmac_key` no painel admin (ou KIE_WEBHOOK_HMAC_KEY).
     if (!hmacKey) {
       console.error(
-        "[kie.ai Webhook] kie_webhook_hmac_key ausente — requisição recusada (fail-closed). Configure no painel admin em Configurações → IA."
+        `[kie.ai Webhook] kie_webhook_hmac_key ausente — requisição recusada (fail-closed). Configure no painel admin em Configurações → IA. | ${source}`
       );
       res.status(503).json({ error: "Webhook HMAC key not configured" });
       return;
@@ -923,95 +897,83 @@ async function handleKieWebhook(req: any, res: any): Promise<void> {
 
     const verification = verifyKieWebhookSignature(req.headers, req.body, hmacKey);
     if (!verification.valid) {
-      console.warn(`[kie.ai Webhook] Assinatura HMAC rejeitada: ${verification.error}`);
+      const hint =
+        verification.error === "Missing signature headers"
+          ? " | kie.ai não enviou os headers: habilite a assinatura HMAC em kie.ai/settings e cadastre a mesma chave como kie_webhook_hmac_key"
+          : "";
+      console.warn(`[kie.ai Webhook] Assinatura HMAC rejeitada: ${verification.error}${hint} | ${source}`);
       res.status(401).json({ error: verification.error || "Invalid signature" });
       return;
     }
-    console.log(`[kie.ai Webhook] Assinatura HMAC verificada com sucesso (taskId=${verification.taskId})`);
 
-    const { code, msg, data } = req.body || {};
-    const callbackData = data && typeof data === "object" ? data : {};
-    const taskId = String(callbackData.task_id || callbackData.taskId || req.body?.taskId || "");
-    const callbackType = callbackData.callbackType || "";
-
-    if (!taskId) {
+    const info = parseKieCallback(req.body);
+    if (!info.taskId) {
+      console.warn(`[kie.ai Webhook] Callback assinado sem task_id | ${source}`);
       res.status(400).json({ error: "Missing task_id" });
       return;
     }
 
-    console.log(`[kie.ai Webhook] Callback recebido — taskId=${taskId} code=${code} type=${callbackType}`);
+    console.log(
+      `[kie.ai Webhook] Callback taskId=${info.taskId} type=${info.callbackType || "-"} status=${info.status} ` +
+        `audio=${info.audioUrl ? "sim" : "não"} code=${req.body?.code} | ${source}`
+    );
 
-    const predictionId = `kie:${taskId}`;
-
-    // Buscar demo correspondente no banco
+    const predictionId = `kie:${info.taskId}`;
     const demos = await db
       .select()
       .from(aiMusicDemosTable)
       .where(eq(aiMusicDemosTable.predictionId, predictionId));
-
     const demo = demos[0];
-    const remoteStatus = String(callbackData.status || (code === 200 ? "SUCCESS" : "FAILED"));
 
-    if (remoteStatus === "SUCCESS" || code === 200) {
-      const tracks: any[] = Array.isArray(callbackData?.response?.sunoData)
-        ? callbackData.response.sunoData
-        : [];
-      const remoteAudio = tracks[0]?.audioUrl || callbackData.audioUrl || callbackData.fileUrl || null;
+    if (info.status === "success" && info.audioUrl) {
+      const config = await getKieMusicConfig();
+      const resolvedUrl = config.apiKey ? await resolveDownloadUrl(config.apiKey, info.audioUrl) : info.audioUrl;
 
-      if (remoteAudio) {
-        const config = await getKieMusicConfig();
-        const resolvedUrl = config.apiKey ? await resolveDownloadUrl(config.apiKey, remoteAudio) : remoteAudio;
-
-        let finalAudioUrl = resolvedUrl;
-        if (demo) {
-          finalAudioUrl = await downloadAndSaveGeneratedAudio(resolvedUrl, demo.titulo);
-          await db
-            .update(aiMusicDemosTable)
-            .set({
-              status: "completed",
-              audioUrl: finalAudioUrl,
-            })
-            .where(eq(aiMusicDemosTable.id, demo.id));
-          console.log(`[kie.ai Webhook] Hit salvo com sucesso — demoId=${demo.id} audio=${finalAudioUrl}`);
-        }
-
-        setKieStatusCache(taskId, {
+      if (demo) {
+        // Já concluído (callback "first" + "complete"): não rebaixa o arquivo.
+        const saved = await saveDemoSuccess(demo, resolvedUrl, { duration: info.duration });
+        setKieStatusCache(info.taskId, {
           id: predictionId,
           status: "succeeded",
-          output: finalAudioUrl,
+          output: saved.audioUrl || resolvedUrl,
           error: null,
           logs: null,
-          alreadySaved: !!demo,
+          alreadySaved: true,
         });
+        console.log(
+          `[kie.ai Webhook] Hit salvo — demoId=${saved.id} anterior=${demo.status} audio=${saved.audioUrl}`
+        );
+      } else {
+        setKieStatusCache(info.taskId, {
+          id: predictionId,
+          status: "succeeded",
+          output: resolvedUrl,
+          error: null,
+          logs: null,
+          alreadySaved: false,
+        });
+        console.warn(`[kie.ai Webhook] Áudio recebido sem demo correspondente (taskId=${info.taskId}) — nada a salvar.`);
       }
-    } else if (FAILED_STATUSES[remoteStatus] || (code && code !== 200)) {
-      const errMessage = String(
-        callbackData.errorMessage || msg || FAILED_STATUSES[remoteStatus] || "Falha na geração do áudio"
-      );
-
-      if (demo && demo.status !== "failed" && demo.status !== "completed") {
-        await db
-          .update(aiMusicDemosTable)
-          .set({
-            status: "failed",
-            error: errMessage,
-          })
-          .where(eq(aiMusicDemosTable.id, demo.id));
-
-        await refundMusicCredit(demo.artistaId, demo.createdAt);
-        console.log(`[kie.ai Webhook] Falha registrada e cota devolvida — demoId=${demo.id} erro=${errMessage}`);
-      }
-
-      setKieStatusCache(taskId, {
+    } else if (info.status === "failed") {
+      const errMessage = info.failureMessage || "Falha na geração do áudio";
+      setKieStatusCache(info.taskId, {
         id: predictionId,
         status: "failed",
         output: null,
         error: errMessage,
         logs: null,
       });
+      if (demo) {
+        const failed = await saveDemoFailure(demo, errMessage);
+        console.log(`[kie.ai Webhook] Falha registrada — demoId=${failed.id} erro=${errMessage}`);
+      }
+    } else {
+      // Sem resultado ainda (ex.: callbackType "text"): o polling/varredura fecha o hit.
+      console.log(`[kie.ai Webhook] Callback sem áudio ainda (taskId=${info.taskId}) — aguardando polling.`);
     }
 
-    res.status(200).json({ status: "received", taskId });
+    // Resposta no formato documentado pelo kie.ai para o endpoint de callback.
+    res.status(200).json({ code: 200, msg: "success", taskId: info.taskId });
   } catch (error: any) {
     console.error("[kie.ai Webhook] Erro ao processar webhook:", error);
     // Libera a marca de replay: o kie.ai pode reenviar este callback e ele

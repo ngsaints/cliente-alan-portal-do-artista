@@ -370,11 +370,11 @@ router.delete("/songs/:id", async (req, res): Promise<void> => {
     // Delete local files
     if (deleted.capaPath) {
       const localPath = path.join(process.cwd(), deleted.capaPath.replace("/api/", ""));
-      fs.unlink(localPath, (err) => { if (err) console.error("Error deleting cover:", err); });
+      fs.unlink(localPath, (err) => { if (err && err.code !== "ENOENT") console.error("Error deleting cover:", err); });
     }
     if (deleted.mp3Path) {
       const localPath = path.join(process.cwd(), deleted.mp3Path.replace("/api/", ""));
-      fs.unlink(localPath, (err) => { if (err) console.error("Error deleting audio:", err); });
+      fs.unlink(localPath, (err) => { if (err && err.code !== "ENOENT") console.error("Error deleting audio:", err); });
     }
   }
 

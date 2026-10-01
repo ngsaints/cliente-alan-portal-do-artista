@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 
 process.env.DATABASE_URL = 'postgres://test:test@127.0.0.1:1/test';
-const { verifyKieWebhookSignature, releaseKieWebhookReplay } = await import('./src/lib/kie-music.js');
+const { verifyKieWebhookSignature, releaseKieWebhookReplay, parseKieCallback, kieFailedMessage } = await import(
+  './src/lib/kie-music.js'
+);
+const { extractJsonObject } = await import('./src/lib/openrouter.js');
 
 const SECRET = 'segredo-de-teste';
 const TASK = 'task-abc-123';
@@ -118,7 +121,81 @@ function call(overrides: {
   assert.equal(verifyKieWebhookSignature(headers, body, SECRET).valid, true, 'reenvio após 500 deveria passar');
 }
 
-// 12. integração: sem chave HMAC configurada o endpoint responde 503 (fail-closed)
+// 12. payload oficial do callback (data.data[0].audio_url)
+{
+  const info = parseKieCallback({
+    code: 200,
+    msg: 'All generated successfully.',
+    data: {
+      callbackType: 'complete',
+      task_id: TASK,
+      data: [{ id: 'x', audio_url: 'https://cdn.kie/um.mp3', duration: 54.36 }],
+    },
+  });
+  assert.equal(info.taskId, TASK, 'task_id deve sair de data.task_id');
+  assert.equal(info.status, 'success', `esperava success, veio ${info.status}`);
+  assert.equal(info.audioUrl, 'https://cdn.kie/um.mp3');
+  assert.equal(info.callbackType, 'complete');
+  assert.equal(info.duration, 54.36);
+}
+
+// 13. callback da primeira faixa já é suficiente para salvar o hit
+{
+  const info = parseKieCallback({
+    code: 200,
+    data: { callbackType: 'first', task_id: TASK, data: [{ audio_url: 'https://cdn.kie/a.mp3' }] },
+  });
+  assert.equal(info.status, 'success');
+  assert.equal(info.callbackType, 'first');
+}
+
+// 14. formato do record-info (response.sunoData em camelCase) também é aceito
+{
+  const info = parseKieCallback({
+    data: {
+      task_id: TASK,
+      status: 'SUCCESS',
+      response: { sunoData: [{ audioUrl: 'https://cdn.kie/b.mp3' }] },
+    },
+  });
+  assert.equal(info.status, 'success');
+  assert.equal(info.audioUrl, 'https://cdn.kie/b.mp3');
+}
+
+// 15. code != 200 vira falha com a mensagem do provedor (cota devolvida)
+{
+  const info = parseKieCallback({ code: 501, msg: 'Audio generation failed', data: { task_id: TASK } });
+  assert.equal(info.status, 'failed', `esperava failed, veio ${info.status}`);
+  assert.match(String(info.failureMessage), /Audio generation failed/);
+}
+
+// 16. status remoto de erro não documentado (ex.: FAILED) não deixa o hit preso em processing
+{
+  const info = parseKieCallback({ code: 200, data: { task_id: TASK, status: 'failed' } });
+  assert.equal(info.status, 'failed');
+  assert.equal(kieFailedMessage('failed'), kieFailedMessage('FAILED'));
+}
+
+// 17. callback sem áudio ainda (ex.: callbackType text) é só um ack — nem sucesso nem falha
+{
+  const info = parseKieCallback({ code: 200, data: { task_id: TASK, callbackType: 'text' } });
+  assert.equal(info.status, 'pending', `esperava pending, veio ${info.status}`);
+  assert.equal(info.audioUrl, null);
+}
+
+// 18. extração de JSON: prosa, cercas de código e chaves dentro de strings
+{
+  const prose = `Claro! Aqui está:\n\`\`\`json\n{"optimizedLyrics":"[Chorus]\\nSó você","tips":["ok"]}\n\`\`\``;
+  const parsed = extractJsonObject(prose);
+  assert.equal(parsed?.optimizedLyrics, '[Chorus]\nSó você', `prosa/cerca não extraída: ${JSON.stringify(parsed)}`);
+
+  const inline = extractJsonObject('Sure thing: {"lyrics":"tem {chaves} na string"} — done');
+  assert.equal(inline?.lyrics, 'tem {chaves} na string');
+
+  assert.equal(extractJsonObject('Here is a nice song for you, no json at all.'), null);
+}
+
+// 19. integração: sem chave HMAC configurada o endpoint responde 503 (fail-closed)
 {
   delete process.env.KIE_WEBHOOK_HMAC_KEY;
   delete process.env.WEBHOOK_HMAC_KEY;
@@ -158,4 +235,4 @@ function call(overrides: {
   await new Promise<void>((resolve) => server.close(() => resolve()));
 }
 
-console.log('✅ kie-webhook.test: 12 cenários passaram');
+console.log('✅ kie-webhook.test: 19 cenários passaram');

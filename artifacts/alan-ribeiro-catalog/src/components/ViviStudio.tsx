@@ -645,10 +645,20 @@ export function ViviStudio({
         setPromptExtra(data.suggestedPrompt);
       }
 
-      toast({
-        title: "Letra aprimorada com sucesso!",
-        description: "Estruturei as tags [Intro], [Verse], [Chorus] e otimizei a métrica da sua letra.",
-      });
+      if (data.fallback) {
+        // A IA não devolveu a letra estruturada: mantivemos a do artista.
+        toast({
+          title: "Não consegui estruturar a letra",
+          description:
+            "Sua letra original continua no editor. Tente otimizar de novo em instantes.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Letra aprimorada com sucesso!",
+          description: "Estruturei as tags [Intro], [Verse], [Chorus] e otimizei a métrica da sua letra.",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao aprimorar letra",

@@ -8,6 +8,7 @@ initLogger();
 import app from "./app";
 import { startReactivation } from './lib/reactivation';
 import { startSubscriptionExpiry } from './lib/subscriptions';
+import { startMusicDemoSync } from './lib/music-demo-sync';
 import { pool, db, appSettingsTable } from "@workspace/db";
 
 async function syncAppSettingsToEnv() {
@@ -79,5 +80,7 @@ app.listen(port, () => {
     await syncAppSettingsToEnv();
     startReactivation();
     startSubscriptionExpiry();
+    // Garante que hits do kie.ai fechem mesmo sem callback (HMAC desligado) ou com a aba do artista fechada.
+    startMusicDemoSync();
   });
 });

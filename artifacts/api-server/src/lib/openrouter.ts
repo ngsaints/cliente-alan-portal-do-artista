@@ -222,6 +222,95 @@ export async function callOpenRouter(opts: OpenRouterOptions): Promise<OpenRoute
   };
 }
 
+const JSON_ONLY_INSTRUCTION = `
+IMPORTANTE: responda SOMENTE com o objeto JSON pedido, sem texto antes ou depois, sem comentários e sem cercas de código.`;
+
+/**
+ * Extrai o primeiro objeto JSON válido de uma resposta em texto livre.
+ * Os modelos free chegam a responder em prosa ("Here's a t..."), a ignorar a
+ * estrutura pedida ou a envolver o JSON em ```json — todos os casos são
+ * recuperados aqui em vez de mandar lixo para o artista.
+ */
+export function extractJsonObject(content: string): Record<string, any> | null {
+  if (!content || typeof content !== "string") return null;
+
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidates = [content.trim(), ...(fenced ? [fenced[1].trim()] : [])];
+
+  for (const text of candidates) {
+    const start = text.indexOf("{");
+    if (start === -1) continue;
+    const slice = matchJsonObject(text, start);
+    if (!slice) continue;
+    try {
+      const parsed = JSON.parse(slice);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    } catch {
+      /* candidato inválido: tenta o próximo */
+    }
+  }
+  return null;
+}
+
+/** Varre o texto a partir de `start` até fechar o objeto respeitando strings e escapes. */
+function matchJsonObject(text: string, start: number): string | null {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+/**
+ * Pede JSON ao modelo e devolve o objeto já parseado.
+ * Se a resposta vier em prosa, repete uma vez com instrução mais estrita e
+ * temperatura baixa. `null` só no caso de nenhuma das tentativas ter JSON.
+ */
+async function callForJsonObject(opts: {
+  system: string;
+  user: string;
+  temperature?: number;
+  maxTokens?: number;
+}): Promise<Record<string, any> | null> {
+  const temperature = opts.temperature ?? 0.6;
+  const maxTokens = opts.maxTokens ?? 4000;
+
+  const ask = (user: string, temp: number) =>
+    callOpenRouter({
+      system: opts.system + JSON_ONLY_INSTRUCTION,
+      messages: [{ role: "user", content: user }],
+      model: VIVI_FREE_MODEL,
+      fallbacks: VIVI_FREE_FALLBACKS,
+      temperature: temp,
+      maxTokens,
+    });
+
+  const first = await ask(opts.user, temperature);
+  const parsed = extractJsonObject(first.content);
+  if (parsed) return parsed;
+
+  console.warn(
+    "[Vivi] Resposta da IA não era JSON válido — repetindo com instrução mais estrita:",
+    String(first.content || "").slice(0, 160)
+  );
+  const second = await ask(`${opts.user}\n\nLembrete final: devolva somente o objeto JSON.`, 0.2);
+  return extractJsonObject(second.content);
+}
+
 /**
  * Otimiza a letra do compositor para o padrão aceito pelo MiniMax Music 2.6
  * inserindo tags estruturais [Intro], [Verse], [Chorus], [Bridge], [Outro] e sugerindo o prompt musical perfeito.
@@ -238,6 +327,8 @@ export async function optimizeLyricsForMiniMax(params: {
   optimizedLyrics: string;
   suggestedPrompt: string;
   tips: string[];
+  /** true quando a IA não devolveu JSON e mantivemos a letra original do artista. */
+  fallback?: boolean;
 }> {
   const systemPrompt = `Você é a Vivi, a produtora musical e especialista em composição do PORTALDOARTISTA.COM.
 Sua especialidade é estruturar letras de músicas em português do Brasil no formato ideal para motores de síntese vocal por IA (especialmente MiniMax Music 2.6).
@@ -276,35 +367,32 @@ ${params.lyrics}
 
 Por favor, estruture a letra para o formato do MiniMax e forneça o prompt musical ideal em JSON.`;
 
-  const response = await callOpenRouter({
-    system: systemPrompt,
-    messages: [{ role: "user", content: userPrompt }],
-    model: VIVI_FREE_MODEL,
-    fallbacks: VIVI_FREE_FALLBACKS,
-    temperature: 0.6,
-  });
+  const parsed = await callForJsonObject({ system: systemPrompt, user: userPrompt, temperature: 0.6 });
+  const optimizedLyrics = typeof parsed?.optimizedLyrics === "string" ? parsed.optimizedLyrics.trim() : "";
 
-  try {
-    let clean = response.content.trim();
-    if (clean.startsWith("```json")) {
-      clean = clean.replace(/^```json/, "").replace(/```$/, "").trim();
-    } else if (clean.startsWith("```")) {
-      clean = clean.replace(/^```/, "").replace(/```$/, "").trim();
-    }
-    const parsed = JSON.parse(clean);
+  if (optimizedLyrics) {
+    const suggested =
+      typeof parsed?.suggestedPrompt === "string" && parsed.suggestedPrompt.trim()
+        ? parsed.suggestedPrompt.trim()
+        : `${params.genre} com ${params.voice}, ${params.bpm || 120} BPM`;
     return {
-      optimizedLyrics: parsed.optimizedLyrics || params.lyrics,
-      suggestedPrompt: parsed.suggestedPrompt || `${params.genre} com ${params.voice}, ${params.bpm || 120} BPM`,
-      tips: Array.isArray(parsed.tips) ? parsed.tips : ["Letra formatada com sucesso para o gerador musical!"],
-    };
-  } catch (err) {
-    console.warn("Falha ao parsear JSON de otimização de letra, usando resposta direta:", err);
-    return {
-      optimizedLyrics: response.content,
-      suggestedPrompt: `${params.genre} estilo ${params.mood || "moderno"} com voz ${params.voice || "masculina"}, ${params.bpm || 120} BPM`,
-      tips: ["Letra estruturada com sucesso."],
+      optimizedLyrics,
+      suggestedPrompt: suggested,
+      tips: Array.isArray(parsed?.tips)
+        ? parsed.tips.filter((tip: unknown): tip is string => typeof tip === "string")
+        : ["Letra formatada com sucesso para o gerador musical!"],
     };
   }
+
+  // Nunca devolver a prosa do modelo como letra: o Estúdio substitui o texto do
+  // artista pelo que vier aqui. Mantemos a letra original e avisamos a interface.
+  console.warn("[Vivi] Otimização de letra sem JSON válido — mantendo a letra original do artista.");
+  return {
+    optimizedLyrics: params.lyrics,
+    suggestedPrompt: `${params.genre} estilo ${params.mood || "moderno"} com voz ${params.voice || "masculina"}, ${params.bpm || 120} BPM`,
+    tips: ["Não consegui estruturar desta vez — sua letra original foi mantida."],
+    fallback: true,
+  };
 }
 
 export interface ComposeLyricsParams {
@@ -364,37 +452,34 @@ Ideia/Tema do Artista:
 
 Por favor, componha a música completa agora.`;
 
-  const response = await callOpenRouter({
+  const parsed = await callForJsonObject({
     system: systemPrompt,
-    messages: [{ role: "user", content: userPrompt }],
-    model: VIVI_FREE_MODEL,
-    fallbacks: VIVI_FREE_FALLBACKS,
+    user: userPrompt,
     temperature: 0.8,
+    maxTokens: 4000,
   });
+  const lyrics = typeof parsed?.lyrics === "string" ? parsed.lyrics.trim() : "";
 
-  try {
-    let clean = response.content.trim();
-    if (clean.startsWith("```json")) {
-      clean = clean.replace(/^```json/, "").replace(/```$/, "").trim();
-    } else if (clean.startsWith("```")) {
-      clean = clean.replace(/^```/, "").replace(/```$/, "").trim();
-    }
-    const parsed = JSON.parse(clean);
-    return {
-      title: parsed.title || "Composição Inédita",
-      lyrics: parsed.lyrics || response.content,
-      suggestedPrompt: parsed.suggestedPrompt || `${params.genre} com ${params.voice || "voz marcante"}, ${params.bpm || 120} BPM`,
-      concept: parsed.concept || "Música composta com sucesso.",
-    };
-  } catch (err) {
-    console.warn("Falha ao parsear JSON de composição da Vivi:", err);
-    return {
-      title: "Composição Inédita",
-      lyrics: response.content,
-      suggestedPrompt: `${params.genre} estilo ${params.mood || "moderno"} com voz ${params.voice || "masculina"}, ${params.bpm || 120} BPM`,
-      concept: "Letra gerada com sucesso pela Vivi.",
-    };
+  if (!lyrics) {
+    // Sem JSON não há letra confiável: melhor erro claro do que preencher a
+    // caixa do artista com prosa em inglês.
+    console.warn("[Vivi] Composição sem JSON válido — nenhuma letra foi devolvida ao artista.");
+    throw new Error("A Vivi não conseguiu estruturar a música desta vez. Tente novamente em instantes.");
   }
+
+  return {
+    title:
+      typeof parsed?.title === "string" && parsed.title.trim() ? parsed.title.trim() : "Composição Inédita",
+    lyrics,
+    suggestedPrompt:
+      typeof parsed?.suggestedPrompt === "string" && parsed.suggestedPrompt.trim()
+        ? parsed.suggestedPrompt.trim()
+        : `${params.genre} com ${params.voice || "voz marcante"}, ${params.bpm || 120} BPM`,
+    concept:
+      typeof parsed?.concept === "string" && parsed.concept.trim()
+        ? parsed.concept.trim()
+        : "Música composta com sucesso.",
+  };
 }
 
 export interface ModelOption {
