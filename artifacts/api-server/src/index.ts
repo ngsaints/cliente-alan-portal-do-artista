@@ -54,7 +54,10 @@ async function ensureDbSchema() {
         duracao NUMERIC,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
-      CREATE INDEX IF NOT EXISTS idx_ai_music_demos_artista ON ai_music_demos(artista_id);
+        CREATE INDEX IF NOT EXISTS idx_ai_music_demos_artista ON ai_music_demos(artista_id);
+        ALTER TABLE ai_music_demos ADD COLUMN IF NOT EXISTS cover_audio_url TEXT;
+        ALTER TABLE ai_music_demos ADD COLUMN IF NOT EXISTS extend_audio_url TEXT;
+        ALTER TABLE ai_music_demos ADD COLUMN IF NOT EXISTS continue_at NUMERIC;
       ALTER TABLE plans ADD COLUMN IF NOT EXISTS music_credits_limit INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE plans ADD COLUMN IF NOT EXISTS replicate_model TEXT;
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS overdue_at TIMESTAMPTZ;

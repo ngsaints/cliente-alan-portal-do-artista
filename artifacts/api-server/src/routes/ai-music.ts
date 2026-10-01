@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import multer from "multer";
 import { db, aiMusicDemosTable, songsTable, artistsTable, subscriptionsTable, plansTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import { getCreditPackages, fulfillAiCreditPurchase } from "../lib/ai-credits.js";
@@ -18,6 +19,7 @@ import { startMusicGeneration, getMusicPredictionStatus } from "../lib/music-gat
 import { 
   uploadKieBase64File, 
   uploadKieUrlFile, 
+  uploadKieAudioFile,
   getKieCredits,
   getKieCreditDetails, 
   getKieDownloadUrl,
@@ -27,11 +29,54 @@ import {
   setKieStatusCache,
   resolveDownloadUrl,
   getKieMusicConfig,
-  parseKieCallback
+  parseKieCallback,
+  parseContinueAt
 } from "../lib/kie-music.js";
 import { saveDemoSuccess, saveDemoFailure } from "../lib/music-demo-sync.js";
+import { getPortalUrl } from "../lib/email.js";
 
 const router: IRouter = Router();
+
+/** Tamanho máximo (MB) do áudio de referência enviado no modo cover/estender. */
+const COVER_AUDIO_MAX_MB = 25;
+const COVER_AUDIO_MIMES = new Set([
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/mp4",
+  "audio/m4a",
+  "audio/x-m4a",
+  "audio/wav",
+  "audio/wave",
+  "audio/x-wav",
+  "audio/aac",
+  "audio/ogg",
+  "audio/webm",
+  "audio/flac",
+  "audio/x-flac",
+]);
+const COVER_AUDIO_EXTS = /\.(mp3|m4a|mp4|aac|wav|wave|ogg|oga|webm|flac)$/i;
+
+// Multer em memória: o buffer vai direto pra CDN temporária do kie.ai (nada fica no servidor).
+const coverAudioStorage = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: COVER_AUDIO_MAX_MB * 1024 * 1024 },
+});
+
+/** Middleware do multer que devolve JSON amigável quando o arquivo é grande demais. */
+const uploadCoverAudio = (req: any, res: any, next: any) => {
+  coverAudioStorage.single("audio")(req, res, (err: any) => {
+    if (err) {
+      const tooBig = err?.code === "LIMIT_FILE_SIZE";
+      res.status(tooBig ? 413 : 400).json({
+        error: tooBig
+          ? `O áudio de referência pode ter no máximo ${COVER_AUDIO_MAX_MB}MB. Corte o arquivo ou envie um MP3 mais leve.`
+          : err.message || "Não consegui ler o arquivo de áudio enviado.",
+      });
+      return;
+    }
+    next();
+  });
+};
 
 // Limites de geração de música por plano — 100% definido pelo admin em Planos (plans.ai_credits_limit)
 async function getPlanMusicLimit(plano: string): Promise<number> {
@@ -51,6 +96,21 @@ async function getPlanMusicLimit(plano: string): Promise<number> {
     console.warn("[AI Music] Falha ao ler limite do plano no banco:", err);
   }
   return 0;
+}
+
+/**
+ * URL do áudio fonte (referência do cover ou base do estender) no formato que o
+ * kie.ai aceita (HTTPS público). Caminho local (`/api/uploads/...`) vira URL
+ * absoluta do portal; o resto é repassado como está quando é HTTPS.
+ */
+async function normalizeSourceAudioUrl(raw: string): Promise<string | null> {
+  const value = raw.trim();
+  if (!value) return null;
+  if (value.startsWith("/")) {
+    const base = (await getPortalUrl()).trim().replace(/\/+$/, "");
+    return base ? `${base}${value}` : null;
+  }
+  return /^https:\/\//i.test(value) ? value : null;
 }
 
 // GET /api/ai/config/status - Retorna status dos gateways de IA
@@ -96,6 +156,9 @@ router.get("/ai/config/status", async (req, res): Promise<void> => {
         modelSource: replicate.modelSource,
         enabled: replicate.enabled,
         plan: plano ?? null,
+        // Modos com áudio fonte (cover e estender): só existem no kie.ai (Suno).
+        cover: replicate.provider === "kie",
+        coverMaxMb: COVER_AUDIO_MAX_MB,
       },
       image: {
         provider: imageConfig.provider,
@@ -266,16 +329,55 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
       return;
     }
 
-    const { title, lyrics, genre, mood, bpm, voice, prompt } = req.body;
+    const {
+      title,
+      lyrics,
+      genre,
+      mood,
+      bpm,
+      voice,
+      prompt,
+      coverAudioUrl,
+      extendAudioUrl,
+      continueAt,
+      audioWeight,
+      styleWeight,
+    } = req.body;
     if (!title || !title.trim()) {
       res.status(400).json({ error: "Informe o título da música." });
       return;
     }
 
-    if (!lyrics || !lyrics.trim()) {
+    // Modo cover: a referência é o áudio enviado pelo artista — a letra fica opcional.
+    const isCover = typeof coverAudioUrl === "string" && coverAudioUrl.trim().length > 0;
+    // Modo estender: continua um áudio fonte (hit do histórico ou arquivo enviado)
+    // a partir de um ponto — a letra também fica opcional.
+    const isExtend = typeof extendAudioUrl === "string" && extendAudioUrl.trim().length > 0;
+    if (isCover && isExtend) {
+      res.status(400).json({ error: "Envie apenas um áudio: ou a referência do cover, ou o hit para estender." });
+      return;
+    }
+
+    const rawSource = isCover ? String(coverAudioUrl) : String(extendAudioUrl);
+    const sourceUrl = isCover || isExtend ? await normalizeSourceAudioUrl(rawSource) : null;
+    if ((isCover || isExtend) && !sourceUrl) {
+      res.status(400).json({ error: "O áudio de referência não é uma URL válida. Envie o arquivo de novo." });
+      return;
+    }
+
+    // Estender exige o ponto de continuação (maior que 0 e dentro dos 8min da fonte).
+    const continueAtSeconds = isExtend ? parseContinueAt(continueAt) : null;
+    if (isExtend && continueAtSeconds === null) {
+      res.status(400).json({ error: "Escolha um ponto de continuação dentro da duração do áudio." });
+      return;
+    }
+
+    if (!isCover && !isExtend && (!lyrics || !lyrics.trim())) {
       res.status(400).json({ error: "Informe a letra ou estrutura musical da composição." });
       return;
     }
+
+    const finalLyrics = lyrics && lyrics.trim() ? lyrics.trim() : "";
 
     // Verificar créditos do artista
     const artists = await db.select().from(artistsTable).where(eq(artistsTable.id, sessionArtistId));
@@ -316,11 +418,16 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
       {
         title: title.trim(),
         prompt: prompt || "",
-        lyrics,
+        lyrics: finalLyrics,
         genre: genre || "Sertanejo",
         mood: mood || "Romântico",
         bpm: Number(bpm) || 120,
         voice: voice || "Masculina",
+        coverAudioUrl: isCover ? sourceUrl || undefined : undefined,
+        extendAudioUrl: isExtend ? sourceUrl || undefined : undefined,
+        continueAt: continueAtSeconds ?? undefined,
+        audioWeight: Number(audioWeight),
+        styleWeight: Number(styleWeight),
       },
       { plano }
     );
@@ -343,13 +450,17 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
       .values({
         artistaId: sessionArtistId,
         titulo: title.trim(),
-        letra: lyrics.trim(),
+        letra: finalLyrics || null,
         estilo: genre || "Sertanejo",
         voz: voice || "Masculina",
         bpm: Number(bpm) || 120,
         clima: mood || "Romântico",
         prompt: prompt || "",
         audioUrl: initialAudioUrl,
+        coverAudioUrl: isCover ? sourceUrl : null,
+        extendAudioUrl: isExtend ? sourceUrl : null,
+        // coluna NUMERIC do drizzle guarda como string
+        continueAt: continueAtSeconds === null ? null : String(continueAtSeconds),
         predictionId: prediction.id,
         status: initialStatus === "succeeded" ? "completed" : initialStatus,
       })
@@ -366,7 +477,8 @@ router.post("/ai/music/generate", async (req, res): Promise<void> => {
 
     console.log(
       `[AI Music] Geração de hit — artista=${artist.name} (id ${sessionArtistId}) plano=${plano} ` +
-        `cota=${currentMusicUsed + 1}/${musicTotalLimit} titulo="${title.trim()}" prediction=${prediction.id}`
+        `modo=${isExtend ? "estender" : isCover ? "cover" : "gerar"} cota=${currentMusicUsed + 1}/${musicTotalLimit} ` +
+        `titulo="${title.trim()}" prediction=${prediction.id}`
     );
 
     res.status(201).json(savedDemo);
@@ -815,6 +927,54 @@ router.post("/ai/kie/upload-url", async (req, res): Promise<void> => {
   } catch (error: any) {
     console.error("[kie.ai] Erro no upload por URL:", error);
     res.status(500).json({ error: error.message || "Falha ao enviar arquivo por URL para o kie.ai" });
+  }
+});
+
+/**
+ * POST /api/ai/kie/upload-audio — áudio de referência do modo cover.
+ * O arquivo sobe em memória (multer) e vai direto pra CDN temporária do kie.ai;
+ * a URL que volta é a que entra em `input.upload_url` da tarefa de cover.
+ * Campo: `audio` (multipart/form-data).
+ */
+router.post("/ai/kie/upload-audio", uploadCoverAudio, async (req, res): Promise<void> => {
+  try {
+    const isArtist = Boolean((req.session as any)?.artistId);
+    const isAdmin = Boolean((req.session as any)?.admin || (req.session as any)?.logado);
+    if (!isArtist && !isAdmin) {
+      res.status(401).json({ error: "Faça login para enviar o áudio de referência." });
+      return;
+    }
+
+    const file = req.file;
+    if (!file || !file.buffer?.length) {
+      res.status(400).json({ error: "Selecione um arquivo de áudio para enviar." });
+      return;
+    }
+
+    const mime = String(file.mimetype || "").toLowerCase();
+    if (!COVER_AUDIO_MIMES.has(mime) && !COVER_AUDIO_EXTS.test(String(file.originalname || ""))) {
+      res.status(415).json({ error: "Envie um áudio (MP3, M4A, WAV, AAC, OGG, FLAC ou WebM)." });
+      return;
+    }
+    if (file.buffer.length < 1024) {
+      res.status(400).json({ error: "Esse arquivo parece corrompido (vazio). Envie outro áudio." });
+      return;
+    }
+
+    const result = await uploadKieAudioFile(file.buffer, file.originalname);
+    if (!result.downloadUrl) {
+      res.status(502).json({ error: "O kie.ai aceitou o arquivo mas não devolveu o link. Tente de novo." });
+      return;
+    }
+
+    console.log(
+      `[kie.ai] Áudio de referência enviado — artista=${(req.session as any)?.artistId ?? "admin"} ` +
+        `arquivo="${result.fileName}" bytes=${file.buffer.length} url=${result.downloadUrl}`
+    );
+    res.json({ success: true, ...result, url: result.downloadUrl });
+  } catch (error: any) {
+    console.error("[kie.ai] Erro no upload do áudio de referência:", error);
+    res.status(500).json({ error: error.message || "Falha ao enviar o áudio para o kie.ai" });
   }
 });
 

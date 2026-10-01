@@ -13,6 +13,12 @@ export const aiMusicDemosTable = pgTable("ai_music_demos", {
   clima: text("clima"),
   prompt: text("prompt"),
   audioUrl: text("audio_url"),
+  /** Áudio de referência enviado pelo artista quando o hit foi gerado no modo cover (kie.ai). */
+  coverAudioUrl: text("cover_audio_url"),
+  /** Áudio fonte (hit do histórico ou arquivo enviado) quando o hit foi gerado no modo estender. */
+  extendAudioUrl: text("extend_audio_url"),
+  /** Ponto (segundos) do áudio fonte onde a continuação do modo estender começa. */
+  continueAt: numeric("continue_at"),
   predictionId: text("prediction_id"),
   status: text("status").notNull().default("completed"), // pending, processing, completed, failed
   error: text("error"),

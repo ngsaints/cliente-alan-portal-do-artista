@@ -48,13 +48,32 @@ export async function startMusicGeneration(
   // Fallback só existe se o Replicate estiver configurado E habilitado no painel.
   const canFallback = !!config.apiKey && config.enabled;
 
+  // Cover (áudio de referência) e estender (continuar um hit) são exclusivos do
+  // kie.ai: os outros provedores não têm essas tarefas e gerariam um hit do zero
+  // como se tivessem usado o áudio do artista.
+  const isCover = !!input.coverAudioUrl?.trim();
+  const isExtend = !!input.extendAudioUrl?.trim();
+  const usesSourceAudio = isCover || isExtend;
+  if (usesSourceAudio && config.provider !== "kie") {
+    const err: any = new Error(
+      isExtend
+        ? "O modo estender (continuar um hit) só está disponível enquanto o kie.ai estiver selecionado como provedor de música."
+        : "O modo cover (áudio de referência) só está disponível enquanto o kie.ai estiver selecionado como provedor de música."
+    );
+    err.status = 409;
+    err.code = isExtend ? "EXTEND_PROVIDER_UNAVAILABLE" : "COVER_PROVIDER_UNAVAILABLE";
+    throw err;
+  }
+
   if (config.provider === "kie") {
     try {
       const prediction = await startKieMusicGeneration(input, opts);
       console.log(`[AI Music] provider=kie id=${prediction.id}`);
       return prediction;
     } catch (err: any) {
-      if (!canFallback) throw err; // Sem Replicate configurado/habilitado não há para onde cair.
+      // Com áudio fonte não há fallback: cair no Replicate entregaria outro hit do zero
+      // e o artista pagaria por uma música que não usou o áudio dele.
+      if (!canFallback || usesSourceAudio) throw err;
       console.warn(
         `[AI Music] kie.ai indisponível (${err?.code || "erro"}), usando Replicate como fallback:`,
         err?.message || err

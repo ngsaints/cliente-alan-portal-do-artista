@@ -29,6 +29,22 @@ export interface MiniMaxMusicInput {
   mood?: string;
   /** Título da música (usado como nome do arquivo de áudio salvo). */
   title?: string;
+  /**
+   * Modo cover: URL pública do áudio de referência (já enviado ao kie.ai).
+   * Presente = gerar cover mantendo a melodia, em vez de gerar do zero.
+   */
+  coverAudioUrl?: string;
+  /**
+   * Modo estender: URL pública do áudio fonte (um hit já gerado ou um arquivo
+   * enviado). Presente = continuar a partir de `continueAt` em vez de gerar do zero.
+   */
+  extendAudioUrl?: string;
+  /** Modo estender: ponto (segundos) do áudio fonte onde a continuação começa. */
+  continueAt?: number;
+  /** Modo cover/estender: quanto o áudio fonte pesa (0–1). */
+  audioWeight?: number;
+  /** Modo cover/estender: quanto o estilo pedido pelo artista pesa (0–1). */
+  styleWeight?: number;
 }
 
 export interface ReplicatePredictionResponse {

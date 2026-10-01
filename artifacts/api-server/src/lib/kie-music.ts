@@ -23,8 +23,21 @@ import { sendAdminAlert, getPortalUrl } from "./email.js";
  * (`kie:<taskId>`) continua consultável depois de um restart da API.
  */
 const KIE_BASE_URL = "https://api.kie.ai";
+/**
+ * Host dos endpoints de arquivo (upload de imagem/áudio) — é outro domínio e NÃO
+ * aceita os caminhos do api.kie.ai (lá dá 404). Testado em 2026-10-01.
+ */
+const KIE_UPLOAD_BASE_URL = "https://kieai.redpandaai.co";
 /** "Modelo" da tarefa na API unificada do kie.ai (o modelo de música vai em input.model). */
 const KIE_TASK_MODEL = "ai-music-api/generate";
+/** Tarefa de cover: transforma um áudio enviado pelo artista mantendo a melodia (Suno). */
+const KIE_COVER_TASK_MODEL = "ai-music-api/upload-and-cover-audio";
+/** Tarefa de extensão: continua um áudio a partir de um ponto, preservando o estilo (Suno). */
+const KIE_EXTEND_TASK_MODEL = "ai-music-api/upload-and-extend-audio";
+/** Fonte de áudio pode ter no máximo 8 minutos (limite das tarefas de cover/estender). */
+export const KIE_SOURCE_MAX_SECONDS = 8 * 60;
+/** Título aceita até 100 caracteres na extensão (a cover limita em 80). */
+const KIE_EXTEND_TITLE_MAX = 100;
 
 /** Modelos de música publicados pelo kie.ai (Suno). */
 export const KIE_MUSIC_MODELS = ["V6", "V6_MINI", "V6_WILD", "V5_5", "V5", "V4_5PLUS", "V4_5ALL", "V4_5", "V4"];
@@ -83,8 +96,14 @@ export async function listKieMusicModels(): Promise<{ ids: string[]; live: boole
   return { ids: [...KIE_MUSIC_MODELS], live: false };
 }
 
-/** Duração pedida por música (mesma referência de custo do catálogo). */
-const KIE_SONG_SECONDS = 60;
+/**
+ * Duração pedida ao Suno (só nos modelos V6, faixa 10–360s).
+ * Um valor fixo de 60s cortava a música no meio da letra (150 palavras cabem em
+ * ~3 min, não em 1), então a duração sai do tamanho da letra via
+ * `estimateSongSeconds` e o admin pode forçar um valor fixo em `kie_music_seconds`.
+ */
+const KIE_SONG_SECONDS_MIN = 90;
+const KIE_SONG_SECONDS_MAX = 360;
 const KIE_TIMEOUT_MS = 20 * 1000;
 const KIE_POLL_CACHE_MS = 3 * 1000;
 const KIE_TEST_TIMEOUT_MS = 3 * 60 * 1000;
@@ -163,13 +182,15 @@ async function kieFetch(
   apiKey: string,
   path: string,
   init: RequestInit = {},
-  timeoutMs = KIE_TIMEOUT_MS
+  timeoutMs = KIE_TIMEOUT_MS,
+  baseUrl: string = KIE_BASE_URL
 ): Promise<KieHttpResult> {
-  const res = await fetch(`${KIE_BASE_URL}${path}`, {
+  const res = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      // Só JSON quando o corpo é string: FormData (upload de áudio) precisa do boundary do fetch.
+      ...(typeof init.body === "string" ? { "Content-Type": "application/json" } : {}),
       ...((init.headers as Record<string, string>) || {}),
     },
     signal: AbortSignal.timeout(timeoutMs),
@@ -298,11 +319,90 @@ function serviceErrorFor(status: number, model: string, detail: string): KieServ
 // ─── Payload ────────────────────────────────────────────────────────────────
 
 /**
+ * Peso entre 0 e 1 (2 casas) para os ajustes das tarefas com áudio fonte
+ * (cover e estender). Valor ausente/inválido → `null` (campo opcional: melhor não enviar).
+ */
+function coverWeight(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(1, Math.max(0, Math.round(n * 100) / 100));
+}
+
+/**
+ * Tarefa do kie.ai para o pedido: estender quando há áudio fonte + ponto de
+ * continuação, cover quando há só o áudio de referência, geração do zero quando
+ * não há nenhum dos dois. Vai no campo `model` do createTask.
+ */
+export function kieTaskModelFor(input: MiniMaxMusicInput): string {
+  if (input.extendAudioUrl?.trim()) return KIE_EXTEND_TASK_MODEL;
+  return input.coverAudioUrl?.trim() ? KIE_COVER_TASK_MODEL : KIE_TASK_MODEL;
+}
+
+/**
+ * Ponto de continuação do modo estender, em segundos: maior que 0 e menor que a
+ * duração máxima da fonte (8 min). Fora da faixa devolve `null` e a rota recusa
+ * o pedido antes de gastar crédito.
+ */
+export function parseContinueAt(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0 || n >= KIE_SOURCE_MAX_SECONDS) return null;
+  return Math.round(n * 10) / 10;
+}
+
+/**
  * Payload no modo custom (title + style + lyrics), que é o que usamos:
  * o estilo sai do `buildMusicPrompt` (gênero + clima + voz + produção + instruções do artista)
  * e a letra vai no campo `lyrics` (o `prompt` do kie também seria lido como letra).
+ *
+ * Com `coverAudioUrl` o payload vira o do `ai-music-api/upload-and-cover-audio`:
+ * a melodia do áudio enviado é preservada e o estilo/letra entra por cima.
+ * Nesse modo a letra é opcional — sem ela o próprio áudio de referência conduz a faixa.
+ *
+ * Com `extendAudioUrl` + `continueAt` o payload vira o do
+ * `ai-music-api/upload-and-extend-audio`: a faixa é continuada a partir do ponto
+ * escolhido, preservando o estilo — letra também é opcional.
  */
-export function buildKieInput(input: MiniMaxMusicInput, model: string): Record<string, unknown> {
+/**
+ * Duração (segundos) que o Suno precisa para cantar a letra inteira.
+ *
+ * Calibrado com hits reais do Estúdio: 150 palavras foram cortadas aos 118s com
+ * a duração fixa de 60s. Usa ~1 palavra por segundo de canto + 30s de instrumental
+ * de abertura/final, sempre dentro da faixa 10–360 aceita pelo kie.ai.
+ */
+export function estimateSongSeconds(lyrics: string): number {
+  const words = (lyrics || "")
+    .replace(/\[[^\]]*\]/g, " ") // tags de seção ([Verse], [Chorus]...) não são cantadas
+    .split(/\s+/)
+    .filter(Boolean).length;
+  const estimate = words + 30;
+  if (estimate > KIE_SONG_SECONDS_MAX) {
+    console.warn(
+      `[kie.ai] Letra longa (${words} palavras) — duração limitada a ${KIE_SONG_SECONDS_MAX}s; a faixa pode sair cortada.`
+    );
+  }
+  return Math.min(KIE_SONG_SECONDS_MAX, Math.max(KIE_SONG_SECONDS_MIN, estimate));
+}
+
+/**
+ * Duração da tarefa: o valor fixo `kie_music_seconds` do painel (10–360) quando
+ * o admin quiser travar, senão o cálculo pela letra.
+ */
+async function resolveSongSeconds(lyrics: string): Promise<number> {
+  const fixed = Number((await getSettingValue("kie_music_seconds")) || "");
+  if (Number.isFinite(fixed) && fixed >= 10 && fixed <= 360) return Math.round(fixed);
+  return estimateSongSeconds(lyrics);
+}
+
+export function buildKieInput(
+  input: MiniMaxMusicInput,
+  model: string,
+  opts: { duration?: number } = {}
+): Record<string, unknown> {
+  // Extensão nasce do áudio fonte: essa tarefa nem aceita `duration`.
+  if (input.extendAudioUrl?.trim()) return buildKieExtendInput(input, model);
+  const duration = opts.duration ?? estimateSongSeconds(input.lyrics);
+  if (input.coverAudioUrl?.trim()) return buildKieCoverInput(input, model, duration);
+
   const style = buildMusicPrompt(input).slice(0, 1000);
   const title = (input.title || "Meu hit").trim().slice(0, 80);
   const voice = (input.voice || "").toLowerCase();
@@ -328,7 +428,87 @@ export function buildKieInput(input: MiniMaxMusicInput, model: string): Record<s
   if (voice.includes("femin")) payload.vocal_gender = "f";
   else if (voice.includes("mascul")) payload.vocal_gender = "m";
   // duration só é aceita nos modelos V6 (documentação do kie.ai)
-  if (/^V6/.test(model)) payload.duration = KIE_SONG_SECONDS;
+  if (/^V6/.test(model)) payload.duration = duration;
+  return payload;
+}
+
+/**
+ * Payload do cover (Suno upload-and-cover-audio). Campos obrigatórios da API:
+ * `upload_url`, `instrumental` e `model` (versão do modelo, ex.: "V6").
+ * `audio_weight` (fidelidade ao áudio enviado) e `style_weight` (fidelidade ao estilo
+ * pedido) são as "barrinhas" do Estúdio — 0 a 1, 2 casas decimais.
+ */
+function buildKieCoverInput(input: MiniMaxMusicInput, model: string, duration: number): Record<string, unknown> {
+  const title = (input.title || "Meu hit").trim().slice(0, 80);
+  const voice = (input.voice || "").toLowerCase();
+  const isInstrumental = voice.includes("instrumental");
+  const lyrics = (input.lyrics || "").trim();
+  const style = buildMusicPrompt(input).slice(0, 1000);
+
+  const payload: Record<string, unknown> = {
+    upload_url: input.coverAudioUrl!.trim(),
+    instrumental: isInstrumental,
+    model,
+    title,
+    variety: 1,
+  };
+  if (style) payload.style = style;
+  // Com a fonte enviada a letra é opcional: vazia, não envia (o áudio conduz a faixa).
+  if (!isInstrumental && lyrics) payload.lyrics = lyrics.slice(0, 5000);
+  if (!isInstrumental) {
+    if (voice.includes("femin")) payload.vocal_gender = "f";
+    else if (voice.includes("mascul")) payload.vocal_gender = "m";
+  }
+  // duration só é aceita nos modelos V6 (documentação do kie.ai)
+  if (/^V6/.test(model)) payload.duration = duration;
+
+  const audioWeight = coverWeight(input.audioWeight);
+  if (audioWeight !== null) payload.audio_weight = audioWeight;
+  const styleWeight = coverWeight(input.styleWeight);
+  if (styleWeight !== null) payload.style_weight = styleWeight;
+  return payload;
+}
+
+/**
+ * Payload da extensão (Suno upload-and-extend-audio): continua o áudio fonte a
+ * partir de `continue_at`, preservando o estilo. Obrigatórios são `upload_url`,
+ * `instrumental` e `model`; `title` (até 100), `style`, `lyrics` e os pesos são
+ * opcionais.
+ *
+ * Diferenças em relação à cover:
+ *  - `continue_at` obrigatório (maior que 0 e menor que a duração da fonte);
+ *  - **não** envia `duration` (a faixa nasce do áudio enviado) nem `custom_mode`
+ *    (a API não aceita simple mode nesta tarefa).
+ */
+function buildKieExtendInput(input: MiniMaxMusicInput, model: string): Record<string, unknown> {
+  const title = (input.title || "Meu hit").trim().slice(0, KIE_EXTEND_TITLE_MAX);
+  const voice = (input.voice || "").toLowerCase();
+  const isInstrumental = voice.includes("instrumental");
+  const lyrics = (input.lyrics || "").trim();
+  const style = buildMusicPrompt(input).slice(0, 1000);
+  // A rota já validou; aqui só normaliza (1 casa decimal, como manda a faixa 0–8min).
+  const continueAt = parseContinueAt(input.continueAt);
+
+  const payload: Record<string, unknown> = {
+    upload_url: input.extendAudioUrl!.trim(),
+    instrumental: isInstrumental,
+    model,
+    title,
+    variety: 1,
+    ...(continueAt !== null ? { continue_at: continueAt } : {}),
+  };
+  if (style) payload.style = style;
+  // Com a fonte enviada a letra é opcional: vazia, não envia (o áudio conduz a faixa).
+  if (!isInstrumental && lyrics) payload.lyrics = lyrics.slice(0, 5000);
+  if (!isInstrumental) {
+    if (voice.includes("femin")) payload.vocal_gender = "f";
+    else if (voice.includes("mascul")) payload.vocal_gender = "m";
+  }
+
+  const audioWeight = coverWeight(input.audioWeight);
+  if (audioWeight !== null) payload.audio_weight = audioWeight;
+  const styleWeight = coverWeight(input.styleWeight);
+  if (styleWeight !== null) payload.style_weight = styleWeight;
   return payload;
 }
 
@@ -354,7 +534,11 @@ async function kieCallBackUrl(): Promise<string> {
   }
 }
 
-async function createKieTask(apiKey: string, payload: Record<string, unknown>): Promise<string> {
+async function createKieTask(
+  apiKey: string,
+  payload: Record<string, unknown>,
+  taskModel: string = KIE_TASK_MODEL
+): Promise<string> {
   const callBackUrl = await kieCallBackUrl();
   if (!callBackUrlLogged) {
     callBackUrlLogged = true;
@@ -368,7 +552,7 @@ async function createKieTask(apiKey: string, payload: Record<string, unknown>): 
     primary = await kieFetch(apiKey, "/api/v1/jobs/createTask", {
       method: "POST",
       body: JSON.stringify({
-        model: KIE_TASK_MODEL,
+        model: taskModel,
         input: payload,
         ...(url ? { callBackUrl: url } : {}),
       }),
@@ -386,28 +570,35 @@ async function createKieTask(apiKey: string, payload: Record<string, unknown>): 
   const lastPrimary = primary;
 
   // Endpoint legado (formato plano, `customMode` camelCase) — cobre contas/modelos antigos.
-  const legacyPayload: Record<string, unknown> = {
-    customMode: true,
-    instrumental: payload.instrumental,
-    model: payload.model,
-    title: payload.title,
-    style: payload.style,
-    prompt: payload.style,
-    callBackUrl,
-  };
-  if (payload.lyrics) legacyPayload.lyrics = payload.lyrics;
-  if (payload.vocal_gender) legacyPayload.vocal_gender = payload.vocal_gender;
-  if (payload.duration) legacyPayload.duration = payload.duration;
+  // Só existe para geração do zero: o cover não tem endpoint legado.
+  let legacyStatus = 0;
+  let legacyDetail = "";
+  if (taskModel === KIE_TASK_MODEL) {
+    const legacyPayload: Record<string, unknown> = {
+      customMode: true,
+      instrumental: payload.instrumental,
+      model: payload.model,
+      title: payload.title,
+      style: payload.style,
+      prompt: payload.style,
+      callBackUrl,
+    };
+    if (payload.lyrics) legacyPayload.lyrics = payload.lyrics;
+    if (payload.vocal_gender) legacyPayload.vocal_gender = payload.vocal_gender;
+    if (payload.duration) legacyPayload.duration = payload.duration;
 
-  const legacy = await kieFetch(apiKey, "/api/v1/generate", {
-    method: "POST",
-    body: JSON.stringify(legacyPayload),
-  });
-  const legacyTaskId = legacy.body?.data?.taskId;
-  if (legacy.status === 200 && legacyTaskId) return String(legacyTaskId);
+    const legacy = await kieFetch(apiKey, "/api/v1/generate", {
+      method: "POST",
+      body: JSON.stringify(legacyPayload),
+    });
+    const legacyTaskId = legacy.body?.data?.taskId;
+    if (legacy.status === 200 && legacyTaskId) return String(legacyTaskId);
+    legacyStatus = legacy.status;
+    legacyDetail = detailOf(legacy.body);
+  }
 
-  const status = lastPrimary && lastPrimary.status >= 400 ? lastPrimary.status : legacy.status;
-  const detail = (lastPrimary ? detailOf(lastPrimary.body) : "") || detailOf(legacy.body);
+  const status = lastPrimary && lastPrimary.status >= 400 ? lastPrimary.status : legacyStatus;
+  const detail = (lastPrimary ? detailOf(lastPrimary.body) : "") || legacyDetail;
   const service = serviceErrorFor(status, String(payload.model), detail);
   if (service) throw service;
   throw new KieServiceError(
@@ -441,11 +632,23 @@ export async function startKieMusicGeneration(
     throw noCreditError();
   }
 
-  const payload = buildKieInput(input, config.model);
-  const taskId = await createKieTask(config.apiKey, payload);
+  // Duração só existe na geração do zero e na cover; a extensão segue o áudio fonte.
+  const duration = input.extendAudioUrl?.trim() ? undefined : await resolveSongSeconds(input.lyrics);
+  const payload = buildKieInput(input, config.model, { duration });
+  const taskModel = kieTaskModelFor(input);
+  const taskId = await createKieTask(config.apiKey, payload, taskModel);
   // Chamada ok: libera o fail-fast de créditos.
   creditBlockedUntil = 0;
-  console.log(`[kie.ai] Tarefa criada — modelo=${config.model} taskId=${taskId} titulo="${input.title || ""}"`);
+  const mode =
+    taskModel === KIE_EXTEND_TASK_MODEL
+      ? "estender"
+      : taskModel === KIE_COVER_TASK_MODEL
+        ? "cover"
+        : "gerar";
+  console.log(
+    `[kie.ai] Tarefa criada — modo=${mode} modelo=${config.model} duracao=${String(payload.duration ?? "-")}s ` +
+      `taskId=${taskId} titulo="${input.title || ""}"`
+  );
   return { id: `${KIE_MODEL_PREFIX}${taskId}`, status: "processing", output: null, error: null, logs: null };
 }
 
@@ -496,12 +699,36 @@ function firstTrackUrl(tracks: any[]): string | null {
 }
 
 /**
+ * Mensagem amigável para o `code` de um callback de falha do kie.ai.
+ * `null` quando o código é sucesso (200) — o texto do provedor entra depois.
+ */
+export function kieCallbackCodeMessage(code: number): string | null {
+  switch (code) {
+    case 400:
+      return "O kie.ai recusou a música: a letra contém material protegido por direitos autorais. Ajuste a letra e gere de novo.";
+    case 408:
+      return "O kie.ai não concluiu a geração a tempo (timeout). Tente gerar novamente.";
+    case 413:
+      return "O kie.ai considerou o áudio enviado igual a uma obra existente. Use outra referência e tente de novo.";
+    case 500:
+    case 501:
+      return "O kie.ai não conseguiu gerar o áudio desta vez. Sua cota foi devolvida — tente de novo.";
+    case 531:
+      return "O kie.ai teve uma falha no servidor e já devolveu os créditos. Tente gerar novamente.";
+    default:
+      return null;
+  }
+}
+
+/**
  * Interpreta o corpo do callback do kie.ai.
  *
  * O contrato oficial (schema de `ai-music-api/generate`) entrega:
  *   { code, msg, data: { callbackType, task_id, data: [ { audio_url, duration, ... } ] } }
  * O `record-info` (polling) usa `data.response.sunoData[]` — aceitamos as duas
  * formas, inclusive com chaves em camelCase, para o callback não virar código morto.
+ * `callbackType` acompanha as etapas: "text" (sem áudio ainda), "first", "complete"
+ * e "error" (falhou mesmo com code 200 em algumas contas).
  */
 export function parseKieCallback(body: any): KieCallbackInfo {
   const data = body?.data && typeof body.data === "object" ? body.data : {};
@@ -528,7 +755,12 @@ export function parseKieCallback(body: any): KieCallbackInfo {
 
   const code = Number(body?.code);
   const failedByCode = Number.isFinite(code) && code !== 200;
-  const failedMessage = kieFailedMessage(data.status || "") || (failedByCode ? String(body?.msg || "").slice(0, 300) || null : null);
+  const failedByType = callbackType === "error";
+  const providerMsg = String(body?.msg || data.status || "").slice(0, 300);
+  const failedMessage =
+    kieFailedMessage(data.status || "") ||
+    (failedByCode ? kieCallbackCodeMessage(code) || providerMsg || "A geração falhou no kie.ai." : null) ||
+    (failedByType ? providerMsg || "A geração falhou no kie.ai." : null);
 
   let status: KieCallbackStatus = "pending";
   if (failedMessage) status = "failed";
@@ -928,7 +1160,8 @@ export async function uploadKieBase64File(
       method: "POST",
       body: JSON.stringify(payload),
     },
-    20000
+    20000,
+    KIE_UPLOAD_BASE_URL
   );
 
   if (status >= 400 || !body?.success) {
@@ -987,7 +1220,8 @@ export async function uploadKieUrlFile(
       method: "POST",
       body: JSON.stringify(payload),
     },
-    35000 // Timeout estendido para download remoto pelo kie.ai
+    35000, // Timeout estendido para download remoto pelo kie.ai
+    KIE_UPLOAD_BASE_URL
   );
 
   if (status >= 400 || !body?.success) {
@@ -1004,6 +1238,61 @@ export async function uploadKieUrlFile(
     mimeType: data.mimeType || "",
     uploadedAt: data.uploadedAt || new Date().toISOString(),
   };
+}
+
+/**
+ * Envia o áudio de referência do artista (modo cover) para a CDN temporária do
+ * kie.ai — POST /api/file-stream-upload (multipart) — e devolve a URL pública
+ * que entra como `input.upload_url` na tarefa de cover.
+ *
+ * O endpoint de stream aceita arquivo de qualquer tamanho sem inflar um corpo
+ * JSON: o limite de 8 minutos é do próprio Suno, não do upload.
+ */
+export async function uploadKieAudioFile(
+  buffer: Buffer,
+  fileName?: string,
+  uploadPath = "portal/audio-references"
+): Promise<KieBase64UploadResult> {
+  const config = await getKieMusicConfig();
+  if (!config.apiKey) {
+    throw new Error("Chave do kie.ai (kie_api_key) não configurada no sistema.");
+  }
+
+  const safeName = sanitizeUploadFileName(fileName);
+  const form = new FormData();
+  form.append("file", new Blob([new Uint8Array(buffer)]), safeName);
+  form.append("uploadPath", uploadPath.replace(/^\/+|\/+$/g, "") || "staging");
+  form.append("fileName", safeName);
+
+  const { status, body } = await kieFetch(
+    config.apiKey,
+    "/api/file-stream-upload",
+    { method: "POST", body: form },
+    90000,
+    KIE_UPLOAD_BASE_URL
+  );
+
+  if (status >= 400 || !body?.success) {
+    const errorMsg = detailOf(body) || `Falha no upload do áudio para o kie.ai (HTTP ${status})`;
+    throw new Error(errorMsg);
+  }
+
+  const data = body.data || {};
+  return {
+    fileName: data.fileName || safeName,
+    filePath: data.filePath || "",
+    downloadUrl: data.downloadUrl || data.fileUrl || "",
+    fileSize: Number(data.fileSize) || buffer.length,
+    mimeType: data.mimeType || "",
+    uploadedAt: data.uploadedAt || new Date().toISOString(),
+  };
+}
+
+/** Nome de arquivo sem caminho: só letras, números, ponto, hífen e underscore. */
+function sanitizeUploadFileName(fileName?: string): string {
+  const base = (fileName || "").split(/[\\/]/).pop() || "";
+  const clean = base.replace(/[^\w.-]+/g, "_").slice(0, 80);
+  return clean || "audio-reference";
 }
 
 // ─── Webhook HMAC Security Verification ────────────────────────────────────

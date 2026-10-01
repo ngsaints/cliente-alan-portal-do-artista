@@ -345,6 +345,7 @@ router.get("/admin/settings/:category", async (req, res): Promise<void> => {
         { key: "kie_enabled", value: "true", desc: "Ativar kie.ai (Suno) no gerador de hits", isSecret: "false" },
         { key: "kie_api_key", value: "", desc: "Chave de API kie.ai (Suno)", isSecret: "true" },
         { key: "kie_webhook_hmac_key", value: "", desc: "Chave HMAC do Webhook kie.ai (Suno)", isSecret: "true" },
+        { key: "kie_music_seconds", value: "", desc: "Duração da música em segundos (10 a 360. Vazio = calcula pela letra)", isSecret: "false" },
         { key: "image_ai_provider", value: "openrouter", desc: "Provedor de IA para Capas e Fotos (openrouter ou replicate)", isSecret: "false" },
         { key: "image_ai_model", value: "black-forest-labs/flux-1-schnell", desc: "Modelo de Imagem para Capas e Fotos (OpenRouter ou Replicate)", isSecret: "false" },
         { key: "openai_enabled", value: "false", desc: "Ativar Mentora Virtual (OpenAI Legado)", isSecret: "false" },

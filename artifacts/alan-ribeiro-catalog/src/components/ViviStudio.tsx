@@ -34,7 +34,10 @@ import {
   Image as ImageIcon,
   Camera,
   CheckCircle2,
-  Instagram
+  Instagram,
+  Upload,
+  FileAudio,
+  FastForward
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -64,10 +67,78 @@ interface DemoItem {
   bpm?: number;
   clima?: string;
   audioUrl?: string;
+  /** Presente quando o hit foi gerado no modo cover (áudio de referência enviado). */
+  coverAudioUrl?: string;
+  /** Presente quando o hit foi gerado no modo estender (continuação de outro hit). */
+  extendAudioUrl?: string;
+  /** Duração do áudio em segundos (vinda do banco como string). */
+  duracao?: string;
   status: string;
   predictionId?: string;
   error?: string;
   createdAt: string;
+}
+
+/**
+ * Barrinhas das tarefas com áudio fonte (cover e estender): quanto a música de
+ * origem e quanto o estilo pedido pelo artista pesam no resultado.
+ */
+function SourceWeightSliders({
+  mode,
+  audioWeight,
+  styleWeight,
+  onAudioWeight,
+  onStyleWeight,
+}: {
+  mode: "cover" | "extend";
+  audioWeight: number;
+  styleWeight: number;
+  onAudioWeight: (value: number) => void;
+  onStyleWeight: (value: number) => void;
+}) {
+  const accentText = mode === "extend" ? "text-violet-300" : "text-cyan-300";
+  const accentBar = mode === "extend" ? "accent-violet-400" : "accent-cyan-400";
+  const alvo = mode === "extend" ? "na extensão" : "na cover";
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[11px] font-semibold text-foreground">Referência do áudio</label>
+          <span className={`text-[10px] font-mono ${accentText}`}>{audioWeight}%</span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={audioWeight}
+          onChange={(e) => onAudioWeight(Number(e.target.value))}
+          className={`w-full cursor-pointer ${accentBar}`}
+        />
+        <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+          Quanto a música de origem vale {alvo}. Quanto mais alto, mais fiel ao áudio original.
+        </p>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[11px] font-semibold text-foreground">Referência do estilo</label>
+          <span className={`text-[10px] font-mono ${accentText}`}>{styleWeight}%</span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={styleWeight}
+          onChange={(e) => onStyleWeight(Number(e.target.value))}
+          className={`w-full cursor-pointer ${accentBar}`}
+        />
+        <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+          Quanto o gênero, o clima e suas instruções valem. Quanto mais alto, mais perto do que você pediu.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 const GENRES = [
@@ -147,6 +218,12 @@ function formatMusicModelLabel(id?: string | null): string | null {
   return titleCase(lastSegment.replace(/[-_]/g, " ")) || raw;
 }
 
+/** Tamanho legível do arquivo de referência enviado no modo cover. */
+function formatFileSize(bytes: number): string {
+  if (!bytes) return "";
+  return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 export function ViviStudio({
   artist,
   onRefreshArtist,
@@ -171,6 +248,24 @@ export function ViviStudio({
 
   // Modelo de música ativo (vem do admin/plano) — null até carregar, aí some o selo
   const [musicModelLabel, setMusicModelLabel] = useState<string | null>(null);
+
+  // Modos com áudio fonte (kie.ai): cover preserva a melodia de um áudio enviado,
+  // estender continua um hit a partir de um ponto escolhido
+  const [coverEnabled, setCoverEnabled] = useState(false);
+  const [coverMaxMb, setCoverMaxMb] = useState(25);
+  const [generationMode, setGenerationMode] = useState<"hit" | "cover" | "extend">("hit");
+  const [coverFile, setCoverFile] = useState<{ name: string; size: number; url: string } | null>(null);
+  // Modo estender: fonte é um hit do histórico (extendDemoId) OU um arquivo enviado (extendFile)
+  const [extendDemoId, setExtendDemoId] = useState<number | null>(null);
+  const [extendFile, setExtendFile] = useState<{ name: string; size: number; url: string } | null>(null);
+  const [extendDuration, setExtendDuration] = useState(0);
+  const [continueAt, setContinueAt] = useState(0);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  // Barrinhas das tarefas com áudio fonte (0–100% na UI, 0–1 na API)
+  const [audioWeight, setAudioWeight] = useState(65);
+  const [styleWeight, setStyleWeight] = useState(65);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const extendInputRef = useRef<HTMLInputElement | null>(null);
 
   // Adiciona um atalho às instruções sem apagar o que o artista já escreveu
   const addInstruction = (text: string) => {
@@ -536,6 +631,11 @@ export function ViviStudio({
         if (cfgData?.music?.model) {
           setMusicModelLabel(formatMusicModelLabel(cfgData.music.model));
         }
+        // Cover (áudio de referência) só existe com o kie.ai selecionado pelo admin
+        const coverAvailable = cfgData?.music?.cover === true;
+        setCoverEnabled(coverAvailable);
+        if (typeof cfgData?.music?.coverMaxMb === "number") setCoverMaxMb(cfgData.music.coverMaxMb);
+        if (!coverAvailable) setGenerationMode("hit");
         if (cfgData?.image?.model) {
           const raw = String(cfgData.image.model);
           const shortName = raw.includes("/") ? raw.split("/")[1] : raw;
@@ -670,6 +770,122 @@ export function ViviStudio({
     }
   };
 
+  // Lê a duração de um áudio fonte (modo estender) sem precisar tocá-lo.
+  const probeAudioDuration = (url: string): Promise<number> =>
+    new Promise((resolve) => {
+      if (!url) {
+        resolve(0);
+        return;
+      }
+      const probe = new Audio();
+      const finish = (value: number) => resolve(Number.isFinite(value) && value > 0 ? value : 0);
+      probe.preload = "metadata";
+      probe.onloadedmetadata = () => finish(probe.duration);
+      probe.onerror = () => finish(0);
+      probe.src = url;
+      // Rede ruim não pode travar o painel: em 8s seguimos sem a duração.
+      window.setTimeout(() => finish(probe.duration), 8000);
+    });
+
+  // Guarda a duração da fonte e deixa o ponto de continuação perto do final:
+  // aproveita quase toda a faixa atual e continua dali.
+  const applyExtendDuration = (duration: number) => {
+    setExtendDuration(duration);
+    setContinueAt(duration > 1 ? Math.max(1, Math.floor(duration * 0.9)) : 1);
+  };
+
+  // Sobe o áudio de referência para a CDN do kie.ai (modos cover e estender)
+  const uploadSourceAudio = async (file: File, target: "cover" | "extend") => {
+    if (file.size > coverMaxMb * 1024 * 1024) {
+      toast({
+        title: "Áudio grande demais",
+        description: `O arquivo de referência pode ter no máximo ${coverMaxMb}MB.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (target === "extend") {
+      const localUrl = URL.createObjectURL(file);
+      const duration = await probeAudioDuration(localUrl);
+      URL.revokeObjectURL(localUrl);
+      applyExtendDuration(duration);
+    }
+
+    setIsUploadingAudio(true);
+    try {
+      const form = new FormData();
+      form.append("audio", file);
+      const res = await fetch("/api/ai/kie/upload-audio", { method: "POST", body: form });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || "Não consegui enviar o áudio. Tente de novo.");
+      }
+      if (target === "cover") {
+        setCoverFile({ name: data.fileName || file.name, size: file.size, url: data.url });
+        toast({
+          title: "Áudio de referência pronto",
+          description: "Sua melodia foi enviada — agora é só gerar a cover.",
+        });
+      } else {
+        setExtendFile({ name: data.fileName || file.name, size: file.size, url: data.url });
+        setExtendDemoId(null);
+        toast({
+          title: "Áudio enviado",
+          description: "Ajuste o ponto de continuação e gere a extensão.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Falha no upload do áudio",
+        description: error.message || "Verifique o arquivo e tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingAudio(false);
+    }
+  };
+
+  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite reenviar o mesmo arquivo
+    if (file) void uploadSourceAudio(file, "cover");
+  };
+
+  const handleExtendFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) void uploadSourceAudio(file, "extend");
+  };
+
+  // Fonte do modo estender: arquivo enviado ou um hit já gerado pelo artista
+  const extendSourceDemo = extendDemoId ? demos.find((d) => d.id === extendDemoId) ?? null : null;
+  const extendSourceUrl = extendFile?.url || extendSourceDemo?.audioUrl || "";
+  // Ponto válido só se estiver dentro da duração conhecida da fonte
+  const continueAtValid = continueAt > 0 && (extendDuration <= 0 ? false : continueAt < extendDuration);
+  // Faixa do slider: de 1s até um segundo antes do fim (continue_at precisa ser menor que a duração)
+  const extendMax = Math.max(1, Math.floor(extendDuration) - 1);
+
+  // Palavras cantáveis da letra (tags de seção não contam) — mesma régua do
+  // servidor, que calcula a duração: acima de 330 palavras estoura os 6 min do Suno.
+  const letraPalavras = letra
+    .replace(/\[[^\]]*\]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
+
+  // Escolhe um hit do histórico como fonte da extensão e mede a duração dele
+  const selectExtendDemo = async (demoId: number) => {
+    const demo = demos.find((d) => d.id === demoId);
+    if (!demo) {
+      setExtendDemoId(null);
+      return;
+    }
+    setExtendDemoId(demo.id);
+    setExtendFile(null);
+    const known = Number(demo.duracao) || 0;
+    applyExtendDuration(known || (await probeAudioDuration(demo.audioUrl || "")));
+  };
+
   // Generate Music with Replicate MiniMax Music 2.6
   const handleGenerateMusic = async () => {
     if (!titulo.trim()) {
@@ -681,7 +897,40 @@ export function ViviStudio({
       return;
     }
 
-    if (!letra.trim()) {
+    // Cover: sem o áudio de referência não há melodia para preservar.
+    const isCoverMode = generationMode === "cover";
+    const isExtendMode = generationMode === "extend";
+    if (isCoverMode && !coverFile?.url) {
+      toast({
+        title: "Envie o áudio de referência",
+        description: `No modo cover eu preciso do seu áudio (até ${coverMaxMb}MB) para manter a melodia.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Estender: precisa de um áudio fonte e de um ponto dentro da duração dele.
+    if (isExtendMode && !extendSourceUrl) {
+      toast({
+        title: "Escolha o que estender",
+        description: "Selecione um hit do seu histórico ou envie um áudio para continuar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isExtendMode && !continueAtValid) {
+      toast({
+        title: "Ponto de continuação inválido",
+        description: extendDuration
+          ? "Escolha um instante anterior ao fim do áudio fonte."
+          : "Não consegui ler a duração do áudio fonte. Tente enviar o arquivo novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Na cover e no estender a letra é opcional: sem ela o próprio áudio conduz a faixa.
+    if (!isCoverMode && !isExtendMode && !letra.trim()) {
       toast({
         title: "Letra necessária",
         description: "Adicione a letra ou estrutura musical da sua faixa.",
@@ -715,6 +964,20 @@ export function ViviStudio({
           bpm,
           voice: voz,
           prompt: promptExtra,
+          ...(isCoverMode
+            ? {
+                coverAudioUrl: coverFile!.url,
+                audioWeight: Math.round(audioWeight) / 100,
+                styleWeight: Math.round(styleWeight) / 100,
+              }
+            : isExtendMode
+              ? {
+                  extendAudioUrl: extendSourceUrl,
+                  continueAt: Math.round(continueAt * 10) / 10,
+                  audioWeight: Math.round(audioWeight) / 100,
+                  styleWeight: Math.round(styleWeight) / 100,
+                }
+              : {}),
         }),
       });
 
@@ -1100,6 +1363,248 @@ export function ViviStudio({
                 )}
               </div>
 
+              {/* Modos de geração: do zero, cover ou estender (áudio fonte — só com kie.ai) */}
+              {coverEnabled && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setGenerationMode("hit")}
+                      className={`px-3 py-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                        generationMode === "hit"
+                          ? "bg-amber-400/15 border-amber-400 text-amber-300"
+                          : "bg-secondary/20 border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                      }`}
+                    >
+                      <Music className="w-4 h-4" />
+                      <span>Hit do zero</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGenerationMode("cover")}
+                      className={`px-3 py-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                        generationMode === "cover"
+                          ? "bg-cyan-400/15 border-cyan-400 text-cyan-300"
+                          : "bg-secondary/20 border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                      }`}
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Cover</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGenerationMode("extend")}
+                      className={`px-3 py-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                        generationMode === "extend"
+                          ? "bg-violet-400/15 border-violet-400 text-violet-300"
+                          : "bg-secondary/20 border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                      }`}
+                    >
+                      <FastForward className="w-4 h-4" />
+                      <span>Estender</span>
+                    </button>
+                  </div>
+
+                  {generationMode === "cover" && (
+                    <div className="space-y-4 p-4 rounded-2xl bg-cyan-500/10 border border-cyan-400/30">
+                      <div className="flex items-start gap-2">
+                        <FileAudio className="w-4 h-4 text-cyan-300 mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Suba sua demo ou a melodia que você criou: o arranjo preserva a{" "}
+                          <strong className="text-foreground">melodia do seu áudio</strong> e aplica o estilo, a voz e a
+                          letra (opcional) por cima.
+                        </p>
+                      </div>
+
+                      <input
+                        ref={coverInputRef}
+                        type="file"
+                        accept="audio/*"
+                        className="hidden"
+                        onChange={handleCoverFileChange}
+                      />
+
+                      {coverFile ? (
+                        <div className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-background/70 border border-cyan-400/30">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileAudio className="w-4 h-4 text-cyan-300 shrink-0" />
+                            <span className="text-xs font-semibold text-foreground truncate">{coverFile.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                              {formatFileSize(coverFile.size)}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCoverFile(null)}
+                            className="p-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-red-400 transition-colors shrink-0"
+                            title="Remover referência"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => coverInputRef.current?.click()}
+                          disabled={isUploadingAudio}
+                          className="w-full py-3.5 rounded-2xl border border-dashed border-cyan-400/50 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-200 font-bold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                        >
+                          {isUploadingAudio ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Enviando áudio...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4" />
+                              <span>Enviar áudio de referência (até {coverMaxMb}MB)</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Barrinhas: fidelidade ao áudio enviado e ao estilo pedido */}
+                      <SourceWeightSliders
+                        mode="cover"
+                        audioWeight={audioWeight}
+                        styleWeight={styleWeight}
+                        onAudioWeight={setAudioWeight}
+                        onStyleWeight={setStyleWeight}
+                      />
+                    </div>
+                  )}
+
+                  {generationMode === "extend" && (
+                    <div className="space-y-4 p-4 rounded-2xl bg-violet-500/10 border border-violet-400/30">
+                      <div className="flex items-start gap-2">
+                        <FastForward className="w-4 h-4 text-violet-300 mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Continue um hit a partir de um ponto: o arranjo mantém o{" "}
+                          <strong className="text-foreground">estilo do áudio original</strong> e grava dali em diante.
+                          A letra é opcional.
+                        </p>
+                      </div>
+
+                      <input
+                        ref={extendInputRef}
+                        type="file"
+                        accept="audio/*"
+                        className="hidden"
+                        onChange={handleExtendFileChange}
+                      />
+
+                      {/* Fonte 1: um hit já gerado pelo artista */}
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-semibold text-foreground block">Continuar qual música?</label>
+                        <select
+                          value={extendDemoId ?? ""}
+                          onChange={(e) => void selectExtendDemo(Number(e.target.value))}
+                          className="w-full px-3 py-2.5 rounded-xl bg-background/70 border border-violet-400/30 text-foreground text-xs font-medium focus:outline-none focus:ring-1 focus:ring-violet-400"
+                        >
+                          <option value="">Escolha um hit do seu histórico...</option>
+                          {demos
+                            .filter((d) => d.audioUrl && d.status === "completed")
+                            .map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.titulo}
+                              </option>
+                            ))}
+                        </select>
+                        {demos.filter((d) => d.audioUrl && d.status === "completed").length === 0 && (
+                          <p className="text-[10px] text-muted-foreground leading-relaxed">
+                            Você ainda não tem um hit pronto — envie um áudio aqui embaixo.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <span className="h-px flex-1 bg-violet-400/20" />
+                        <span>ou</span>
+                        <span className="h-px flex-1 bg-violet-400/20" />
+                      </div>
+
+                      {/* Fonte 2: um áudio novo enviado agora */}
+                      {extendFile ? (
+                        <div className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-background/70 border border-violet-400/30">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileAudio className="w-4 h-4 text-violet-300 shrink-0" />
+                            <span className="text-xs font-semibold text-foreground truncate">{extendFile.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                              {formatFileSize(extendFile.size)}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExtendFile(null);
+                              setExtendDuration(0);
+                              setContinueAt(0);
+                            }}
+                            className="p-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-red-400 transition-colors shrink-0"
+                            title="Remover áudio enviado"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => extendInputRef.current?.click()}
+                          disabled={isUploadingAudio}
+                          className="w-full py-3.5 rounded-2xl border border-dashed border-violet-400/50 bg-violet-500/5 hover:bg-violet-500/10 text-violet-200 font-bold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                        >
+                          {isUploadingAudio ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Enviando áudio...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4" />
+                              <span>Enviar outro áudio (até {coverMaxMb}MB)</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Ponto onde a continuação começa */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-semibold text-foreground">Ponto de continuação</label>
+                          <span className="text-[10px] font-mono text-violet-300">
+                            {formatTime(continueAt)}
+                            {extendDuration > 0 ? ` de ${formatTime(extendDuration)}` : ""}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={1}
+                          max={extendMax}
+                          step={1}
+                          value={Math.min(Math.max(continueAt, 1), extendMax)}
+                          onChange={(e) => setContinueAt(Number(e.target.value))}
+                          disabled={extendDuration <= 1}
+                          className="w-full accent-violet-400 cursor-pointer disabled:opacity-40"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                          {extendDuration > 0
+                            ? "A música é continuada a partir daqui, mantendo o estilo do original."
+                            : "Não consegui ler a duração desta fonte. Envie o arquivo de novo para liberar o slider."}
+                        </p>
+                      </div>
+
+                      <SourceWeightSliders
+                        mode="extend"
+                        audioWeight={audioWeight}
+                        styleWeight={styleWeight}
+                        onAudioWeight={setAudioWeight}
+                        onStyleWeight={setStyleWeight}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Título */}
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1.5 uppercase tracking-wider">
@@ -1258,7 +1763,13 @@ export function ViviStudio({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Letra & Estrutura ({letra.length} / 3.500 caracteres)
+                    Letra &amp; Estrutura ({letra.length} / 3.500 caracteres)
+                    {generationMode === "cover" && (
+                      <span className="ml-2 normal-case text-cyan-300/90">· opcional na cover</span>
+                    )}
+                    {generationMode === "extend" && (
+                      <span className="ml-2 normal-case text-violet-300/90">· opcional ao estender</span>
+                    )}
                   </label>
                   <div className="flex items-center gap-3">
                     <button
@@ -1315,19 +1826,44 @@ export function ViviStudio({
                   maxLength={3500}
                   className="w-full px-4 py-3 bg-secondary/20 border border-border focus:border-amber-400 rounded-2xl text-foreground text-xs font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-amber-400"
                 />
+                {generationMode !== "extend" && letraPalavras > 330 && (
+                  <p className="text-[10px] text-amber-400 mt-1.5 leading-relaxed">
+                    Letra longa demais ({letraPalavras} palavras): o Suno grava no máximo 6 minutos e a faixa pode sair
+                    cortada. Divida em duas músicas para garantir a letra inteira.
+                  </p>
+                )}
               </div>
 
               {/* Botão de Disparo */}
               <button
                 type="button"
                 onClick={handleGenerateMusic}
-                disabled={isGenerating || !titulo.trim() || !letra.trim()}
+                disabled={
+                  isGenerating ||
+                  isUploadingAudio ||
+                  !titulo.trim() ||
+                  (generationMode === "cover"
+                    ? !coverFile?.url
+                    : generationMode === "extend"
+                      ? !extendSourceUrl || !continueAtValid
+                      : !letra.trim())
+                }
                 className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-black font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-amber-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99]"
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
                     <span>Gerando Hit...</span>
+                  </>
+                ) : generationMode === "cover" ? (
+                  <>
+                    <Headphones className="w-5 h-5" />
+                    <span>Gerar Cover com IA</span>
+                  </>
+                ) : generationMode === "extend" ? (
+                  <>
+                    <FastForward className="w-5 h-5" />
+                    <span>Estender com IA</span>
                   </>
                 ) : (
                   <>
@@ -1371,6 +1907,16 @@ export function ViviStudio({
                       <div>
                         <h4 className="font-bold text-foreground text-base line-clamp-1">{currentDemo.titulo}</h4>
                         <div className="flex items-center gap-2 mt-1">
+                          {currentDemo.coverAudioUrl && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-cyan-400/15 border border-cyan-400/40 text-cyan-300 text-[9px] font-black uppercase tracking-wider">
+                              Cover
+                            </span>
+                          )}
+                          {currentDemo.extendAudioUrl && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-violet-400/15 border border-violet-400/40 text-violet-300 text-[9px] font-black uppercase tracking-wider">
+                              Estendida
+                            </span>
+                          )}
                           <span className="text-xs text-amber-400 font-semibold">{currentDemo.estilo}</span>
                           <span className="text-xs text-muted-foreground">•</span>
                           <span className="text-xs text-muted-foreground">{currentDemo.voz}</span>
@@ -1517,7 +2063,19 @@ export function ViviStudio({
                       }`}
                     >
                       <div className="min-w-0 flex-1">
-                        <h5 className="font-bold text-xs text-foreground truncate">{d.titulo}</h5>
+                        <h5 className="font-bold text-xs text-foreground truncate">
+                          {d.coverAudioUrl && (
+                            <span className="mr-1.5 px-1 py-0.5 rounded bg-cyan-400/15 border border-cyan-400/40 text-cyan-300 text-[8px] font-black uppercase align-middle">
+                              Cover
+                            </span>
+                          )}
+                          {d.extendAudioUrl && (
+                            <span className="mr-1.5 px-1 py-0.5 rounded bg-violet-400/15 border border-violet-400/40 text-violet-300 text-[8px] font-black uppercase align-middle">
+                              Estendida
+                            </span>
+                          )}
+                          {d.titulo}
+                        </h5>
                         <p className="text-[10px] text-muted-foreground truncate">
                           {d.estilo} • {d.voz} • {new Date(d.createdAt).toLocaleDateString("pt-BR")}
                         </p>
@@ -1542,6 +2100,20 @@ export function ViviStudio({
                           <span className="text-[10px] text-amber-400 font-mono animate-pulse">
                             Processando...
                           </span>
+                        )}
+
+                        {coverEnabled && d.status === "completed" && d.audioUrl && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void selectExtendDemo(d.id);
+                              setGenerationMode("extend");
+                            }}
+                            className="w-7 h-7 rounded-lg hover:bg-violet-500/20 text-muted-foreground hover:text-violet-300 flex items-center justify-center transition-colors"
+                            title="Estender este hit"
+                          >
+                            <FastForward className="w-3.5 h-3.5" />
+                          </button>
                         )}
 
                         <button
