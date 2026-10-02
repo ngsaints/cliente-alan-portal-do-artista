@@ -23,7 +23,7 @@ import {
   CheckCheck, AlertCircle, Loader2, Search, Youtube, Tag, GripVertical,
   Layout, MapPin, ListMusic, Play, Image, Ticket, Percent, HelpCircle, ExternalLink,
 Mail, Gift, Send, Terminal, Target, ChevronLeft, ChevronRight, ChevronDown, Sparkles,
-  BookOpen, FileText, Star, FolderPlus, Lock,
+  BookOpen, FileText, Star, FolderPlus, Lock, Tv, Video,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGenres } from "@/hooks/useGenres";
@@ -123,7 +123,7 @@ interface Coupon {
   createdAt: string;
 }
 
-type MainTab = "dashboard" | "songs" | "artists" | "plans" | "genres" | "interests" | "articles" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs" | "exit_feedback";
+type MainTab = "dashboard" | "tv" | "songs" | "artists" | "plans" | "genres" | "interests" | "articles" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs" | "exit_feedback";
 type SettingsCategory = "ai" | "portal" | "asaas" | "r2" | "email" | "demo" | "pixel" | "clarity";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -259,6 +259,7 @@ function AdminDashboard() {
 
   const tabs: { id: MainTab; label: string; icon: React.ElementType }[] = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+    { id: "tv", label: "TV do Portal", icon: Tv },
     { id: "songs", label: "Músicas", icon: Music },
     { id: "artists", label: "Artistas", icon: Users },
     { id: "plans",     label: "Planos",         icon: Crown          },
@@ -364,6 +365,7 @@ function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
           {activeTab === "dashboard" && <DashboardTab onNavigate={setActiveTab} />}
+          {activeTab === "tv" && <TvTab />}
           {activeTab === "songs" && <SongsTab />}
           {activeTab === "artists" && <ArtistsTab />}
           {activeTab === "plans" && <PlansTab />}
@@ -8432,3 +8434,794 @@ function ArticlesTab() {
     </div>
   );
 }
+
+// ─── Tab: TV do Portal & Central de Novidades ────────────────────────────────
+
+interface TvEpisodeAdmin {
+  id: number;
+  title: string;
+  description?: string | null;
+  type: "video" | "text";
+  videoUrl?: string | null;
+  contentText?: string | null;
+  ctaText?: string | null;
+  ctaUrl?: string | null;
+  thumbnailUrl?: string | null;
+  badge?: string | null;
+  active: boolean;
+  order: number;
+  createdAt: string;
+}
+
+function TvTab() {
+  const [episodes, setEpisodes] = useState<TvEpisodeAdmin[]>([]);
+  const [enabled, setEnabled] = useState(true);
+  const [globalTitle, setGlobalTitle] = useState("TV do Portal & Tutoriais");
+  const [globalBadge, setGlobalBadge] = useState("Novidades");
+  const [loading, setLoading] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "video" | "text">("all");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingEpisode, setEditingEpisode] = useState<TvEpisodeAdmin | null>(null);
+  const [savingEpisode, setSavingEpisode] = useState(false);
+
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    type: "video" as "video" | "text",
+    videoUrl: "",
+    contentText: "",
+    ctaText: "",
+    ctaUrl: "",
+    thumbnailUrl: "",
+    badge: "Novidade",
+    active: true,
+    order: 0,
+  });
+
+  const { toast } = useToast();
+
+  const loadTvData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/tv/episodes", { credentials: "include" });
+      if (!res.ok) throw new Error("Erro ao carregar dados da TV");
+      const data = await res.json();
+      setEpisodes(Array.isArray(data.episodes) ? data.episodes : []);
+      setEnabled(Boolean(data.enabled));
+      if (data.title) setGlobalTitle(data.title);
+      if (data.badge) setGlobalBadge(data.badge);
+    } catch (err: any) {
+      toast({
+        title: "Erro ao buscar episódios da TV",
+        description: err.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTvData();
+  }, []);
+
+  const handleToggleGlobalEnabled = async (checked: boolean) => {
+    setEnabled(checked);
+    try {
+      const res = await fetch("/api/admin/tv/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ enabled: checked }),
+      });
+      if (!res.ok) throw new Error("Erro ao alternar status da TV");
+      toast({
+        title: checked ? "TVzinha ativada no portal!" : "TVzinha desativada!",
+        description: checked
+          ? "A TVzinha retrô está visível em todas as páginas para os assinantes."
+          : "A TVzinha foi desativada e ocultada de todas as páginas.",
+      });
+    } catch (err: any) {
+      setEnabled(!checked);
+      toast({
+        title: "Erro ao salvar alteração",
+        description: err.message || "Não foi possível alternar o status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveGlobalSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const res = await fetch("/api/admin/tv/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          enabled,
+          title: globalTitle,
+          badge: globalBadge,
+        }),
+      });
+      if (!res.ok) throw new Error("Falha ao salvar configurações");
+      toast({
+        title: "Configurações da TV salvas!",
+        description: "Título e selo da TVzinha atualizados com sucesso.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao salvar",
+        description: err.message || "Verifique sua conexão.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleToggleEpisodeActive = async (ep: TvEpisodeAdmin) => {
+    const nextActive = !ep.active;
+    setEpisodes((prev) =>
+      prev.map((item) => (item.id === ep.id ? { ...item, active: nextActive } : item))
+    );
+    try {
+      const res = await fetch(`/api/admin/tv/episodes/${ep.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ active: nextActive }),
+      });
+      if (!res.ok) throw new Error("Erro ao atualizar status");
+      toast({
+        title: nextActive ? "Episódio ativado" : "Episódio pausado",
+        description: `"${ep.title}" foi ${nextActive ? "ativado" : "pausado"}.`,
+      });
+    } catch (err: any) {
+      setEpisodes((prev) =>
+        prev.map((item) => (item.id === ep.id ? { ...item, active: ep.active } : item))
+      );
+      toast({
+        title: "Erro ao atualizar",
+        description: err.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteEpisode = async (id: number, title: string) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o episódio "${title}"?`)) return;
+    try {
+      const res = await fetch(`/api/admin/tv/episodes/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Erro ao excluir episódio");
+      setEpisodes((prev) => prev.filter((item) => item.id !== id));
+      toast({
+        title: "Episódio removido",
+        description: `O episódio "${title}" foi excluído com sucesso.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao excluir",
+        description: err.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOpenCreateModal = () => {
+    setEditingEpisode(null);
+    setFormData({
+      title: "",
+      description: "",
+      type: "video",
+      videoUrl: "",
+      contentText: "",
+      ctaText: "",
+      ctaUrl: "",
+      thumbnailUrl: "",
+      badge: "Novidade",
+      active: true,
+      order: episodes.length,
+    });
+    setModalOpen(true);
+  };
+
+  const handleOpenEditModal = (ep: TvEpisodeAdmin) => {
+    setEditingEpisode(ep);
+    setFormData({
+      title: ep.title,
+      description: ep.description || "",
+      type: ep.type,
+      videoUrl: ep.videoUrl || "",
+      contentText: ep.contentText || "",
+      ctaText: ep.ctaText || "",
+      ctaUrl: ep.ctaUrl || "",
+      thumbnailUrl: ep.thumbnailUrl || "",
+      badge: ep.badge || "Novidade",
+      active: ep.active,
+      order: ep.order ?? 0,
+    });
+    setModalOpen(true);
+  };
+
+  const handleSaveEpisode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.title.trim()) {
+      toast({ title: "Informe o título", variant: "destructive" });
+      return;
+    }
+    if (formData.type === "video" && !formData.videoUrl.trim()) {
+      toast({ title: "Informe a URL do vídeo (YouTube/Vimeo/MP4)", variant: "destructive" });
+      return;
+    }
+    if (formData.type === "text" && !formData.contentText.trim()) {
+      toast({ title: "Informe o texto do comunicado", variant: "destructive" });
+      return;
+    }
+
+    setSavingEpisode(true);
+    try {
+      const url = editingEpisode
+        ? `/api/admin/tv/episodes/${editingEpisode.id}`
+        : "/api/admin/tv/episodes";
+      const method = editingEpisode ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || "Erro ao salvar episódio");
+      }
+
+      toast({
+        title: editingEpisode ? "Episódio atualizado!" : "Novo episódio publicado!",
+        description: `"${formData.title}" salvo com sucesso.`,
+      });
+
+      setModalOpen(false);
+      loadTvData();
+    } catch (err: any) {
+      toast({
+        title: "Erro ao salvar",
+        description: err.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingEpisode(false);
+    }
+  };
+
+  const filteredEpisodes = episodes.filter((ep) => {
+    if (typeFilter === "video") return ep.type === "video";
+    if (typeFilter === "text") return ep.type === "text";
+    return true;
+  });
+
+  const videoCount = episodes.filter((e) => e.type === "video").length;
+  const textCount = episodes.filter((e) => e.type === "text").length;
+
+  return (
+    <div className="space-y-8">
+      {/* Cabeçalho da Aba */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border/60">
+        <div>
+          <h2 className="text-2xl font-extrabold text-white flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Tv className="w-6 h-6" />
+            </div>
+            TV do Portal & Central de Novidades
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+            Transmita vídeos tutoriais e comunicados em texto na TVzinha retrô que aparece em todas as páginas do portal. Eduque seus assinantes, mostre lançamentos e aumente a retenção.
+          </p>
+        </div>
+
+        <button
+          onClick={handleOpenCreateModal}
+          className="px-5 py-3 rounded-2xl bg-primary text-black font-extrabold text-sm hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(245,197,24,0.3)] hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer self-start md:self-auto"
+        >
+          <Plus className="w-5 h-5" /> Novo Episódio / Comunicado
+        </button>
+      </div>
+
+      {/* Cartão Master do Kill-Switch (Desativar a qualquer momento) */}
+      <div className="bg-gradient-to-br from-card via-card/80 to-card/40 border border-border/80 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${
+                enabled
+                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.3)]"
+                  : "bg-red-500/20 border-red-500/40 text-red-400"
+              }`}
+            >
+              <Tv className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h3 className="text-lg font-extrabold text-white">Status Geral da TVzinha</h3>
+                <span
+                  className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                    enabled
+                      ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
+                      : "bg-red-500/20 border-red-500/40 text-red-400"
+                  }`}
+                >
+                  {enabled ? "● No Ar em Todas as Páginas" : "○ 100% Desativada"}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                {enabled
+                  ? "A TVzinha retrô está flutuando discretamente em todas as páginas do portal (perfil do artista, catálogo de músicas, landing page, etc.). Seus inscritos podem sintonizar canais e assistir tutoriais."
+                  : "A TVzinha está completamente desligada e não consome recursos nem aparece para nenhum usuário no portal. Você pode reativá-la a qualquer momento pelo botão ao lado."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 bg-black/40 px-5 py-3 rounded-2xl border border-border/60 self-start md:self-auto">
+            <span className="text-xs font-extrabold text-muted-foreground">
+              {enabled ? "Ligada" : "Desligada"}
+            </span>
+            <Switch checked={enabled} onCheckedChange={handleToggleGlobalEnabled} />
+          </div>
+        </div>
+
+        {/* Formulário de Título e Selo Geral da TV */}
+        <form onSubmit={handleSaveGlobalSettings} className="mt-6 pt-6 border-t border-border/40 grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+          <div className="sm:col-span-5">
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+              Título no OSD da TV
+            </label>
+            <input
+              type="text"
+              value={globalTitle}
+              onChange={(e) => setGlobalTitle(e.target.value)}
+              placeholder="Ex: TV do Portal & Tutoriais"
+              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-primary"
+            />
+          </div>
+          <div className="sm:col-span-4">
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+              Selo / Etiqueta Padrão
+            </label>
+            <input
+              type="text"
+              value={globalBadge}
+              onChange={(e) => setGlobalBadge(e.target.value)}
+              placeholder="Ex: Novidades"
+              className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-primary"
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <button
+              type="submit"
+              disabled={savingSettings}
+              className="w-full px-4 py-2.5 bg-card border border-border hover:border-primary/50 text-white hover:text-primary font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Salvar Cabeçalho
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Barra de Filtros e Contadores */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 bg-card/60 p-1.5 rounded-2xl border border-border/60">
+          <button
+            onClick={() => setTypeFilter("all")}
+            className={`px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+              typeFilter === "all"
+                ? "bg-primary text-black shadow-md"
+                : "text-muted-foreground hover:text-white"
+            }`}
+          >
+            Todos ({episodes.length})
+          </button>
+          <button
+            onClick={() => setTypeFilter("video")}
+            className={`px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+              typeFilter === "video"
+                ? "bg-primary text-black shadow-md"
+                : "text-muted-foreground hover:text-white"
+            }`}
+          >
+            <Video className="w-3.5 h-3.5" /> Vídeos ({videoCount})
+          </button>
+          <button
+            onClick={() => setTypeFilter("text")}
+            className={`px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+              typeFilter === "text"
+                ? "bg-primary text-black shadow-md"
+                : "text-muted-foreground hover:text-white"
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" /> Textos ({textCount})
+          </button>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          {episodes.filter((e) => e.active).length} canais ativos sendo transmitidos
+        </p>
+      </div>
+
+      {/* Lista de Episódios */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mr-3" />
+          Carregando programação da TV...
+        </div>
+      ) : filteredEpisodes.length === 0 ? (
+        <div className="text-center py-16 bg-card/40 border border-border/60 rounded-3xl p-8">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 text-primary">
+            <Tv className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">Nenhum canal cadastrado</h3>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto mb-6">
+            Adicione o primeiro vídeo tutorial ou boletim informativo para exibir na TVzinha dos artistas.
+          </p>
+          <button
+            onClick={handleOpenCreateModal}
+            className="px-5 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs hover:bg-primary/90 transition-all cursor-pointer"
+          >
+            Adicionar Primeiro Episódio
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredEpisodes.map((ep, idx) => (
+            <div
+              key={ep.id}
+              className={`bg-card/70 border rounded-3xl p-5 flex flex-col justify-between transition-all relative group overflow-hidden ${
+                ep.active ? "border-border/80 hover:border-primary/50" : "border-border/30 opacity-60 bg-card/30"
+              }`}
+            >
+              <div>
+                {/* Header do Card com Canal e Badge */}
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-black text-emerald-400 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                      CH {String(ep.order !== undefined && ep.order !== 0 ? ep.order : idx + 1).padStart(2, "0")}
+                    </span>
+                    <span
+                      className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+                        ep.type === "video"
+                          ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                          : "bg-cyan-500/10 border-cyan-500/30 text-cyan-400"
+                      }`}
+                    >
+                      {ep.type === "video" ? <Video className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                      {ep.type === "video" ? "Vídeo" : "Texto"}
+                    </span>
+                  </div>
+
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
+                    {ep.badge || "Novidade"}
+                  </span>
+                </div>
+
+                {/* Título e Descrição */}
+                <h4 className="text-base font-extrabold text-white group-hover:text-primary transition-colors line-clamp-2 mb-1.5">
+                  {ep.title}
+                </h4>
+
+                {ep.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                    {ep.description}
+                  </p>
+                )}
+
+                {/* Prévia do Conteúdo */}
+                {ep.type === "video" ? (
+                  <div className="bg-black/60 rounded-xl p-2.5 border border-border/50 text-[11px] text-muted-foreground mb-3 font-mono truncate flex items-center gap-2">
+                    <Youtube className="w-4 h-4 text-red-400 shrink-0" />
+                    <span className="truncate">{ep.videoUrl}</span>
+                    {ep.videoUrl && (
+                      <a
+                        href={ep.videoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline ml-auto shrink-0"
+                        title="Abrir Vídeo"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-black/60 rounded-xl p-3 border border-border/50 text-xs text-zinc-300 mb-3 line-clamp-3 whitespace-pre-line italic">
+                    "{ep.contentText}"
+                  </div>
+                )}
+
+                {/* Botão de Ação (CTA) */}
+                {ep.ctaText && (
+                  <div className="flex items-center gap-2 text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl mb-3">
+                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                    <span className="font-bold truncate">Botão: {ep.ctaText}</span>
+                    {ep.ctaUrl && <span className="text-muted-foreground font-mono truncate text-[10px]">({ep.ctaUrl})</span>}
+                  </div>
+                )}
+              </div>
+
+              {/* Rodapé do Card com Ações */}
+              <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2 mt-2">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={ep.active}
+                    onCheckedChange={() => handleToggleEpisodeActive(ep)}
+                  />
+                  <span className="text-[11px] font-bold text-muted-foreground">
+                    {ep.active ? "No Ar" : "Pausado"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleOpenEditModal(ep)}
+                    className="p-2 text-muted-foreground hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+                    title="Editar Episódio"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteEpisode(ep.id, ep.title)}
+                    className="p-2 text-muted-foreground hover:text-red-400 rounded-xl hover:bg-red-500/10 transition-colors cursor-pointer"
+                    title="Excluir Episódio"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal de Criação / Edição de Episódio */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-card border border-border rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border/50 pb-4">
+              <div>
+                <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                  <Tv className="w-5 h-5 text-primary" />
+                  {editingEpisode ? "Editar Canal da TV" : "Novo Canal / Episódio"}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure o que será transmitido na TVzinha do portal.
+                </p>
+              </div>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="p-2 text-muted-foreground hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEpisode} className="space-y-4">
+              {/* Seletor de Tipo: Vídeo vs Texto */}
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
+                  Tipo de Transmissão
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, type: "video" }))}
+                    className={`py-3 px-4 rounded-2xl border font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      formData.type === "video"
+                        ? "bg-amber-500/20 border-amber-500 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                        : "bg-black/30 border-border text-muted-foreground hover:text-white"
+                    }`}
+                  >
+                    <Video className="w-4 h-4" /> Vídeo (YouTube / Shorts)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, type: "text" }))}
+                    className={`py-3 px-4 rounded-2xl border font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      formData.type === "text"
+                        ? "bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                        : "bg-black/30 border-border text-muted-foreground hover:text-white"
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" /> Comunicado de Texto
+                  </button>
+                </div>
+              </div>
+
+              {/* Título */}
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                  Título do Episódio *
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder="Ex: Como Cadastrar Suas Músicas no Portal"
+                  className="w-full px-4 py-3 bg-input border border-border rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+
+              {/* Se Vídeo: Campo URL do Vídeo */}
+              {formData.type === "video" && (
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                    URL do Vídeo (YouTube, Shorts ou Vimeo) *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.videoUrl}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, videoUrl: e.target.value }))}
+                    placeholder="https://www.youtube.com/watch?v=... ou youtube.com/shorts/..."
+                    className="w-full px-4 py-3 bg-input border border-border rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-primary"
+                    required
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Cole qualquer link do YouTube (inclusive Reels/Shorts verticais). A TVzinha adapta automaticamente.
+                  </p>
+                </div>
+              )}
+
+              {/* Se Texto: Campo Texto do Comunicado */}
+              {formData.type === "text" && (
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                    Conteúdo da Mensagem *
+                  </label>
+                  <textarea
+                    rows={5}
+                    value={formData.contentText}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, contentText: e.target.value }))}
+                    placeholder="Digite seu comunicado, dica ou novidade com estilo..."
+                    className="w-full px-4 py-3 bg-input border border-border rounded-xl text-sm font-medium text-white focus:outline-none focus:border-primary resize-y"
+                    required
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Esse texto será apresentado com a tipografia verde CRT retrô na tela da TVzinha.
+                  </p>
+                </div>
+              )}
+
+              {/* Resumo / Descrição opcional */}
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                  Descrição Curta (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Ex: Tutorial passo a passo de 2 minutos para compositores"
+                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-xs font-medium text-white focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              {/* Badge e Ordem */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                    Selo / Etiqueta
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.badge}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, badge: e.target.value }))}
+                    placeholder="Ex: Tutorial"
+                    className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-xs font-medium text-white focus:outline-none focus:border-primary"
+                  />
+                  <div className="flex gap-1.5 flex-wrap mt-2">
+                    {["Novidade", "Tutorial", "Dica de Ouro", "Aviso", "Lançamento"].map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, badge: tag }))}
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/5 hover:bg-primary/20 hover:text-primary text-muted-foreground transition-colors cursor-pointer"
+                      >
+                        +{tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                    Canal / Posição (Ordem)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.order}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, order: parseInt(e.target.value, 10) || 0 }))}
+                    className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-xs font-medium text-white focus:outline-none focus:border-primary"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Canais menores aparecem primeiro (ex: 1, 2, 3).</p>
+                </div>
+              </div>
+
+              {/* Botão de Ação (CTA) Opcional */}
+              <div className="pt-2 border-t border-border/40">
+                <p className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" /> Botão de Ação no Rodapé (Opcional)
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-foreground mb-1">
+                      Texto do Botão
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.ctaText}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, ctaText: e.target.value }))}
+                      placeholder="Ex: Abrir Meu Painel"
+                      className="w-full px-3 py-2 bg-input border border-border rounded-xl text-xs text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-foreground mb-1">
+                      Link de Destino
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.ctaUrl}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, ctaUrl: e.target.value }))}
+                      placeholder="Ex: /artista/dashboard ou https://..."
+                      className="w-full px-3 py-2 bg-input border border-border rounded-xl text-xs text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Ativo */}
+              <div className="flex items-center justify-between pt-2">
+                <div>
+                  <span className="text-xs font-bold text-white block">Transmitir Imediatamente</span>
+                  <span className="text-[11px] text-muted-foreground">Deixar o episódio no ar após salvar</span>
+                </div>
+                <Switch
+                  checked={formData.active}
+                  onCheckedChange={(val) => setFormData((prev) => ({ ...prev, active: val }))}
+                />
+              </div>
+
+              {/* Botões do Rodapé */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/50">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-card border border-border text-xs font-bold text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEpisode}
+                  className="px-6 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs hover:bg-primary/90 transition-all flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(245,197,24,0.3)] disabled:opacity-50"
+                >
+                  {savingEpisode ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {editingEpisode ? "Salvar Alterações" : "Publicar Canal"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

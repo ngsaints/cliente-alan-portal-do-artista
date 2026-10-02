@@ -62,8 +62,25 @@ async function ensureDbSchema() {
       ALTER TABLE plans ADD COLUMN IF NOT EXISTS replicate_model TEXT;
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS overdue_at TIMESTAMPTZ;
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS overdue_notified_at TIMESTAMPTZ;
+      CREATE TABLE IF NOT EXISTS portal_tv_episodes (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        type TEXT NOT NULL DEFAULT 'video',
+        video_url TEXT,
+        content_text TEXT,
+        cta_text TEXT,
+        cta_url TEXT,
+        thumbnail_url TEXT,
+        badge TEXT DEFAULT 'Novidade',
+        active BOOLEAN NOT NULL DEFAULT true,
+        "order" INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_portal_tv_episodes_active_order ON portal_tv_episodes(active, "order");
     `);
-    console.log("✅ [DB] Colunas e tabelas de IA verificadas com sucesso.");
+    console.log("✅ [DB] Colunas e tabelas de IA e TV verificadas com sucesso.");
   } catch (err: any) {
     console.warn("⚠️ [DB] Aviso ao verificar colunas (continuando):", err.message || err);
   }

@@ -32,6 +32,7 @@ import exitFeedbackRouter from "./exit-feedback";
 import articlesRouter from "./articles";
 import aiMusicRouter from "./ai-music";
 import aiImagesRouter from "./ai-images";
+import tvRouter from "./tv";
 
 const router: IRouter = Router();
 
@@ -68,5 +69,6 @@ router.use(exitFeedbackRouter);
 router.use(articlesRouter);
 router.use(aiMusicRouter);
 router.use(aiImagesRouter);
+router.use(tvRouter);
 
 export default router;

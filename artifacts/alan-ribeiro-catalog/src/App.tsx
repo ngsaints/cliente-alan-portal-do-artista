@@ -26,6 +26,7 @@ import ArticleDetail from "@/pages/ArticleDetail";
 import PortalPlay from "@/pages/PortalPlay";
 import NotFound from "@/pages/not-found";
 import { ExitIntentModal } from "@/components/ExitIntentModal";
+import { PortalRetroTV } from "@/components/PortalRetroTV";
 import { applyFeatureFlagsFromSettings } from "@/lib/featureFlags";
 
 const queryClient = new QueryClient({
@@ -186,6 +187,7 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
             <ExitIntentModal />
+            <PortalRetroTV />
           </WouterRouter>
         </PlayerProvider>
         <Toaster />
