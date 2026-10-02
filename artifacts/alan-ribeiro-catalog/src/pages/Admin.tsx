@@ -2169,8 +2169,8 @@ function PlansTab() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-bold text-foreground">{plan.label}</h3>
                         {heroFeaturedPlan === plan.nome && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            ⭐ Destaque na Inicial
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-amber-300" /> Destaque na Inicial
                           </span>
                         )}
                       </div>
@@ -2205,11 +2205,11 @@ function PlansTab() {
                         className="px-3 py-2 text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
                         title="Definir como o plano em destaque da Página Inicial"
                       >
-                        ⭐ Destaque
+                        <Star className="w-3 h-3" /> Destaque
                       </button>
                     ) : (
                       <span className="px-3 py-2 text-xs font-bold text-amber-400 bg-amber-500/20 border border-amber-500/40 rounded-lg flex items-center gap-1">
-                        ✓ Destaque
+                        <CheckCircle2 className="w-3 h-3" /> Destaque
                       </span>
                     )}
                     <button onClick={() => handleDelete(plan.id, plan.nome)} className="px-3 py-2 text-sm text-muted-foreground hover:text-destructive rounded-lg border border-border hover:border-destructive/40 transition-colors">
@@ -2997,7 +2997,7 @@ function OpenRouterModelSelector({
 
   const providers = [
     { id: "all", label: `Todos (${models.length || "400+"})` },
-    { id: "free", label: "✨ Grátis" },
+    { id: "free", label: "Grátis" },
     { id: "openai", label: "OpenAI" },
     { id: "google", label: "Google" },
     { id: "deepseek", label: "DeepSeek" },
@@ -3010,7 +3010,7 @@ function OpenRouterModelSelector({
   const presets = [
     { id: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
     { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
-    { id: "openrouter/free", label: "✨ 100% Grátis (Router)" },
+    { id: "openrouter/free", label: "100% Grátis (Router)" },
     { id: "deepseek/deepseek-chat", label: "DeepSeek V3" },
     { id: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet" },
     { id: "openrouter/auto", label: "Auto Router" },
@@ -3074,7 +3074,7 @@ function OpenRouterModelSelector({
               if (!open) setOpen(true);
             }}
             onFocus={() => setOpen(true)}
-            placeholder="🔍 Digite para pesquisar entre 400+ modelos OpenRouter (ex: gemini, deepseek, claude, llama, gpt-4o, qwen)..."
+            placeholder="Digite para pesquisar entre 400+ modelos OpenRouter (ex: gemini, deepseek, claude, llama, gpt-4o, qwen)..."
             className="w-full pl-9 pr-8 py-2 bg-background/80 border border-border/80 focus:border-primary rounded-xl text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none transition-all"
           />
           {search && (
@@ -3290,7 +3290,6 @@ function ProviderBadge({ provider }: { provider?: string | null }) {
   const isOpenRouter = provider === "openrouter";
   const isKie = provider === "kie";
   const label = isKie ? "kie.ai" : isOpenRouter ? "OpenRouter" : "Replicate";
-  const emoji = isKie ? "🟧" : isOpenRouter ? "🟪" : "🟦";
   const tones = isKie
     ? "bg-amber-500/15 border-amber-400/40 text-amber-300"
     : isOpenRouter
@@ -3298,9 +3297,8 @@ function ProviderBadge({ provider }: { provider?: string | null }) {
       : "bg-sky-500/15 border-sky-400/40 text-sky-300";
   return (
     <span
-      className={`inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded-md border shrink-0 ${tones}`}
+      className={`inline-flex items-center text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded-md border shrink-0 ${tones}`}
     >
-      <span aria-hidden="true">{emoji}</span>
       {label}
     </span>
   );
@@ -3432,7 +3430,7 @@ function MusicModelCombobox({
             group.list.length > 0 ? (
               <div key={group.key} className="mb-1">
                 <p className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-muted-foreground">
-                  {group.key === "openrouter" ? "🟪" : group.key === "kie" ? "🟧" : "🟦"} {group.label}
+                  {group.label}
                 </p>
                 {group.list.map((o) => (
                   <button
@@ -3468,7 +3466,7 @@ function MusicModelCombobox({
 
         <div className="border-t border-border/60 px-3 py-2 text-[10px] text-muted-foreground flex items-center justify-between gap-2">
           <span>{loading ? "Buscando..." : `${options.length} modelo(s)`}</span>
-          <span>🟦 Replicate · 🟪 OpenRouter · 🟧 kie.ai</span>
+          <span>Replicate · OpenRouter · kie.ai</span>
         </div>
       </PopoverContent>
     </Popover>
@@ -3808,7 +3806,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="block text-[11px] font-bold text-foreground">
-                        🖥️ Imagem Desktop <span className="text-[10px] text-muted-foreground font-normal">(1200x400px - Widescreen 3:1)</span>
+                        Imagem Desktop <span className="text-[10px] text-muted-foreground font-normal">(1200x400px - Widescreen 3:1)</span>
                       </label>
                       <div className="flex items-center gap-3">
                         <div className="w-20 h-10 rounded-lg overflow-hidden border border-border bg-black/40 flex-shrink-0 flex items-center justify-center">
@@ -3841,7 +3839,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
 
                     <div className="space-y-1.5">
                       <label className="block text-[11px] font-bold text-foreground">
-                        📱 Imagem Mobile <span className="text-[10px] text-emerald-400 font-normal">(1080x1080px ou 4:5)</span>
+                        Imagem Mobile <span className="text-[10px] text-emerald-400 font-normal">(1080x1080px ou 4:5)</span>
                       </label>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg overflow-hidden border border-border bg-black/40 flex-shrink-0 flex items-center justify-center">
@@ -3996,7 +3994,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
               {getSettingLabel(s.key)}
             </label>
             <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 flex items-center gap-1">
-              <Music className="w-2.5 h-2.5" /> 🟦 Replicate + 🟪 OpenRouter + 🟧 kie.ai
+              <Music className="w-2.5 h-2.5" /> Replicate + OpenRouter + kie.ai
             </span>
           </div>
 
@@ -4095,7 +4093,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           </div>
 
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Se o modelo principal (como o <strong>✨ 100% Grátis</strong>) atingir rate-limit, lentidão ou instabilidade temporária, o sistema acionará automaticamente os modelos de contingência abaixo em ordem:
+            Se o modelo principal (como o <strong>100% Grátis</strong>) atingir rate-limit, lentidão ou instabilidade temporária, o sistema acionará automaticamente os modelos de contingência abaixo em ordem:
           </p>
 
           {/* Chips dos modelos ativos de contingência */}
@@ -4336,7 +4334,7 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
         {
           title: "Gerador de Hits (Replicate + OpenRouter + kie.ai)",
           icon: Music,
-          description: "Músicas cantadas de alta fidelidade (voz humana + instrumentos) a partir da letra. O campo de modelo busca ao digitar e já mostra de qual provedor cada um é (🟦 Replicate, 🟪 OpenRouter, 🟧 kie.ai).",
+          description: "Músicas cantadas de alta fidelidade (voz humana + instrumentos) a partir da letra. O campo de modelo busca ao digitar e já mostra de qual provedor cada um é (Replicate, OpenRouter, kie.ai).",
           keys: ["replicate_enabled", "replicate_api_key", "replicate_music_model", "kie_enabled", "kie_api_key", "kie_webhook_hmac_key", "kie_music_seconds"],
           action: "test-replicate",
         },
@@ -6784,21 +6782,21 @@ Aproveite antes que a oferta expire!`);
                 onClick={() => applyTemplate("welcome")}
                 className="px-3 py-2.5 bg-background border border-border rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary transition-all text-center"
               >
-                👋 Boas-vindas
+                Boas-vindas
               </button>
               <button
                 type="button"
                 onClick={() => applyTemplate("announcement")}
                 className="px-3 py-2.5 bg-background border border-border rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary transition-all text-center"
               >
-                📢 Informativo
+                Informativo
               </button>
               <button
                 type="button"
                 onClick={() => applyTemplate("promo")}
                 className="px-3 py-2.5 bg-background border border-border rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary transition-all text-center"
               >
-                🎁 Oferta/Cupom
+                Oferta / Cupom
               </button>
             </div>
           </div>
@@ -7971,7 +7969,9 @@ function ArticlesTab() {
                     />
                     <div className="space-y-1 flex-1 min-w-0 text-center sm:text-left">
                       <p className="text-xs font-bold text-white truncate">{coverUrl}</p>
-                      <p className="text-[11px] text-emerald-400 font-medium">✓ Imagem carregada e pronta para o artigo</p>
+                      <p className="text-[11px] text-emerald-400 font-medium flex items-center gap-1 justify-center sm:justify-start">
+                        <CheckCircle2 className="w-3 h-3 shrink-0" /> Imagem carregada e pronta para o artigo
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <label className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/30 text-xs font-bold hover:bg-primary/20 transition-all cursor-pointer">
@@ -8312,7 +8312,7 @@ function ArticlesTab() {
                                 : "bg-zinc-800 text-zinc-500 hover:text-zinc-300 border border-zinc-700"
                             }`}
                           >
-                            {art.isFeatured ? "★ Destaque" : "Normal"}
+                            {art.isFeatured ? "Destaque" : "Normal"}
                           </button>
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -8758,7 +8758,7 @@ function TvTab() {
                       : "bg-red-500/20 border-red-500/40 text-red-400"
                   }`}
                 >
-                  {enabled ? "● No Ar em Todas as Páginas" : "○ 100% Desativada"}
+                  {enabled ? "No Ar em Todas as Páginas" : "100% Desativada"}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-1 max-w-xl">

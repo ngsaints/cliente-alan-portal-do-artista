@@ -161,7 +161,7 @@ export function LiberacoesTab({ artistId, songs }: { artistId: number; songs: an
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <span className="text-[10px] text-green-400">
-                          ✅ {new Date(l.dataLiberacao + "T12:00:00").toLocaleDateString("pt-BR")}
+                          {new Date(l.dataLiberacao + "T12:00:00").toLocaleDateString("pt-BR")}
                         </span>
                         <button onClick={() => handleDelete(l.id)} className="p-0.5 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"><Trash2 className="w-2.5 h-2.5" /></button>
                       </div>

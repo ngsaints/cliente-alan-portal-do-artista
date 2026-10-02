@@ -171,7 +171,7 @@ export function PlansModal({ isOpen, onClose, onSelectPlan }: PlansModalProps) {
                               <h4 className="font-bold text-foreground">{plan.label}</h4>
                               {plan.id === "premium" && (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
-                                  ⭐ TOP
+                                  TOP
                                 </span>
                               )}
                               {planIsFree && (

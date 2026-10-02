@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Navbar } from "@/components/Navbar";
 import { AudioPlayer } from "@/components/AudioPlayer";
-import { Music, MapPin, Instagram, Users, Star, ExternalLink, Loader2, Search, X } from "lucide-react";
+import { Music, MapPin, Instagram, Users, Star, ExternalLink, Loader2, Search, X, Check } from "lucide-react";
 import { useGenres } from "@/hooks/useGenres";
 import { useSEO } from "@/hooks/useSEO";
 import { Footer } from "@/components/Footer";
@@ -200,7 +200,7 @@ export default function Artists() {
                       className="flex items-center justify-between"
                     >
                       <span>Todas as Cidades</span>
-                      {filterCidade === "Todas" && <span className="text-primary">✓</span>}
+                      {filterCidade === "Todas" && <Check className="w-4 h-4 text-primary" />}
                     </CommandItem>
                     {cidades
                       .filter(c => c !== "Todas")
@@ -217,7 +217,7 @@ export default function Artists() {
                           className="flex items-center justify-between"
                         >
                           <span>{c}</span>
-                          {filterCidade === c && <span className="text-primary">✓</span>}
+                          {filterCidade === c && <Check className="w-4 h-4 text-primary" />}
                         </CommandItem>
                       ))}
                   </CommandGroup>

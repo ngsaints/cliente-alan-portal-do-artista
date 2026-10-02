@@ -294,7 +294,7 @@ export default function Cadastro() {
             {emailAlreadyRegistered && (
               <div className="p-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 space-y-3">
                 <p className="text-sm font-bold text-emerald-300">
-                  Você já tem conta — não precisa se cadastrar de novo 🎉
+                  Você já tem conta — não precisa se cadastrar de novo
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {error || "Faça login com este email e assine o plano pela aba Plano do seu painel. Leva 1 minuto."}

@@ -224,17 +224,17 @@ export function NotificationBell({ interests, onMarkRead, onDelete, inline }: No
                   <div className="flex flex-wrap gap-2">
                     {selectedInterest.contratarShow && (
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/20">
-                        🎤 Contratar Show
+                        Contratar Show
                       </span>
                     )}
                     {selectedInterest.reservarMusica && (
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/20">
-                        🎵 Reservar Música
+                        Reservar Música
                       </span>
                     )}
                     {selectedInterest.agendarReuniao && (
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/20">
-                        📅 Agendar Reunião
+                        Agendar Reunião
                       </span>
                     )}
                   </div>

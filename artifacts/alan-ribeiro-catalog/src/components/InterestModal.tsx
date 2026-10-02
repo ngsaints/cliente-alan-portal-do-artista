@@ -200,9 +200,9 @@ export function InterestModal({ isOpen, onClose, songId, artistaId, songTitle, o
                   {/* Checkboxes */}
                   <div className="border-t border-border/40 pt-3 space-y-2">
                     {[
-                      { label: "🎤 Contratar Show",  value: contratarShow,  set: setContratarShow  },
-                      { label: "🎵 Reservar Música", value: reservarMusica, set: setReservarMusica },
-                      { label: "📅 Agendar Reunião", value: agendarReuniao, set: setAgendarReuniao },
+                      { label: "Contratar Show",  value: contratarShow,  set: setContratarShow  },
+                      { label: "Reservar Música", value: reservarMusica, set: setReservarMusica },
+                      { label: "Agendar Reunião", value: agendarReuniao, set: setAgendarReuniao },
                     ].map((item) => (
                       <label key={item.label} className="flex items-center gap-2 cursor-pointer group">
                         <div

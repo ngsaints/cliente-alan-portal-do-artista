@@ -196,7 +196,7 @@ export function FinanceiroSpreadsheet({ artistId }: { artistId: number }) {
         return (
           <details className="bg-card border border-border/40 rounded-xl overflow-hidden">
             <summary className="p-2.5 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1.5">
-              <ChevronDown className="w-3.5 h-3.5" /> 📊 Resumo Mensal
+              <ChevronDown className="w-3.5 h-3.5" /> Resumo Mensal
             </summary>
             <div className="border-t border-border/20 overflow-x-auto">
               <table className="w-full text-[11px] min-w-[400px]">

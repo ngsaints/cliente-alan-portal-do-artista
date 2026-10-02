@@ -514,9 +514,9 @@ export function AjudaTab({ artistId }: { artistId: number }) {
               <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">Qual o assunto?</label>
               <div className="grid grid-cols-1 gap-1.5">
                 {[
-                  { v: "suporte_tecnico", l: "🛠️ Suporte Técnico", d: "Problemas com o site, upload, player" },
-                  { v: "suporte_financeiro", l: "💰 Financeiro", d: "Planos, pagamentos, cobranças" },
-                  { v: "duvida_sugestao", l: "💡 Dúvidas ou Sugestões", d: "Melhorias, novas ideias, perguntas gerais" },
+                  { v: "suporte_tecnico", l: "Suporte Técnico", d: "Problemas com o site, upload, player" },
+                  { v: "suporte_financeiro", l: "Financeiro", d: "Planos, pagamentos, cobranças" },
+                  { v: "duvida_sugestao", l: "Dúvidas ou Sugestões", d: "Melhorias, novas ideias, perguntas gerais" },
                 ].map(o => (
                   <button
                     key={o.v}

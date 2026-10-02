@@ -149,7 +149,7 @@ export default function Planos() {
                 >
                   {isFeatured && (
                     <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-primary text-black font-black text-[10px] uppercase tracking-wider shadow-lg flex items-center gap-1">
-                      ⭐ MAIS POPULAR
+                      MAIS POPULAR
                     </span>
                   )}
 

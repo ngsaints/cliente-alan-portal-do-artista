@@ -196,7 +196,7 @@ export default function Landing() {
             </div>
 
             <div className="text-xs text-muted-foreground font-medium pt-1">
-              ✨ Crie seu perfil profissional em poucos minutos
+              Crie seu perfil profissional em poucos minutos
             </div>
 
             {/* Avatares Prova Social */}

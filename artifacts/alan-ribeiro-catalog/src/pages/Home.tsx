@@ -553,7 +553,7 @@ export default function Home() {
                   <BookOpen className="w-3.5 h-3.5" /> Dicas de Carreira & Direito Autoral
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                  Fique Ligado! 💡
+                  Fique Ligado!
                 </h2>
               </div>
 

@@ -1737,13 +1737,13 @@ export function ViviStudio({
                         key={s}
                         type="button"
                         onClick={() => addInstruction(s)}
-                        className={`px-2 py-0.5 rounded-lg border text-[10px] transition-all ${
+                        className={`px-2 py-0.5 rounded-lg border text-[10px] transition-all flex items-center gap-1 ${
                           active
                             ? "bg-amber-400/20 border-amber-400 text-amber-300"
                             : "bg-secondary/60 border-border/80 text-muted-foreground hover:text-amber-300 hover:border-amber-400/50"
                         }`}
                       >
-                        {active ? "✓ " : "+ "}
+                        {active ? <Check className="w-2.5 h-2.5" /> : "+ "}
                         {s}
                       </button>
                     );

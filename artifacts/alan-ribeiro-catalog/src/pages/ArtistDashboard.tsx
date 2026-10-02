@@ -8,7 +8,7 @@ import {
   MessageSquare, CheckCheck, Trash2, RefreshCw, Phone, Mail, Palette, Type,
   ExternalLink, Heart, Pencil, ListMusic, Plus, GripVertical, Play, Image as ImageIcon, Disc, Lock, PlayCircle, Share2,
   Bot, Sparkles, Zap, Download, ChevronLeft, ChevronRight, CheckCircle, Instagram, BookOpen, Search,
-  Mic, Calendar, Users, Star, Video, Tent
+  Mic, Calendar, Users, Star, Video, Tent, Check
 } from "lucide-react";
 import {
   Command,
@@ -1601,13 +1601,19 @@ export default function ArtistDashboard() {
                       {getProfileCompletion().items.map((item, idx) => (
                         <div key={idx} className="flex items-center gap-2 text-xs">
                           {item.status === "success" && (
-                            <span className="w-4 h-4 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 flex items-center justify-center shrink-0">✓</span>
+                            <span className="w-4 h-4 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 flex items-center justify-center shrink-0">
+                              <Check className="w-2.5 h-2.5" />
+                            </span>
                           )}
                           {item.status === "warning" && (
-                            <span className="w-4 h-4 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 flex items-center justify-center shrink-0">!</span>
+                            <span className="w-4 h-4 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 flex items-center justify-center shrink-0 font-bold text-[10px]">
+                              !
+                            </span>
                           )}
                           {item.status === "error" && (
-                            <span className="w-4 h-4 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center shrink-0">✗</span>
+                            <span className="w-4 h-4 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center shrink-0">
+                              <X className="w-2.5 h-2.5" />
+                            </span>
                           )}
                           <span className={item.status === "success" ? "text-muted-foreground" : "text-foreground font-medium"}>
                             {item.label}

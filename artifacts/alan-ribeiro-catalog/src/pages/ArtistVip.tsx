@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, Lock, ArrowLeft, Music, Youtube } from "lucide-react";
+import { Star, Lock, ArrowLeft, Music, Youtube, Pause } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useListSongs } from "@workspace/api-client-react";
 import { Navbar } from "@/components/Navbar";
@@ -230,7 +230,7 @@ export default function ArtistVip() {
                           className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center flex-shrink-0 hover:bg-yellow-400 transition-colors"
                         >
                           {currentSong?.id === song.id && isPlaying ? (
-                            <span className="text-black">⏸</span>
+                            <Pause className="w-5 h-5 text-black" />
                           ) : (
                             <Music className="w-5 h-5 text-black" />
                           )}
