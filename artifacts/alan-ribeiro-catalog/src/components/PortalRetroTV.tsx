@@ -288,7 +288,7 @@ export function PortalRetroTV() {
 
   return (
     <>
-      {/* ─── Botão Flutuante (Discreto no Canto da Tela) ────────────────────────── */}
+      {/* ─── Botão Flutuante (Cápsula Elegante no Canto Inferior) ────────────────────────── */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
@@ -296,46 +296,44 @@ export function PortalRetroTV() {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0, opacity: 0, y: 20 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="fixed bottom-24 sm:bottom-6 right-4 sm:right-6 z-40 flex items-center gap-2"
+            className="fixed bottom-20 sm:bottom-6 right-3 sm:right-6 z-40 flex items-center"
           >
-            {/* Botão de Fechar Miniatura (se o usuário não quiser ver na sessão) */}
-            <button
-              type="button"
-              onClick={() => setIsDismissed(true)}
-              className="w-5 h-5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors shadow-md text-[10px] cursor-pointer"
-              title="Ocultar TV nesta sessão"
-            >
-              <X className="w-3 h-3" />
-            </button>
+            {/* Cápsula Unificada da TVzinha (Design Premium Preto e Ouro) */}
+            <div className="group relative flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 rounded-full bg-zinc-950/95 hover:bg-black text-white border border-primary/40 hover:border-primary/80 shadow-[0_8px_32px_rgba(0,0,0,0.85),0_0_24px_rgba(245,197,24,0.18)] hover:shadow-[0_10px_36px_rgba(0,0,0,0.95),0_0_28px_rgba(245,197,24,0.3)] transition-all backdrop-blur-xl select-none">
+              
+              {/* Botão de Abrir TV (Ícone + Textos) */}
+              <button
+                type="button"
+                onClick={handleOpen}
+                className="flex items-center gap-2.5 cursor-pointer text-left focus:outline-none"
+              >
+                {/* Ícone da TVzinha Retrô Estilizada */}
+                <div className="relative w-9 h-9 rounded-xl bg-zinc-900/90 border border-primary/30 flex items-center justify-center shadow-inner group-hover:border-primary/60 transition-colors shrink-0">
+                  <CuteMiniRetroTv hasUnseen={hasUnseen} />
+                </div>
 
-            {/* Widget Principal da TVzinha */}
-            <button
-              type="button"
-              onClick={handleOpen}
-              className="group relative flex items-center gap-3 px-3.5 py-2 rounded-2xl bg-zinc-950/95 hover:bg-black text-white border border-primary/40 hover:border-primary/80 shadow-[0_8px_30px_rgba(0,0,0,0.85),0_0_20px_rgba(245,197,24,0.18)] hover:shadow-[0_8px_36px_rgba(0,0,0,0.95),0_0_28px_rgba(245,197,24,0.32)] hover:scale-105 active:scale-95 transition-all cursor-pointer backdrop-blur-xl select-none"
-            >
-              {/* Antena Decorativa no topo do botão */}
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity">
-                <div className="w-5 h-2.5 border-t-2 border-primary/70 -rotate-12 rounded-t-full" />
-                <div className="w-5 h-2.5 border-t-2 border-primary/70 rotate-12 rounded-t-full -ml-2.5" />
-              </div>
+                {/* Textos da Cápsula */}
+                <div className="flex flex-col pr-1 min-w-0">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    {data.badge || "Novidades"}
+                  </span>
+                  <span className="text-xs font-black text-white leading-tight truncate max-w-[150px] sm:max-w-[190px] group-hover:text-amber-200 transition-colors">
+                    {data.title || "TV do Portal"}
+                  </span>
+                </div>
+              </button>
 
-              {/* Ícone da TVzinha Retrô Estilizada no Tema do Portal */}
-              <div className="relative w-10 h-10 rounded-xl bg-zinc-900/90 border border-primary/30 flex items-center justify-center shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_2px_8px_rgba(0,0,0,0.5)] group-hover:border-primary/60 transition-colors shrink-0">
-                <CuteMiniRetroTv hasUnseen={hasUnseen} />
-              </div>
-
-              {/* Texto com Selo */}
-              <div className="text-left flex flex-col pr-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5 text-primary" />
-                  {data.badge || "Novidades"}
-                </span>
-                <span className="text-xs font-black text-white leading-tight group-hover:text-amber-200 transition-colors">
-                  {data.title || "TV do Portal"}
-                </span>
-              </div>
-            </button>
+              {/* Botão de Fechar Miniatura Integrado na Ponta da Cápsula */}
+              <button
+                type="button"
+                onClick={() => setIsDismissed(true)}
+                className="w-5 h-5 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors shadow text-[10px] cursor-pointer shrink-0 ml-0.5"
+                title="Ocultar TV nesta sessão"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -343,49 +341,51 @@ export function PortalRetroTV() {
       {/* ─── Modal Aberto (A TV Retrô Completa) ─────────────────────────────────── */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 pt-12 sm:pt-8 bg-black/85 backdrop-blur-md overflow-y-auto">
             {/* Backdrop Click para fechar */}
             <div className="fixed inset-0 -z-10" onClick={() => setIsOpen(false)} />
 
             <motion.div
-              initial={{ scale: 0.85, opacity: 0, y: 30 }}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.85, opacity: 0, y: 30 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="relative w-full max-w-3xl my-auto"
+              className="relative w-full max-w-3xl my-auto pt-4"
             >
-              {/* Botão de Fechar Superior */}
+              {/* Botão de Fechar Superior Sempre Visível */}
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="absolute -top-12 right-0 sm:-right-2 z-50 p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-white shadow-lg transition-transform hover:scale-110 active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold px-3"
+                className="fixed top-4 right-4 sm:absolute sm:-top-10 sm:right-0 z-50 p-2 sm:px-3 sm:py-1.5 rounded-full bg-zinc-900/90 hover:bg-black border border-primary/40 hover:border-primary text-white shadow-2xl transition-transform hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+                title="Fechar TV"
               >
-                <X className="w-4 h-4" /> Fechar TV
+                <X className="w-4 h-4 text-primary" />
+                <span className="hidden sm:inline">Fechar TV</span>
               </button>
 
-              {/* ─── Gabinete da TV Retrô (Acabamento Ébano/Nogueira com Ouro Vintage) ── */}
-              <div className="relative rounded-[32px] sm:rounded-[40px] bg-gradient-to-b from-[#241c14] via-[#1a140e] to-[#120d09] p-3 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.95),inset_0_2px_4px_rgba(245,197,24,0.25),inset_0_-4px_8px_rgba(0,0,0,0.8)] border-4 border-[#5e4318]">
+              {/* ─── Gabinete da TV Retrô ───────────────────────────────────────── */}
+              <div className="relative rounded-[28px] sm:rounded-[40px] bg-gradient-to-b from-[#241c14] via-[#1a140e] to-[#120d09] p-3 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.95),inset_0_2px_4px_rgba(245,197,24,0.25),inset_0_-4px_8px_rgba(0,0,0,0.8)] border-2 sm:border-4 border-[#5e4318]">
                 {/* Antena V Vintage no topo */}
-                <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
-                  <div className="w-12 h-6 border-t-2 border-amber-400/80 -rotate-25 rounded-t-full shadow-md" />
-                  <div className="w-12 h-6 border-t-2 border-amber-400/80 rotate-25 rounded-t-full -ml-6 shadow-md" />
-                  <div className="w-4 h-2.5 bg-zinc-800 rounded-t-md -mt-1 -ml-3 border border-amber-500/40" />
+                <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
+                  <div className="w-10 sm:w-12 h-5 sm:h-6 border-t-2 border-amber-400/80 -rotate-25 rounded-t-full shadow-md" />
+                  <div className="w-10 sm:w-12 h-5 sm:h-6 border-t-2 border-amber-400/80 rotate-25 rounded-t-full -ml-5 sm:-ml-6 shadow-md" />
+                  <div className="w-3.5 sm:w-4 h-2 sm:h-2.5 bg-zinc-800 rounded-t-md -mt-1 -ml-2.5 sm:-ml-3 border border-amber-500/40" />
                 </div>
 
                 {/* Moldura Interna em Madeira Escura com Bezel */}
-                <div className="relative rounded-[24px] sm:rounded-[32px] bg-[#0d0a07] p-2 sm:p-3 shadow-inner flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch border border-[#2e2111]">
+                <div className="relative rounded-[20px] sm:rounded-[32px] bg-[#0d0a07] p-2 sm:p-3 shadow-inner flex flex-col md:flex-row gap-2.5 sm:gap-4 items-stretch border border-[#2e2111]">
                   
                   {/* ─── TELA CRT DA TV (Área de Vídeo / Notícia) ───────────────────── */}
-                  <div className="relative flex-1 rounded-[20px] sm:rounded-[26px] bg-black border-4 sm:border-[6px] border-[#18110b] shadow-[inset_0_0_25px_rgba(0,0,0,0.9)] overflow-hidden min-h-[260px] sm:min-h-[380px] flex items-center justify-center">
+                  <div className="relative flex-1 rounded-[16px] sm:rounded-[26px] bg-black border-2 sm:border-[6px] border-[#18110b] shadow-[inset_0_0_25px_rgba(0,0,0,0.9)] overflow-hidden min-h-[220px] sm:min-h-[380px] flex items-center justify-center">
                     
                     {/* Canal Atual & Selo (OSD - On Screen Display Dourado Retro) */}
-                    <div className="absolute top-3 left-3 z-20 flex items-center gap-2 pointer-events-none">
-                      <span className="px-2.5 py-0.5 rounded bg-black/75 border border-primary/50 text-primary font-mono text-[10px] sm:text-xs font-bold tracking-widest flex items-center gap-1.5 shadow">
+                    <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-20 flex items-center gap-1.5 sm:gap-2 pointer-events-none">
+                      <span className="px-2 sm:px-2.5 py-0.5 rounded bg-black/75 border border-primary/50 text-primary font-mono text-[9px] sm:text-xs font-bold tracking-widest flex items-center gap-1.5 shadow">
                         <Radio className="w-3 h-3 text-primary animate-pulse" />
                         CH {String(currentIndex + 1).padStart(2, "0")}
                       </span>
                       {currentEpisode?.badge && (
-                        <span className="px-2.5 py-0.5 rounded bg-primary text-black text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow">
+                        <span className="px-2 sm:px-2.5 py-0.5 rounded bg-primary text-black text-[8px] sm:text-[10px] font-black uppercase tracking-wider shadow">
                           {currentEpisode.badge}
                         </span>
                       )}
@@ -404,7 +404,7 @@ export function PortalRetroTV() {
                             controls
                             autoPlay
                             muted={isMuted}
-                            className="w-full h-full object-contain rounded-[14px]"
+                            className="w-full h-full object-contain rounded-[12px] sm:rounded-[14px] max-h-[55vh]"
                           />
                         ) : (
                           <iframe
@@ -412,7 +412,7 @@ export function PortalRetroTV() {
                             title={currentEpisode.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
-                            className="w-full h-full min-h-[260px] sm:min-h-[380px] border-0 rounded-[14px]"
+                            className="w-full h-full min-h-[220px] sm:min-h-[380px] border-0 rounded-[12px] sm:rounded-[14px]"
                           />
                         )
                       ) : (
@@ -423,14 +423,14 @@ export function PortalRetroTV() {
                       )
                     ) : (
                       /* Conteúdo: TEXTO RETRÔ / COMUNICADO */
-                      <div className="relative w-full h-full p-5 sm:p-8 flex flex-col justify-between text-left overflow-y-auto max-h-[380px] scrollbar-thin scrollbar-thumb-amber-800">
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-primary font-mono text-xs uppercase tracking-widest border-b border-amber-950/60 pb-2">
+                      <div className="relative w-full h-full p-4 sm:p-8 flex flex-col justify-between text-left overflow-y-auto max-h-[340px] sm:max-h-[380px] scrollbar-thin scrollbar-thumb-amber-800">
+                        <div className="space-y-2.5 sm:space-y-3">
+                          <div className="flex items-center gap-2 text-primary font-mono text-[10px] sm:text-xs uppercase tracking-widest border-b border-amber-950/60 pb-2">
                             <Sparkles className="w-3.5 h-3.5 text-primary" />
-                            <span>Boletim de Notícias do Portal</span>
+                            <span>Boletim do Portal</span>
                           </div>
 
-                          <h3 className="text-lg sm:text-2xl font-black text-amber-200 tracking-tight leading-snug">
+                          <h3 className="text-base sm:text-2xl font-black text-amber-200 tracking-tight leading-snug">
                             {currentEpisode?.title}
                           </h3>
 
@@ -441,7 +441,7 @@ export function PortalRetroTV() {
                           )}
 
                           {currentEpisode?.contentText && (
-                            <div className="text-xs sm:text-sm text-zinc-200 whitespace-pre-line leading-relaxed bg-black/40 p-4 rounded-xl border border-zinc-800 font-sans">
+                            <div className="text-xs sm:text-sm text-zinc-200 whitespace-pre-line leading-relaxed bg-black/40 p-3 sm:p-4 rounded-xl border border-zinc-800 font-sans">
                               {currentEpisode.contentText}
                             </div>
                           )}
@@ -449,12 +449,12 @@ export function PortalRetroTV() {
 
                         {/* Botão de Ação / Link opcional */}
                         {currentEpisode?.ctaText && currentEpisode?.ctaUrl && (
-                          <div className="pt-4 mt-2">
+                          <div className="pt-3 mt-2">
                             <a
                               href={currentEpisode.ctaUrl}
                               target={currentEpisode.ctaUrl.startsWith("http") ? "_blank" : "_self"}
                               rel="noreferrer"
-                              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-black font-extrabold text-xs sm:text-sm shadow-[0_0_20px_rgba(245,197,24,0.35)] transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                              className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-black font-extrabold text-xs sm:text-sm shadow-[0_0_20px_rgba(245,197,24,0.35)] transition-all hover:scale-105 active:scale-95 cursor-pointer"
                             >
                               {currentEpisode.ctaText}
                               <ExternalLink className="w-3.5 h-3.5" />
@@ -465,107 +465,101 @@ export function PortalRetroTV() {
                     )}
                   </div>
 
-                  {/* ─── PAINEL LATERAL RETRÔ (Brushed Dark Brass com Botões Dourados) ─── */}
-                  <div className="w-full md:w-44 rounded-[18px] sm:rounded-[22px] bg-gradient-to-b from-[#221d15] via-[#1a1610] to-[#12100b] p-3 sm:p-4 border-2 border-[#54411b] shadow-[inset_0_2px_4px_rgba(245,197,24,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6)] flex flex-col justify-between gap-4">
+                  {/* ─── PAINEL DE CONTROLE RETRÔ (Responsivo: Horizontal no Mobile, Vertical no Desktop) ─── */}
+                  <div className="w-full md:w-44 rounded-[16px] sm:rounded-[22px] bg-gradient-to-b from-[#221d15] via-[#1a1610] to-[#12100b] p-2 sm:p-4 border-2 border-[#54411b] shadow-[inset_0_2px_4px_rgba(245,197,24,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6)] flex flex-row md:flex-col items-center justify-between gap-2.5 sm:gap-3">
                     
-                    {/* Botões Giratórios (Knobs) */}
-                    <div className="space-y-4">
-                      {/* Knob 1: SELETOR DE CANAIS / TUTORIAIS */}
-                      <div className="text-center space-y-1">
-                        <span className="text-[9px] font-black uppercase tracking-wider text-primary block">
-                          Canal / Vídeo
-                        </span>
-                        
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={handlePrevChannel}
-                            className="w-6 h-6 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs transition-transform active:scale-90 cursor-pointer border border-primary/20 hover:border-primary/50"
-                            title="Canal anterior"
-                          >
-                            <ChevronLeft className="w-3.5 h-3.5 text-primary" />
-                          </button>
+                    {/* Controles de Canal */}
+                    <div className="flex md:flex-col items-center gap-1.5 md:gap-1 text-center flex-1 md:flex-initial">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-primary hidden md:block">
+                        Canal / Vídeo
+                      </span>
 
-                          {/* O Botão Giratório Visual em Ouro/Bronze */}
-                          <button
-                            type="button"
-                            onClick={handleNextChannel}
-                            className="relative w-12 h-12 rounded-full bg-gradient-to-b from-amber-300 via-amber-500 to-amber-700 border-2 border-amber-300 shadow-[0_4px_12px_rgba(245,197,24,0.35),inset_0_2px_3px_rgba(255,255,255,0.8)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer"
-                            title="Girar para o próximo canal"
-                          >
-                            {/* Ponteiro do Botão que gira */}
-                            <motion.div
-                              animate={{ rotate: channelKnobAngle }}
-                              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                              className="w-full h-full flex items-center justify-center"
-                            >
-                              <div className="w-1.5 h-4 bg-black rounded-full -translate-y-2 shadow-inner" />
-                            </motion.div>
-                          </button>
+                      <div className="flex items-center justify-center gap-1 sm:gap-2">
+                        <button
+                          type="button"
+                          onClick={handlePrevChannel}
+                          className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs transition-transform active:scale-90 cursor-pointer border border-primary/20 hover:border-primary/50"
+                          title="Canal anterior"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5 text-primary" />
+                        </button>
 
-                          <button
-                            type="button"
-                            onClick={handleNextChannel}
-                            className="w-6 h-6 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs transition-transform active:scale-90 cursor-pointer border border-primary/20 hover:border-primary/50"
-                            title="Próximo canal"
+                        {/* O Botão Giratório Visual em Ouro/Bronze */}
+                        <button
+                          type="button"
+                          onClick={handleNextChannel}
+                          className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-gradient-to-b from-amber-300 via-amber-500 to-amber-700 border-2 border-amber-300 shadow-[0_4px_12px_rgba(245,197,24,0.35),inset_0_2px_3px_rgba(255,255,255,0.8)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shrink-0"
+                          title="Girar para o próximo canal"
+                        >
+                          {/* Ponteiro do Botão que gira */}
+                          <motion.div
+                            animate={{ rotate: channelKnobAngle }}
+                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                            className="w-full h-full flex items-center justify-center"
                           >
-                            <ChevronRight className="w-3.5 h-3.5 text-primary" />
-                          </button>
-                        </div>
+                            <div className="w-1.5 h-3 sm:h-4 bg-black rounded-full -translate-y-1.5 sm:-translate-y-2 shadow-inner" />
+                          </motion.div>
+                        </button>
 
-                        <span className="text-[10px] text-primary/80 font-mono font-bold block">
-                          {currentIndex + 1} de {episodes.length}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={handleNextChannel}
+                          className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs transition-transform active:scale-90 cursor-pointer border border-primary/20 hover:border-primary/50"
+                          title="Próximo canal"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5 text-primary" />
+                        </button>
                       </div>
 
-                      {/* Knob 2: MUDO / VOLUME */}
-                      <div className="text-center space-y-1">
-                        <span className="text-[9px] font-black uppercase tracking-wider text-primary block">
-                          Áudio
-                        </span>
-
-                        <div className="flex items-center justify-center">
-                          <button
-                            type="button"
-                            onClick={() => setIsMuted(!isMuted)}
-                            className="relative w-10 h-10 rounded-full bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-900 border-2 border-primary/40 shadow-[0_3px_8px_rgba(0,0,0,0.6)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer text-primary"
-                            title={isMuted ? "Ativar som" : "Desativar som"}
-                          >
-                            {isMuted ? (
-                              <VolumeX className="w-4 h-4 text-red-500" />
-                            ) : (
-                              <Volume2 className="w-4 h-4 text-primary" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
+                      <span className="text-[10px] text-primary/80 font-mono font-bold block ml-1 md:ml-0">
+                        {currentIndex + 1}/{episodes.length}
+                      </span>
                     </div>
 
-                    {/* Grade de Som Vintage (Speaker Grille) */}
-                    <div className="space-y-1 py-1">
-                      <div className="h-1 bg-black/50 rounded-full border-t border-white/5" />
+                    {/* Mudo / Volume */}
+                    <div className="flex md:flex-col items-center gap-1.5 text-center shrink-0">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-primary hidden md:block">
+                        Áudio
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsMuted(!isMuted)}
+                        className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-900 border-2 border-primary/40 shadow-[0_3px_8px_rgba(0,0,0,0.6)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer text-primary"
+                        title={isMuted ? "Ativar som" : "Desativar som"}
+                      >
+                        {isMuted ? (
+                          <VolumeX className="w-4 h-4 text-red-500" />
+                        ) : (
+                          <Volume2 className="w-4 h-4 text-primary" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Grade de Som Vintage (Apenas Desktop) */}
+                    <div className="space-y-1 py-1 hidden md:block w-full">
                       <div className="h-1 bg-black/50 rounded-full border-t border-white/5" />
                       <div className="h-1 bg-black/50 rounded-full border-t border-white/5" />
                       <div className="h-1 bg-black/50 rounded-full border-t border-white/5" />
                       <div className="h-1 bg-black/50 rounded-full border-t border-white/5" />
                     </div>
 
-                    {/* Botão Guia de Canais (Abrir lista de tutoriais) */}
+                    {/* Botão Guia de Canais */}
                     <button
                       type="button"
                       onClick={() => setShowGuide(!showGuide)}
-                      className="w-full py-1.5 px-2 rounded-xl bg-black/50 hover:bg-black/70 border border-primary/30 text-primary text-[10px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      className="py-1 px-2.5 sm:py-1.5 sm:px-3 rounded-xl bg-black/50 hover:bg-black/70 border border-primary/30 text-primary text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer shrink-0"
                     >
                       <ListVideo className="w-3.5 h-3.5 text-primary" />
-                      {showGuide ? "Ocultar Guia" : "Ver Canais"}
+                      <span>{showGuide ? "Fechar" : "Canais"}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* ─── Pés da TV ────────────────────────────────────── */}
-                <div className="flex justify-between px-10 sm:px-16 -mb-6 sm:-mb-8 mt-2 pointer-events-none">
-                  <div className="w-5 sm:w-6 h-8 sm:h-10 bg-gradient-to-r from-[#1c1815] to-[#2e261e] -rotate-12 rounded-b-md shadow-lg border-b-2 border-primary/40" />
-                  <div className="w-5 sm:w-6 h-8 sm:h-10 bg-gradient-to-l from-[#1c1815] to-[#2e261e] rotate-12 rounded-b-md shadow-lg border-b-2 border-primary/40" />
+                <div className="flex justify-between px-8 sm:px-16 -mb-5 sm:-mb-8 mt-2 pointer-events-none">
+                  <div className="w-4 sm:w-6 h-6 sm:h-10 bg-gradient-to-r from-[#1c1815] to-[#2e261e] -rotate-12 rounded-b-md shadow-lg border-b-2 border-primary/40" />
+                  <div className="w-4 sm:w-6 h-6 sm:h-10 bg-gradient-to-l from-[#1c1815] to-[#2e261e] rotate-12 rounded-b-md shadow-lg border-b-2 border-primary/40" />
                 </div>
               </div>
 
