@@ -67,6 +67,110 @@ function formatVideoEmbedUrl(url?: string | null): string | null {
   return trimmed;
 }
 
+// Ícone de TV Retrô bonitinho desenhado em SVG e alinhado ao tema dourado e preto do portal
+function CuteMiniRetroTv({ hasUnseen }: { hasUnseen?: boolean }) {
+  return (
+    <div className="relative flex items-center justify-center shrink-0">
+      <svg
+        width="40"
+        height="34"
+        viewBox="0 0 40 34"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="drop-shadow-[0_2px_8px_rgba(245,197,24,0.35)] transition-transform group-hover:scale-105"
+      >
+        {/* Antenas Retrô com ponteiras em ouro */}
+        <line
+          x1="14"
+          y1="8"
+          x2="8"
+          y2="2"
+          stroke="#f5c518"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <circle cx="8" cy="2" r="1.5" fill="#f5c518" />
+
+        <line
+          x1="18"
+          y1="8"
+          x2="24"
+          y2="2"
+          stroke="#f5c518"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <circle cx="24" cy="2" r="1.5" fill="#f5c518" />
+
+        {/* Base da antena */}
+        <rect x="14" y="7" width="4" height="2" rx="1" fill="#71717a" />
+
+        {/* Pés da TV */}
+        <rect x="7" y="27.5" width="3.5" height="3" rx="1" fill="#52525b" />
+        <rect x="22.5" y="27.5" width="3.5" height="3" rx="1" fill="#52525b" />
+
+        {/* Gabinete Principal da TVzinha */}
+        <rect
+          x="3"
+          y="8"
+          width="27"
+          height="20"
+          rx="5.5"
+          fill="#18181b"
+          stroke="#f5c518"
+          strokeWidth="1.6"
+        />
+
+        {/* Tela CRT Interna Curva */}
+        <rect
+          x="5.5"
+          y="10.5"
+          width="16"
+          height="15"
+          rx="3.5"
+          fill="#09090b"
+          stroke="#27272a"
+          strokeWidth="0.8"
+        />
+
+        {/* Reflexo de Vidro Retrô na Tela */}
+        <path
+          d="M7.5 12C7.5 11.5 9 11 11.5 11"
+          stroke="#f5c518"
+          strokeWidth="0.8"
+          strokeLinecap="round"
+          strokeOpacity="0.5"
+        />
+
+        {/* Mini Play Dourado no centro da tela */}
+        <polygon points="12,15.5 16.5,18 12,20.5" fill="#f5c518" />
+
+        {/* Dials / Knobs Dourados no painel direito */}
+        <circle cx="25.5" cy="13.5" r="1.8" fill="#27272a" stroke="#f5c518" strokeWidth="0.8" />
+        <circle cx="25.5" cy="13.5" r="0.6" fill="#f5c518" />
+
+        <circle cx="25.5" cy="18.5" r="1.8" fill="#27272a" stroke="#f5c518" strokeWidth="0.8" />
+        <circle cx="25.5" cy="18.5" r="0.6" fill="#f5c518" />
+
+        {/* Saídas do Alto-falante */}
+        <line x1="24" y1="22.5" x2="27" y2="22.5" stroke="#71717a" strokeWidth="0.8" strokeLinecap="round" />
+        <line x1="24" y1="24.5" x2="27" y2="24.5" stroke="#71717a" strokeWidth="0.8" strokeLinecap="round" />
+
+        {/* LED de Ligada (Verde Retrô) */}
+        <circle cx="6.5" cy="24" r="0.75" fill="#10b981" />
+      </svg>
+
+      {/* Notificação Pulsante (hasUnseen) */}
+      {hasUnseen && (
+        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 pointer-events-none">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary border border-black" />
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function PortalRetroTV() {
   const [data, setData] = useState<TvDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -198,7 +302,7 @@ export function PortalRetroTV() {
             <button
               type="button"
               onClick={() => setIsDismissed(true)}
-              className="w-5 h-5 rounded-full bg-black/60 hover:bg-black text-muted-foreground hover:text-white flex items-center justify-center transition-colors shadow-md text-[10px] cursor-pointer"
+              className="w-5 h-5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors shadow-md text-[10px] cursor-pointer"
               title="Ocultar TV nesta sessão"
             >
               <X className="w-3 h-3" />
@@ -208,32 +312,26 @@ export function PortalRetroTV() {
             <button
               type="button"
               onClick={handleOpen}
-              className="group relative flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-900/90 via-amber-800/95 to-amber-950/90 text-amber-100 border border-amber-600/40 shadow-xl shadow-amber-950/50 hover:shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer backdrop-blur-md"
+              className="group relative flex items-center gap-3 px-3.5 py-2 rounded-2xl bg-zinc-950/95 hover:bg-black text-white border border-primary/40 hover:border-primary/80 shadow-[0_8px_30px_rgba(0,0,0,0.85),0_0_20px_rgba(245,197,24,0.18)] hover:shadow-[0_8px_36px_rgba(0,0,0,0.95),0_0_28px_rgba(245,197,24,0.32)] hover:scale-105 active:scale-95 transition-all cursor-pointer backdrop-blur-xl select-none"
             >
               {/* Antena Decorativa no topo do botão */}
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity">
-                <div className="w-6 h-3 border-t-2 border-amber-400/80 -rotate-12 rounded-t-full" />
-                <div className="w-6 h-3 border-t-2 border-amber-400/80 rotate-12 rounded-t-full -ml-3" />
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity">
+                <div className="w-5 h-2.5 border-t-2 border-primary/70 -rotate-12 rounded-t-full" />
+                <div className="w-5 h-2.5 border-t-2 border-primary/70 rotate-12 rounded-t-full -ml-2.5" />
               </div>
 
-              {/* Ícone da TV com luzinha */}
-              <div className="relative w-8 h-8 rounded-lg bg-teal-800/80 border border-teal-500/40 flex items-center justify-center shadow-inner text-amber-200">
-                <Tv className="w-4 h-4 text-teal-200 animate-pulse" />
-                {hasUnseen && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-black animate-ping" />
-                )}
-                {hasUnseen && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border border-white" />
-                )}
+              {/* Ícone da TVzinha Retrô Estilizada no Tema do Portal */}
+              <div className="relative w-10 h-10 rounded-xl bg-zinc-900/90 border border-primary/30 flex items-center justify-center shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_2px_8px_rgba(0,0,0,0.5)] group-hover:border-primary/60 transition-colors shrink-0">
+                <CuteMiniRetroTv hasUnseen={hasUnseen} />
               </div>
 
               {/* Texto com Selo */}
               <div className="text-left flex flex-col pr-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5" />
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5 text-primary" />
                   {data.badge || "Novidades"}
                 </span>
-                <span className="text-xs font-black text-white leading-tight">
+                <span className="text-xs font-black text-white leading-tight group-hover:text-amber-200 transition-colors">
                   {data.title || "TV do Portal"}
                 </span>
               </div>
@@ -265,29 +363,29 @@ export function PortalRetroTV() {
                 <X className="w-4 h-4" /> Fechar TV
               </button>
 
-              {/* ─── Gabinete de Madeira da TV Retrô ──────────────────────────────── */}
-              <div className="relative rounded-[32px] sm:rounded-[40px] bg-gradient-to-b from-[#8B5A2B] via-[#653E1B] to-[#4A2C11] p-3 sm:p-5 shadow-[0_20px_60px_rgba(0,0,0,0.9),inset_0_2px_4px_rgba(255,255,255,0.3),inset_0_-4px_8px_rgba(0,0,0,0.6)] border-4 border-[#543013]">
+              {/* ─── Gabinete da TV Retrô (Acabamento Ébano/Nogueira com Ouro Vintage) ── */}
+              <div className="relative rounded-[32px] sm:rounded-[40px] bg-gradient-to-b from-[#241c14] via-[#1a140e] to-[#120d09] p-3 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.95),inset_0_2px_4px_rgba(245,197,24,0.25),inset_0_-4px_8px_rgba(0,0,0,0.8)] border-4 border-[#5e4318]">
                 {/* Antena V Vintage no topo */}
                 <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
-                  <div className="w-12 h-6 border-t-2 border-zinc-400 -rotate-25 rounded-t-full shadow-md" />
-                  <div className="w-12 h-6 border-t-2 border-zinc-400 rotate-25 rounded-t-full -ml-6 shadow-md" />
-                  <div className="w-4 h-2.5 bg-zinc-700 rounded-t-md -mt-1 -ml-3" />
+                  <div className="w-12 h-6 border-t-2 border-amber-400/80 -rotate-25 rounded-t-full shadow-md" />
+                  <div className="w-12 h-6 border-t-2 border-amber-400/80 rotate-25 rounded-t-full -ml-6 shadow-md" />
+                  <div className="w-4 h-2.5 bg-zinc-800 rounded-t-md -mt-1 -ml-3 border border-amber-500/40" />
                 </div>
 
                 {/* Moldura Interna em Madeira Escura com Bezel */}
-                <div className="relative rounded-[24px] sm:rounded-[32px] bg-[#221308] p-2 sm:p-3 shadow-inner flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch">
+                <div className="relative rounded-[24px] sm:rounded-[32px] bg-[#0d0a07] p-2 sm:p-3 shadow-inner flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch border border-[#2e2111]">
                   
                   {/* ─── TELA CRT DA TV (Área de Vídeo / Notícia) ───────────────────── */}
                   <div className="relative flex-1 rounded-[20px] sm:rounded-[26px] bg-black border-4 sm:border-[6px] border-[#18110b] shadow-[inset_0_0_25px_rgba(0,0,0,0.9)] overflow-hidden min-h-[260px] sm:min-h-[380px] flex items-center justify-center">
                     
-                    {/* Canal Atual & Selo (OSD - On Screen Display Verde Retro) */}
+                    {/* Canal Atual & Selo (OSD - On Screen Display Dourado Retro) */}
                     <div className="absolute top-3 left-3 z-20 flex items-center gap-2 pointer-events-none">
-                      <span className="px-2 py-0.5 rounded bg-black/70 border border-emerald-500/40 text-emerald-400 font-mono text-[10px] sm:text-xs font-bold tracking-widest flex items-center gap-1.5 shadow">
-                        <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
+                      <span className="px-2.5 py-0.5 rounded bg-black/75 border border-primary/50 text-primary font-mono text-[10px] sm:text-xs font-bold tracking-widest flex items-center gap-1.5 shadow">
+                        <Radio className="w-3 h-3 text-primary animate-pulse" />
                         CH {String(currentIndex + 1).padStart(2, "0")}
                       </span>
                       {currentEpisode?.badge && (
-                        <span className="px-2 py-0.5 rounded bg-amber-500/80 text-black text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow">
+                        <span className="px-2.5 py-0.5 rounded bg-primary text-black text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow">
                           {currentEpisode.badge}
                         </span>
                       )}
@@ -325,10 +423,10 @@ export function PortalRetroTV() {
                       )
                     ) : (
                       /* Conteúdo: TEXTO RETRÔ / COMUNICADO */
-                      <div className="relative w-full h-full p-5 sm:p-8 flex flex-col justify-between text-left overflow-y-auto max-h-[380px] scrollbar-thin scrollbar-thumb-emerald-800">
+                      <div className="relative w-full h-full p-5 sm:p-8 flex flex-col justify-between text-left overflow-y-auto max-h-[380px] scrollbar-thin scrollbar-thumb-amber-800">
                         <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-emerald-400 font-mono text-xs uppercase tracking-widest border-b border-emerald-950 pb-2">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          <div className="flex items-center gap-2 text-primary font-mono text-xs uppercase tracking-widest border-b border-amber-950/60 pb-2">
+                            <Sparkles className="w-3.5 h-3.5 text-primary" />
                             <span>Boletim de Notícias do Portal</span>
                           </div>
 
@@ -356,7 +454,7 @@ export function PortalRetroTV() {
                               href={currentEpisode.ctaUrl}
                               target={currentEpisode.ctaUrl.startsWith("http") ? "_blank" : "_self"}
                               rel="noreferrer"
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-extrabold text-xs sm:text-sm shadow-lg transition-all hover:scale-105 active:scale-95"
+                              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-black font-extrabold text-xs sm:text-sm shadow-[0_0_20px_rgba(245,197,24,0.35)] transition-all hover:scale-105 active:scale-95 cursor-pointer"
                             >
                               {currentEpisode.ctaText}
                               <ExternalLink className="w-3.5 h-3.5" />
@@ -367,14 +465,14 @@ export function PortalRetroTV() {
                     )}
                   </div>
 
-                  {/* ─── PAINEL LATERAL RETRÔ (Verde-água com Botões de Girar) ────────── */}
-                  <div className="w-full md:w-44 rounded-[18px] sm:rounded-[22px] bg-gradient-to-b from-[#2E8B83] via-[#24746D] to-[#1A5752] p-3 sm:p-4 border-2 border-[#174B46] shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,0,0,0.5)] flex flex-col justify-between gap-4">
+                  {/* ─── PAINEL LATERAL RETRÔ (Brushed Dark Brass com Botões Dourados) ─── */}
+                  <div className="w-full md:w-44 rounded-[18px] sm:rounded-[22px] bg-gradient-to-b from-[#221d15] via-[#1a1610] to-[#12100b] p-3 sm:p-4 border-2 border-[#54411b] shadow-[inset_0_2px_4px_rgba(245,197,24,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6)] flex flex-col justify-between gap-4">
                     
                     {/* Botões Giratórios (Knobs) */}
                     <div className="space-y-4">
                       {/* Knob 1: SELETOR DE CANAIS / TUTORIAIS */}
                       <div className="text-center space-y-1">
-                        <span className="text-[9px] font-black uppercase tracking-wider text-teal-100/90 block">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-primary block">
                           Canal / Vídeo
                         </span>
                         
@@ -382,17 +480,17 @@ export function PortalRetroTV() {
                           <button
                             type="button"
                             onClick={handlePrevChannel}
-                            className="w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-xs transition-transform active:scale-90 cursor-pointer"
+                            className="w-6 h-6 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs transition-transform active:scale-90 cursor-pointer border border-primary/20 hover:border-primary/50"
                             title="Canal anterior"
                           >
-                            <ChevronLeft className="w-3.5 h-3.5" />
+                            <ChevronLeft className="w-3.5 h-3.5 text-primary" />
                           </button>
 
-                          {/* O Botão Giratório Visual */}
+                          {/* O Botão Giratório Visual em Ouro/Bronze */}
                           <button
                             type="button"
                             onClick={handleNextChannel}
-                            className="relative w-12 h-12 rounded-full bg-gradient-to-b from-zinc-200 via-zinc-400 to-zinc-500 border-2 border-zinc-600 shadow-[0_4px_8px_rgba(0,0,0,0.6),inset_0_2px_3px_rgba(255,255,255,0.8)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+                            className="relative w-12 h-12 rounded-full bg-gradient-to-b from-amber-300 via-amber-500 to-amber-700 border-2 border-amber-300 shadow-[0_4px_12px_rgba(245,197,24,0.35),inset_0_2px_3px_rgba(255,255,255,0.8)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                             title="Girar para o próximo canal"
                           >
                             {/* Ponteiro do Botão que gira */}
@@ -401,28 +499,28 @@ export function PortalRetroTV() {
                               transition={{ type: "spring", stiffness: 300, damping: 20 }}
                               className="w-full h-full flex items-center justify-center"
                             >
-                              <div className="w-1.5 h-4 bg-zinc-900 rounded-full -translate-y-2 shadow-inner" />
+                              <div className="w-1.5 h-4 bg-black rounded-full -translate-y-2 shadow-inner" />
                             </motion.div>
                           </button>
 
                           <button
                             type="button"
                             onClick={handleNextChannel}
-                            className="w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-xs transition-transform active:scale-90 cursor-pointer"
+                            className="w-6 h-6 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs transition-transform active:scale-90 cursor-pointer border border-primary/20 hover:border-primary/50"
                             title="Próximo canal"
                           >
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            <ChevronRight className="w-3.5 h-3.5 text-primary" />
                           </button>
                         </div>
 
-                        <span className="text-[10px] text-teal-200 font-mono font-bold block">
+                        <span className="text-[10px] text-primary/80 font-mono font-bold block">
                           {currentIndex + 1} de {episodes.length}
                         </span>
                       </div>
 
                       {/* Knob 2: MUDO / VOLUME */}
                       <div className="text-center space-y-1">
-                        <span className="text-[9px] font-black uppercase tracking-wider text-teal-100/90 block">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-primary block">
                           Áudio
                         </span>
 
@@ -430,13 +528,13 @@ export function PortalRetroTV() {
                           <button
                             type="button"
                             onClick={() => setIsMuted(!isMuted)}
-                            className="relative w-10 h-10 rounded-full bg-gradient-to-b from-zinc-300 via-zinc-400 to-zinc-600 border-2 border-zinc-600 shadow-[0_3px_6px_rgba(0,0,0,0.6)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer text-zinc-900"
+                            className="relative w-10 h-10 rounded-full bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-900 border-2 border-primary/40 shadow-[0_3px_8px_rgba(0,0,0,0.6)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer text-primary"
                             title={isMuted ? "Ativar som" : "Desativar som"}
                           >
                             {isMuted ? (
-                              <VolumeX className="w-4 h-4 text-red-700" />
+                              <VolumeX className="w-4 h-4 text-red-500" />
                             ) : (
-                              <Volume2 className="w-4 h-4 text-zinc-900" />
+                              <Volume2 className="w-4 h-4 text-primary" />
                             )}
                           </button>
                         </div>
@@ -445,29 +543,29 @@ export function PortalRetroTV() {
 
                     {/* Grade de Som Vintage (Speaker Grille) */}
                     <div className="space-y-1 py-1">
-                      <div className="h-1 bg-black/30 rounded-full" />
-                      <div className="h-1 bg-black/30 rounded-full" />
-                      <div className="h-1 bg-black/30 rounded-full" />
-                      <div className="h-1 bg-black/30 rounded-full" />
-                      <div className="h-1 bg-black/30 rounded-full" />
+                      <div className="h-1 bg-black/50 rounded-full border-t border-white/5" />
+                      <div className="h-1 bg-black/50 rounded-full border-t border-white/5" />
+                      <div className="h-1 bg-black/50 rounded-full border-t border-white/5" />
+                      <div className="h-1 bg-black/50 rounded-full border-t border-white/5" />
+                      <div className="h-1 bg-black/50 rounded-full border-t border-white/5" />
                     </div>
 
                     {/* Botão Guia de Canais (Abrir lista de tutoriais) */}
                     <button
                       type="button"
                       onClick={() => setShowGuide(!showGuide)}
-                      className="w-full py-1.5 px-2 rounded-xl bg-black/30 hover:bg-black/50 border border-teal-400/30 text-teal-100 text-[10px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      className="w-full py-1.5 px-2 rounded-xl bg-black/50 hover:bg-black/70 border border-primary/30 text-primary text-[10px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <ListVideo className="w-3.5 h-3.5 text-amber-300" />
+                      <ListVideo className="w-3.5 h-3.5 text-primary" />
                       {showGuide ? "Ocultar Guia" : "Ver Canais"}
                     </button>
                   </div>
                 </div>
 
-                {/* ─── Pés de Madeira da TV ────────────────────────────────────── */}
+                {/* ─── Pés da TV ────────────────────────────────────── */}
                 <div className="flex justify-between px-10 sm:px-16 -mb-6 sm:-mb-8 mt-2 pointer-events-none">
-                  <div className="w-5 sm:w-6 h-8 sm:h-10 bg-gradient-to-r from-[#4A2C11] to-[#653E1B] -rotate-12 rounded-b-md shadow-lg" />
-                  <div className="w-5 sm:w-6 h-8 sm:h-10 bg-gradient-to-l from-[#4A2C11] to-[#653E1B] rotate-12 rounded-b-md shadow-lg" />
+                  <div className="w-5 sm:w-6 h-8 sm:h-10 bg-gradient-to-r from-[#1c1815] to-[#2e261e] -rotate-12 rounded-b-md shadow-lg border-b-2 border-primary/40" />
+                  <div className="w-5 sm:w-6 h-8 sm:h-10 bg-gradient-to-l from-[#1c1815] to-[#2e261e] rotate-12 rounded-b-md shadow-lg border-b-2 border-primary/40" />
                 </div>
               </div>
 
@@ -478,11 +576,11 @@ export function PortalRetroTV() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="mt-6 rounded-2xl bg-zinc-950/95 border border-zinc-800 p-4 shadow-2xl text-left max-h-60 overflow-y-auto space-y-2"
+                    className="mt-6 rounded-2xl bg-zinc-950/95 border border-primary/30 p-4 shadow-2xl text-left max-h-60 overflow-y-auto space-y-2"
                   >
                     <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-2">
-                      <span className="text-xs font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <ListVideo className="w-4 h-4 text-amber-400" /> Guia de Programação da TV
+                      <span className="text-xs font-extrabold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                        <ListVideo className="w-4 h-4 text-primary" /> Guia de Programação da TV
                       </span>
                       <span className="text-[10px] text-zinc-400">
                         Clique para sintonizar
@@ -503,11 +601,15 @@ export function PortalRetroTV() {
                             }}
                             className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                               isCurrent
-                                ? "bg-amber-500/15 border-amber-500/50 text-amber-200"
-                                : "bg-zinc-900/60 border-zinc-800 hover:bg-zinc-850 text-zinc-300"
+                                ? "bg-primary/15 border-primary/60 text-primary shadow-[0_0_12px_rgba(245,197,24,0.15)]"
+                                : "bg-zinc-900/60 border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300"
                             }`}
                           >
-                            <span className="w-6 h-6 rounded bg-black/60 flex items-center justify-center font-mono text-[10px] font-bold text-emerald-400 shrink-0">
+                            <span
+                              className={`w-6 h-6 rounded flex items-center justify-center font-mono text-[10px] font-bold shrink-0 ${
+                                isCurrent ? "bg-primary text-black font-extrabold" : "bg-black/60 text-primary"
+                              }`}
+                            >
                               {idx + 1}
                             </span>
                             <div className="flex-1 min-w-0">

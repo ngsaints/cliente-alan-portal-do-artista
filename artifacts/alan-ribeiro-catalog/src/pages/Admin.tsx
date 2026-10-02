@@ -8782,12 +8782,39 @@ function TvTab() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-black/40 px-5 py-3 rounded-2xl border border-border/60 self-start md:self-auto">
-            <span className="text-xs font-extrabold text-muted-foreground">
-              {enabled ? "Ligada" : "Desligada"}
-            </span>
-            <Switch checked={enabled} onCheckedChange={handleToggleGlobalEnabled} />
-          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            onClick={() => handleToggleGlobalEnabled(!enabled)}
+            className={`group flex items-center gap-4 px-5 py-3 rounded-2xl border transition-all cursor-pointer self-start md:self-auto select-none ${
+              enabled
+                ? "bg-emerald-500/10 border-emerald-500/40 hover:bg-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
+                : "bg-black/60 border-zinc-700/80 hover:bg-black/80 hover:border-zinc-600"
+            }`}
+          >
+            <div className="text-left">
+              <span className={`block text-xs font-black uppercase tracking-wider ${enabled ? "text-emerald-400" : "text-muted-foreground"}`}>
+                {enabled ? "Ligada" : "Desligada"}
+              </span>
+              <span className="text-[10px] text-muted-foreground hidden sm:block">
+                {enabled ? "Clique para desligar" : "Clique para ligar"}
+              </span>
+            </div>
+            <div
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                enabled ? "bg-primary shadow-[0_0_12px_rgba(245,197,24,0.4)]" : "bg-zinc-700"
+              }`}
+              style={{ width: "44px", minWidth: "44px", height: "24px" }}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full shadow-md transition duration-200 ease-in-out ${
+                  enabled ? "translate-x-5 bg-black" : "translate-x-0 bg-white"
+                }`}
+                style={{ width: "20px", minWidth: "20px", height: "20px" }}
+              />
+            </div>
+          </button>
         </div>
 
         {/* Formulário de Título e Selo Geral da TV */}
@@ -9004,16 +9031,16 @@ function TvTab() {
 
       {/* Modal de Criação / Edição de Episódio */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-border rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-border/50 pb-4">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-card border border-border rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border/50 pb-5">
               <div>
-                <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-                  <Tv className="w-5 h-5 text-primary" />
+                <h3 className="text-xl font-extrabold text-white flex items-center gap-2.5">
+                  <Tv className="w-6 h-6 text-primary" />
                   {editingEpisode ? "Editar Canal da TV" : "Novo Canal / Episódio"}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Configure o que será transmitido na TVzinha do portal.
+                <p className="text-xs text-muted-foreground mt-1">
+                  Configure o que será transmitido na TVzinha do portal para todos os usuários.
                 </p>
               </div>
               <button
@@ -9024,20 +9051,20 @@ function TvTab() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveEpisode} className="space-y-4">
+            <form onSubmit={handleSaveEpisode} className="space-y-6">
               {/* Seletor de Tipo: Vídeo vs Texto */}
               <div>
                 <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
                   Tipo de Transmissão
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setFormData((prev) => ({ ...prev, type: "video" }))}
-                    className={`py-3 px-4 rounded-2xl border font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    className={`py-3.5 px-4 rounded-2xl border font-extrabold text-xs flex items-center justify-center gap-2.5 transition-all cursor-pointer ${
                       formData.type === "video"
                         ? "bg-amber-500/20 border-amber-500 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
-                        : "bg-black/30 border-border text-muted-foreground hover:text-white"
+                        : "bg-black/30 border-border text-muted-foreground hover:text-white hover:border-zinc-700"
                     }`}
                   >
                     <Video className="w-4 h-4" /> Vídeo (YouTube / Shorts)
@@ -9046,10 +9073,10 @@ function TvTab() {
                   <button
                     type="button"
                     onClick={() => setFormData((prev) => ({ ...prev, type: "text" }))}
-                    className={`py-3 px-4 rounded-2xl border font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    className={`py-3.5 px-4 rounded-2xl border font-extrabold text-xs flex items-center justify-center gap-2.5 transition-all cursor-pointer ${
                       formData.type === "text"
                         ? "bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-                        : "bg-black/30 border-border text-muted-foreground hover:text-white"
+                        : "bg-black/30 border-border text-muted-foreground hover:text-white hover:border-zinc-700"
                     }`}
                   >
                     <FileText className="w-4 h-4" /> Comunicado de Texto
@@ -9057,19 +9084,40 @@ function TvTab() {
                 </div>
               </div>
 
-              {/* Título */}
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
-                  Título do Episódio *
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="Ex: Como Cadastrar Suas Músicas no Portal"
-                  className="w-full px-4 py-3 bg-input border border-border rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-primary"
-                  required
-                />
+              {/* Título e Descrição em Grid de 2 Colunas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                    Título do Episódio *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="Ex: Como Cadastrar Suas Músicas no Portal"
+                    className="w-full px-4 py-3 bg-input border border-border rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-primary"
+                    required
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Nome principal que aparece no menu OSD da TV.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                    Descrição Curta (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.description}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                    placeholder="Ex: Tutorial passo a passo de 2 minutos para compositores"
+                    className="w-full px-4 py-3 bg-input border border-border rounded-xl text-sm font-medium text-white focus:outline-none focus:border-primary"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Subtítulo ou resumo explicativo exibido abaixo do título.
+                  </p>
+                </div>
               </div>
 
               {/* Se Vídeo: Campo URL do Vídeo */}
@@ -9099,11 +9147,11 @@ function TvTab() {
                     Conteúdo da Mensagem *
                   </label>
                   <textarea
-                    rows={5}
+                    rows={6}
                     value={formData.contentText}
                     onChange={(e) => setFormData((prev) => ({ ...prev, contentText: e.target.value }))}
                     placeholder="Digite seu comunicado, dica ou novidade com estilo..."
-                    className="w-full px-4 py-3 bg-input border border-border rounded-xl text-sm font-medium text-white focus:outline-none focus:border-primary resize-y"
+                    className="w-full px-4 py-3 bg-input border border-border rounded-xl text-sm font-medium text-white focus:outline-none focus:border-primary resize-y leading-relaxed"
                     required
                   />
                   <p className="text-[11px] text-muted-foreground mt-1">
@@ -9112,22 +9160,8 @@ function TvTab() {
                 </div>
               )}
 
-              {/* Resumo / Descrição opcional */}
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
-                  Descrição Curta (Opcional)
-                </label>
-                <input
-                  type="text"
-                  value={formData.description}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                  placeholder="Ex: Tutorial passo a passo de 2 minutos para compositores"
-                  className="w-full px-4 py-2.5 bg-input border border-border rounded-xl text-xs font-medium text-white focus:outline-none focus:border-primary"
-                />
-              </div>
-
-              {/* Badge e Ordem */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Badge e Ordem em Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
                     Selo / Etiqueta
@@ -9168,11 +9202,11 @@ function TvTab() {
               </div>
 
               {/* Botão de Ação (CTA) Opcional */}
-              <div className="pt-2 border-t border-border/40">
+              <div className="pt-3 border-t border-border/40">
                 <p className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-primary" /> Botão de Ação no Rodapé (Opcional)
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[11px] font-bold text-muted-foreground mb-1">
                       Texto do Botão
@@ -9182,7 +9216,7 @@ function TvTab() {
                       value={formData.ctaText}
                       onChange={(e) => setFormData((prev) => ({ ...prev, ctaText: e.target.value }))}
                       placeholder="Ex: Abrir Meu Painel"
-                      className="w-full px-3 py-2 bg-input border border-border rounded-xl text-xs text-white focus:outline-none focus:border-primary"
+                      className="w-full px-3.5 py-2.5 bg-input border border-border rounded-xl text-xs text-white focus:outline-none focus:border-primary"
                     />
                   </div>
                   <div>
@@ -9194,14 +9228,14 @@ function TvTab() {
                       value={formData.ctaUrl}
                       onChange={(e) => setFormData((prev) => ({ ...prev, ctaUrl: e.target.value }))}
                       placeholder="Ex: /artista/dashboard ou https://..."
-                      className="w-full px-3 py-2 bg-input border border-border rounded-xl text-xs text-white focus:outline-none focus:border-primary"
+                      className="w-full px-3.5 py-2.5 bg-input border border-border rounded-xl text-xs text-white focus:outline-none focus:border-primary"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Status Ativo */}
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-black/30 border border-border/60">
                 <div>
                   <span className="text-xs font-bold text-white block">Transmitir Imediatamente</span>
                   <span className="text-[11px] text-muted-foreground">Deixar o episódio no ar após salvar</span>
@@ -9213,18 +9247,18 @@ function TvTab() {
               </div>
 
               {/* Botões do Rodapé */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/50">
+              <div className="flex items-center justify-end gap-3 pt-5 border-t border-border/50">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl bg-card border border-border text-xs font-bold text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-card border border-border text-xs font-bold text-muted-foreground hover:text-white transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={savingEpisode}
-                  className="px-6 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs hover:bg-primary/90 transition-all flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(245,197,24,0.3)] disabled:opacity-50"
+                  className="px-7 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs hover:bg-primary/90 transition-all flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(245,197,24,0.3)] disabled:opacity-50"
                 >
                   {savingEpisode ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {editingEpisode ? "Salvar Alterações" : "Publicar Canal"}
