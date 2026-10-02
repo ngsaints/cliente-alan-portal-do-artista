@@ -2795,6 +2795,10 @@ const SETTING_LABELS: Record<string, string> = {
   demo_tiktok: "TikTok",
   demo_spotify: "Spotify",
   demo_cor: "Cor Tema da Página",
+  // TV do Portal
+  portal_tv_enabled: "Ativar TV do Portal em todas as páginas",
+  portal_tv_title: "Título no OSD da TV do Portal",
+  portal_tv_badge: "Selo / Etiqueta da TV do Portal",
   openrouter_fallbacks: "Modelos de Contingência (Fallbacks Automáticos)",
   vivi_monthly_limit: "Mensagens da Vivi / mês (plano sem cota)",
 };
@@ -2825,6 +2829,9 @@ function getSettingDescription(key: string, defaultDesc: string): string {
   if (key === "openrouter_enabled") return "Habilita a IA para chat, análise e composição com a Vivi.";
   if (key === "replicate_enabled") return "Mantém o Replicate disponível como provedor de backup quando o modelo padrão é do OpenRouter ou do kie.ai (e para a verificação de integração).";
   if (key === "portal_url") return "URL usada em links de retorno e compartilhamentos (ex: https://portaldoartista.com).";
+  if (key === "portal_tv_enabled") return "Ligue para exibir a TVzinha retrô flutuante em todas as páginas do portal para assinantes e visitantes.";
+  if (key === "portal_tv_title") return "Título exibido no OSD verde da tela da TVzinha.";
+  if (key === "portal_tv_badge") return "Selo em destaque exibido no botão flutuante e no topo da TV.";
   if (key === "artist_vip_enabled") return "Desligue para esconder o checkbox VIP do painel do artista. Músicas já marcadas VIP passam a aparecer normalmente no site.";
   if (key === "artist_reservado_enabled") return "Desligue para esconder o botão Reservado do painel. Músicas reservadas passam a aparecer como disponíveis.";
   if (key === "onboarding_tour_enabled") return "Mostra os balões de onboarding na primeira visita do artista ao painel. Cada artista vê uma única vez (marcado no navegador).";
@@ -4402,6 +4409,12 @@ function SettingsCategoryForm({ category, onNavigate }: { category: SettingsCate
           icon: Crown,
           description: "Ligue ou desligue botões que os artistas usam ao cadastrar músicas. Vale para todos os artistas da plataforma.",
           keys: ["artist_vip_enabled", "artist_reservado_enabled", "onboarding_tour_enabled"],
+        },
+        {
+          title: "TV do Portal & Tutoriais",
+          icon: Tv,
+          description: "Controle da TVzinha retrô flutuante. Você pode ligar/desligar aqui ou gerenciar todos os canais e vídeos na aba TV do Portal.",
+          keys: ["portal_tv_enabled", "portal_tv_title", "portal_tv_badge"],
         },
       ];
     }

@@ -79,6 +79,9 @@ async function ensureDbSchema() {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_portal_tv_episodes_active_order ON portal_tv_episodes(active, "order");
+      INSERT INTO portal_tv_episodes (title, description, type, content_text, cta_text, cta_url, badge, active, "order")
+      SELECT 'Bem-vindo à TV do Portal', 'Assista aos tutoriais e fique por dentro das novidades da plataforma.', 'text', 'Bem-vindo ao canal oficial de novidades do Portal do Artista! Aqui você confere dicas exclusivas, novidades e tutoriais para turbinar sua carreira musical.', 'Ver Meu Painel', '/artista/dashboard', 'Novidades', true, 1
+      WHERE NOT EXISTS (SELECT 1 FROM portal_tv_episodes);
     `);
     console.log("✅ [DB] Colunas e tabelas de IA e TV verificadas com sucesso.");
   } catch (err: any) {

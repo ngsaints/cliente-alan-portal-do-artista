@@ -98,8 +98,27 @@ export function PortalRetroTV() {
   }, []);
 
   const episodes = useMemo(() => {
-    return (data?.episodes || []).filter((e) => e.active);
-  }, [data?.episodes]);
+    const list = (data?.episodes || []).filter((e) => e.active);
+    if (list.length > 0) return list;
+    if (data?.enabled) {
+      return [
+        {
+          id: 1,
+          title: data.title || "TV do Portal & Tutoriais",
+          description: "Canal oficial de tutoriais e novidades do portal.",
+          type: "text" as const,
+          contentText: "Bem-vindo à TV do Portal! Acompanhe aqui as novidades, dicas e tutoriais da plataforma. Você pode adicionar vídeos do YouTube e comunicados pelo Painel Admin > TV do Portal.",
+          ctaText: "Ver Meu Painel",
+          ctaUrl: "/artista/dashboard",
+          badge: data.badge || "Novidades",
+          active: true,
+          order: 1,
+          createdAt: new Date().toISOString(),
+        },
+      ];
+    }
+    return [];
+  }, [data]);
 
   const currentEpisode: TvEpisode | null = episodes[currentIndex] ?? null;
 

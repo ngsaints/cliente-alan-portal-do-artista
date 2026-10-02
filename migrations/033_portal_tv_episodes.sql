@@ -18,3 +18,8 @@ CREATE TABLE IF NOT EXISTS portal_tv_episodes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_portal_tv_episodes_active_order ON portal_tv_episodes(active, "order");
+
+INSERT INTO portal_tv_episodes (title, description, type, content_text, cta_text, cta_url, badge, active, "order")
+SELECT 'Bem-vindo à TV do Portal', 'Assista aos tutoriais e fique por dentro das novidades da plataforma.', 'text', 'Bem-vindo ao canal oficial de novidades do Portal do Artista! Aqui você confere dicas exclusivas, novidades e tutoriais para turbinar sua carreira musical.', 'Ver Meu Painel', '/artista/dashboard', 'Novidades', true, 1
+WHERE NOT EXISTS (SELECT 1 FROM portal_tv_episodes);
+
