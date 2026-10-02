@@ -296,16 +296,16 @@ export function PortalRetroTV() {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0, opacity: 0, y: 20 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="fixed bottom-20 sm:bottom-6 right-3 sm:right-6 z-40 flex items-center"
+            className="fixed bottom-4 sm:bottom-6 right-3 sm:right-6 z-40 flex items-center"
           >
             {/* Cápsula Unificada da TVzinha (Design Premium Preto e Ouro) */}
-            <div className="group relative flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 rounded-full bg-zinc-950/95 hover:bg-black text-white border border-primary/40 hover:border-primary/80 shadow-[0_8px_32px_rgba(0,0,0,0.85),0_0_24px_rgba(245,197,24,0.18)] hover:shadow-[0_10px_36px_rgba(0,0,0,0.95),0_0_28px_rgba(245,197,24,0.3)] transition-all backdrop-blur-xl select-none">
+            <div className="group relative flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-full bg-zinc-950/95 hover:bg-black text-white border border-primary/40 hover:border-primary/80 shadow-[0_8px_32px_rgba(0,0,0,0.85),0_0_24px_rgba(245,197,24,0.18)] hover:shadow-[0_10px_36px_rgba(0,0,0,0.95),0_0_28px_rgba(245,197,24,0.3)] transition-all backdrop-blur-xl select-none max-w-[calc(100vw-24px)]">
               
               {/* Botão de Abrir TV (Ícone + Textos) */}
               <button
                 type="button"
                 onClick={handleOpen}
-                className="flex items-center gap-2.5 cursor-pointer text-left focus:outline-none"
+                className="flex items-center gap-2 cursor-pointer text-left focus:outline-none"
               >
                 {/* Ícone da TVzinha Retrô Estilizada */}
                 <div className="relative w-9 h-9 rounded-xl bg-zinc-900/90 border border-primary/30 flex items-center justify-center shadow-inner group-hover:border-primary/60 transition-colors shrink-0">
@@ -318,7 +318,7 @@ export function PortalRetroTV() {
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                     {data.badge || "Novidades"}
                   </span>
-                  <span className="text-xs font-black text-white leading-tight truncate max-w-[150px] sm:max-w-[190px] group-hover:text-amber-200 transition-colors">
+                  <span className="text-xs font-black text-white leading-tight truncate max-w-[130px] sm:max-w-[190px] group-hover:text-amber-200 transition-colors">
                     {data.title || "TV do Portal"}
                   </span>
                 </div>
@@ -341,42 +341,42 @@ export function PortalRetroTV() {
       {/* ─── Modal Aberto (A TV Retrô Completa) ─────────────────────────────────── */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 pt-12 sm:pt-8 bg-black/85 backdrop-blur-md overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-6 pt-12 sm:pt-8 bg-black/85 backdrop-blur-md overflow-y-auto">
             {/* Backdrop Click para fechar */}
             <div className="fixed inset-0 -z-10" onClick={() => setIsOpen(false)} />
 
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.9, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="relative w-full max-w-3xl my-auto pt-4"
+              exit={{ scale: 0.9, opacity: 0, y: 15 }}
+              transition={{ type: "spring", stiffness: 320, damping: 25 }}
+              className="relative w-full max-w-3xl my-auto pt-6 sm:pt-4"
             >
               {/* Botão de Fechar Superior Sempre Visível */}
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="fixed top-4 right-4 sm:absolute sm:-top-10 sm:right-0 z-50 p-2 sm:px-3 sm:py-1.5 rounded-full bg-zinc-900/90 hover:bg-black border border-primary/40 hover:border-primary text-white shadow-2xl transition-transform hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+                className="fixed top-3 right-3 sm:absolute sm:-top-10 sm:right-0 z-[60] px-3 py-1.5 rounded-full bg-black/90 hover:bg-black border border-primary/50 text-white shadow-2xl transition-transform hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold"
                 title="Fechar TV"
               >
                 <X className="w-4 h-4 text-primary" />
-                <span className="hidden sm:inline">Fechar TV</span>
+                <span>Fechar TV</span>
               </button>
 
               {/* ─── Gabinete da TV Retrô ───────────────────────────────────────── */}
-              <div className="relative rounded-[28px] sm:rounded-[40px] bg-gradient-to-b from-[#241c14] via-[#1a140e] to-[#120d09] p-3 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.95),inset_0_2px_4px_rgba(245,197,24,0.25),inset_0_-4px_8px_rgba(0,0,0,0.8)] border-2 sm:border-4 border-[#5e4318]">
+              <div className="relative rounded-[24px] sm:rounded-[40px] bg-gradient-to-b from-[#241c14] via-[#1a140e] to-[#120d09] p-2 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.95),inset_0_2px_4px_rgba(245,197,24,0.25),inset_0_-4px_8px_rgba(0,0,0,0.8)] border border-amber-500/40 sm:border-4 sm:border-[#5e4318]">
                 {/* Antena V Vintage no topo */}
-                <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
-                  <div className="w-10 sm:w-12 h-5 sm:h-6 border-t-2 border-amber-400/80 -rotate-25 rounded-t-full shadow-md" />
-                  <div className="w-10 sm:w-12 h-5 sm:h-6 border-t-2 border-amber-400/80 rotate-25 rounded-t-full -ml-5 sm:-ml-6 shadow-md" />
-                  <div className="w-3.5 sm:w-4 h-2 sm:h-2.5 bg-zinc-800 rounded-t-md -mt-1 -ml-2.5 sm:-ml-3 border border-amber-500/40" />
+                <div className="absolute -top-5 sm:-top-7 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
+                  <div className="w-9 sm:w-12 h-4 sm:h-6 border-t-2 border-amber-400/80 -rotate-25 rounded-t-full shadow-md" />
+                  <div className="w-9 sm:w-12 h-4 sm:h-6 border-t-2 border-amber-400/80 rotate-25 rounded-t-full -ml-4.5 sm:-ml-6 shadow-md" />
+                  <div className="w-3.5 sm:w-4 h-2 sm:h-2.5 bg-zinc-800 rounded-t-md -mt-1 -ml-2 sm:-ml-3 border border-amber-500/40" />
                 </div>
 
                 {/* Moldura Interna em Madeira Escura com Bezel */}
-                <div className="relative rounded-[20px] sm:rounded-[32px] bg-[#0d0a07] p-2 sm:p-3 shadow-inner flex flex-col md:flex-row gap-2.5 sm:gap-4 items-stretch border border-[#2e2111]">
+                <div className="relative rounded-[18px] sm:rounded-[32px] bg-[#0d0a07] p-2 sm:p-3 shadow-inner flex flex-col md:flex-row gap-2.5 sm:gap-4 items-stretch border border-[#2e2111]">
                   
                   {/* ─── TELA CRT DA TV (Área de Vídeo / Notícia) ───────────────────── */}
-                  <div className="relative flex-1 rounded-[16px] sm:rounded-[26px] bg-black border-2 sm:border-[6px] border-[#18110b] shadow-[inset_0_0_25px_rgba(0,0,0,0.9)] overflow-hidden min-h-[220px] sm:min-h-[380px] flex items-center justify-center">
+                  <div className="relative flex-1 rounded-[14px] sm:rounded-[26px] bg-black border-2 sm:border-[6px] border-[#18110b] shadow-[inset_0_0_25px_rgba(0,0,0,0.9)] overflow-hidden min-h-[220px] max-h-[50vh] sm:min-h-[380px] flex items-center justify-center">
                     
                     {/* Canal Atual & Selo (OSD - On Screen Display Dourado Retro) */}
                     <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-20 flex items-center gap-1.5 sm:gap-2 pointer-events-none">
@@ -404,7 +404,7 @@ export function PortalRetroTV() {
                             controls
                             autoPlay
                             muted={isMuted}
-                            className="w-full h-full object-contain rounded-[12px] sm:rounded-[14px] max-h-[55vh]"
+                            className="w-full h-full object-contain rounded-[12px] sm:rounded-[14px] max-h-[50vh]"
                           />
                         ) : (
                           <iframe
@@ -412,7 +412,7 @@ export function PortalRetroTV() {
                             title={currentEpisode.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
-                            className="w-full h-full min-h-[220px] sm:min-h-[380px] border-0 rounded-[12px] sm:rounded-[14px]"
+                            className="w-full h-full min-h-[220px] sm:min-h-[380px] aspect-video border-0 rounded-[12px] sm:rounded-[14px]"
                           />
                         )
                       ) : (
@@ -423,7 +423,7 @@ export function PortalRetroTV() {
                       )
                     ) : (
                       /* Conteúdo: TEXTO RETRÔ / COMUNICADO */
-                      <div className="relative w-full h-full p-4 sm:p-8 flex flex-col justify-between text-left overflow-y-auto max-h-[340px] sm:max-h-[380px] scrollbar-thin scrollbar-thumb-amber-800">
+                      <div className="relative w-full h-full p-4 sm:p-8 flex flex-col justify-between text-left overflow-y-auto max-h-[320px] sm:max-h-[380px] scrollbar-thin scrollbar-thumb-amber-800">
                         <div className="space-y-2.5 sm:space-y-3">
                           <div className="flex items-center gap-2 text-primary font-mono text-[10px] sm:text-xs uppercase tracking-widest border-b border-amber-950/60 pb-2">
                             <Sparkles className="w-3.5 h-3.5 text-primary" />
@@ -463,10 +463,71 @@ export function PortalRetroTV() {
                         )}
                       </div>
                     )}
+
+                    {/* Guia de Canais OSD (Overlay diretamente na tela CRT) */}
+                    <AnimatePresence>
+                      {showGuide && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="absolute inset-0 z-30 bg-black/92 backdrop-blur-md p-3 sm:p-5 flex flex-col justify-between"
+                        >
+                          <div className="flex items-center justify-between border-b border-primary/30 pb-2 mb-2">
+                            <span className="text-xs font-black text-primary uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                              <Radio className="w-3.5 h-3.5 text-primary animate-pulse" /> Sintonizador de Canais
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowGuide(false)}
+                              className="text-[11px] font-bold text-muted-foreground hover:text-white px-2.5 py-1 rounded-lg bg-white/10 cursor-pointer transition-colors"
+                            >
+                              Fechar
+                            </button>
+                          </div>
+                          
+                          <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-amber-800">
+                            {episodes.map((ep, idx) => {
+                              const isCurrent = idx === currentIndex;
+                              return (
+                                <button
+                                  key={ep.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setCurrentIndex(idx);
+                                    setChannelKnobAngle((prev) => prev + 45);
+                                    setShowGuide(false);
+                                  }}
+                                  className={`w-full flex items-center gap-2.5 p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                                    isCurrent
+                                      ? "bg-primary/20 border-primary text-white shadow-[0_0_15px_rgba(245,197,24,0.25)]"
+                                      : "bg-zinc-900/70 border-zinc-800 hover:border-primary/40 text-zinc-300"
+                                  }`}
+                                >
+                                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono text-xs font-black shrink-0 ${
+                                    isCurrent ? "bg-primary text-black" : "bg-black/60 text-primary border border-primary/30"
+                                  }`}>
+                                    {idx + 1}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold truncate text-white">{ep.title}</p>
+                                    {ep.badge && (
+                                      <span className="text-[9px] font-bold text-primary uppercase tracking-wider">
+                                        {ep.badge}
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* ─── PAINEL DE CONTROLE RETRÔ (Responsivo: Horizontal no Mobile, Vertical no Desktop) ─── */}
-                  <div className="w-full md:w-44 rounded-[16px] sm:rounded-[22px] bg-gradient-to-b from-[#221d15] via-[#1a1610] to-[#12100b] p-2 sm:p-4 border-2 border-[#54411b] shadow-[inset_0_2px_4px_rgba(245,197,24,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6)] flex flex-row md:flex-col items-center justify-between gap-2.5 sm:gap-3">
+                  <div className="w-full md:w-44 rounded-[14px] sm:rounded-[22px] bg-gradient-to-b from-[#221d15] via-[#1a1610] to-[#12100b] p-2 sm:p-4 border border-[#54411b] shadow-[inset_0_2px_4px_rgba(245,197,24,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6)] flex flex-row md:flex-col items-center justify-between gap-2 sm:gap-3">
                     
                     {/* Controles de Canal */}
                     <div className="flex md:flex-col items-center gap-1.5 md:gap-1 text-center flex-1 md:flex-initial">
@@ -557,79 +618,11 @@ export function PortalRetroTV() {
                 </div>
 
                 {/* ─── Pés da TV ────────────────────────────────────── */}
-                <div className="flex justify-between px-8 sm:px-16 -mb-5 sm:-mb-8 mt-2 pointer-events-none">
-                  <div className="w-4 sm:w-6 h-6 sm:h-10 bg-gradient-to-r from-[#1c1815] to-[#2e261e] -rotate-12 rounded-b-md shadow-lg border-b-2 border-primary/40" />
-                  <div className="w-4 sm:w-6 h-6 sm:h-10 bg-gradient-to-l from-[#1c1815] to-[#2e261e] rotate-12 rounded-b-md shadow-lg border-b-2 border-primary/40" />
+                <div className="flex justify-between px-8 sm:px-16 -mb-4 sm:-mb-8 mt-1.5 sm:mt-2 pointer-events-none">
+                  <div className="w-3.5 sm:w-6 h-5 sm:h-10 bg-gradient-to-r from-[#1c1815] to-[#2e261e] -rotate-12 rounded-b-md shadow-lg border-b-2 border-primary/40" />
+                  <div className="w-3.5 sm:w-6 h-5 sm:h-10 bg-gradient-to-l from-[#1c1815] to-[#2e261e] rotate-12 rounded-b-md shadow-lg border-b-2 border-primary/40" />
                 </div>
               </div>
-
-              {/* ─── Guia de Programação (Gaveta de Episódios) ────────────────── */}
-              <AnimatePresence>
-                {showGuide && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-6 rounded-2xl bg-zinc-950/95 border border-primary/30 p-4 shadow-2xl text-left max-h-60 overflow-y-auto space-y-2"
-                  >
-                    <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-2">
-                      <span className="text-xs font-extrabold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                        <ListVideo className="w-4 h-4 text-primary" /> Guia de Programação da TV
-                      </span>
-                      <span className="text-[10px] text-zinc-400">
-                        Clique para sintonizar
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {episodes.map((ep, idx) => {
-                        const isCurrent = idx === currentIndex;
-                        return (
-                          <button
-                            key={ep.id}
-                            type="button"
-                            onClick={() => {
-                              setCurrentIndex(idx);
-                              setChannelKnobAngle((prev) => prev + 45);
-                              setShowGuide(false);
-                            }}
-                            className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                              isCurrent
-                                ? "bg-primary/15 border-primary/60 text-primary shadow-[0_0_12px_rgba(245,197,24,0.15)]"
-                                : "bg-zinc-900/60 border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300"
-                            }`}
-                          >
-                            <span
-                              className={`w-6 h-6 rounded flex items-center justify-center font-mono text-[10px] font-bold shrink-0 ${
-                                isCurrent ? "bg-primary text-black font-extrabold" : "bg-black/60 text-primary"
-                              }`}
-                            >
-                              {idx + 1}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-xs font-bold truncate">
-                                  {ep.title}
-                                </span>
-                                {ep.badge && (
-                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-bold uppercase">
-                                    {ep.badge}
-                                  </span>
-                                )}
-                              </div>
-                              {ep.description && (
-                                <p className="text-[10px] text-zinc-400 truncate mt-0.5">
-                                  {ep.description}
-                                </p>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </motion.div>
           </div>
         )}
