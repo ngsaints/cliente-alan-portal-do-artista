@@ -14,3 +14,5 @@ export type {
   VipStatus,
 } from "./generated/types";
 
+
+export { escapeEmailHtml, renderMarketingText, wrapMarketingEmail } from "./email-marketing";

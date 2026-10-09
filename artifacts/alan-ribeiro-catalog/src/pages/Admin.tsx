@@ -1,3 +1,4 @@
+import { renderMarketingText, wrapMarketingEmail } from "../../../../lib/api-zod/src/email-marketing";
 import { EngagementPanel } from "@/components/EngagementPanel";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -6491,44 +6492,18 @@ function EmailMarketingTab() {
       .finally(() => setLoadingArtists(false));
   }, []);
 
-  const convertTextToHtml = (text: string) => {
-    if (!text) return "";
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
+  const [emailFrom, setEmailFrom] = useState("Portal do Artista");
+  const uploadSelection = useRef({ start: 0, end: 0 });
 
-    let html = text;
+  useEffect(() => {
+    fetch("/api/admin/email-marketing/config", { credentials: "include" })
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => setEmailFrom(data.from))
+      .catch(() => {});
+  }, []);
 
-    // Convert double newlines to paragraphs
-    const paragraphs = html.split(/\n\s*\n/);
-    html = paragraphs
-      .map((p) => {
-        let pText = p.trim();
-        if (!pText) return "";
-
-        // Headings
-        if (pText.startsWith("# ")) {
-          return `<h2 style="color: #111827; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 12px;">${pText.substring(2)}</h2>`;
-        }
-        if (pText.startsWith("## ")) {
-          return `<h3 style="color: #1f2937; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; margin-top: 15px; margin-bottom: 10px;">${pText.substring(3)}</h3>`;
-        }
-
-        // Single newlines
-        pText = pText.replace(/\n/g, "<br/>");
-
-        return `<p style="margin-bottom: 15px; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #374151;">${pText}</p>`;
-      })
-      .join("\n");
-
-    // Bold markdown: **text** -> <strong>text</strong>
-    html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-
-    // Links markdown: [text](url) -> <a href="url" ...>text</a>
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #6366f1; text-decoration: underline; font-weight: 500;">$1</a>');
-
-    // Images markdown: ![alt](url) -> <img src="url" style="..." alt="alt" />
-    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" style="max-width: 100%; height: auto; border-radius: 12px; margin: 15px 0; display: block;" alt="$1" />');
-
-    return html;
-  };
+  const convertTextToHtml = (text: string) => renderMarketingText(text, window.location.origin);
 
   const insertTag = (tag: string) => {
     const textarea = textareaRef.current;
@@ -6550,6 +6525,12 @@ function EmailMarketingTab() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type) || file.size > 10 * 1024 * 1024) {
+      toast({ title: "Escolha uma imagem JPG, PNG, WebP ou GIF de até 10 MB", variant: "destructive" });
+      e.target.value = "";
+      return;
+    }
+    uploadSelection.current = { start: textareaRef.current?.selectionStart ?? bodyText.length, end: textareaRef.current?.selectionEnd ?? bodyText.length };
     const formData = new FormData();
     formData.append("image", file);
 
@@ -6559,13 +6540,20 @@ function EmailMarketingTab() {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("Erro no upload");
       const data = await res.json();
-      insertTag(`![Imagem](${data.url})`);
+      if (!res.ok) throw new Error(data.error || "Erro no upload");
+      const url = new URL(data.url, window.location.origin).href;
+      const tag = `\n\n![Imagem](${url})\n\n`;
+      const { start, end } = uploadSelection.current;
+      setBodyText(current => current.slice(0, start) + tag + current.slice(end));
+      setTimeout(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.setSelectionRange(start + tag.length, start + tag.length);
+      }, 0);
       toast({ title: "Imagem enviada e inserida!" });
     } catch (err) {
       console.error(err);
-      toast({ title: "Falha ao enviar imagem", variant: "destructive" });
+      toast({ title: "Falha ao enviar imagem", description: err instanceof Error ? err.message : "Tente novamente.", variant: "destructive" });
     } finally {
       setUploading(false);
       if (e.target) e.target.value = "";
@@ -6646,6 +6634,7 @@ Aproveite antes que a oferta expire!`);
         body: JSON.stringify({
           subject,
           bodyHtml,
+          bodyText,
           recipientType,
           artistId: recipientType === "single" ? selectedArtistId : undefined,
         }),
@@ -6684,18 +6673,15 @@ Aproveite antes que a oferta expire!`);
       ? (artists.find((a) => String(a.id) === selectedArtistId)?.name || "Artista")
       : "Artista Exemplo";
 
-    const renderedHtml = convertTextToHtml(bodyText);
-
-    return renderedHtml
-      .replace(/\{\{nome\}\}/g, namePlaceholder)
-      .replace(/\{\{name\}\}/g, namePlaceholder);
+    return wrapMarketingEmail(renderMarketingText(bodyText, window.location.origin, namePlaceholder) ||
+      '<div style="padding:32px 0;text-align:center;color:#888;font-size:14px;">Sua mensagem começa aqui.<br />Escreva um texto ou insira uma imagem para ver o resultado.</div>');
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-display font-bold text-foreground">E-mail Marketing</h2>
-        <p className="text-sm text-muted-foreground">Envie comunicados bonitos de forma simples, sem precisar saber HTML.</p>
+        <p className="text-sm text-muted-foreground">Crie campanhas com a identidade do Portal e acompanhe o resultado antes de enviar.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -6836,7 +6822,7 @@ Aproveite antes que a oferta expire!`);
                   {uploading ? "Carregando..." : "Inserir Imagem"}
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                     onChange={handleImageUpload}
                     disabled={uploading}
                     className="hidden"
@@ -6887,14 +6873,16 @@ Aproveite antes que a oferta expire!`);
               placeholder="Escreva sua mensagem aqui. Aperte Enter duas vezes para criar um novo parágrafo. Use os botões acima para formatar."
               value={bodyText}
               onChange={(e) => setBodyText(e.target.value)}
+              disabled={uploading || sending}
               className="w-full px-4 py-3 bg-input border border-border rounded-b-xl text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary leading-relaxed resize-y"
             />
           </div>
 
+          <p className="text-xs text-muted-foreground">Imagens: JPG, PNG, WebP ou GIF, até 10 MB. O nome do artista é personalizado em cada envio.</p>
           <button
             type="button"
             onClick={handleSend}
-            disabled={sending || uploading}
+            disabled={sending || uploading || !subject.trim() || !bodyText.trim() || loadingArtists || (recipientType === "single" && !selectedArtistId)}
             className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/95 transition-all text-sm shadow disabled:opacity-50"
           >
             {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -6903,18 +6891,26 @@ Aproveite antes que a oferta expire!`);
         </div>
 
         {/* Live Preview panel */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-6 min-w-0">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pré-visualização do E-mail</span>
             <span className="bg-emerald-500/10 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-500/20">
-              Visualização Real
+              Prévia ao vivo
             </span>
           </div>
 
+          <div className="flex items-center gap-2" role="group" aria-label="Tamanho da pré-visualização">
+            {(["desktop", "mobile"] as const).map(device => (
+              <button key={device} type="button" aria-pressed={previewDevice === device} onClick={() => setPreviewDevice(device)}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-colors ${previewDevice === device ? "bg-primary/10 border-primary/30 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}>
+                {device === "desktop" ? "Computador" : "Celular"}
+              </button>
+            ))}
+          </div>
           <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-lg">
             <div className="bg-muted/80 px-4 py-3.5 border-b border-border text-[11px] space-y-1 text-muted-foreground">
               <div>
-                <strong className="text-foreground">De:</strong> Portal do Artista &lt;onboarding@resend.dev&gt;
+                <strong className="text-foreground">De:</strong> {emailFrom}
               </div>
               <div>
                 <strong className="text-foreground">Para:</strong>{" "}
@@ -6928,13 +6924,15 @@ Aproveite antes que a oferta expire!`);
                 <strong className="text-foreground">Assunto:</strong> {subject || <span className="italic text-muted-foreground/60">(Sem assunto)</span>}
               </div>
             </div>
-            <div className="p-4 bg-[#f9fafb] min-h-[400px] flex items-start justify-center overflow-x-auto">
-              <div
-                className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm w-full max-w-[600px] text-gray-800 font-sans text-sm leading-relaxed space-y-4 break-words"
-                dangerouslySetInnerHTML={{
-                  __html: getPreviewHtml() || '<p class="text-gray-400 italic text-center py-12">Escreva o conteúdo do e-mail na coluna da esquerda...</p>',
-                }}
-              />
+            <div className="p-3 bg-background/60 min-h-[460px] overflow-auto">
+              <div className="mx-auto transition-all duration-200" style={{ maxWidth: previewDevice === "mobile" ? 320 : 600 }}>
+                <iframe
+                  title="Pré-visualização da campanha"
+                  sandbox="allow-same-origin"
+                  srcDoc={`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1" /><style>body{margin:0}*{box-sizing:border-box}</style></head><body>${getPreviewHtml()}</body></html>`}
+                  className="w-full h-[560px] border-0 rounded-xl bg-[#111111]"
+                />
+              </div>
             </div>
           </div>
         </div>

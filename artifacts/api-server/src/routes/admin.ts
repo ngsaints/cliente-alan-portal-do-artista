@@ -1,3 +1,4 @@
+import { escapeEmailHtml, renderMarketingText, wrapMarketingEmail } from "@workspace/api-zod";
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import sharp from "sharp";
@@ -6,10 +7,11 @@ import { eq, ne, sql, count, and, inArray } from "drizzle-orm";
 import { FREE_PLAN } from "./payments";
 import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getAsaasCredentials } from "../lib/asaas-client.js";
-import { getEmailConfig } from "../lib/email.js";
+import { getPortalUrl, getEmailConfig } from "../lib/email.js";
 import { logBuffer, clearLogs } from "../lib/logger.js";
 import path from "path";
 import fs from "fs";
+import crypto from "node:crypto";
 
 function inferCategory(key: string): string {
   if (key.startsWith("demo_")) return "demo";
@@ -1154,6 +1156,12 @@ router.post("/admin/sync-subscriptions", async (req, res): Promise<void> => {
   }
 });
 
+router.get("/admin/email-marketing/config", async (req, res): Promise<void> => {
+  if (!req.session.logado) { res.status(401).json({ error: "Não autorizado" }); return; }
+  const { from } = await getEmailConfig();
+  res.json({ from });
+});
+
 // POST /admin/email-marketing/upload-image - Upload an image for email marketing
 router.post(
   "/admin/email-marketing/upload-image",
@@ -1171,7 +1179,7 @@ router.post(
     try {
       const buffer = req.file.buffer;
       const originalName = req.file.originalname;
-      const jpgBuffer = await sharp(buffer).jpeg({ quality: 85 }).toBuffer();
+      const jpgBuffer = await sharp(buffer).rotate().resize({ width: 1200, withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer();
 
       let url: string;
       if (r2Enabled) {
@@ -1180,9 +1188,9 @@ router.post(
       } else {
         const dir = path.join(process.cwd(), "uploads/emails");
         fs.mkdirSync(dir, { recursive: true });
-        const filename = `${Date.now()}_${originalName.replace(/\.\w+$/, ".jpg")}`;
+        const filename = `${crypto.randomUUID()}.jpg`;
         fs.writeFileSync(path.join(dir, filename), jpgBuffer);
-        url = `/api/uploads/emails/${filename}`;
+        url = new URL(`/api/uploads/emails/${filename}`, await getPortalUrl()).href;
       }
 
       res.json({ url });
@@ -1200,9 +1208,9 @@ router.post("/admin/email-marketing/send", async (req, res): Promise<void> => {
     return;
   }
 
-  const { subject, bodyHtml, recipientType, artistId } = req.body;
+  const { subject, bodyHtml, bodyText, recipientType, artistId } = req.body;
 
-  if (!subject || !bodyHtml || !recipientType) {
+  if (typeof subject !== "string" || !subject.trim() || !(typeof bodyText === "string" ? bodyText.trim() : typeof bodyHtml === "string" && bodyHtml.trim()) || !recipientType) {
     res.status(400).json({ error: "Assunto, corpo do e-mail e destinatários são obrigatórios." });
     return;
   }
@@ -1236,30 +1244,23 @@ router.post("/admin/email-marketing/send", async (req, res): Promise<void> => {
       return;
     }
 
+    const portalUrl = await getPortalUrl();
     let successCount = 0;
     let failureCount = 0;
 
     for (const artist of selectedArtists) {
       try {
-        const personalizedHtml = bodyHtml
-          .replace(/\{\{nome\}\}/g, artist.name)
-          .replace(/\{\{name\}\}/g, artist.name);
+        const personalizedHtml = typeof bodyText === "string"
+          ? renderMarketingText(bodyText, portalUrl, artist.name)
+          : bodyHtml.replace(/\{\{(?:nome|name)\}\}/g, () => escapeEmailHtml(artist.name));
 
-        await resend.emails.send({
+        const result = await resend.emails.send({
           from,
           to: artist.email,
           subject,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
-              <div style="padding: 20px; background-color: #ffffff; border-radius: 8px;">
-                ${personalizedHtml}
-              </div>
-              <div style="margin-top: 30px; padding: 20px 0; border-top: 1px solid #eeeeee; font-size: 11px; color: #999999; text-align: center;">
-                <p>Você está recebendo este e-mail porque está cadastrado no Portal do Artista.</p>
-              </div>
-            </div>
-          `,
+          html: wrapMarketingEmail(personalizedHtml),
         });
+        if (result.error) throw new Error(result.error.message);
         successCount++;
       } catch (err) {
         console.error(`Failed to send email to ${artist.email}:`, err);
