@@ -1,3 +1,4 @@
+import { createCreditCheckout, CreditCheckoutError } from "../lib/credit-checkout";
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import { db, aiMusicDemosTable, songsTable, artistsTable, subscriptionsTable, plansTable } from "@workspace/db";
@@ -744,80 +745,27 @@ router.post("/ai/credits/buy-package", async (req, res): Promise<void> => {
     }
     const artist = artists[0];
 
-    // Verificar se o Asaas está disponível
-    try {
-      const { getAsaasCredentials, findOrCreateCustomer, asaasFetch } = await import("../lib/asaas-client.js");
-      const creds = await getAsaasCredentials();
-
-      if (creds.apiKey) {
-        const customer = await findOrCreateCustomer(
-          artist.name,
-          artist.email,
-          artist.documento || undefined,
-          artist.contato || undefined
-        );
-
-        const today = new Date().toISOString().split("T")[0];
-        const paymentRes = await asaasFetch<any>("/payments", {
-          method: "POST",
-          body: {
-            customer: customer.id,
-            billingType: "PIX",
-            value: pkg.price,
-            dueDate: today,
-            description: `Portal do Artista - Créditos de Música IA (${pkg.name} - ${pkg.credits} Hits)`,
-            externalReference: `credits-${sessionArtistId}-${pkg.id}`,
-          },
-        });
-
-        let qrCodeData = { encodedImage: "", payload: "" };
-        try {
-          qrCodeData = await asaasFetch<any>(`/payments/${paymentRes.id}/pixQrCode`);
-        } catch (qrErr) {
-          console.warn("Falha ao gerar QR Code PIX Asaas:", qrErr);
-        }
-
+    const { getAsaasCredentials, findOrCreateCustomer, asaasFetch } = await import("../lib/asaas-client.js");
+    const checkout = await createCreditCheckout(artist, pkg, {
+      getCredentials: getAsaasCredentials,
+      findCustomer: findOrCreateCustomer,
+      createPayment: body => asaasFetch("/payments", { method: "POST", body }),
+      savePending: async paymentId => {
         await db.insert(subscriptionsTable).values({
-          artistId: String(sessionArtistId) as any,
+          artistId: String(sessionArtistId),
           planNome: `ai_credits:${pkg.id}`,
-          asaasPaymentId: paymentRes.id,
+          asaasPaymentId: paymentId,
           status: "pending",
           amount: String(pkg.price),
           billingType: "PIX",
         });
-
-        res.json({
-          success: true,
-          mode: "asaas_pix",
-          paymentId: paymentRes.id,
-          pixQrCode: qrCodeData.encodedImage,
-          pixCopiaECola: qrCodeData.payload,
-          package: pkg,
-        });
-        return;
-      }
-    } catch (asaasErr) {
-      console.warn("Asaas não configurado ou indisponível, usando modo teste/direto:", asaasErr);
-    }
-
-    // Modo de demonstração / ativação direta quando sem Asaas em desenvolvimento
-    const newExtra = (artist.aiMusicExtraCredits || 0) + pkg.credits;
-    await db
-      .update(artistsTable)
-      .set({ aiMusicExtraCredits: newExtra })
-      .where(eq(artistsTable.id, sessionArtistId));
-
-    res.json({
-      success: true,
-      mode: "instant",
-      message: `Pacote de ${pkg.credits} créditos ativado com sucesso!`,
-      addedCredits: pkg.credits,
-      totalExtraCredits: newExtra,
-      package: pkg,
+      },
+      getQrCode: paymentId => asaasFetch(`/payments/${paymentId}/pixQrCode`),
     });
+    res.json(checkout);
   } catch (error: any) {
     console.error("Erro ao processar compra de créditos:", error);
-    res.status(500).json({ error: error.message || "Erro ao processar compra de créditos" });
+    res.status(error instanceof CreditCheckoutError ? error.statusCode : 502).json({ error: error instanceof CreditCheckoutError ? error.message : "Não foi possível concluir a compra agora. Nenhum crédito foi liberado. Tente novamente mais tarde." });
   }
 });
 
@@ -841,7 +789,7 @@ router.post("/ai/credits/confirm-payment", async (req, res): Promise<void> => {
       .from(subscriptionsTable)
       .where(eq(subscriptionsTable.asaasPaymentId, paymentId));
 
-    if (!pending || String(pending.artistId) !== String(sessionArtistId)) {
+    if (!pending || String(pending.artistId) !== String(sessionArtistId) || !pending.planNome.startsWith("ai_credits:")) {
       res.status(404).json({ error: "Pagamento não encontrado para este artista" });
       return;
     }

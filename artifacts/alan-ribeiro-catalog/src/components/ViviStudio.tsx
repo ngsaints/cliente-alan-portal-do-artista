@@ -330,7 +330,7 @@ export function ViviStudio({
   const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
   const [creditPackages, setCreditPackages] = useState<any[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
-  const [pixData, setPixData] = useState<{ pixQrCode?: string; pixCopiaECola?: string; paymentId?: string } | null>(null);
+  const [pixData, setPixData] = useState<{ pixQrCode?: string; pixCopiaECola?: string; paymentId?: string; invoiceUrl?: string } | null>(null);
   const [isBuyingCredits, setIsBuyingCredits] = useState(false);
   const [isConfirmingCredits, setIsConfirmingCredits] = useState(false);
 
@@ -594,18 +594,10 @@ export function ViviStudio({
       }
 
       const data = await res.json();
-      if (data.mode === "asaas_pix" && data.pixCopiaECola) {
-        setPixData(data);
-      } else {
-        // Instant
-        toast({
-          title: "Créditos Adicionados!",
-          description: `Você recebeu +${pkg.credits} créditos extras de geração musical.`,
-        });
-        setIsBuyCreditsModalOpen(false);
-        loadData();
-        if (onRefreshArtist) onRefreshArtist();
+      if (!data.success || data.mode !== "asaas_pix" || !data.paymentId || !(data.pixCopiaECola || data.invoiceUrl)) {
+        throw new Error("Não foi possível carregar o pagamento. Nenhum crédito foi liberado.");
       }
+      setPixData(data);
     } catch (err: any) {
       toast({
         title: "Erro na compra",
@@ -2843,6 +2835,12 @@ export function ViviStudio({
                   </div>
                 )}
 
+                {pixData.invoiceUrl && (
+                  <a href={pixData.invoiceUrl} target="_blank" rel="noopener noreferrer" className="block rounded-xl border border-amber-500/40 px-4 py-3 text-sm font-semibold text-amber-400 hover:bg-amber-500/10">
+                    {pixData.pixCopiaECola ? "Abrir cobrança no Asaas" : "Pagar Pix no Asaas"}
+                  </a>
+                )}
+                {!pixData.pixCopiaECola && pixData.invoiceUrl && <p className="text-xs text-muted-foreground">O código Pix não carregou aqui. Use o link acima para pagar a mesma cobrança com segurança.</p>}
                 <button
                   onClick={async () => {
                     if (!pixData?.paymentId) {
@@ -2860,6 +2858,7 @@ export function ViviStudio({
                         body: JSON.stringify({ paymentId: pixData.paymentId }),
                       });
                       const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || "Não foi possível confirmar o pagamento agora.");
                       if (data.success) {
                         toast({
                           title: "Créditos liberados!",
@@ -2876,8 +2875,8 @@ export function ViviStudio({
                         });
                         loadData();
                       }
-                    } catch {
-                      toast({ title: "Não foi possível confirmar o PIX agora", variant: "destructive" });
+                    } catch (err) {
+                      toast({ title: "Não foi possível confirmar o PIX agora", description: err instanceof Error ? err.message : "Tente novamente em instantes.", variant: "destructive" });
                     } finally {
                       setIsConfirmingCredits(false);
                     }
