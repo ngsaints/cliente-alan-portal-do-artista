@@ -1,3 +1,4 @@
+import { AdminSalesTab } from "@/components/AdminSalesTab";
 import { renderMarketingText, wrapMarketingEmail } from "../../../../lib/api-zod/src/email-marketing";
 import { EngagementPanel } from "@/components/EngagementPanel";
 import { useState, useRef, useEffect } from "react";
@@ -124,7 +125,7 @@ interface Coupon {
   createdAt: string;
 }
 
-type MainTab = "dashboard" | "tv" | "songs" | "artists" | "plans" | "genres" | "interests" | "articles" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs" | "exit_feedback";
+type MainTab = "sales" | "dashboard" | "tv" | "songs" | "artists" | "plans" | "genres" | "interests" | "articles" | "settings" | "banners" | "cities" | "playlists" | "galleries" | "coupons" | "email_marketing" | "server_logs" | "exit_feedback";
 type SettingsCategory = "ai" | "portal" | "asaas" | "r2" | "email" | "demo" | "pixel" | "clarity";
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -260,6 +261,7 @@ function AdminDashboard() {
 
   const tabs: { id: MainTab; label: string; icon: React.ElementType }[] = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+    { id: "sales", label: "Vendas e cobranças", icon: CreditCard },
     { id: "tv", label: "TV do Portal", icon: Tv },
     { id: "songs", label: "Músicas", icon: Music },
     { id: "artists", label: "Artistas", icon: Users },
@@ -380,6 +382,7 @@ function AdminDashboard() {
           {activeTab === "playlists" && <PlaylistsTab />}
           {activeTab === "galleries" && <GalleriesTab />}
           {activeTab === "coupons" && <CouponsTab />}
+          {activeTab === "sales" && <AdminSalesTab />}
           {activeTab === "email_marketing" && <EmailMarketingTab />}
           {activeTab === "server_logs" && <ServerLogsTab />}
         </motion.div>

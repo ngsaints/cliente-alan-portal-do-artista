@@ -16,3 +16,5 @@ export type {
 
 
 export { escapeEmailHtml, renderMarketingText, wrapMarketingEmail } from "./email-marketing";
+
+export * from "./sales";
