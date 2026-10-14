@@ -1,3 +1,4 @@
+import { PortalImage } from './PortalImage';
 import React from 'react';
 import { Play, Pause, SkipForward, ChevronUp } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
@@ -25,13 +26,10 @@ export const MiniPlayer: React.FC = () => {
       {/* Album Cover & Title */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-white/10 shadow-md">
-          <img
+          <PortalImage
             src={currentSong.capaUrl || '/images/default-cover.png'}
             alt={currentSong.titulo}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
-            }}
           />
         </div>
         <div className="min-w-0 flex-1">

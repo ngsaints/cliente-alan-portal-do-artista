@@ -1,3 +1,4 @@
+import { PortalImage } from './PortalImage';
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -113,13 +114,10 @@ export const FullPlayer: React.FC = () => {
               isPlaying ? 'scale-105 transition-transform duration-500' : 'scale-100'
             }`}
           >
-            <img
+            <PortalImage
               src={currentSong.capaUrl || '/images/default-cover.png'}
               alt={currentSong.titulo}
               className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
-              }}
             />
             {/* Spinning vinyl center effect */}
             <div

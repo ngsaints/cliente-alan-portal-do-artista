@@ -1,3 +1,4 @@
+import { portalImageCrossOrigin as portalMediaCrossOrigin } from '../services/portalMedia';
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { SongItem } from '../types/music';
 import { getFavorites, toggleFavorite as dbToggleFavorite } from '../services/db';
@@ -113,6 +114,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setCurrentSong(song);
     const playable =
       song.fileBlob instanceof Blob ? URL.createObjectURL(song.fileBlob) : song.audioUrl;
+    const crossOrigin = portalMediaCrossOrigin(playable);
+    if (crossOrigin) audio.crossOrigin = crossOrigin;
+    else audio.removeAttribute('crossorigin');
     audio.src = playable;
     audio.volume = isMuted ? 0 : volume;
     audio.play()

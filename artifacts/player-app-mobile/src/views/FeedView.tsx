@@ -1,3 +1,4 @@
+import { PortalImage } from '../components/PortalImage';
 import React, { useState, useEffect } from 'react';
 import { Flame, Play, Music, UserCheck, Radio } from 'lucide-react';
 import { SongItem, ArtistItem } from '../types/music';
@@ -53,13 +54,10 @@ export const FeedView: React.FC<{ onOpenExplore?: () => void }> = ({ onOpenExplo
         >
           <div className="relative z-10 flex items-center gap-4">
             <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 border border-white/20 shadow-xl">
-              <img
-                src={featuredSong.capaUrl || '/images/default-cover.png'}
+              <PortalImage
+                src={featuredSong.capaUrl}
                 alt={featuredSong.titulo}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
-                }}
               />
             </div>
             <div className="flex-1 min-w-0">
@@ -107,13 +105,10 @@ export const FeedView: React.FC<{ onOpenExplore?: () => void }> = ({ onOpenExplo
               className="flex-shrink-0 w-28 text-center space-y-2 group cursor-pointer"
             >
               <div className="w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-[#f5c518]/30 group-hover:border-[#f5c518] transition-all shadow-lg p-0.5 bg-[#181818]">
-                <img
-                  src={artist.fotoUrl || 'https://portaldoartista.com/images/hero_mockup.jpg'}
+                <PortalImage
+                  src={artist.fotoUrl}
                   alt={artist.nome}
                   className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-300"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://portaldoartista.com/images/hero_mockup.jpg';
-                  }}
                 />
               </div>
               <h4 className="text-xs font-bold text-white truncate group-hover:text-[#f5c518] transition-colors">

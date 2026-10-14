@@ -1,3 +1,4 @@
+import { PortalImage } from './PortalImage';
 import React from 'react';
 import { Play, Pause, Heart, Music, Smartphone } from 'lucide-react';
 import { SongItem } from '../types/music';
@@ -21,13 +22,10 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queue }) => {
     >
       {/* Thumbnail with overlay */}
       <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-black/50 border border-white/10">
-        <img
+        <PortalImage
           src={song.capaUrl || '/images/default-cover.png'}
           alt={song.titulo}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          onError={(e) => {
-            e.currentTarget.src = 'https://portaldoartista.com/images/default-cover.png';
-          }}
         />
 
         {/* Play/Pause Overlay */}

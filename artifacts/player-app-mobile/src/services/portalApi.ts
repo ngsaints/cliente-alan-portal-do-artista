@@ -1,7 +1,7 @@
 import { SongItem, ArtistItem } from '../types/music';
 
-// Portal do Artista Production Domain
-export const PORTAL_DOMAIN = 'https://portaldoartista.com';
+import { PORTAL_DOMAIN, normalizeUrl } from './portalMedia';
+export { PORTAL_DOMAIN, normalizeUrl } from './portalMedia';
 
 // Use production API url when in Capacitor/Android or dev proxy.
 // Em dev (vite :3002) usa '/api' via proxy; em produção usa domínio absoluto.
@@ -9,44 +9,6 @@ const API_BASE = import.meta.env.VITE_API_URL ||
   (typeof window !== 'undefined' && window.location.origin.includes('localhost:3002')
     ? '/api'
     : `${PORTAL_DOMAIN}/api`);
-
-function isNativeCapacitor(): boolean {
-  if (typeof window === 'undefined') return false;
-  const proto = window.location.protocol;
-  return proto === 'capacitor:' || proto === 'ionic:' || (window as any).Capacitor?.isNativePlatform?.() === true;
-}
-
-export function normalizeUrl(url: string | null | undefined): string {
-  if (!url) return `${PORTAL_DOMAIN}/images/default-cover.png`;
-  const trimmed = String(url).trim();
-  if (!trimmed) return `${PORTAL_DOMAIN}/images/default-cover.png`;
-  if (
-    trimmed.startsWith('http://') ||
-    trimmed.startsWith('https://') ||
-    trimmed.startsWith('data:') ||
-    trimmed.startsWith('blob:')
-  ) {
-    return trimmed;
-  }
-  // No PWA/web servido pelo mesmo domínio, relativo funciona e evita CORS.
-  // No Capacitor nativo (capacitor://localhost) precisa de URL absoluta.
-  const needsAbsolute = isNativeCapacitor() || !window.location.origin.includes('portaldoartista.com') && !window.location.origin.includes('localhost');
-  if (trimmed.startsWith('/api/uploads/')) {
-    return needsAbsolute ? `${PORTAL_DOMAIN}${trimmed}` : trimmed;
-  }
-  if (trimmed.startsWith('/uploads/')) {
-    const withApi = `/api${trimmed}`;
-    return needsAbsolute ? `${PORTAL_DOMAIN}${withApi}` : withApi;
-  }
-  if (trimmed.startsWith('/')) {
-    return needsAbsolute ? `${PORTAL_DOMAIN}${trimmed}` : trimmed;
-  }
-  if (trimmed.startsWith('uploads/')) {
-    const withApi = `/api/${trimmed}`;
-    return needsAbsolute ? `${PORTAL_DOMAIN}${withApi}` : withApi;
-  }
-  return needsAbsolute ? `${PORTAL_DOMAIN}/api/uploads/${trimmed}` : `/api/uploads/${trimmed}`;
-}
 
 function prettyNameFromSlug(slug?: string | null): string | null {
   if (!slug) return null;
@@ -175,7 +137,7 @@ export async function fetchExploreSongs(): Promise<SongItem[]> {
           isLocal: false,
           artistaSlug: song.artistaSlug || undefined,
           artistaId: song.artistaId ?? null,
-          artistaFoto: song.artistaFoto ?? null,
+          artistaFoto: song.artistaFoto ? normalizeUrl(song.artistaFoto) : null,
           plays: Number(song.plays) || 0,
           likes: Number(song.likes) || 0,
           status: song.status ?? null,
