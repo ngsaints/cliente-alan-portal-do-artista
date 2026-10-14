@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Music, Users, Zap, LayoutDashboard, Menu, X, Star, User, BookOpen, Headphones } from "lucide-react";
+import { Music, Users, Zap, LayoutDashboard, Menu, X, Star, User, BookOpen, Headphones, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlansModal } from "@/components/PlansModal";
 
@@ -46,7 +46,7 @@ export function Navbar() {
           </Link>
 
           {/* Desktop links */}
-          <div className="hidden lg:flex items-center gap-1 xl:gap-2 shrink-0">
+          <div className="hidden xl:flex items-center gap-1 xl:gap-2 shrink-0">
             {!artistLoggedIn && (
               <Link
                 href="/planos"
@@ -94,6 +94,7 @@ export function Navbar() {
               <Users className="w-4 h-4" />
               Artistas
             </Link>
+            <Link href="/comunidade" className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10"><MessageSquare className="w-4 h-4"/>Comunidade</Link>
             <Link
               href="/artigos"
               className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
@@ -120,7 +121,7 @@ export function Navbar() {
           </div>
 
           {/* Mobile: Assine Agora + hamburger */}
-          <div className="flex lg:hidden items-center gap-2 shrink-0">
+          <div className="flex xl:hidden items-center gap-2 shrink-0">
             {!artistLoggedIn && (
               <Link
                 href="/planos"
@@ -150,7 +151,7 @@ export function Navbar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm xl:hidden"
               onClick={() => setOpen(false)}
             />
             <motion.div
@@ -158,7 +159,7 @@ export function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 z-50 w-72 bg-card border-l border-border shadow-2xl lg:hidden flex flex-col"
+              className="fixed top-0 right-0 bottom-0 z-50 w-72 bg-card border-l border-border shadow-2xl xl:hidden flex flex-col"
             >
               <div className="flex items-center justify-between px-4 h-16 border-b border-border/50">
                 <span className="font-display font-bold text-foreground">Menu</span>
@@ -224,6 +225,7 @@ export function Navbar() {
                   <Users className="w-5 h-5" />
                   Artistas
                 </Link>
+                <Link href="/comunidade" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-primary"><MessageSquare className="w-4 h-4"/>Comunidade</Link>
                 <Link
                   href="/artigos"
                   onClick={() => setOpen(false)}

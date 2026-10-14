@@ -1,3 +1,4 @@
+import Community from "@/pages/Community";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { useEffect } from "react";
 import Clarity from "@microsoft/clarity";
@@ -43,6 +44,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/comunidade" component={Community} />
       <Route path="/play" component={PortalPlay} />
       <Route path="/explorar" component={Home} />
       <Route path="/artigos" component={Articles} />

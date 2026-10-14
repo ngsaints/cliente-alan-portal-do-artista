@@ -1508,6 +1508,7 @@ export default function ArtistDashboard() {
             {/* Dashboard */}
             {activeTab === "dashboard" && (
               <div className="space-y-6">
+                <a href="/comunidade" className="block rounded-2xl bg-primary/10 border border-primary/30 p-5 hover:border-primary transition-colors"><p className="text-primary text-xs font-bold uppercase tracking-wider">Comunidade do Portal</p><h3 className="font-bold text-lg mt-1">Sua próxima parceria começa com uma conversa</h3><p className="text-sm text-muted-foreground mt-2">Conheça artistas online, troque ideias e encontre parceiros para compor. Entrar nas salas →</p></a>
                 <button
                   type="button"
                   data-tour="vivi"

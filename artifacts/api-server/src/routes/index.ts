@@ -1,3 +1,4 @@
+import communityRouter from "./community";
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import engagementRouter from "./engagement";
@@ -38,6 +39,7 @@ import tvRouter from "./tv";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(communityRouter);
 router.use(engagementRouter);
 router.use(authRouter);
 router.use(songsRouter);
