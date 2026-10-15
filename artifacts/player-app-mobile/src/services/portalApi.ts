@@ -5,7 +5,7 @@ export { PORTAL_DOMAIN, normalizeUrl } from './portalMedia';
 
 // Use production API url when in Capacitor/Android or dev proxy.
 // Em dev (vite :3002) usa '/api' via proxy; em produção usa domínio absoluto.
-const API_BASE = import.meta.env.VITE_API_URL ||
+export const API_BASE = import.meta.env.VITE_API_URL ||
   (typeof window !== 'undefined' && window.location.origin.includes('localhost:3002')
     ? '/api'
     : `${PORTAL_DOMAIN}/api`);
@@ -80,12 +80,13 @@ type RawSong = {
   status?: string | null;
   plays?: string | number | null;
   likes?: string | number | null;
+  weeklyPlays?: number;
 };
 
-export async function fetchExploreSongs(): Promise<SongItem[]> {
+export async function fetchExploreSongs(order: "catalog" | "trending" = "catalog"): Promise<SongItem[]> {
   try {
     const [songsRes, artistsRes] = await Promise.all([
-      fetch(`${API_BASE}/songs`, { cache: 'no-store' }),
+      fetch(`${API_BASE}/songs${order === "trending" ? "/trending" : ""}`, { cache: 'no-store' }),
       fetch(`${API_BASE}/artists`, { cache: 'no-store' }).catch(() => null),
     ]);
     if (!songsRes.ok) throw new Error('Falha ao buscar músicas do portal');
@@ -139,6 +140,7 @@ export async function fetchExploreSongs(): Promise<SongItem[]> {
           artistaId: song.artistaId ?? null,
           artistaFoto: song.artistaFoto ? normalizeUrl(song.artistaFoto) : null,
           plays: Number(song.plays) || 0,
+          weeklyPlays: song.weeklyPlays,
           likes: Number(song.likes) || 0,
           status: song.status ?? null,
           youtubeUrl: song.youtubeUrl ?? null,
@@ -147,17 +149,6 @@ export async function fetchExploreSongs(): Promise<SongItem[]> {
   } catch (err) {
     console.warn('Não foi possível carregar o catálogo do Portal:', err);
     return [];
-  }
-}
-
-/** Registra 1 play no backend (best-effort, sem bloquear o player). */
-export function reportPlay(songId: string | number): void {
-  try {
-    const id = encodeURIComponent(String(songId).replace(/^local-.*$/, ''));
-    if (String(songId).startsWith('local-')) return;
-    fetch(`${API_BASE}/songs/${id}/play`, { method: 'POST' }).catch(() => {});
-  } catch {
-    // ignora
   }
 }
 

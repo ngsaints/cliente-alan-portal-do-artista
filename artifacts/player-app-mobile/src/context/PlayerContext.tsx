@@ -1,8 +1,9 @@
+import { trackQualifiedPlay } from "../../../../lib/shared/qualified-play";
 import { portalImageCrossOrigin as portalMediaCrossOrigin } from '../services/portalMedia';
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { SongItem } from '../types/music';
 import { getFavorites, toggleFavorite as dbToggleFavorite } from '../services/db';
-import { reportPlay, likeRemote, songShareUrl } from '../services/portalApi';
+import { API_BASE, likeRemote, songShareUrl } from '../services/portalApi';
 
 interface PlayerContextType {
   currentSong: SongItem | null;
@@ -47,11 +48,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isFullPlayerOpen, setIsFullPlayerOpen] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentSongRef = useRef(currentSong);
+  currentSongRef.current = currentSong;
 
   // Initialize audio element
   useEffect(() => {
     const audio = new Audio();
     audioRef.current = audio;
+    const stopTracking = trackQualifiedPlay(audio, API_BASE, () => currentSongRef.current?.isLocal ? null : currentSongRef.current?.id ?? null);
 
     const onTimeUpdate = () => {
       setProgress(audio.currentTime);
@@ -82,6 +86,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     getFavorites().then(setFavorites).catch(console.error);
 
     return () => {
+      stopTracking();
       audio.pause();
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('ended', onEnded);
@@ -111,6 +116,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
+    currentSongRef.current = song;
     setCurrentSong(song);
     const playable =
       song.fileBlob instanceof Blob ? URL.createObjectURL(song.fileBlob) : song.audioUrl;
@@ -122,7 +128,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     audio.play()
       .then(() => {
         setIsPlaying(true);
-        reportPlay(song.id);
+
       })
       .catch(err => {
         console.error('Erro ao iniciar áudio:', err);
@@ -156,7 +162,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       audio.play()
         .then(() => {
           setIsPlaying(true);
-          reportPlay(currentSong.id);
+
         })
         .catch(err => console.error('Erro ao dar play:', err));
     }

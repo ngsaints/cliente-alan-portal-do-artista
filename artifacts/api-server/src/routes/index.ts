@@ -1,3 +1,4 @@
+import rankingRouter from "./song-ranking";
 import communityRouter from "./community";
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
@@ -42,6 +43,7 @@ router.use(healthRouter);
 router.use(communityRouter);
 router.use(engagementRouter);
 router.use(authRouter);
+router.use(rankingRouter);
 router.use(songsRouter);
 router.use(settingsRouter);
 router.use(artistsRouter);

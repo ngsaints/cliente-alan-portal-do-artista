@@ -36,6 +36,7 @@ interface SongData {
   precoX?: string | null;
   precoY?: string | null;
   plays?: number | string | null;
+  weeklyPlays?: number;
   likes?: number | string | null;
   tipoMidia?: string | null;
   youtubeUrl?: string | null;
@@ -80,18 +81,17 @@ export default function PortalPlay() {
   });
 
   useEffect(() => {
-    fetch("/api/songs")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setSongs(data.filter((s: SongData) => !s.isPrivate));
-        }
-      })
-      .catch((e) => {
-        console.error("Erro ao carregar catálogo:", e);
-        setLoadError(true);
-      })
-      .finally(() => setLoading(false));
+    let active = true;
+    const load = () => fetch("/api/songs/trending", { cache: "no-store" })
+      .then(r => { if (!r.ok) throw new Error("Ranking indisponível"); return r.json(); })
+      .then(data => { if (active && Array.isArray(data)) { setSongs(data); setLoadError(false); } })
+      .catch(() => { if (active) setLoadError(true); })
+      .finally(() => { if (active) setLoading(false); });
+    load();
+    const refresh = () => { if (!document.hidden) load(); };
+    const timer = setInterval(refresh, 60_000);
+    window.addEventListener("portal:qualified-play", refresh);
+    return () => { active = false; clearInterval(timer); window.removeEventListener("portal:qualified-play", refresh); };
   }, []);
 
   const genres = useMemo(() => {
@@ -120,7 +120,7 @@ export default function PortalPlay() {
     playSong(song as any, filteredSongs as any[]);
   };
 
-  const featuredSong = currentSong || songs[0];
+  const featuredSong = songs[0];
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-foreground flex flex-col selection:bg-primary selection:text-black pb-32">
@@ -175,7 +175,7 @@ export default function PortalPlay() {
             <div className="w-full max-w-sm bg-gradient-to-br from-white/10 to-white/5 p-4 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-xl shrink-0">
               <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3 text-xs text-muted-foreground font-mono">
                 <span className="flex items-center gap-1.5 text-primary font-bold">
-                  <Headphones className="w-4 h-4" /> REPRODUÇÃO ATIVA
+                  <Headphones className="w-4 h-4" /> {featuredSong?.weeklyPlays ? "DESTAQUE DA SEMANA" : "NOVIDADE NO PORTAL"}
                 </span>
                 <span>Portal Play v1.0</span>
               </div>
@@ -210,16 +210,16 @@ export default function PortalPlay() {
                 </div>
                 <button
                   onClick={() => {
-                    if (currentSong) {
+                    if (currentSong?.id === featuredSong?.id) {
                       togglePlay();
                     } else if (songs[0]) {
                       handlePlaySong(songs[0]);
                     }
                   }}
                   className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-black font-black hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/30"
-                  aria-label={isPlaying ? "Pausar" : "Reproduzir"}
+                  aria-label={isPlaying && currentSong?.id === featuredSong?.id ? "Pausar" : "Reproduzir"}
                 >
-                  {isPlaying ? <Pause className="w-5 h-5 fill-black" /> : <Play className="w-5 h-5 fill-black ml-0.5" />}
+                  {isPlaying && currentSong?.id === featuredSong?.id ? <Pause className="w-5 h-5 fill-black" /> : <Play className="w-5 h-5 fill-black ml-0.5" />}
                 </button>
               </div>
             </div>
@@ -228,6 +228,7 @@ export default function PortalPlay() {
       </section>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 space-y-6">
+        <div><h2 className="text-xl font-bold">{songs.some(song => (song.weeklyPlays || 0) > 0) ? "Músicas em alta nos últimos 7 dias" : "Novidades do Portal"}</h2><p className="text-xs text-muted-foreground mt-1">Ranking por reproduções válidas de pelo menos 30 segundos. Um play por ouvinte e música a cada 30 minutos.</p></div>
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -343,6 +344,7 @@ export default function PortalPlay() {
                     <p className="text-xs text-muted-foreground truncate">
                       {song.artistaNome || song.compositor || "Artista"}
                     </p>
+                    <p className="text-[10px] text-primary/80 mt-1">{song.weeklyPlays || 0} plays válidos nos últimos 7 dias</p>
 
                     {(precoX || precoY) && (
                       <div className="flex items-center gap-2 mt-1 text-[11px]">

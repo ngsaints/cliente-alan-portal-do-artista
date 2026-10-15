@@ -425,24 +425,4 @@ router.post("/songs/:id/like", async (req, res): Promise<void> => {
   }
 });
 
-// POST /songs/:id/play - Register a play
-router.post("/songs/:id/play", async (req, res): Promise<void> => {
-  try {
-    const { id } = req.params;
-    
-    const [updated] = await db
-      .update(songsTable)
-      .set({
-        plays: sql`${songsTable.plays} + 1`,
-      })
-      .where(eq(songsTable.id, parseInt(id)))
-      .returning();
-
-    res.json({ plays: updated.plays });
-  } catch (error) {
-    console.error("Error registering play:", error);
-    res.status(500).json({ error: "Erro ao registrar reprodução" });
-  }
-});
-
 export default router;

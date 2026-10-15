@@ -1,3 +1,4 @@
+import { trackQualifiedPlay } from "../../../../lib/shared/qualified-play";
 import React, { createContext, useContext, useState, useRef, useEffect } from "react";
 import { type Song } from "@workspace/api-client-react";
 
@@ -52,6 +53,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [cardStyle, setCardStyleState] = useState<CardStyle>("default");
   const [cardMode, setCardMode] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentSongRef = useRef(currentSong);
+  currentSongRef.current = currentSong;
+  useEffect(() => { const audio = audioRef.current; if (!audio) return; return trackQualifiedPlay(audio, "/api", () => currentSongRef.current?.id ?? null); }, []);
+
 
   const setCardStyle = (style: CardStyle) => setCardStyleState(style);
 
@@ -76,7 +81,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       }
       setCurrentSong(song);
       setIsPlaying(true);
-      fetch(`/api/songs/${song.id}/play`, { method: 'POST' }).catch(() => {});
     }
   };
 
@@ -89,7 +93,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         playlistIndexRef.current = nextIndex;
         setCurrentSong(nextSong);
         setIsPlaying(true);
-        fetch(`/api/songs/${nextSong.id}/play`, { method: 'POST' }).catch(() => {});
         return;
       }
     }
@@ -106,7 +109,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           const nextSong = nextPlaylist.songs[0];
           setCurrentSong(nextSong);
           setIsPlaying(true);
-          fetch(`/api/songs/${nextSong.id}/play`, { method: 'POST' }).catch(() => {});
           return;
         }
       }

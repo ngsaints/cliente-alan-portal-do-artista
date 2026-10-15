@@ -100,8 +100,8 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queue }) => {
               {!song.status || song.status === 'Disponível' ? 'Livre' : 'Reservado'}
             </span>
           )}
-          {!song.isLocal && typeof song.plays === 'number' && song.plays > 0 && (
-            <span className="text-[10px] text-white/40 font-medium">{song.plays} plays</span>
+          {!song.isLocal && (song.weeklyPlays != null || (song.plays || 0) > 0) && (
+            <span className="text-[10px] text-white/40 font-medium">{song.weeklyPlays != null ? `${song.weeklyPlays} plays em 7 dias` : `${song.plays} plays`}</span>
           )}
         </div>
       </div>

@@ -15,6 +15,7 @@ export interface SongItem {
   artistaId?: string | number | null;
   artistaFoto?: string | null;
   plays?: number;
+  weeklyPlays?: number;
   likes?: number;
   status?: string | null;
   youtubeUrl?: string | null;

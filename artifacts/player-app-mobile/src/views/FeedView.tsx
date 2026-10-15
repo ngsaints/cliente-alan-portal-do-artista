@@ -14,9 +14,9 @@ export const FeedView: React.FC<{ onOpenExplore?: () => void }> = ({ onOpenExplo
 
   useEffect(() => {
     async function loadData() {
-      setLoading(true);
+
       const [sData, aData] = await Promise.all([
-        fetchExploreSongs(),
+        fetchExploreSongs("trending"),
         fetchExploreArtists(),
       ]);
       setSongs(sData);
@@ -24,6 +24,10 @@ export const FeedView: React.FC<{ onOpenExplore?: () => void }> = ({ onOpenExplo
       setLoading(false);
     }
     loadData();
+    const refresh = () => { if (!document.hidden) loadData(); };
+    const interval = setInterval(refresh, 60_000);
+    window.addEventListener("portal:qualified-play", refresh);
+    return () => { clearInterval(interval); window.removeEventListener("portal:qualified-play", refresh); };
   }, []);
 
   const featuredSong = songs[0];
@@ -62,7 +66,7 @@ export const FeedView: React.FC<{ onOpenExplore?: () => void }> = ({ onOpenExplo
             </div>
             <div className="flex-1 min-w-0">
               <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#f5c518] text-black inline-flex items-center gap-1 mb-1">
-                <Flame className="w-3 h-3" /> Destaque da semana
+                <Flame className="w-3 h-3" /> {featuredSong.weeklyPlays ? "Destaque da semana" : "Novidade no Portal"}
               </span>
               <h3 className="text-base font-extrabold text-white truncate">
                 {featuredSong.titulo}
@@ -127,7 +131,7 @@ export const FeedView: React.FC<{ onOpenExplore?: () => void }> = ({ onOpenExplo
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Flame className="w-5 h-5 text-[#f5c518]" />
-            Músicas em Alta no Portal
+            {songs.some(s => (s.weeklyPlays || 0) > 0) ? "Músicas em Alta no Portal" : "Novidades do Portal"}
           </h2>
           <span className="text-xs text-white/50">{songs.length} faixas</span>
         </div>
