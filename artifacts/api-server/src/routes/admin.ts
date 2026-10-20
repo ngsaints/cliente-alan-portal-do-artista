@@ -1,3 +1,4 @@
+import { summarizeArtistPlans } from "../lib/admin-stats.js";
 import { escapeEmailHtml, renderMarketingText, wrapMarketingEmail } from "@workspace/api-zod";
 import { Router, type IRouter } from "express";
 import multer from "multer";
@@ -54,18 +55,17 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
   }
 
   try {
-    const [allSongs, allArtists, allInterests, allPlans] = await Promise.all([
+    const [allSongs, allArtists, allInterests, allPlans, subscriptions] = await Promise.all([
       db.select({ id: songsTable.id }).from(songsTable),
-      db.select({ id: artistsTable.id }).from(artistsTable),
+      db.select({ id: artistsTable.id, plano: artistsTable.plano, planoAtivo: artistsTable.planoAtivo }).from(artistsTable),
       db.select({ id: interestsTable.id }).from(interestsTable),
       db.select({ id: plansTable.id }).from(plansTable),
+      db.select({ artistId: subscriptionsTable.artistId, planNome: subscriptionsTable.planNome, status: subscriptionsTable.status, amount: subscriptionsTable.amount, asaasPaymentId: subscriptionsTable.asaasPaymentId, expiresAt: subscriptionsTable.expiresAt }).from(subscriptionsTable),
     ]);
 
-    const [availSongs, vipSongs, freeArtists, paidArtists] = await Promise.all([
+    const [availSongs, vipSongs] = await Promise.all([
       db.select({ id: songsTable.id }).from(songsTable).where(eq(songsTable.status, "Disponível")),
       db.select({ id: songsTable.id }).from(songsTable).where(eq(songsTable.isVip, true)),
-      db.select({ id: artistsTable.id }).from(artistsTable).where(sql`${artistsTable.plano} = ${FREE_PLAN} OR ${artistsTable.planoAtivo} = false`),
-      db.select({ id: artistsTable.id }).from(artistsTable).where(sql`${artistsTable.plano} != ${FREE_PLAN} AND ${artistsTable.planoAtivo} = true`),
     ]);
 
     res.json({
@@ -75,8 +75,7 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
       totalPlans: allPlans.length,
       availableSongs: availSongs.length,
       vipSongs: vipSongs.length,
-      freeArtists: freeArtists.length,
-      paidArtists: paidArtists.length,
+      ...summarizeArtistPlans(allArtists, subscriptions),
     });
   } catch (error) {
     console.error("Error fetching stats:", error);

@@ -41,6 +41,7 @@ interface Stats {
   totalArtists: number;
   totalInterests: number;
   totalPlans: number;
+  activePlanArtists: number;
   availableSongs: number;
   vipSongs: number;
   freeArtists: number;
@@ -449,9 +450,9 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: MainTab) => void }) {
         <StatCard label="Artistas" value={stats?.totalArtists ?? 0} icon={Users} color="text-blue-400" />
         <StatCard label="Disponíveis" value={stats?.availableSongs ?? 0} icon={CheckCircle2} color="text-green-400" />
         <StatCard label="VIP" value={stats?.vipSongs ?? 0} icon={Crown} color="text-yellow-400" />
-        <StatCard label="Planos Ativos" value={stats?.totalPlans ?? 0} icon={Crown} color="text-purple-400" />
-        <StatCard label="Artistas Free" value={stats?.freeArtists ?? 0} icon={Users} color="text-muted-foreground" />
-        <StatCard label="Artistas Pagantes" value={stats?.paidArtists ?? 0} icon={CreditCard} color="text-emerald-400" />
+        <StatCard label="Planos Ativos" subtext="Artistas com plano não gratuito habilitado, incluindo cortesias" value={stats?.activePlanArtists ?? 0} icon={Crown} color="text-purple-400" />
+        <StatCard label="Free / sem plano ativo" subtext="Artistas no gratuito ou sem plano habilitado" value={stats?.freeArtists ?? 0} icon={Users} color="text-muted-foreground" />
+        <StatCard label="Artistas Pagantes" subtext="Pagamento registrado e assinatura vigente entre os planos ativos" value={stats?.paidArtists ?? 0} icon={CreditCard} color="text-emerald-400" />
         <StatCard label="Interesses/Leads" value={stats?.totalInterests ?? 0} icon={MessageSquare} color="text-orange-400" />
       </div>
 
