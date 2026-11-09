@@ -4,6 +4,10 @@ import { getEmailConfig, getPortalUrl } from "./email.js";
 import { getSubscriptionPayments } from "./asaas-client.js";
 
 export const FREE_PLAN = "free";
+/** Duração do plano pago após confirmação do pagamento. */
+export const PLAN_DURATION_DAYS = 30;
+/** Dias de tolerância após o vencimento antes de suspender o plano pago. */
+export const GRACE_DAYS = 3;
 
 type SubscriptionRow = typeof subscriptionsTable.$inferSelect;
 
@@ -12,6 +16,23 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const OVERDUE_NOTIFY_INTERVAL_MS = 7 * DAY_MS;
 // Evita disparar "seu plano expirou" para assinaturas vencidas há muito tempo (backfill).
 const EXPIRY_NOTIFY_WINDOW_MS = 7 * DAY_MS;
+
+/** Data de vencimento do plano: now + PLAN_DURATION_DAYS (evita bug do setMonth em 31/01). */
+export function planExpiryFromNow(from: Date = new Date()): Date {
+  return new Date(from.getTime() + PLAN_DURATION_DAYS * DAY_MS);
+}
+
+/** Fim do período de tolerância: expiresAt + GRACE_DAYS. */
+export function graceEndsAt(expiresAt: Date | string | null | undefined): Date | null {
+  if (!expiresAt) return null;
+  return new Date(new Date(expiresAt).getTime() + GRACE_DAYS * DAY_MS);
+}
+
+/** true se a assinatura está vencida E já passou da tolerância (deve ser suspensa). */
+export function isPastGrace(expiresAt: Date | string | null | undefined, now: Date = new Date()): boolean {
+  const graceEnd = graceEndsAt(expiresAt);
+  return !!graceEnd && graceEnd.getTime() < now.getTime();
+}
 
 async function getArtist(artistId: string | number) {
   const rows = await db
@@ -103,9 +124,8 @@ export async function expireSubscription(sub: SubscriptionRow): Promise<boolean>
 }
 
 /**
- * Varre assinaturas ativas vencidas, expira e reverte os planos.
- * Roda na subida do servidor e depois a cada hora (substitui a expiração "lazy"
- * que só acontecia quando o artista abria a página de assinatura).
+ * Varre assinaturas ativas vencidas além do período de tolerância (GRACE_DAYS),
+ * expira e reverte os planos. Roda na subida do servidor e depois a cada hora.
  */
 export async function runSubscriptionExpiry(): Promise<{ expired: number; reverted: number }> {
   const due = await db
@@ -114,7 +134,7 @@ export async function runSubscriptionExpiry(): Promise<{ expired: number; revert
     .where(
       and(
         eq(subscriptionsTable.status, "active"),
-        sql`${subscriptionsTable.expiresAt} IS NOT NULL AND ${subscriptionsTable.expiresAt} < now()`
+        sql`${subscriptionsTable.expiresAt} IS NOT NULL AND ${subscriptionsTable.expiresAt} < now() - interval '${sql.raw(String(GRACE_DAYS))} days'`
       )
     );
 
@@ -216,10 +236,10 @@ export async function handleAsaasPaymentOverdue(payment: any, subscription: any)
     await db.update(subscriptionsTable).set({ overdueAt: now }).where(eq(subscriptionsTable.id, sub.id));
   }
 
-  // Assinatura já vencida: encerra o ciclo e reverte o plano na hora (não espera o artista abrir a página).
-  if (sub.expiresAt && new Date(sub.expiresAt) < now) {
+  // Venceu E passou da tolerância de GRACE_DAYS: encerra o ciclo e reverte o plano.
+  if (isPastGrace(sub.expiresAt, now)) {
     await expireSubscription(sub);
-    console.warn(`[Assinaturas] PAYMENT_OVERDUE ${paymentId} em assinatura vencida ${sub.id} — plano revertido.`);
+    console.warn(`[Assinaturas] PAYMENT_OVERDUE ${paymentId} em assinatura vencida ${sub.id} (tolerância encerrada) — plano revertido.`);
     return;
   }
 
@@ -232,11 +252,15 @@ export async function handleAsaasPaymentOverdue(payment: any, subscription: any)
   const invoiceUrl = await invoiceLinkFor(sub);
   const portal = await getPortalUrl();
   const vencimento = sub.expiresAt ? new Date(sub.expiresAt).toLocaleDateString("pt-BR") : "";
+  const fimTolerancia = graceEndsAt(sub.expiresAt)?.toLocaleDateString("pt-BR") ?? "";
   const sent = await sendArtistEmail(
     sub.artistId,
     "Cobrança em atraso — renove seu plano no Portal do Artista",
-    `Olá!\n\nIdentificamos uma cobrança em atraso do plano ${sub.planNome}${vencimento ? ` (período até ${vencimento})` : ""}.\n` +
-      `Sem a confirmação do pagamento, seu perfil será movido para o plano gratuito ao fim do período contratado.\n\n` +
+    `Olá!\n\nIdentificamos uma cobrança em atraso do plano ${sub.planNome}${vencimento ? ` (vencimento em ${vencimento})` : ""}.\n` +
+      (fimTolerancia
+        ? `Você ainda está no período de tolerância de ${GRACE_DAYS} dias: até ${fimTolerancia} seu plano pago continua ativo.\n` +
+          `Após essa data, o plano será automaticamente suspenso e seu perfil voltará para o gratuito.\n\n`
+        : `Sem a confirmação do pagamento, seu perfil será movido para o plano gratuito.\n\n`) +
       (invoiceUrl ? `Pague pela fatura: ${invoiceUrl}\n\n` : "") +
       `Ou renove pelo Painel do Artista (aba Plano): ${portal}/artista/dashboard\n\n` +
       `Se você já pagou, desconsidere este aviso.\n\nPortal do Artista`

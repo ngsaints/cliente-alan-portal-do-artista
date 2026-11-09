@@ -10,6 +10,7 @@ import { uploadToR2, generateR2Key, r2Enabled } from "../lib/r2-storage.js";
 import { getEmailConfig, getPortalUrl } from "../lib/email.js";
 import { ADMIN_STUDIO_EMAIL } from "../lib/admin-studio.js";
 import { findOrCreateCustomer, createSubscription, getAsaasCredentials, getSubscriptionPayments, getPaymentPixQrCode } from "../lib/asaas-client.js";
+import { planExpiryFromNow } from "../lib/subscriptions.js";
 import { callOpenRouter, VIVI_FREE_MODEL, VIVI_FREE_FALLBACKS } from "../lib/openrouter.js";
 
 const router: IRouter = Router();
@@ -266,8 +267,7 @@ router.post(
           try {
             if (paidPlanActivatedDirectly) {
               // Direct activation: plan already active from insert, just record subscription
-              const expiresAt = new Date();
-              expiresAt.setMonth(expiresAt.getMonth() + 1);
+              const expiresAt = planExpiryFromNow();
               await db.insert(subscriptionsTable).values({
                 artistId: String(artist.id),
                 planNome: selectedPlano,

@@ -13,7 +13,7 @@ import {
 } from "../lib/asaas-client.js";
 import { applyCompletePlanPriceFloor } from "../lib/plan-price.js";
 import { fulfillAiCreditPurchase, parseCreditExternalRef } from "../lib/ai-credits.js";
-import { FREE_PLAN, expireSubscription, handleAsaasPaymentOverdue } from "../lib/subscriptions.js";
+import { FREE_PLAN, expireSubscription, handleAsaasPaymentOverdue, planExpiryFromNow, isPastGrace, graceEndsAt, GRACE_DAYS, PLAN_DURATION_DAYS } from "../lib/subscriptions.js";
 
 const router: IRouter = Router();
 
@@ -131,8 +131,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
         })
         .where(eq(artistsTable.id, parseInt(artistId)));
 
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + 1);
+      const expiresAt = planExpiryFromNow();
 
       await db.insert(subscriptionsTable).values({
         artistId: artistId,
@@ -269,8 +268,7 @@ router.post("/payments/create-preference", async (req, res): Promise<void> => {
       ));
 
     if (existingSubs.length === 0) {
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + 1);
+      const expiresAt = planExpiryFromNow();
 
       await db.insert(subscriptionsTable).values({
         artistId: artistId,
@@ -501,12 +499,27 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
       const planId = refPlanId;
 
       if (artistId && planId) {
-        const [plan] = await db.select().from(plansTable).where(eq(plansTable.nome, planId));
-        if (plan) {
+        // Planos legados removidos do catálogo (ex.: "basico") mapeiam para o equivalente atual.
+        const LEGACY_PLAN_MAP: Record<string, string> = { basico: "premium" };
+        const mappedPlanId = LEGACY_PLAN_MAP[planId] ?? planId;
+        const [plan] = await db.select().from(plansTable).where(eq(plansTable.nome, mappedPlanId));
+        if (!plan) {
+          // Não processa em silêncio: loga erro e responde 500 para o Asaas reenviar
+          // (evita perder pagamento confirmado quando o plano é renomeado/excluído).
+          console.error(
+            `Webhook Asaas: plano "${planId}" (mapeado: "${mappedPlanId}") não existe — pagamento ${paymentData.id} do artista ${artistId} NÃO processado.`
+          );
+          res.status(500).json({ error: `Plano "${planId}" não encontrado` });
+          return;
+        }
+        if (mappedPlanId !== planId) {
+          console.warn(`Webhook Asaas: plano legado "${planId}" mapeado para "${mappedPlanId}" (artista ${artistId}, payment ${paymentData.id})`);
+        }
+        {
           await db
             .update(artistsTable)
             .set({
-              plano: planId,
+              plano: mappedPlanId,
               planoAtivo: true,
               limiteMusicas: String(plan.limiteMusicas),
               personalizacaoPercent: String(plan.personalizacaoPercent),
@@ -522,7 +535,7 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
             .where(and(
               eq(subscriptionsTable.artistId, artistId),
               eq(subscriptionsTable.status, "active"),
-              sql`${subscriptionsTable.planNome} != ${planId}`
+              sql`${subscriptionsTable.planNome} != ${mappedPlanId}`
             ));
           for (const oldSub of otherActive) {
             if (
@@ -542,24 +555,26 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
               .where(eq(subscriptionsTable.id, oldSub.id));
           }
 
-          const expiresAt = new Date();
-          expiresAt.setMonth(expiresAt.getMonth() + 1);
+          const expiresAt = planExpiryFromNow();
 
           if (pendingSub) {
             await db
               .update(subscriptionsTable)
               .set({
                 status: "active",
+                planNome: mappedPlanId,
                 asaasPaymentId: paymentData.id,
                 billingType: paymentData.billingType ?? pendingSub.billingType,
                 startedAt: new Date(),
                 expiresAt,
+                overdueAt: null,
+                overdueNotifiedAt: null,
               })
               .where(eq(subscriptionsTable.id, pendingSub.id));
           } else {
             await db.insert(subscriptionsTable).values({
               artistId: artistId,
-              planNome: planId,
+              planNome: mappedPlanId,
               asaasSubscriptionId: subId ?? null,
               asaasPaymentId: paymentData.id,
               status: "active",
@@ -570,7 +585,7 @@ router.post("/webhooks/asaas", async (req, res): Promise<void> => {
             });
           }
 
-          console.log(`✅ Artista ${artistId} atualizado para plano ${planId} | Payment: ${paymentData.id}`);
+          console.log(`✅ Artista ${artistId} atualizado para plano ${mappedPlanId} | Payment: ${paymentData.id}`);
         }
       }
     } else if (event === "SUBSCRIPTION_CREATED" || event === "SUBSCRIPTION_UPDATED") {
@@ -597,7 +612,8 @@ router.get("/payments/subscription/:artistId", async (req, res): Promise<void> =
       .orderBy(sql`${subscriptionsTable.createdAt} DESC`);
 
     const active = subscriptions.find(s => s.status === "active");
-    const expired = !!(active && active.expiresAt && new Date(active.expiresAt) < new Date());
+    // Só suspende após o período de tolerância (GRACE_DAYS); durante a tolerância o plano continua ativo.
+    const expired = !!(active && isPastGrace(active.expiresAt));
 
     if (expired && active) {
       await expireSubscription(active);
@@ -605,7 +621,9 @@ router.get("/payments/subscription/:artistId", async (req, res): Promise<void> =
 
     res.json({
       subscriptions,
-      activeSubscription: active && !expired ? { ...active, expired: false } : null,
+      activeSubscription: active && !expired ? { ...active, expired: false, graceEndsAt: graceEndsAt(active.expiresAt) } : null,
+      graceDays: GRACE_DAYS,
+      planDurationDays: PLAN_DURATION_DAYS,
     });
   } catch (error) {
     console.error("Error fetching subscription:", error);
